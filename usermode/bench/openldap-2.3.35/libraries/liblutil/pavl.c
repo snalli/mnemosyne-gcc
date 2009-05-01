@@ -37,16 +37,23 @@
 #include <stdio.h>
 #include <ac/stdlib.h>
 
-//#ifdef CSRIMALLOC
-#define ber_memalloc malloc
-#define ber_memrealloc realloc
-#define ber_memfree free
-//#else
-//#include "lber.h"
-//#endif
+#define ber_memalloc pmalloc
+#define ber_memrealloc prealloc
+#define ber_memfree pfree
 
 #define AVL_INTERNAL
 #include "avl.h"
+
+#define TM_CALLABLE __attribute__((tm_callable))
+
+void *pmalloc(size_t sz);
+void pfree(void *);
+void *prealloc(void *ptr, size_t size);
+
+__attribute__((tm_wrapping(pmalloc))) void *pmallocTxn(size_t);
+__attribute__((tm_wrapping(pfree))) void pfreeTxn(void *);
+__attribute__((tm_wrapping(prealloc))) void *preallocTxn(size_t);
+
 
 static const int avl_bfs[] = {LH, RH};
 
@@ -65,6 +72,7 @@ static const int avl_bfs[] = {LH, RH};
  *
  * NOTE: this routine may malloc memory
  */
+TM_CALLABLE
 int
 pavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
 {
@@ -173,6 +181,7 @@ pavl_insert( Avlnode ** root, void *data, AVL_CMP fcmp, AVL_DUP fdup )
   return 0;
 }
 
+TM_CALLABLE
 void*
 pavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 {
@@ -345,6 +354,7 @@ pavl_delete( Avlnode **root, void* data, AVL_CMP fcmp )
 	return data;
 }
 
+TM_CALLABLE
 static int
 pavl_inapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 {
@@ -365,6 +375,7 @@ pavl_inapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 		return( pavl_inapply( root->avl_right, fn, arg, stopflag ) );
 }
 
+TM_CALLABLE
 static int
 pavl_postapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 {
@@ -384,6 +395,7 @@ pavl_postapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 	return( (*fn)( root->avl_data, arg ) );
 }
 
+TM_CALLABLE
 static int
 pavl_preapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
 {
@@ -412,6 +424,7 @@ pavl_preapply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag )
  * of nodes.
  */
 
+TM_CALLABLE
 int
 pavl_apply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag, int type )
 {
@@ -423,7 +436,9 @@ pavl_apply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag, int type )
 	case AVL_POSTORDER:
 		return( pavl_postapply( root, fn, arg, stopflag ) );
 	default:
-		fprintf( stderr, "Invalid traversal type %d\n", type );
+		__tm_waiver {
+			fprintf( stderr, "Invalid traversal type %d\n", type );
+		}
 		return( -1 );
 	}
 
@@ -441,6 +456,7 @@ pavl_apply( Avlnode *root, AVL_APPLY fn, void* arg, int stopflag, int type )
  * AVL_NOMORE is returned.
  */
 
+TM_CALLABLE
 int
 pavl_prefixapply(
     Avlnode	*root,
@@ -492,6 +508,7 @@ pavl_prefixapply(
  * number of items actually freed is returned.
  */
 
+TM_CALLABLE
 int
 pavl_free( Avlnode *root, AVL_FREE dfree )
 {
@@ -502,10 +519,10 @@ pavl_free( Avlnode *root, AVL_FREE dfree )
 
 	nleft = nright = 0;
 	if ( root->avl_left != 0 )
-		nleft = avl_free( root->avl_left, dfree );
+		nleft = pavl_free( root->avl_left, dfree );
 
 	if ( root->avl_right != 0 )
-		nright = avl_free( root->avl_right, dfree );
+		nright = pavl_free( root->avl_right, dfree );
 
 	if ( dfree )
 		(*dfree)( root->avl_data );
@@ -521,6 +538,7 @@ pavl_free( Avlnode *root, AVL_FREE dfree )
  * < 0 if arg1 is less than arg2 and > 0 if arg1 is greater than arg2.
  */
 
+TM_CALLABLE
 Avlnode *
 pavl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 {
@@ -533,6 +551,7 @@ pavl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 	return root;
 }
 
+TM_CALLABLE
 void*
 pavl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 {
@@ -553,6 +572,7 @@ pavl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
  * they match, non-zero otherwise.
  */
 
+TM_CALLABLE
 void*
 pavl_find_lin( Avlnode *root, const void* data, AVL_CMP fcmp )
 {
@@ -565,14 +585,14 @@ pavl_find_lin( Avlnode *root, const void* data, AVL_CMP fcmp )
 		return( root->avl_data );
 
 	if ( root->avl_left != 0 )
-		if ( (res = avl_find_lin( root->avl_left, data, fcmp ))
+		if ( (res = pavl_find_lin( root->avl_left, data, fcmp ))
 		    != NULL )
 			return( res );
 
 	if ( root->avl_right == 0 )
 		return( NULL );
 	else
-		return( avl_find_lin( root->avl_right, data, fcmp ) );
+		return( pavl_find_lin( root->avl_right, data, fcmp ) );
 }
 
 /* NON-REENTRANT INTERFACE */
@@ -584,6 +604,7 @@ static int	avl_nextlist;
 #define AVL_GRABSIZE	100
 
 /* ARGSUSED */
+TM_CALLABLE
 static int
 pavl_buildlist( void* data, void* arg )
 {
@@ -616,6 +637,7 @@ pavl_buildlist( void* data, void* arg )
  * different trees) cannot be active at once.
  */
 
+TM_CALLABLE
 void*
 pavl_getfirst( Avlnode *root )
 {
@@ -634,6 +656,7 @@ pavl_getfirst( Avlnode *root )
 	return( avl_list[ avl_nextlist++ ] );
 }
 
+TM_CALLABLE
 void*
 pavl_getnext( void )
 {
@@ -652,12 +675,14 @@ pavl_getnext( void )
 /* end non-reentrant code */
 
 
+TM_CALLABLE
 int
 pavl_dup_error( void* left, void* right )
 {
 	return( -1 );
 }
 
+TM_CALLABLE
 int
 pavl_dup_ok( void* left, void* right )
 {

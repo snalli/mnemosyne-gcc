@@ -142,44 +142,59 @@ LDAP_AVL_F( Avlnode* )
 tavl_next LDAP_P((Avlnode *, int direction ));
 
 
+#define _TM_CALLABLE __attribute__((tm_callable))
+
+_TM_CALLABLE
 LDAP_AVL_F( int )
 pavl_free LDAP_P(( Avlnode *root, AVL_FREE dfree ));
 
+_TM_CALLABLE
 LDAP_AVL_F( int )
 pavl_insert LDAP_P((Avlnode **, void*, AVL_CMP, AVL_DUP));
 
+_TM_CALLABLE
 LDAP_AVL_F( void* )
 pavl_delete LDAP_P((Avlnode **, void*, AVL_CMP));
 
+_TM_CALLABLE
 LDAP_AVL_F( void* )
 pavl_find LDAP_P((Avlnode *, const void*, AVL_CMP));
 
+_TM_CALLABLE
 LDAP_AVL_F( Avlnode* )
 pavl_find2 LDAP_P((Avlnode *, const void*, AVL_CMP));
 
+_TM_CALLABLE
 LDAP_AVL_F( void* )
 pavl_find_lin LDAP_P((Avlnode *, const void*, AVL_CMP));
 
 #ifdef AVL_NONREENTRANT
+_TM_CALLABLE
 LDAP_AVL_F( void* )
 pavl_getfirst LDAP_P((Avlnode *));
 
+_TM_CALLABLE
 LDAP_AVL_F( void* )
 pavl_getnext LDAP_P((void));
 #endif
 
+_TM_CALLABLE
 LDAP_AVL_F( int )
 pavl_dup_error LDAP_P((void*, void*));
 
+_TM_CALLABLE
 LDAP_AVL_F( int )
 pavl_dup_ok LDAP_P((void*, void*));
 
+_TM_CALLABLE
 LDAP_AVL_F( int )
 pavl_apply LDAP_P((Avlnode *, AVL_APPLY, void*, int, int));
 
+_TM_CALLABLE
 LDAP_AVL_F( int )
 pavl_prefixapply LDAP_P((Avlnode *, void*, AVL_CMP, void*, AVL_CMP, void*, int));
 
+#undef _TM_CALLABLE
 
 /* apply traversal types */
 #define AVL_PREORDER	1

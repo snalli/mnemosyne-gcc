@@ -77,6 +77,7 @@ inline static processHeap * getAllocator (persistentHeap *persistentHeap) {
 #define HOARD_FREE            pfree
 #define HOARD_FREE_TXN        pfreeTxn
 #define HOARD_REALLOC         prealloc
+#define HOARD_REALLOC_TXN     preallocTxn
 #define HOARD_CALLOC          pcalloc
 #define HOARD_MEMALIGN        pmemalign
 #define HOARD_VALLOC          pvalloc
@@ -89,6 +90,7 @@ extern "C" void * HOARD_MALLOC_TXN(size_t);
 extern "C" void   HOARD_FREE(void *);
 extern "C" void   HOARD_FREE_TXN(void *);
 extern "C" void * HOARD_REALLOC(void *, size_t);
+extern "C" void * HOARD_REALLOC_TXN(void *, size_t);
 extern "C" void * HOARD_CALLOC(size_t, size_t);
 extern "C" void * HOARD_MEMALIGN(size_t, size_t);
 extern "C" void * HOARD_VALLOC(size_t);
@@ -96,6 +98,7 @@ extern "C" size_t HOARD_GET_USABLE_SIZE(void *);
 
 __attribute__((tm_wrapping(HOARD_MALLOC))) void *HOARD_MALLOC_TXN(size_t);
 __attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
+__attribute__((tm_wrapping(HOARD_REALLOC))) void *HOARD_REALLOC_TXN(void *, size_t);
 
 static void * malloc_internal (size_t sz)
 {
@@ -105,7 +108,7 @@ static void * malloc_internal (size_t sz)
 	if (sz == 0) {
 		sz = 1;
 	}
-	//printf("pmalloc[START]: size = %d\n",  sz);
+	//printf("pmalloc[START]: size = %d\n",  (int) sz);
 	if (sz >= SUPERBLOCK_SIZE) {
 		/* Fall back to the standard persistent allocator. 
 		 * Begin a new atomic block to force the compiler to fall through down the TM 
@@ -119,7 +122,7 @@ static void * malloc_internal (size_t sz)
 	} else {
 		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
 	}
-	//printf("pmalloc[DONE]: addr=%p,  size = %d\n",  addr, sz);
+	//printf("pmalloc[DONE]: addr=%p,  size = %d\n",  addr, (int) sz);
 	return addr;
 }
 
@@ -203,47 +206,60 @@ extern "C" void * HOARD_MEMALIGN (size_t, size_t)
 
 extern "C" void * HOARD_VALLOC (size_t size)
 {
-  return HOARD_MEMALIGN (hoardGetPageSize(), size);
+	return HOARD_MEMALIGN (hoardGetPageSize(), size);
+}
+
+
+static void * realloc_internal (void * ptr, size_t sz)
+{
+	if (ptr == NULL) {
+		return malloc_internal (sz);
+	}
+	if (sz == 0) {
+		free_internal (ptr);
+	return NULL;
+	}
+
+	// If the existing object can hold the new size,
+	// just return it.
+	size_t objSize = threadHeap::objectSize (ptr);
+
+	if (objSize >= sz) {
+		return ptr;
+	}
+
+	// Allocate a new block of size sz.
+	void * buf = malloc_internal (sz);
+
+	// Copy the contents of the original object
+	// up to the size of the new block.
+
+	// FIXME: how to guarantee atomicity of the memcpy below in the presence of failures?
+	// The best approach is to use shadow-update.
+	size_t minSize = (objSize < sz) ? objSize : sz;
+	memcpy (buf, ptr, minSize);
+
+	// Free the old block.
+	free_internal (ptr);
+
+	// Return a pointer to the new one.
+	return buf;
 }
 
 
 extern "C" void * HOARD_REALLOC (void * ptr, size_t sz)
 {
-  if (ptr == NULL) {
-    return HOARD_MALLOC (sz);
-  }
-  if (sz == 0) {
-    HOARD_FREE (ptr);
-    return NULL;
-  }
-
-  // If the existing object can hold the new size,
-  // just return it.
-
-  size_t objSize = threadHeap::objectSize (ptr);
-
-  if (objSize >= sz) {
-    return ptr;
-  }
-
-  // Allocate a new block of size sz.
-
-  void * buf = HOARD_MALLOC (sz);
-
-  // Copy the contents of the original object
-  // up to the size of the new block.
-
-  size_t minSize = (objSize < sz) ? objSize : sz;
-  memcpy (buf, ptr, minSize);
-
-  // Free the old block.
-
-  HOARD_FREE (ptr);
-
-  // Return a pointer to the new one.
-
-  return buf;
+	return realloc_internal(ptr, sz);
+	//std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
+	//abort();
 }
+
+
+extern "C" void * HOARD_REALLOC_TXN (void * ptr, size_t sz)
+{
+	return realloc_internal(ptr, sz);
+}
+
 
 extern "C" size_t HOARD_GET_USABLE_SIZE (void * ptr)
 {

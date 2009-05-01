@@ -1,0 +1,42 @@
+OpenLDAP Mnemosyne Backend
+==========================
+
+The backend is based on back-ldbm which we modified to make one of its caches
+persistent. 
+
+
+Prerequisites
+-------------
+
+- Mnemosyne
+- Intel STM Compiler v.3.0
+
+
+Building
+--------
+
+$MNEMOSYNE_DIR: Mnemosyne directory
+$LDAP_SRC_DIR : OpenLDAP source directory
+$BUILD_DIR    : OpenLDAP build directory; where you will build OpenLDAP
+
+
+1. Set the following environment variables:
+
+   % export CC=icc
+   % export CFLAGS=-Qtm_enabled -gcc-version=410
+   % export CPPFLAGS=-D_GNU_SOURCE
+
+2. Run configure
+
+   % mkdir $BUILD_DIR
+   % cd $BUILD_DIR
+   % $LDAP_SRC_DIR/configure --without-tls
+
+3. Edit $BUILD_DIR/servers/slapd/Makefile
+
+   LUTIL_LIBS = -L$MNEMOSYNE_DIR/usermode/build/library/malloc/ -lmalloc -L$MNEMOSYNE_DIR/usermode/build/library/mnemosyne/ -lmnemosyne
+
+4. make 
+
+Example:
+   LUTIL_LIBS = -L/home/hvolos/workspace/mnemosyne/usermode/build/library/malloc/ -lmalloc -L/home/hvolos/workspace/mnemosyne/usermode/build/library/mnemosyne/ -lmnemosyne

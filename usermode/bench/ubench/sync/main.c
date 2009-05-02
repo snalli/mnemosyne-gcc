@@ -351,7 +351,7 @@ void fixture_ubench_msync(void *arg, system_t system)
 	char                           filename[128];
 	uint64_t                       *page_addr;
 	uint64_t                       index;
-    volatile uint64_t              local; /* disable any optimizations around local by making it volatile */
+	volatile uint64_t              local; /* disable any optimizations around local by making it volatile */
 		
 	fixture_state = (fixture_state_ubench_msync_t*) malloc(sizeof(fixture_state_ubench_msync_t));
 	fixture_state->seed = 0;
@@ -379,7 +379,6 @@ void fixture_ubench_msync(void *arg, system_t system)
 			local = *page_addr;
 		}
 	}
-
 
 	args->fixture_state = (void *) fixture_state;
 }

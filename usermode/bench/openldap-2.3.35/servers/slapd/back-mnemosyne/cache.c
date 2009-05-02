@@ -26,6 +26,13 @@
 
 #include "back-ldbm.h"
 
+#if 0
+# define pavl_insert    avl_insert
+# define pavl_delete    avl_delete
+# define pavl_find      avl_find
+# define pavl_dup_error avl_dup_error
+#endif
+
 /* LDBM backend specific entry info -- visible only to the cache */
 typedef struct ldbm_entry_info {
 	/*
@@ -206,6 +213,7 @@ cache_add_entry_rw(
 )
 {
 	int	i, rc;
+	int     ret;
 	Entry	*ee;
 
 	/* set cache mutex */
@@ -239,16 +247,21 @@ cache_add_entry_rw(
 		return( 1 );
 	}
 
+	__tm_atomic 
+	{
+		ret = pavl_insert( &cache->c_idtree, (caddr_t) e,
+		                  entry_id_cmp, pavl_dup_error );
+	}
+
 	/* id tree */
-	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
-	                 entry_id_cmp, avl_dup_error ) != 0 )
+	if ( ret != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_add_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
+		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
 		                 entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
@@ -343,15 +356,15 @@ cache_update_entry(
 	}
 
 	/* id tree */
-	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
-	                 entry_id_cmp, avl_dup_error ) != 0 )
+	if ( pavl_insert( &cache->c_idtree, (caddr_t) e,
+	                 entry_id_cmp, pavl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_update_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
+		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
 		                 entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
@@ -503,7 +516,7 @@ try_again:
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
+	if ( (ep = (Entry *) pavl_find( cache->c_idtree, (caddr_t) &e,
 	                               entry_id_cmp )) != NULL )
 	{
 		int state;
@@ -604,7 +617,7 @@ cache_delete_entry_internal(
 	}
 
 	/* id tree */
-	if ( avl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
+	if ( pavl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
 	{
 		rc = -1;
 	}

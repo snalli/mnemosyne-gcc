@@ -127,6 +127,9 @@ ldbm_back_close(
 	return 0;
 }
 
+
+void reincarnate_id2entry_cache(Cache *li_cache);
+
 int
 ldbm_back_db_init(
     Backend	*be
@@ -137,11 +140,13 @@ ldbm_back_db_init(
 	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
 
+	li->li_cache = (Cache *) ch_calloc( 1, sizeof(Cache) );
+
 	/* arrange to read nextid later (on first request for it) */
 	li->li_nextid = NOID;
 
 	/* default cache size */
-	li->li_cache.c_maxsize = DEFAULT_CACHE_SIZE;
+	li->li_cache->c_maxsize = DEFAULT_CACHE_SIZE;
 
 	/* default database cache size */
 	li->li_dbcachesize = DEFAULT_DBCACHE_SIZE;
@@ -178,12 +183,14 @@ ldbm_back_db_init(
 
 	/* initialize various mutex locks & condition variables */
 	ldap_pvt_thread_rdwr_init( &li->li_giant_rwlock );
-	ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex );
+	ldap_pvt_thread_mutex_init( &li->li_cache->c_mutex );
 	ldap_pvt_thread_mutex_init( &li->li_dbcache_mutex );
 	ldap_pvt_thread_cond_init( &li->li_dbcache_cv );
 
 	be->be_private = li;
 
+
+	reincarnate_id2entry_cache(li->li_cache);
 	return 0;
 }
 
@@ -248,7 +255,7 @@ ldbm_back_db_destroy(
 	attr_index_destroy( li->li_attrs );
 
 	ldap_pvt_thread_rdwr_destroy( &li->li_giant_rwlock );
-	ldap_pvt_thread_mutex_destroy( &li->li_cache.c_mutex );
+	ldap_pvt_thread_mutex_destroy( &li->li_cache->c_mutex );
 	ldap_pvt_thread_mutex_destroy( &li->li_dbcache_mutex );
 	ldap_pvt_thread_cond_destroy( &li->li_dbcache_cv );
 
@@ -261,7 +268,7 @@ ldbm_back_db_destroy(
 #if SLAPD_MNEMOSYNE == SLAPD_MOD_DYNAMIC
 
 /* conditionally define the init_module() function */
-SLAP_BACKEND_INIT_MODULE( mnemosyne )
+SLAP_BACKEND_INIT_MODULE( ldbm )
 
 #endif /* SLAPD_MNEMOSYNE == SLAPD_MOD_DYNAMIC */
 

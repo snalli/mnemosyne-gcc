@@ -112,7 +112,7 @@ Entry *deref_internal_r(
 			ch_free( aliasDN.bv_val );
 
 			if( newe != NULL ) {
-				cache_return_entry_r(&li->li_cache, entry );
+				cache_return_entry_r(li->li_cache, entry );
 				entry = newe;
 				ber_dupbv( &dn, &entry->e_nname );
 				ber_bvarray_add( &dnlist, &dn );
@@ -120,7 +120,7 @@ Entry *deref_internal_r(
 			}
 			
 			if ( sup != NULL ) {
-				cache_return_entry_r(&li->li_cache, entry );
+				cache_return_entry_r(li->li_cache, entry );
 				entry = NULL;
 				continue;
 			}
@@ -175,7 +175,7 @@ Entry *deref_internal_r(
 
 			if( newe != NULL ) {
 				free(aliasDN.bv_val);
-				cache_return_entry_r(&li->li_cache, sup );
+				cache_return_entry_r(li->li_cache, sup );
 				entry = newe;
 				ber_dupbv( &dn, &entry->e_nname );
 				ber_bvarray_add( &dnlist, &dn );
@@ -183,7 +183,7 @@ Entry *deref_internal_r(
 			}
 			
 			if ( newSup != NULL ) {
-				cache_return_entry_r(&li->li_cache, sup );
+				cache_return_entry_r(li->li_cache, sup );
 				sup = newSup;
 				ber_dupbv( &dn, &aliasDN );
 				continue;

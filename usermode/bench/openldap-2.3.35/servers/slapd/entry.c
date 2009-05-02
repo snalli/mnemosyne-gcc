@@ -36,6 +36,8 @@
 #include "slap.h"
 #include "ldif.h"
 
+#include "mnemosyne.h"
+
 static char		*ebuf;	/* buf returned by entry2str		 */
 static char		*ecur;	/* pointer to end of currently used ebuf */
 static int		emaxsize;/* max size of ebuf			 */
@@ -828,3 +830,140 @@ Entry *entry_dup( Entry *e )
 	return ret;
 }
 
+/* Create a persistent duplicate */
+Entry *entry_pdup( Entry *e )
+{
+	Entry *ret;
+
+	ret = (Entry *)pmalloc(sizeof(*ret) );
+
+	/* 
+	 * Don't need to memset to 0 the returned memory since all fields 
+         * are written below.
+         */
+
+	ret->e_id = e->e_id;
+	ber_pdupbv( &ret->e_name, &e->e_name, pmalloc, pfree );
+	ber_pdupbv( &ret->e_nname, &e->e_nname, pmalloc, pfree );
+	ret->e_attrs = attrs_pdup( e->e_attrs );
+	ret->e_ocflags = e->e_ocflags;
+	ret->e_bv.bv_val = NULL;
+	ret->e_bv.bv_len = 0;
+	ret->e_private = NULL;
+
+	return ret;
+}
+
+static
+void
+print_str(char *str, int len)
+{
+	int i;
+	for (i=0; i<len; i++) {
+		printf("%c", str[i]);
+	}
+}
+
+void 
+print_entry(Entry	*e)
+{
+	Attribute	*a;
+	struct berval	*bv;
+	int		i;
+	ber_len_t tmplen;
+
+	assert( e != NULL );
+
+	/* put the dn */
+	if ( e->e_dn != NULL ) {
+		printf("dn: ");
+		print_str(e->e_dn, e->e_name.bv_len);
+	}
+
+	/* put the attributes */
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		/* put "<type>:[:] <value>" line for each value */
+		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
+			bv = &a->a_vals[i];
+			printf("\n");
+			print_str(a->a_desc->ad_cname.bv_val, a->a_desc->ad_cname.bv_len);
+			printf(": ");
+			print_str(bv->bv_val, bv->bv_len);
+		}
+	}
+
+	return( ebuf );
+}
+
+
+
+
+
+
+/* Flatten an Entry into a buffer. The buffer is filled with just the
+ * strings/bervals of all the entry components. Each field is preceded
+ * by its length, encoded the way ber_put_len works. Every field is NUL
+ * terminated.  The entire buffer size is precomputed so that a single
+ * malloc can be performed. The entry size is also recorded,
+ * to aid in entry_decode.
+ */
+int entry_pencode(Entry *e, struct berval *bv)
+{
+	ber_len_t len, dnlen, ndnlen;
+	int i, nattrs, nvals;
+	Attribute *a;
+	unsigned char *ptr;
+
+	Debug( LDAP_DEBUG_TRACE, "=> entry_encode(0x%08lx): %s\n",
+		(long) e->e_id, e->e_dn, 0 );
+	dnlen = e->e_name.bv_len;
+	ndnlen = e->e_nname.bv_len;
+
+	entry_partsize( e, &len, &nattrs, &nvals, 1 );
+
+	bv->bv_len = len;
+	bv->bv_val = pmalloc(len);
+	ptr = (unsigned char *)bv->bv_val;
+	entry_putlen(&ptr, nattrs);
+	entry_putlen(&ptr, nvals);
+	entry_putlen(&ptr, dnlen);
+	AC_MEMCPY(ptr, e->e_dn, dnlen);
+	ptr += dnlen;
+	*ptr++ = '\0';
+	entry_putlen(&ptr, ndnlen);
+	AC_MEMCPY(ptr, e->e_ndn, ndnlen);
+	ptr += ndnlen;
+	*ptr++ = '\0';
+
+	for (a=e->e_attrs; a; a=a->a_next) {
+		entry_putlen(&ptr, a->a_desc->ad_cname.bv_len);
+		AC_MEMCPY(ptr, a->a_desc->ad_cname.bv_val,
+			a->a_desc->ad_cname.bv_len);
+		ptr += a->a_desc->ad_cname.bv_len;
+		*ptr++ = '\0';
+		if (a->a_vals) {
+			for (i=0; a->a_vals[i].bv_val; i++);
+				entry_putlen(&ptr, i);
+				for (i=0; a->a_vals[i].bv_val; i++) {
+				entry_putlen(&ptr, a->a_vals[i].bv_len);
+				AC_MEMCPY(ptr, a->a_vals[i].bv_val,
+					a->a_vals[i].bv_len);
+				ptr += a->a_vals[i].bv_len;
+				*ptr++ = '\0';
+			}
+			if (a->a_nvals != a->a_vals) {
+				entry_putlen(&ptr, i);
+				for (i=0; a->a_nvals[i].bv_val; i++) {
+					entry_putlen(&ptr, a->a_nvals[i].bv_len);
+					AC_MEMCPY(ptr, a->a_nvals[i].bv_val,
+					a->a_nvals[i].bv_len);
+					ptr += a->a_nvals[i].bv_len;
+					*ptr++ = '\0';
+				}
+			} else {
+				entry_putlen(&ptr, 0);
+			}
+		}
+	}
+	return 0;
+}

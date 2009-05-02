@@ -21,7 +21,6 @@
 #include "list.h"
 #include "debug.h"
 
-
 static m_result_t persistent_shdr_open(char *module_path, uint64_t module_inode, uintptr_t module_start, module_dsr_t *module_dsr);
 
 struct list_head module_dsr_list;
@@ -60,6 +59,7 @@ m_module_relocate_symbols(uintptr_t got_start,
 		if (symbol_old_addr >= old_start && symbol_old_addr < old_end) {
 			symbol_new_addr = symbol_old_addr - old_start + new_start;
 			*((uintptr_t *) entry) = symbol_new_addr;
+			//printf("relocate_symbol: %lx ==> %lx\n", symbol_old_addr, symbol_new_addr );
 		}
 	}
 }

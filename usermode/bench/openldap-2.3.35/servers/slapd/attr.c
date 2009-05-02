@@ -39,6 +39,7 @@
 #include <ac/time.h>
 
 #include "slap.h"
+#include "mnemosyne.h"
 
 Attribute *
 attr_alloc( AttributeDescription *ad )
@@ -56,6 +57,25 @@ attr_alloc( AttributeDescription *ad )
 
 	return a;
 }
+
+
+Attribute *
+attr_palloc( AttributeDescription *ad )
+{
+	Attribute *a = pmalloc( sizeof(Attribute) );
+
+	a->a_desc = ad;
+	a->a_next = NULL;
+	a->a_flags = 0;
+	a->a_vals = NULL;
+	a->a_nvals = NULL;
+#ifdef LDAP_COMP_MATCH
+	a->a_comp_data = NULL;
+#endif
+
+	return a;
+}
+
 
 void
 attr_free( Attribute *a )
@@ -152,6 +172,61 @@ attr_dup( Attribute *a )
 	return tmp;
 }
 
+
+Attribute *
+attr_pdup( Attribute *a )
+{
+	Attribute *tmp;
+
+	if ( a == NULL) return NULL;
+
+	tmp = attr_palloc( a->a_desc );
+
+	if ( a->a_vals != NULL ) {
+		int	i;
+
+		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
+			/* EMPTY */ ;
+		}
+
+		tmp->a_vals = pmalloc( (i + 1) * sizeof(struct berval) );
+		for ( i = 0; !BER_BVISNULL( &a->a_vals[i] ); i++ ) {
+			ber_pdupbv( &tmp->a_vals[i], &a->a_vals[i], pmalloc, pfree);
+			if ( BER_BVISNULL( &tmp->a_vals[i] ) ) break;
+			/* FIXME: error? */
+		}
+		BER_BVZERO( &tmp->a_vals[i] );
+
+		/* a_nvals must be non null; it may be equal to a_vals */
+		assert( a->a_nvals != NULL );
+
+		if ( a->a_nvals != a->a_vals ) {
+			int	j;
+
+			tmp->a_nvals = pmalloc( (i + 1) * sizeof(struct berval) );
+			for ( j = 0; !BER_BVISNULL( &a->a_nvals[j] ); j++ ) {
+				assert( j < i );
+				ber_pdupbv( &tmp->a_nvals[j], &a->a_nvals[j], pmalloc, pfree);
+				if ( BER_BVISNULL( &tmp->a_nvals[j] ) ) break;
+				/* FIXME: error? */
+			}
+			assert( j == i );
+			BER_BVZERO( &tmp->a_nvals[j] );
+
+		} else {
+			tmp->a_nvals = tmp->a_vals;
+		}
+
+	} else {
+		tmp->a_vals = NULL;
+		tmp->a_nvals = NULL;
+	}
+	return tmp;
+}
+
+
+
+
 Attribute *
 attrs_dup( Attribute *a )
 {
@@ -170,6 +245,27 @@ attrs_dup( Attribute *a )
 
 	return tmp;
 }
+
+
+Attribute *
+attrs_pdup( Attribute *a )
+{
+	Attribute *tmp, **next;
+
+	if( a == NULL ) return NULL;
+
+	tmp = NULL;
+	next = &tmp;
+
+	for( ; a != NULL ; a = a->a_next ) {
+		*next = attr_pdup( a );
+		next = &((*next)->a_next);
+	}
+	*next = NULL;
+
+	return tmp;
+}
+
 
 
 /*

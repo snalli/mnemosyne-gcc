@@ -97,7 +97,7 @@ ldbm_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		if ( lutil_atoi( &li->li_cache.c_maxsize, argv[1] ) != 0 ) {
+		if ( lutil_atoi( li->li_cache->c_maxsize, argv[1] ) != 0 ) {
 			fprintf( stderr,
 		"%s: line %d: unable to parse cachesize \"%s\"\n",
 			    fname, lineno, argv[1] );

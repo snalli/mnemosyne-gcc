@@ -206,7 +206,6 @@ cache_add_entry_rw(
 )
 {
 	int	i, rc;
-	int     ret;
 	Entry	*ee;
 
 	/* set cache mutex */
@@ -225,7 +224,6 @@ cache_add_entry_rw(
 		return( -1 );
 	}
 
-
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
 	                 entry_dn_cmp, avl_dup_error ) != 0 )
 	{
@@ -241,20 +239,16 @@ cache_add_entry_rw(
 		return( 1 );
 	}
 
-	__tm_atomic {
-		ret = pavl_insert( &cache->c_idtree, (caddr_t) e,
-		                  entry_id_cmp, pavl_dup_error );
-	}
-
 	/* id tree */
-	if ( ret != 0 )
+	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
+	                 entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_add_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
+		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 		                 entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
@@ -349,15 +343,15 @@ cache_update_entry(
 	}
 
 	/* id tree */
-	if ( pavl_insert( &cache->c_idtree, (caddr_t) e,
-	                 entry_id_cmp, pavl_dup_error ) != 0 )
+	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
+	                 entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_update_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
+		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 		                 entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
@@ -509,7 +503,7 @@ try_again:
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	if ( (ep = (Entry *) pavl_find( cache->c_idtree, (caddr_t) &e,
+	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
 	                               entry_id_cmp )) != NULL )
 	{
 		int state;
@@ -610,7 +604,7 @@ cache_delete_entry_internal(
 	}
 
 	/* id tree */
-	if ( pavl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
 	{
 		rc = -1;
 	}

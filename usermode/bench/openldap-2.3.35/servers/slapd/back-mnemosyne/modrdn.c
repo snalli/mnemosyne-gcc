@@ -80,7 +80,7 @@ ldbm_back_modrdn(
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
-			cache_return_entry_r( &li->li_cache, matched );
+			cache_return_entry_r( li->li_cache, matched );
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
 						&op->o_req_dn, LDAP_SCOPE_DEFAULT );
@@ -382,7 +382,7 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	(void) cache_delete_entry( &li->li_cache, e );
+	(void) cache_delete_entry( li->li_cache, e );
 
 	free( e->e_dn );
 	old_ndn = e->e_nname;
@@ -452,7 +452,7 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	(void) cache_update_entry( &li->li_cache, e );
+	(void) cache_update_entry( li->li_cache, e );
 
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
@@ -490,16 +490,16 @@ return_results:
 	/* LDAP v3 Support */
 	if( np != NULL ) {
 		/* free new parent and writer lock */
-		cache_return_entry_w( &li->li_cache, np );
+		cache_return_entry_w( li->li_cache, np );
 	}
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
-		cache_return_entry_w( &li->li_cache, p );
+		cache_return_entry_w( li->li_cache, p );
 	}
 
 	/* free entry and writer lock */
-	cache_return_entry_w( &li->li_cache, e );
+	cache_return_entry_w( li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	rs->sr_text = NULL;
 	return( rs->sr_err );

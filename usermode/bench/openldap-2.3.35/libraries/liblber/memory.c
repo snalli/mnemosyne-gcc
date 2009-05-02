@@ -793,3 +793,66 @@ ber_bvarray_add( BerVarray *a, BerValue *bv )
 {
 	return ber_bvarray_add_x( a, bv, NULL );
 }
+
+
+/* Persistent duplications
+ *
+ * FIXME:
+ * We expect the persistent allocators to be passed as function pointers. 
+ * This is just a hack to avoid having broken compilations complaining 
+ * not finding pmalloc/pfree. Fixing the Makefiles with OSDI at the gates
+ * is out of the question.
+ */
+struct berval *
+ber_pdupbv_x(
+	struct berval *dst, struct berval *src, void *(*foo_malloc)(size_t), void (*foo_free)(void *) )
+{
+	struct berval *new;
+
+	if( src == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
+		return NULL;
+	}
+
+	if ( dst ) {
+		new = dst;
+	} else {
+		if(( new = foo_malloc( sizeof(struct berval))) == NULL ) {
+			ber_errno = LBER_ERROR_MEMORY;
+			return NULL;
+		}
+	}
+
+	if ( src->bv_val == NULL ) {
+		new->bv_val = NULL;
+		new->bv_len = 0;
+		return new;
+	}
+
+	if(( new->bv_val = foo_malloc( src->bv_len + 1)) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+		if ( !dst )
+			foo_free(new);
+		return NULL;
+	}
+
+	AC_MEMCPY( new->bv_val, src->bv_val, src->bv_len );
+	new->bv_val[src->bv_len] = '\0';
+	new->bv_len = src->bv_len;
+
+	return new;
+}
+
+struct berval *
+ber_pdupbv(
+	struct berval *dst, struct berval *src, void *(*foo_malloc)(size_t), void (*foo_free)(void *) )
+{
+	return ber_pdupbv_x( dst, src, foo_malloc, foo_free );
+}
+
+struct berval *
+ber_pbvdup(
+	struct berval *src, void *(*foo_malloc)(size_t), void (*foo_free)(void *)  )
+{
+	return ber_pdupbv_x( NULL, src, foo_malloc, foo_free);
+}

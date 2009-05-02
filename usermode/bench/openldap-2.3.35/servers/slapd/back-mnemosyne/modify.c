@@ -256,7 +256,7 @@ ldbm_back_modify(
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
-			cache_return_entry_r( &li->li_cache, matched );
+			cache_return_entry_r( li->li_cache, matched );
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
 				&op->o_req_dn, LDAP_SCOPE_DEFAULT );
@@ -294,7 +294,7 @@ ldbm_back_modify(
 	}
 
 return_results:;
-	if( e != NULL ) cache_return_entry_w( &li->li_cache, e );
+	if( e != NULL ) cache_return_entry_w( li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 	send_ldap_result( op, rs );

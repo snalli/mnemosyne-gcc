@@ -21,6 +21,8 @@ class superblock; // forward declaration
   } while (0)
 #endif
 
+//FIXME: PCM_NT_STORE must be replaced with transactional barrier 
+
 /* Basic access macros for bitmaps.  */
 # define __BITMAPELT(bit)	((bit) / BITMAP_ARRAY_ENTRY_SIZE_BITS)
 # define __BITMAPMASK(bit)	((uint64_t) 1 << ((bit) % BITMAP_ARRAY_ENTRY_SIZE_BITS))

@@ -60,7 +60,7 @@ ldbm_back_bind(
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
 		if( matched != NULL ) {
-			cache_return_entry_r( &li->li_cache, matched );
+			cache_return_entry_r( li->li_cache, matched );
 		}
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
@@ -178,7 +178,7 @@ ldbm_back_bind(
 
 return_results:;
 	/* free entry and reader lock */
-	cache_return_entry_r( &li->li_cache, e );
+	cache_return_entry_r( li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 	if ( rc ) {

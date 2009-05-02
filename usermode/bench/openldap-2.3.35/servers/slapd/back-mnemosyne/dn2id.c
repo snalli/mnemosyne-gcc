@@ -125,7 +125,7 @@ dn2id(
 	assert( idp != NULL );
 
 	/* first check the cache */
-	*idp = cache_find_entry_ndn2id( be, &li->li_cache, dn );
+	*idp = cache_find_entry_ndn2id( be, li->li_cache, dn );
 	if ( *idp != NOID ) {
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", *idp,
 			0, 0 );

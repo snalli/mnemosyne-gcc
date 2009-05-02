@@ -130,7 +130,7 @@ ldbm_back_add(
 				rs->sr_ref = is_entry_referral( matched )
 					? get_entry_referrals( op, matched )
 					: NULL;
-				cache_return_entry_r( &li->li_cache, matched );
+				cache_return_entry_r( li->li_cache, matched );
 
 			} else {
 				rs->sr_ref = referral_rewrite( default_referral,
@@ -156,7 +156,7 @@ ldbm_back_add(
 
 		if ( ! access_allowed( op, p, children, NULL, ACL_WADD, NULL ) ) {
 			/* free parent and writer lock */
-			cache_return_entry_w( &li->li_cache, p ); 
+			cache_return_entry_w( li->li_cache, p ); 
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 			Debug( LDAP_DEBUG_TRACE, "no write access to parent\n", 0,
@@ -182,7 +182,7 @@ ldbm_back_add(
 			/* parent is an alias, don't allow add */
 
 			/* free parent and writer lock */
-			cache_return_entry_w( &li->li_cache, p );
+			cache_return_entry_w( li->li_cache, p );
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 			Debug( LDAP_DEBUG_TRACE, "parent is alias\n", 0,
@@ -202,7 +202,7 @@ ldbm_back_add(
 				: NULL;
 
 			/* free parent and writer lock */
-			cache_return_entry_w( &li->li_cache, p );
+			cache_return_entry_w( li->li_cache, p );
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
@@ -243,7 +243,7 @@ ldbm_back_add(
 	if ( next_id( op->o_bd, &op->oq_add.rs_e->e_id ) ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
-			cache_return_entry_w( &li->li_cache, p ); 
+			cache_return_entry_w( li->li_cache, p ); 
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
@@ -260,13 +260,13 @@ ldbm_back_add(
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
 	 */
-	rs->sr_err = cache_add_entry_rw( &li->li_cache, op->oq_add.rs_e,
+	rs->sr_err = cache_add_entry_rw( li->li_cache, op->oq_add.rs_e,
 		CACHE_WRITE_LOCK );
 
 	if ( rs->sr_err != 0 ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
-			cache_return_entry_w( &li->li_cache, p ); 
+			cache_return_entry_w( li->li_cache, p ); 
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
@@ -335,7 +335,7 @@ ldbm_back_add(
 return_results:;
 	if (p != NULL) {
 		/* free parent and writer lock */
-		cache_return_entry_w( &li->li_cache, p ); 
+		cache_return_entry_w( li->li_cache, p ); 
 	}
 
 	if ( rs->sr_err ) {
@@ -344,7 +344,7 @@ return_results:;
 		 * and entry's private data is destroyed.
 		 * otherwise, this is done when entry is released
 		 */
-		cache_return_entry_w( &li->li_cache, op->oq_add.rs_e );
+		cache_return_entry_w( li->li_cache, op->oq_add.rs_e );
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	}
 

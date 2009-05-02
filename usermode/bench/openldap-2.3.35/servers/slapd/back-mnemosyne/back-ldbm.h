@@ -139,7 +139,7 @@ struct ldbminfo {
 	int			li_mode;
 	slap_mask_t	li_defaultmask;
 	char			*li_directory;
-	Cache		li_cache;
+	Cache		*li_cache;
 	Avlnode			*li_attrs;
 	int			li_dblocking;	/* lock databases */
 	int			li_dbwritesync;	/* write sync */

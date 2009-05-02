@@ -106,7 +106,7 @@ ldbm_back_search(
 					: NULL;
 			}
 
-			cache_return_entry_r( &li->li_cache, matched );
+			cache_return_entry_r( li->li_cache, matched );
 
 			if ( erefs ) {
 				rs->sr_ref = referral_rewrite( erefs, &matched_dn,
@@ -144,7 +144,7 @@ ldbm_back_search(
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		}
 
-		cache_return_entry_r( &li->li_cache, e );
+		cache_return_entry_r( li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		send_ldap_result( op, rs );
@@ -164,7 +164,7 @@ ldbm_back_search(
 		ber_dupbv( &matched_dn, &e->e_name );
 		erefs = get_entry_referrals( op, e );
 
-		cache_return_entry_r( &li->li_cache, e );
+		cache_return_entry_r( li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -208,7 +208,7 @@ ldbm_back_search(
 	/* need normalized dn below */
 	ber_dupbv( &realbase, &e->e_nname );
 
-	cache_return_entry_r( &li->li_cache, e );
+	cache_return_entry_r( li->li_cache, e );
 
 searchit:
 	if ( candidates == NULL ) {
@@ -434,11 +434,11 @@ searchit:
 
 					switch ( rs->sr_err ) {
 					case LDAP_UNAVAILABLE:	/* connection closed */
-						cache_return_entry_r( &li->li_cache, e );
+						cache_return_entry_r( li->li_cache, e );
 						rc = LDAP_SUCCESS;
 						goto done;
 					case LDAP_SIZELIMIT_EXCEEDED:
-						cache_return_entry_r( &li->li_cache, e );
+						cache_return_entry_r( li->li_cache, e );
 						rc = rs->sr_err;
 						rs->sr_entry = NULL;
 						send_ldap_result( op, rs );
@@ -462,7 +462,7 @@ searchit:
 loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
-			cache_return_entry_r( &li->li_cache, e );
+			cache_return_entry_r( li->li_cache, e );
 		}
 
 		ldap_pvt_thread_yield();

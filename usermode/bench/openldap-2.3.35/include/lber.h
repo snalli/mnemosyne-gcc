@@ -583,6 +583,15 @@ ber_bvdup LDAP_P((
 	struct berval *src ));
 
 LBER_F( struct berval * )
+ber_pdupbv LDAP_P((
+	struct berval *dst, struct berval *src,  void *(*foo_alloc)(size_t), void (foo_free)(void *)  ));
+
+LBER_F( struct berval * )
+ber_pbvdup LDAP_P((
+	struct berval *src, void *(*foo_alloc)(size_t), void (foo_free)(void *) ));
+
+
+LBER_F( struct berval * )
 ber_mem2bv LDAP_P((
 	LDAP_CONST char *, ber_len_t len, int duplicate, struct berval *bv));
 

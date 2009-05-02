@@ -254,6 +254,7 @@ LDAP_SLAPD_F (void) at_unparse LDAP_P((
  */
 LDAP_SLAPD_F (void) attr_free LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
+LDAP_SLAPD_F (Attribute *) attr_pdup LDAP_P(( Attribute *a ));
 
 #ifdef LDAP_COMP_MATCH
 LDAP_SLAPD_F (void) comp_tree_free LDAP_P(( Attribute *a ));
@@ -263,6 +264,7 @@ LDAP_SLAPD_F (void) comp_tree_free LDAP_P(( Attribute *a ));
 #define attr_mergeit_one( e, d, v ) attr_merge_one( e, d, v, NULL /* FIXME */ )
 
 LDAP_SLAPD_F (Attribute *) attr_alloc LDAP_P(( AttributeDescription *ad ));
+LDAP_SLAPD_F (Attribute *) attr_palloc LDAP_P(( AttributeDescription *ad ));
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	BerVarray vals,
@@ -286,6 +288,7 @@ LDAP_SLAPD_F (int) attr_delete LDAP_P((
 
 LDAP_SLAPD_F (void) attrs_free LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
+LDAP_SLAPD_F (Attribute *) attrs_pdup LDAP_P(( Attribute *a ));
 
 
 /*
@@ -858,6 +861,7 @@ LDAP_SLAPD_F (int) entry_cmp LDAP_P(( Entry *a, Entry *b ));
 LDAP_SLAPD_F (int) entry_dn_cmp LDAP_P(( const void *v_a, const void *v_b ));
 LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( const void *v_a, const void *v_b ));
 LDAP_SLAPD_F (Entry *) entry_dup LDAP_P(( Entry *e ));
+LDAP_SLAPD_F (Entry *) entry_pdup LDAP_P(( Entry *e ));
 
 /*
  * extended.c

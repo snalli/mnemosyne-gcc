@@ -68,7 +68,7 @@ ldbm_back_delete(
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
-			cache_return_entry_r( &li->li_cache, matched );
+			cache_return_entry_r( li->li_cache, matched );
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
@@ -206,12 +206,12 @@ return_results:;
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
-		cache_return_entry_w( &li->li_cache, p );
+		cache_return_entry_w( li->li_cache, p );
 	}
 
 	if ( e != NULL ) {
 		/* free entry and writer lock */
-		cache_return_entry_w( &li->li_cache, e );
+		cache_return_entry_w( li->li_cache, e );
 	}
 
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);

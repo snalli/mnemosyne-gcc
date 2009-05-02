@@ -37,7 +37,7 @@ ldbm_back_entry_release_rw(
 
 	if ( slapMode == SLAP_SERVER_MODE ) {
 		/* free entry and reader or writer lock */
-		cache_return_entry_rw( &li->li_cache, e, rw ); 
+		cache_return_entry_rw( li->li_cache, e, rw ); 
 		/* only do_add calls here with a write lock.
 		 * get_entry doesn't obtain the giant lock, because its
 		 * caller has already obtained it.
@@ -128,7 +128,7 @@ int ldbm_back_entry_get(
 return_results:
 	if( rc != LDAP_SUCCESS ) {
 		/* free entry */
-		cache_return_entry_rw(&li->li_cache, e, rw);
+		cache_return_entry_rw(li->li_cache, e, rw);
 	} else {
 		*ent = e;
 	}

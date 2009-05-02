@@ -23,7 +23,7 @@ $BUILD_DIR    : OpenLDAP build directory; where you will build OpenLDAP
 1. Set the following environment variables:
 
    % export CC=icc
-   % export CFLAGS=-Qtm_enabled -gcc-version=410
+   % export CFLAGS="-Qtm_enabled -gcc-version=410"
    % export CPPFLAGS=-D_GNU_SOURCE
 
 2. Run configure
@@ -34,7 +34,11 @@ $BUILD_DIR    : OpenLDAP build directory; where you will build OpenLDAP
 
 3. Edit $BUILD_DIR/servers/slapd/Makefile
 
-   LUTIL_LIBS = -L$MNEMOSYNE_DIR/usermode/build/library/malloc/ -lmalloc -L$MNEMOSYNE_DIR/usermode/build/library/mnemosyne/ -lmnemosyne
+   Make sure: 
+     AC_CFLAGS = -Qtm_enabled -gcc-version=410 -g -fpic
+
+   Set:
+     LUTIL_LIBS = -L$MNEMOSYNE_DIR/usermode/build/library/malloc/ -lmalloc -L$MNEMOSYNE_DIR/usermode/build/library/mnemosyne/ -lmnemosyne
 
 4. make 
 

@@ -44,6 +44,7 @@ struct pentry_list_s {
 MNEMOSYNE_PERSISTENT struct list_head pentry_list;
 MNEMOSYNE_PERSISTENT int pentry_list_init = 0;
 
+int cache_add_id2entry_rw(Cache *cache, Entry *e, int rw);
 
 void
 reincarnate_id2entry_cache(Cache *li_cache)
@@ -69,7 +70,7 @@ reincarnate_id2entry_cache(Cache *li_cache)
 		strcpy(str, le->str);
 		edup = str2entry2( str, 0 );
 #endif
-		assert(cache_add_entry_rw( li_cache, edup, 0 ) == 0 );
+		assert(cache_add_id2entry_rw( li_cache, edup, 0 ) == 0 );
 		cache_entry_commit( edup );
 		cache_return_entry_rw(li_cache, edup, 0);
 	}

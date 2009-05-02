@@ -323,6 +323,108 @@ cache_add_entry_rw(
 	return( 0 );
 }
 
+
+int
+cache_add_id2entry_rw(
+    Cache	*cache,
+    Entry		*e,
+	int		rw
+)
+{
+	int	i, rc;
+	int     ret;
+	Entry	*ee;
+
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
+	assert( e->e_private == NULL );
+
+	if( cache_entry_private_init(e) != 0 ) {
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+
+		Debug( LDAP_DEBUG_ANY,
+			"====> cache_add_entry( %ld ): \"%s\": private init failed!\n",
+		    e->e_id, e->e_dn, 0 );
+
+		return( -1 );
+	}
+
+	ret = pavl_insert( &cache->c_idtree, (caddr_t) e,
+	                  entry_id_cmp, pavl_dup_error );
+
+	/* id tree */
+	if ( ret != 0 )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			"====> cache_add_entry( %ld ): \"%s\": already in id cache\n",
+		    e->e_id, e->e_dn, 0 );
+
+		/* delete from dn tree inserted above */
+		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
+		                 entry_dn_cmp ) == NULL )
+		{
+			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
+			    0, 0, 0 );
+		}
+
+		cache_entry_private_destroy(e);
+
+		/* free cache mutex */
+		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		return( -1 );
+	}
+
+	/* put the entry into 'CREATING' state */
+	/* will be marked after when entry is returned */
+	LEI(e)->lei_state = CACHE_ENTRY_CREATING;
+	LEI(e)->lei_refcnt = 1;
+
+	/* lru */
+	LRU_ADD( cache, e );
+	if ( ++cache->c_cursize > cache->c_maxsize ) {
+		/*
+		 * find the lru entry not currently in use and delete it.
+		 * in case a lot of entries are in use, only look at the
+		 * first 10 on the tail of the list.
+		 */
+		i = 0;
+		while ( cache->c_lrutail != NULL &&
+			LEI(cache->c_lrutail)->lei_refcnt != 0 &&
+			i < 10 )
+		{
+			/* move this in-use entry to the front of the q */
+			ee = cache->c_lrutail;
+			LRU_DELETE( cache, ee );
+			LRU_ADD( cache, ee );
+			i++;
+		}
+
+		/*
+		 * found at least one to delete - try to get back under
+		 * the max cache size.
+		 */
+		while ( cache->c_lrutail != NULL &&
+			LEI(cache->c_lrutail)->lei_refcnt == 0 &&
+			cache->c_cursize > cache->c_maxsize )
+		{
+			e = cache->c_lrutail;
+
+			/* delete from cache and lru q */
+			/* XXX do we need rc ? */
+			rc = cache_delete_entry_internal( cache, e );
+			cache_entry_private_destroy( e );
+			entry_free( e );
+		}
+	}
+
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+	return( 0 );
+}
+
+
 /*
  * cache_update_entry - update a LOCKED entry which has been deleted.
  * returns:	0	entry has been created and locked

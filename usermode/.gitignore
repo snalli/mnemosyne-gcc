@@ -2,10 +2,11 @@
 ._*
 *~
 *.pyc
-/build
-csope.out
+cscope.out
 .DS_Store
 .segments
-bench/paxos
-src/mtm/mode/wbwt/
-examples/atomic/
+/build
+/bench/openldap-2.3.35/build_local
+/bench/paxos
+/library/src/mtm/mode/wbwt/
+/examples/atomic/

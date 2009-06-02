@@ -1,5 +1,5 @@
-/* close.c - close ldbm backend */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/close.c,v 1.19.2.6 2007/01/02 21:44:02 kurt Exp $ */
+/* close.c - close mnemosynedbm backend */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/close.c,v 1.19.2.6 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -21,22 +21,22 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
 int
-ldbm_back_db_close( Backend *be )
+mnemosynedbm_back_db_close( Backend *be )
 {
-	struct ldbminfo *li = be->be_private;
+	struct mnemosynedbminfo *li = be->be_private;
 
-	Debug( LDAP_DEBUG_TRACE, "ldbm backend syncing\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "mnemosynedbm backend syncing\n", 0, 0, 0 );
 
-	ldbm_cache_flush_all( be );
-	Debug( LDAP_DEBUG_TRACE, "ldbm backend done syncing\n", 0, 0, 0 );
+	mnemosynedbm_cache_flush_all( be );
+	Debug( LDAP_DEBUG_TRACE, "mnemosynedbm backend done syncing\n", 0, 0, 0 );
 
-	cache_release_all( li->li_cache );
+	m_cache_release_all( &li->li_cache );
 	if ( alock_close( &li->li_alock_info )) {
 		Debug( LDAP_DEBUG_ANY,
-			"ldbm_back_db_close: alock_close failed\n", 0, 0, 0 );
+			"mnemosynedbm_back_db_close: alock_close failed\n", 0, 0, 0 );
 	}
 
 	return 0;

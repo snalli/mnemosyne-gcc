@@ -1,5 +1,5 @@
-/* compare.c - ldbm backend compare routine */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/compare.c,v 1.49.2.7 2007/01/02 21:44:02 kurt Exp $ */
+/* compare.c - mnemosynedbm backend compare routine */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/compare.c,v 1.49.2.7 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,15 +22,15 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 int
-ldbm_back_compare(
+mnemosynedbm_back_compare(
 	Operation	*op,
 	SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	Entry		*matched;
 	Entry		*e;
 	Attribute	*a;
@@ -43,14 +43,14 @@ ldbm_back_compare(
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
 	/* get entry with reader lock */
-	e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched );
+	e = m_dn2entry_r( op->o_bd, &op->o_req_ndn, &matched );
 	if ( e == NULL ) {
 		if ( matched != NULL ) {
 			rs->sr_matched = ch_strdup( matched->e_dn );
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
-			cache_return_entry_r( li->li_cache, matched );
+			m_cache_return_entry_r( &li->li_cache, matched );
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
@@ -107,7 +107,7 @@ ldbm_back_compare(
 	}
 
 return_results:;
-	if ( e ) cache_return_entry_r( li->li_cache, e );
+	if ( e ) m_cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 	send_ldap_result( op, rs );

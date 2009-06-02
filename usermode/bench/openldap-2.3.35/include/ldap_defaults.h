@@ -58,6 +58,8 @@
 #define SLAPD_DEFAULT_TIMELIMIT		3600
 	/* minimum max ids that a single index entry can map to in ldbm */
 #define SLAPD_LDBM_MIN_MAXIDS		(8192-4)
+	/* minimum max ids that a single index entry can map to in mnemosyne backend */
+#define SLAPD_MNEMOSYNEDBM_MIN_MAXIDS		(8192-4)
 
 /* the following DNs must be normalized! */
 	/* dn of the default subschema subentry */

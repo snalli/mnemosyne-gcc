@@ -1,5 +1,5 @@
-/* referral.c - LDBM backend referral handler */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/referral.c,v 1.24.2.4 2007/01/02 21:44:03 kurt Exp $ */
+/* referral.c - MNEMOSYNEDBM backend referral handler */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/referral.c,v 1.24.2.4 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,14 +22,14 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
 int
-ldbm_back_referrals(
+mnemosynedbm_back_referrals(
     Operation	*op,
     SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	Entry		*e, *matched;
 	int		rc = LDAP_SUCCESS;
 
@@ -47,13 +47,13 @@ ldbm_back_referrals(
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
 	/* get entry with reader lock */
-	e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched );
+	e = m_dn2entry_r( op->o_bd, &op->o_req_ndn, &matched );
 	if ( e == NULL ) {
 		if ( matched != NULL ) {
 			rs->sr_matched = ch_strdup( matched->e_dn );
 
 			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+				"mnemosynedbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 				op->o_tag, op->o_req_dn.bv_val, rs->sr_matched );
 
 			if ( is_entry_referral( matched ) ) {
@@ -61,7 +61,7 @@ ldbm_back_referrals(
 				rs->sr_ref = get_entry_referrals( op, matched );
 			}
 
-			cache_return_entry_r( li->li_cache, matched );
+			m_cache_return_entry_r( &li->li_cache, matched );
 
 		} else if ( !be_issuffix( op->o_bd, &op->o_req_ndn ) && default_referral != NULL ) {
 			rc = rs->sr_err = LDAP_OTHER;
@@ -99,7 +99,7 @@ ldbm_back_referrals(
 			refs, &e->e_name, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
-			"ldbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
+			"mnemosynedbm_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 			op->o_tag, op->o_req_dn.bv_val, e->e_dn );
 
 		rs->sr_matched = e->e_name.bv_val;
@@ -120,7 +120,7 @@ ldbm_back_referrals(
 		rs->sr_matched = NULL;
 	}
 
-	cache_return_entry_r( li->li_cache, e );
+	m_cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 	return rc;

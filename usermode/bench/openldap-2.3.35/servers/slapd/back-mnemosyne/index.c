@@ -1,5 +1,5 @@
 /* index.c - routines for dealing with attribute indexes */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/index.c,v 1.88.2.3 2007/01/02 21:44:02 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/index.c,v 1.88.2.3 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,7 +22,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
 static slap_mask_t index_mask(
 	Backend *be,
@@ -33,7 +33,7 @@ static slap_mask_t index_mask(
 	AttributeType *at;
 	slap_mask_t mask = 0;
 
-	attr_mask( be->be_private, desc, &mask );
+	m_attr_mask( be->be_private, desc, &mask );
 
 	if( mask ) {
 		*atname = desc->ad_cname;
@@ -46,7 +46,7 @@ static slap_mask_t index_mask(
 	 */
 	if( slap_ad_is_tagged( desc ) && desc != desc->ad_type->sat_ad ) {
 		/* has tagging option */
-		attr_mask( be->be_private, desc->ad_type->sat_ad, &mask );
+		m_attr_mask( be->be_private, desc->ad_type->sat_ad, &mask );
 
 		if( mask && ( mask ^ SLAP_INDEX_NOTAGS ) ) {
 			*atname = desc->ad_type->sat_cname;
@@ -61,7 +61,7 @@ static slap_mask_t index_mask(
 		if (!at->sat_ad)
 			continue;
 		
-		attr_mask( be->be_private, at->sat_ad, &mask );
+		m_attr_mask( be->be_private, at->sat_ad, &mask );
 
 		if( mask && ( mask ^ SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = at->sat_cname;
@@ -73,7 +73,7 @@ static slap_mask_t index_mask(
 	return 0;
 }
 
-int index_is_indexed(
+int m_index_is_indexed(
 	Backend *be,
 	AttributeDescription *desc )
 {
@@ -90,7 +90,7 @@ int index_is_indexed(
 	return LDAP_SUCCESS;
 }
 
-int index_param(
+int m_index_param(
 	Backend *be,
 	AttributeDescription *desc,
 	int ftype,
@@ -170,18 +170,18 @@ static int indexer(
 
 	if( rc != LDAP_SUCCESS ) return rc;
 
-	db = ldbm_cache_open( op->o_bd, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
+	db = mnemosynedbm_cache_open( op->o_bd, dbname, MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= index_read NULL (could not open %s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			dbname, MNEMOSYNEDBM_SUFFIX, 0 );
 
 		return LDAP_OTHER;
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
-		key_change( op->o_bd, db, atname, id, opid );
+		m_key_change( op->o_bd, db, atname, id, opid );
 	}
 
 	if( IS_SLAP_INDEX( mask, SLAP_INDEX_EQUALITY ) ) {
@@ -194,7 +194,7 @@ static int indexer(
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				key_change( op->o_bd, db, &keys[i], id, opid );
+				m_key_change( op->o_bd, db, &keys[i], id, opid );
 			}
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 		}
@@ -210,7 +210,7 @@ static int indexer(
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				key_change( op->o_bd, db, &keys[i], id, opid );
+				m_key_change( op->o_bd, db, &keys[i], id, opid );
 			}
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 		}
@@ -226,13 +226,13 @@ static int indexer(
 
 		if( rc == LDAP_SUCCESS && keys != NULL ) {
 			for( i=0; keys[i].bv_val != NULL; i++ ) {
-				key_change( op->o_bd, db, &keys[i], id, opid );
+				m_key_change( op->o_bd, db, &keys[i], id, opid );
 			}
 			ber_bvarray_free_x( keys, op->o_tmpmemctx );
 		}
 	}
 
-	ldbm_cache_close( op->o_bd, db );
+	mnemosynedbm_cache_close( op->o_bd, db );
 
 	return LDAP_SUCCESS;
 }
@@ -256,7 +256,7 @@ static int index_at_values(
 
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
-		attr_mask( op->o_bd->be_private, type->sat_ad, &mask );
+		m_attr_mask( op->o_bd->be_private, type->sat_ad, &mask );
 	}
 
 	if( mask ) {
@@ -273,7 +273,7 @@ static int index_at_values(
 
 		desc = ad_find_tags(type, tags);
 		if( desc ) {
-			attr_mask( op->o_bd->be_private, desc, &mask );
+			m_attr_mask( op->o_bd->be_private, desc, &mask );
 		}
 
 		if( mask ) {
@@ -286,7 +286,7 @@ static int index_at_values(
 	return LDAP_SUCCESS;
 }
 
-int index_values(
+int m_index_values(
 	Operation *op,
 	AttributeDescription *desc,
 	BerVarray vals,
@@ -301,7 +301,7 @@ int index_values(
 }
 
 int
-index_entry(
+m_index_entry(
 	Operation *op,
 	int opid,
 	Entry *e )
@@ -313,7 +313,7 @@ index_entry(
 
 	/* add each attribute to the indexes */
 	for ( ; ap != NULL; ap = ap->a_next ) {
-		index_values( op, ap->a_desc,
+		m_index_values( op, ap->a_desc,
 			ap->a_nvals,
 			e->e_id, opid );
 	}

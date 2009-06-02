@@ -1,5 +1,5 @@
-/* add.c - ldap ldbm back-end add routine */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/add.c,v 1.92.2.8 2007/01/02 21:44:02 kurt Exp $ */
+/* add.c - ldap mnemosynedbm back-end add routine */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/add.c,v 1.92.2.8 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,11 +22,11 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 static int
-ldbm_csn_cb(
+mnemosynedbm_csn_cb(
 	Operation *op,
 	SlapReply *rs )
 {
@@ -36,11 +36,11 @@ ldbm_csn_cb(
 }
 
 int
-ldbm_back_add(
+mnemosynedbm_back_add(
     Operation	*op,
     SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	struct berval	pdn;
 	Entry		*p = NULL;
 	ID               id = NOID;
@@ -49,11 +49,11 @@ ldbm_back_add(
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	slap_callback cb = { NULL };
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 	int subentry;
 #endif
 
-	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n",
+	Debug(LDAP_DEBUG_ARGS, "==> mnemosynedbm_back_add: %s\n",
 		op->o_req_dn.bv_val, 0, 0);
 	
 	rs->sr_err = slap_add_opattrs( op, &rs->sr_text, textbuf, textlen, 1 );
@@ -64,7 +64,7 @@ ldbm_back_add(
 		goto return_results;
 	}
 
-	cb.sc_cleanup = ldbm_csn_cb;
+	cb.sc_cleanup = mnemosynedbm_csn_cb;
 	cb.sc_next = op->o_callback;
 	op->o_callback = &cb;
 
@@ -80,7 +80,7 @@ ldbm_back_add(
 	}
 	rs->sr_text = NULL;
 
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 	subentry = is_entry_subentry( op->oq_add.rs_e );
 #endif
 
@@ -99,9 +99,9 @@ ldbm_back_add(
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
-	rs->sr_err = dn2id( op->o_bd, &op->o_req_ndn, &id );
+	rs->sr_err = m_dn2id( op->o_bd, &op->o_req_ndn, &id );
 	if ( rs->sr_err || id != NOID )	{
-		/* if (rs->sr_err) something bad happened to ldbm cache */
+		/* if (rs->sr_err) something bad happened to mnemosynedbm cache */
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_err = rs->sr_err ? LDAP_OTHER : LDAP_ALREADY_EXISTS;
 		send_ldap_result( op, rs );
@@ -124,13 +124,13 @@ ldbm_back_add(
 		Entry *matched = NULL;
 
 		/* get parent with writer lock */
-		if ( (p = dn2entry_w( op->o_bd, &pdn, &matched )) == NULL ) {
+		if ( (p = m_dn2entry_w( op->o_bd, &pdn, &matched )) == NULL ) {
 			if ( matched != NULL ) {
 				rs->sr_matched = ch_strdup( matched->e_dn );
 				rs->sr_ref = is_entry_referral( matched )
 					? get_entry_referrals( op, matched )
 					: NULL;
-				cache_return_entry_r( li->li_cache, matched );
+				m_cache_return_entry_r( &li->li_cache, matched );
 
 			} else {
 				rs->sr_ref = referral_rewrite( default_referral,
@@ -156,7 +156,7 @@ ldbm_back_add(
 
 		if ( ! access_allowed( op, p, children, NULL, ACL_WADD, NULL ) ) {
 			/* free parent and writer lock */
-			cache_return_entry_w( li->li_cache, p ); 
+			m_cache_return_entry_w( &li->li_cache, p ); 
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 			Debug( LDAP_DEBUG_TRACE, "no write access to parent\n", 0,
@@ -168,7 +168,7 @@ ldbm_back_add(
 			return LDAP_INSUFFICIENT_ACCESS;
 		}
 
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 		if ( is_entry_subentry( p )) {
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
 				0, 0, 0 );
@@ -182,7 +182,7 @@ ldbm_back_add(
 			/* parent is an alias, don't allow add */
 
 			/* free parent and writer lock */
-			cache_return_entry_w( li->li_cache, p );
+			m_cache_return_entry_w( &li->li_cache, p );
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 			Debug( LDAP_DEBUG_TRACE, "parent is alias\n", 0,
@@ -202,7 +202,7 @@ ldbm_back_add(
 				: NULL;
 
 			/* free parent and writer lock */
-			cache_return_entry_w( li->li_cache, p );
+			m_cache_return_entry_w( &li->li_cache, p );
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 			Debug( LDAP_DEBUG_TRACE, "parent is referral\n", 0,
@@ -217,7 +217,7 @@ ldbm_back_add(
 			return rs->sr_err;
 		}
 
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 		if ( subentry ) {
 			/* FIXME: */
 			/* parent must be an administrative point of the required kind */
@@ -240,19 +240,19 @@ ldbm_back_add(
 		}
 	}
 
-	if ( next_id( op->o_bd, &op->oq_add.rs_e->e_id ) ) {
+	if ( m_next_id( op->o_bd, &op->oq_add.rs_e->e_id ) ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
-			cache_return_entry_w( li->li_cache, p ); 
+			m_cache_return_entry_w( &li->li_cache, p ); 
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
-		Debug( LDAP_DEBUG_ANY, "ldbm_add: next_id failed\n",
+		Debug( LDAP_DEBUG_ANY, "mnemosynedbm_add: m_next_id failed\n",
 			0, 0, 0 );
 
 		send_ldap_error( op, rs, LDAP_OTHER,
-			"next_id add failed" );
+			"m_next_id add failed" );
 
 		return LDAP_OTHER;
 	}
@@ -260,13 +260,13 @@ ldbm_back_add(
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
 	 */
-	rs->sr_err = cache_add_entry_rw( li->li_cache, op->oq_add.rs_e,
+	rs->sr_err = m_cache_add_entry_rw( &li->li_cache, op->oq_add.rs_e,
 		CACHE_WRITE_LOCK );
 
 	if ( rs->sr_err != 0 ) {
 		if( p != NULL) {
 			/* free parent and writer lock */
-			cache_return_entry_w( li->li_cache, p ); 
+			m_cache_return_entry_w( &li->li_cache, p ); 
 		}
 
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
@@ -284,8 +284,8 @@ ldbm_back_add(
 	rs->sr_err = -1;
 
 	/* attribute indexes */
-	if ( index_entry_add( op, op->oq_add.rs_e ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "index_entry_add failed\n", 0,
+	if ( m_index_entry_add( op, op->oq_add.rs_e ) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_TRACE, "m_index_entry_add failed\n", 0,
 		    0, 0 );
 		
 		send_ldap_error( op, rs, LDAP_OTHER,
@@ -295,10 +295,10 @@ ldbm_back_add(
 	}
 
 	/* dn2id index */
-	if ( dn2id_add( op->o_bd, &op->oq_add.rs_e->e_nname,
+	if ( m_dn2id_add( op->o_bd, &op->oq_add.rs_e->e_nname,
 		op->oq_add.rs_e->e_id ) != 0 )
 	{
-		Debug( LDAP_DEBUG_TRACE, "dn2id_add failed\n", 0,
+		Debug( LDAP_DEBUG_TRACE, "m_dn2id_add failed\n", 0,
 		    0, 0 );
 		/* FIXME: delete attr indices? */
 
@@ -309,12 +309,12 @@ ldbm_back_add(
 	}
 
 	/* id2entry index */
-	if ( id2entry_add( op->o_bd, op->oq_add.rs_e ) != 0 ) {
+	if ( m_id2entry_add( op->o_bd, op->oq_add.rs_e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "id2entry_add failed\n", 0,
 		    0, 0 );
 
 		/* FIXME: delete attr indices? */
-		(void) dn2id_delete( op->o_bd, &op->oq_add.rs_e->e_nname,
+		(void) m_dn2id_delete( op->o_bd, &op->oq_add.rs_e->e_nname,
 			op->oq_add.rs_e->e_id );
 		
 		send_ldap_error( op, rs, LDAP_OTHER,
@@ -330,12 +330,12 @@ ldbm_back_add(
 	/* marks the entry as committed, so it is added to the cache;
 	 * otherwise it is removed from the cache, but not destroyed;
 	 * it will be destroyed by the caller */
-	cache_entry_commit( op->oq_add.rs_e );
+	m_cache_entry_commit( op->oq_add.rs_e );
 
 return_results:;
 	if (p != NULL) {
 		/* free parent and writer lock */
-		cache_return_entry_w( li->li_cache, p ); 
+		m_cache_return_entry_w( &li->li_cache, p ); 
 	}
 
 	if ( rs->sr_err ) {
@@ -344,7 +344,7 @@ return_results:;
 		 * and entry's private data is destroyed.
 		 * otherwise, this is done when entry is released
 		 */
-		cache_return_entry_w( li->li_cache, op->oq_add.rs_e );
+		m_cache_return_entry_w( &li->li_cache, op->oq_add.rs_e );
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	}
 

@@ -1,5 +1,5 @@
-/* extended.c - ldbm backend extended routines */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/extended.c,v 1.18.2.3 2007/01/02 21:44:02 kurt Exp $ */
+/* extended.c - mnemosynedbm backend extended routines */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/extended.c,v 1.18.2.3 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,27 +22,27 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 #include "lber_pvt.h"
 
 struct exop {
 	struct berval *oid;
 	BI_op_extended	*extended;
-} exop_table[] = {
+} mnemosyne_exop_table[] = {
 	{ NULL, NULL }
 };
 
 int
-ldbm_back_extended(
+mnemosynedbm_back_extended(
 	Operation	*op,
 	SlapReply	*rs )
 {
 	int i;
 
-	for( i=0; exop_table[i].extended != NULL; i++ ) {
-		if( ber_bvcmp( exop_table[i].oid, &op->oq_extended.rs_reqoid ) == 0 ) {
-			return exop_table[i].extended( op, rs );
+	for( i=0; mnemosyne_exop_table[i].extended != NULL; i++ ) {
+		if( ber_bvcmp( mnemosyne_exop_table[i].oid, &op->oq_extended.rs_reqoid ) == 0 ) {
+			return mnemosyne_exop_table[i].extended( op, rs );
 		}
 	}
 

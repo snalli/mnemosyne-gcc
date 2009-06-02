@@ -1,5 +1,5 @@
-/* delete.c - ldbm backend delete routine */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/delete.c,v 1.80.2.6 2007/01/02 21:44:02 kurt Exp $ */
+/* delete.c - mnemosynedbm backend delete routine */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/delete.c,v 1.80.2.6 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,16 +22,16 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 #include "lutil.h"
 
 int
-ldbm_back_delete(
+mnemosynedbm_back_delete(
     Operation	*op,
     SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	Entry	*matched;
 	struct berval	pdn;
 	Entry	*e, *p = NULL;
@@ -40,7 +40,7 @@ ldbm_back_delete(
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 
-	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", op->o_req_dn.bv_val, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "==> mnemosynedbm_back_delete: %s\n", op->o_req_dn.bv_val, 0, 0);
 
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
@@ -56,11 +56,11 @@ ldbm_back_delete(
 	}
 
 	/* get entry with writer lock */
-	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
+	e = m_dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
 
-	/* FIXME : dn2entry() should return non-glue entry */
+	/* FIXME : m_dn2entry() should return non-glue entry */
 	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
-		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: no such object %s\n",
+		Debug(LDAP_DEBUG_ARGS, "<=- mnemosynedbm_back_delete: no such object %s\n",
 			op->o_req_dn.bv_val, 0, 0);
 
 		if ( matched != NULL ) {
@@ -68,7 +68,7 @@ ldbm_back_delete(
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
-			cache_return_entry_r( li->li_cache, matched );
+			m_cache_return_entry_r( &li->li_cache, matched );
 
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
@@ -84,7 +84,7 @@ ldbm_back_delete(
 	if ( ! access_allowed( op, e, entry, NULL, ACL_WDEL, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"<=- ldbm_back_delete: no write access to entry\n", 0,
+			"<=- mnemosynedbm_back_delete: no write access to entry\n", 0,
 			0, 0 );
 
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -106,8 +106,8 @@ ldbm_back_delete(
 		goto return_results;
 	}
 
-	if ( has_children( op->o_bd, e ) ) {
-		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
+	if ( m_has_children( op->o_bd, e ) ) {
+		Debug(LDAP_DEBUG_ARGS, "<=- mnemosynedbm_back_delete: non leaf %s\n",
 			op->o_req_dn.bv_val, 0, 0);
 
 		rs->sr_err = LDAP_NOT_ALLOWED_ON_NONLEAF;
@@ -118,9 +118,9 @@ ldbm_back_delete(
 	/* delete from parent's id2children entry */
 	if( !be_issuffix( op->o_bd, &e->e_nname ) && (dnParent( &e->e_nname, &pdn ),
 		pdn.bv_len) ) {
-		if( (p = dn2entry_w( op->o_bd, &pdn, NULL )) == NULL) {
+		if( (p = m_dn2entry_w( op->o_bd, &pdn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- ldbm_back_delete: parent does not exist\n",
+				"<=- mnemosynedbm_back_delete: parent does not exist\n",
 				0, 0, 0);
 
 			rs->sr_err = LDAP_OTHER;
@@ -133,7 +133,7 @@ ldbm_back_delete(
 			children, NULL, ACL_WDEL, NULL ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
-				"<=- ldbm_back_delete: no access to parent\n", 0,
+				"<=- mnemosynedbm_back_delete: no access to parent\n", 0,
 				0, 0 );
 
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -155,7 +155,7 @@ ldbm_back_delete(
 				/* check parent for "children" acl */
 				if ( ! rc ) {
 					Debug( LDAP_DEBUG_TRACE,
-						"<=- ldbm_back_delete: no "
+						"<=- mnemosynedbm_back_delete: no "
 						"access to parent\n", 0, 0, 0 );
 
 					rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -165,7 +165,7 @@ ldbm_back_delete(
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
-					"<=- ldbm_back_delete: no parent & "
+					"<=- mnemosynedbm_back_delete: no parent & "
 					"not root\n", 0, 0, 0);
 
 				rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
@@ -175,9 +175,9 @@ ldbm_back_delete(
 	}
 
 	/* delete from dn2id mapping */
-	if ( dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
+	if ( m_dn2id_delete( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
 		Debug(LDAP_DEBUG_ARGS,
-			"<=- ldbm_back_delete: operations error %s\n",
+			"<=- mnemosynedbm_back_delete: operations error %s\n",
 			op->o_req_dn.bv_val, 0, 0);
 
 		rs->sr_err = LDAP_OTHER;
@@ -186,9 +186,9 @@ ldbm_back_delete(
 	}
 
 	/* delete from disk and cache */
-	if ( id2entry_delete( op->o_bd, e ) != 0 ) {
+	if ( m_id2entry_delete( op->o_bd, e ) != 0 ) {
 		Debug(LDAP_DEBUG_ARGS,
-			"<=- ldbm_back_delete: operations error %s\n",
+			"<=- mnemosynedbm_back_delete: operations error %s\n",
 			op->o_req_dn.bv_val, 0, 0);
 
 		rs->sr_err = LDAP_OTHER;
@@ -197,7 +197,7 @@ ldbm_back_delete(
 	}
 
 	/* delete attribute indices */
-	(void) index_entry_del( op, e );
+	(void) m_index_entry_del( op, e );
 
 	rs->sr_err = LDAP_SUCCESS;
 
@@ -206,12 +206,12 @@ return_results:;
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
-		cache_return_entry_w( li->li_cache, p );
+		m_cache_return_entry_w( &li->li_cache, p );
 	}
 
 	if ( e != NULL ) {
 		/* free entry and writer lock */
-		cache_return_entry_w( li->li_cache, e );
+		m_cache_return_entry_w( &li->li_cache, e );
 	}
 
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);

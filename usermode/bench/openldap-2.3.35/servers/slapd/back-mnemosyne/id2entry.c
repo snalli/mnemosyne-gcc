@@ -1,5 +1,5 @@
 /* id2entry.c - routines to deal with the id2entry index */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/id2entry.c,v 1.38.2.4 2007/01/02 21:44:02 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/id2entry.c,v 1.38.2.4 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -21,64 +21,15 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-
-#include "../mnemosyne.h"
-#include "list.h"
+#include "back-mnemosynedbm.h"
 
 /*
  * This routine adds (or updates) an entry on disk.
  * The cache should already be updated. 
  */
 
-typedef struct pentry_list_s pentry_list_t;
-
-struct pentry_list_s {
-	struct berval bv;
-	char *str;
-	ID id;
-	int len;
-	struct list_head list;
-};
-
-MNEMOSYNE_PERSISTENT struct list_head pentry_list;
-MNEMOSYNE_PERSISTENT int pentry_list_init = 0;
-
-int cache_add_id2entry_rw(Cache *cache, Entry *e, int rw);
-
-void
-reincarnate_id2entry_cache(Cache *li_cache)
-{
-	pentry_list_t *le_iter;
-
-	Entry		*edup;
-	int i;
-	char *str;
-
-	if (pentry_list_init == 0) {
-		INIT_LIST_HEAD(&pentry_list);
-		pentry_list_init = 1;
-		return;
-	}
-
-	list_for_each_entry(le_iter, &pentry_list, list) {
-#if 1
-		entry_decode(&le_iter->bv, &edup);
-		edup->e_id = le_iter->id;
-#else
-		str = (char *) malloc(le->len+1);
-		strcpy(str, le->str);
-		edup = str2entry2( str, 0 );
-#endif
-		assert(cache_add_id2entry_rw( li_cache, edup, 0 ) == 0 );
-		cache_entry_commit( edup );
-		cache_return_entry_rw(li_cache, edup, 0);
-	}
-}
-
-
 int
-id2entry_add( Backend *be, Entry *e )
+m_id2entry_add( Backend *be, Entry *e )
 {
 	DBCache	*db;
 	Datum		key, data;
@@ -86,42 +37,52 @@ id2entry_add( Backend *be, Entry *e )
 #ifndef WORDS_BIGENDIAN
 	ID		id;
 #endif
-	Entry *edup;
 
-	int i;
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	mnemosynedbm_datum_init( key );
+	mnemosynedbm_datum_init( data );
 
-	pentry_list_t *le;
-	pentry_list_t *le_iter;
-	char *str;
-	char *str1;
-	char *str2;
+	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %ld, \"%s\" )\n", e->e_id,
+	    e->e_dn, 0 );
 
-	printf("BEFORE_ADD:\n");
-	le = (pentry_list_t *) pmalloc(sizeof(pentry_list_t));
 
-# if 1
-	entry_pencode(e, &le->bv);
-	le->id = e->e_id;
+	if ( (db = mnemosynedbm_cache_open( be, "id2entry", MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT ))
+	    == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",
+		    MNEMOSYNEDBM_SUFFIX, 0, 0 );
 
-# else
-	str = entry2str( e, &len );
-	le->str = (char *) pmalloc(len+1);
-	le->id = e->e_id;
-	le->len = len;
-	memcpy(le->str, str, len+1);
-	printf("str = %p, len = %d\n %s\n", le->str, len, le->str);
-# endif
+		return( -1 );
+	}
 
-	list_add(&(le->list), &pentry_list);
+#ifdef WORDS_BIGENDIAN
+	key.dptr = (char *) &e->e_id;
+#else
+	id = htonl(e->e_id);
+	key.dptr = (char *) &id;
+#endif
+	key.dsize = sizeof(ID);
 
-	return 0;
+	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
+	data.dptr = entry2str( e, &len );
+	data.dsize = len + 1;
+
+	/* store it */
+	flags = MNEMOSYNEDBM_REPLACE;
+	rc = mnemosynedbm_cache_store( db, key, data, flags );
+
+	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
+
+	mnemosynedbm_cache_close( be, db );
+
+	Debug( LDAP_DEBUG_TRACE, "<= id2entry_add %d\n", rc, 0, 0 );
+
+
+	return( rc );
 }
 
 int
-id2entry_delete( Backend *be, Entry *e )
+m_id2entry_delete( Backend *be, Entry *e )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	DBCache	*db;
 	Datum		key;
 	int		rc;
@@ -132,7 +93,6 @@ id2entry_delete( Backend *be, Entry *e )
 	Debug(LDAP_DEBUG_TRACE, "=> id2entry_delete( %ld, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
-	assert(0);
 
 #ifdef notdef
 #ifdef LDAP_RDWR_DEBUG
@@ -141,17 +101,17 @@ id2entry_delete( Backend *be, Entry *e )
 #endif
 #endif
 
-	ldbm_datum_init( key );
+	mnemosynedbm_datum_init( key );
 
-	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = mnemosynedbm_cache_open( be, "id2entry", MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT ))
 		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",
-		    LDBM_SUFFIX, 0, 0 );
+		    MNEMOSYNEDBM_SUFFIX, 0, 0 );
 
 		return( -1 );
 	}
 
-	if ( cache_delete_entry( li->li_cache, e ) != 0 ) {
+	if ( m_cache_delete_entry( &li->li_cache, e ) != 0 ) {
 		Debug(LDAP_DEBUG_ANY, "could not delete %ld (%s) from cache\n",
 		    e->e_id, e->e_dn, 0 );
 
@@ -165,41 +125,110 @@ id2entry_delete( Backend *be, Entry *e )
 #endif
 	key.dsize = sizeof(ID);
 
-	rc = ldbm_cache_delete( db, key );
+	rc = mnemosynedbm_cache_delete( db, key );
 
-	ldbm_cache_close( be, db );
+	mnemosynedbm_cache_close( be, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_delete %d\n", rc, 0, 0 );
 
 	return( rc );
 }
 
-void 
-print_entry(Entry	*e);
-
-
 /* returns entry with reader/writer lock */
 Entry *
-id2entry_rw( Backend *be, ID id, int rw )
+m_id2entry_rw( Backend *be, ID id, int rw )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	DBCache	*db;
 	Datum		key, data;
 	Entry		*e;
 #ifndef WORDS_BIGENDIAN
 	ID		id2;
 #endif
-	Entry *edup;
+
+	mnemosynedbm_datum_init( key );
+	mnemosynedbm_datum_init( data );
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_%s( %ld )\n",
 		rw ? "w" : "r", id, 0 );
 
-	if ( (e = cache_find_entry_id( li->li_cache, id, rw )) != NULL ) {
+
+	if ( (e = m_cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (cache)\n",
 			rw ? "w" : "r", id, (unsigned long) e );
 
 		return( e );
 	}
-	
-	return NULL;
+
+	if ( (db = mnemosynedbm_cache_open( be, "id2entry", MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT ))
+		== NULL ) {
+		Debug( LDAP_DEBUG_ANY, "Could not open id2entry%s\n",
+		    MNEMOSYNEDBM_SUFFIX, 0, 0 );
+
+		return( NULL );
+	}
+
+#ifdef WORDS_BIGENDIAN
+	key.dptr = (char *) &id;
+#else
+	id2 = htonl(id);
+	key.dptr = (char *) &id2;
+#endif
+	key.dsize = sizeof(ID);
+
+	data = mnemosynedbm_cache_fetch( db, key );
+
+	if ( data.dptr == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) not found\n",
+			rw ? "w" : "r", id, 0 );
+
+		mnemosynedbm_cache_close( be, db );
+		return( NULL );
+	}
+
+	e = str2entry2( data.dptr, 0 );
+	mnemosynedbm_datum_free( db->dbc_db, data );
+	mnemosynedbm_cache_close( be, db );
+
+	if ( e == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (failed)\n",
+			rw ? "w" : "r", id, 0 );
+
+		return( NULL );
+	}
+
+	e->e_id = id;
+
+	if ( slapMode == SLAP_SERVER_MODE
+			&& m_cache_add_entry_rw( &li->li_cache, e, rw ) != 0 )
+	{
+		entry_free( e );
+
+		/* XXX this is a kludge.
+		 * maybe the entry got added underneath us
+		 * There are many underlying race condtions in the cache/disk code.
+		 */
+		if ( (e = m_cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (cache)\n",
+				rw ? "w" : "r", id, (unsigned long) e );
+
+			return( e );
+		}
+
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (cache add failed)\n",
+			rw ? "w" : "r", id, 0 );
+
+		return NULL;
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (disk)\n",
+		rw ? "w" : "r", id, (unsigned long) e );
+
+	if ( slapMode == SLAP_SERVER_MODE ) {
+		/* marks the entry as committed, so it will get added to the cache
+		 * when the lock is released */
+		m_cache_entry_commit( e );
+	}
+
+	return( e );
 }

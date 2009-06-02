@@ -1,5 +1,5 @@
 /* index.c - routines for dealing with attribute indexes */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/key.c,v 1.9.2.3 2007/01/02 21:44:03 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/key.c,v 1.9.2.3 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,11 +22,11 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
 /* read a key */
 int
-key_read(
+m_key_read(
     Backend	*be,
 	DBCache *db,
     struct berval *k,
@@ -36,14 +36,14 @@ key_read(
 	Datum		key;
 	ID_BLOCK		*idl;
 
-	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> m_key_read\n", 0, 0, 0 );
 
 
-	ldbm_datum_init( key );
+	mnemosynedbm_datum_init( key );
 	key.dptr = k->bv_val;
 	key.dsize = k->bv_len;
 
-	idl = idl_fetch( be, db, key );
+	idl = m_idl_fetch( be, db, key );
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_read %ld candidates\n",
 	       idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -55,7 +55,7 @@ key_read(
 
 /* Add or remove stuff from index files */
 int
-key_change(
+m_key_change(
     Backend		*be,
     DBCache	*db,
     struct berval *k,
@@ -66,22 +66,22 @@ key_change(
 	int	rc;
 	Datum	key;
 
-	Debug( LDAP_DEBUG_TRACE, "=> key_change(%s,%lx)\n",
+	Debug( LDAP_DEBUG_TRACE, "=> m_key_change(%s,%lx)\n",
 		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id, 0 );
 
 
-	ldbm_datum_init( key );
+	mnemosynedbm_datum_init( key );
 	key.dptr = k->bv_val;
 	key.dsize = k->bv_len;
 
 	ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 	if (op == SLAP_INDEX_ADD_OP) {
 	    /* Add values */
-	    rc = idl_insert_key( be, db, key, id );
+	    rc = m_idl_insert_key( be, db, key, id );
 
 	} else {
 	    /* Delete values */
-	    rc = idl_delete_key( be, db, key, id );
+	    rc = m_idl_delete_key( be, db, key, id );
 	}
 	ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 

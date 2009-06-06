@@ -1,13 +1,19 @@
 .PHONY: all-experiments
+ICCPATH=/opt/intel/Compiler/11.0/606/
+
 all-experiments: library/libtokyocabinet.a experiment/mmap experiment/mnemosyne
 
 experiment/mmap: experiment/mmap.c library-reg/libtokyocabinet.a
 	@echo "(COMPILE) $@"
 	@icc -Qtm_enabled -o $@ $< -Ilibrary-reg -I../../library/mtm/include -lpthread library-reg/libtokyocabinet.a -lbz2 -lz
 
-experiment/mnemosyne: experiment/mnemosyne.c library/libtokyocabinet.a
+experiment/mnemosyne: experiment/mnemosyne.o library/libtokyocabinet.a
+	@echo "(LINK) $@"
+	icc -fpic -fno-omit-frame-pointer -m64 -T ../../util/linker_script_persistent_segment_m64 -g -O2 -o $@ -I ../../library -I../../library/mnemosyne/include -I../../library/mtm/include -Ilibrary -lpthread library/libtokyocabinet.a -L../../build/library/mnemosyne -lmnemosyne -L../../build/library/malloc -lmalloc -L../../build/library/mtm/ -lmtm $(ICCPATH)/lib/intel64/libitm.a -lbz2 -lz $^
+
+experiment/mnemosyne.o: experiment/mnemosyne.c
 	@echo "(COMPILE) $@"
-	@icc -fpic -fno-omit-frame-pointer -m64 -T ../../util/linker_script_persistent_segment_m64 -g -O2 -Qtm_enabled -o $@ -I ../../library -I../../library/mnemosyne/include -I../../library/mtm/include -Ilibrary -lpthread library/libtokyocabinet.a -L../../build/library/mnemosyne -lmnemosyne -L../../build/library/malloc -lmalloc -lbz2 -lz $^
+	@icc -fpic -fno-omit-frame-pointer -m64  -g -O2 -Qtm_enabled -c -o $@ -I ../../library -I../../library/mnemosyne/include -I../../library/mtm/include -Ilibrary $^
 
 library/libtokyocabinet.a: library/Makefile library/tcbdb.h library/tcbdb.c
 	@echo "(BUILD) Tokyo Cabinet for Mnemosyne"

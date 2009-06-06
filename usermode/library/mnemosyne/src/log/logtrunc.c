@@ -16,14 +16,14 @@
 
 static m_logmgr_t *logmgr;
 
-static void log_truncation_main (void *arg);
+static void *log_truncation_main (void *arg);
 
 m_result_t
 m_logtrunc_init(m_logmgr_t *mgr)
 {
 	logmgr = mgr;
 	pthread_cond_init(&(logmgr->logtrunc_cond), NULL);
-	pthread_create (&(logmgr->logtrunc_thread), NULL, (void *) &log_truncation_main, (void *) 0);
+	pthread_create (&(logmgr->logtrunc_thread), NULL, &log_truncation_main, (void *) 0);
 
 	return M_R_SUCCESS;
 }
@@ -98,12 +98,11 @@ truncate_logs (pcm_storeset_t *set, int lock)
  * in the background.
  */
 static
-void 
+void *
 log_truncation_main (void *arg)
 {
 	struct timeval    tp;
 	struct timespec   ts;
-	int               rc;
 	pcm_storeset_t    *set;
 
 	set = pcm_storeset_get();
@@ -111,11 +110,11 @@ log_truncation_main (void *arg)
 	pthread_mutex_lock(&(logmgr->mutex));
 
 	while (1) {
-		rc =  gettimeofday(&tp, NULL);
+		gettimeofday(&tp, NULL);
 		ts.tv_sec = tp.tv_sec;
 		ts.tv_nsec = tp.tv_usec * 1000; 
-		ts.tv_sec += 0; /* sleep time */
-		//pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
+		ts.tv_sec += 1; /* sleep time */
+		pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
 		pthread_mutex_unlock(&(logmgr->mutex));
 		pthread_mutex_lock(&(logmgr->mutex));
 
@@ -123,6 +122,8 @@ log_truncation_main (void *arg)
 	}	
 
 	pthread_mutex_unlock(&(logmgr->mutex));
+
+	return 0;
 }
 
 

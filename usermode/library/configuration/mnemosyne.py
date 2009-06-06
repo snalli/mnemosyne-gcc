@@ -46,6 +46,15 @@ class Environment(SCons.Environment.Environment):
 	
 		self.Append(CPPDEFINES = mnemosyneDirectives.getPreprocessorDefinitions())
 
+
+        # Disable some remark messages when using Intel CC 
+		if mainEnv is not None and mainEnv['CC'] == 'icc': 
+			DISABLE_WARNINGS = ['-wd869',  #remark  #869 : parameter "XYZ" was never referenced
+                               ]
+
+			self.Append(CCFLAGS = string.join(DISABLE_WARNINGS, ' '))
+
+
 		# Inherit some command line options from the main environment
 		if mainEnv is not None:
 			self['BUILD_LINKAGE'] = mainEnv['BUILD_LINKAGE'] 
@@ -55,7 +64,7 @@ class Environment(SCons.Environment.Environment):
 			self['MY_UTIL_DIR'] = mainEnv['MY_UTIL_DIR'] 
 			self['CC'] = mainEnv['CC'] 
 			self['CXX'] = mainEnv['CXX'] 
-	
+            
 	def _GetConfigurationVariables(self):
 		"""
 			Retrieve and define help variables for configuration variables.

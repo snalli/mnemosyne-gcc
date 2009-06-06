@@ -36,7 +36,6 @@ static pthread_mutex_t      logmgr_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static m_logmgr_t           *logmgr = NULL;
 static volatile char        logmgr_initialized = 0; /* reads and writes to single-byte memory locations are guaranteed to be atomic. Don't need to bother with alignment. */
 
-
 #define NULL_LOG_OPS { NULL, NULL, NULL, NULL, NULL}
 
 /**
@@ -167,7 +166,8 @@ logmgr_init(pcm_storeset_t *set)
 	 */
 	logmgr = mgr;
 	logmgr_initialized = 1; 
-	m_logtrunc_init(logmgr);
+
+	m_logtrunc_init((m_logmgr_t *) logmgr);
 	rv = M_R_SUCCESS;
 
 out:
@@ -193,9 +193,9 @@ m_logmgr_init(pcm_storeset_t *set)
 m_result_t
 m_logmgr_fini(void)
 {
+#ifdef _M_STATS_BUILD
 	m_log_dsc_t       *log_dsc;
 
-#ifdef _M_STATS_BUILD
 	list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
 		log_dsc->ops->report_stats(log_dsc);
 	}
@@ -267,7 +267,7 @@ register_static_logtypes(m_logmgr_t *mgr)
 m_result_t
 m_logmgr_register_logtype(pcm_storeset_t *set, int type, m_log_ops_t *ops)
 {
-	if (!logmgr) {
+	if (!logmgr_initialized) {
 		logmgr_init(set);
 	}
 	return register_logtype((m_logmgr_t *)logmgr, type, ops, 1);
@@ -356,7 +356,7 @@ m_logmgr_alloc_log(pcm_storeset_t *set, int type, uint64_t flags, m_log_dsc_t **
 	m_log_dsc_t       *free_log_dsc_notype = NULL;
 	m_logtype_entry_t *logtype_entry;
 
-	pthread_mutex_lock(&logmgr_init_lock);
+	pthread_mutex_lock(&(logmgr->mutex));
 	list_for_each_entry(log_dsc, &(logmgr->free_logs_list), list) {
 		if (((log_dsc->nvmd->generic_flags & LF_TYPE_MASK) ==  type) &&
 		    free_log_dsc == NULL) 
@@ -411,7 +411,7 @@ m_logmgr_alloc_log(pcm_storeset_t *set, int type, uint64_t flags, m_log_dsc_t **
 	*log_dscp = log_dsc;
 	rv = M_R_SUCCESS;
 out:
-	pthread_mutex_unlock(&logmgr_init_lock);
+	pthread_mutex_unlock(&logmgr->mutex);
 	return rv;
 }
 

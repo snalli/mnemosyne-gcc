@@ -105,7 +105,7 @@ get_frame_pointer(void)
 #endif	
 }
 
-
+/* This requires frame pointers being enabled */
 static inline uintptr_t
 get_stack_base()
 {

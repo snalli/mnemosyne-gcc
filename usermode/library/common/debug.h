@@ -71,6 +71,7 @@ extern "C" {
 
 void m_debug_print(char *file, int line, int fatal, const char *prefix, const char *strformat, ...); 
 void m_debug_print_L(int debug_level, const char *strformat, ...); 
+void m_print_trace (void);
 
 #ifdef __cplusplus
 }

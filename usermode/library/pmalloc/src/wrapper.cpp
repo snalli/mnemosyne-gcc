@@ -181,6 +181,18 @@ extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)
 	return ptr;
 }
 
+static
+void _ITM_CALL_CONVENTION free_commit_action(void *arg)
+{
+	void* ptr = arg;
+	static persistentHeap * persistentheap = getPersistentAllocator();
+
+    persistentheap->free (ptr);
+	return;
+}
+
+
+
 static void free_internal (void * ptr)
 {
 	static persistentHeap * persistentheap = getPersistentAllocator();
@@ -196,8 +208,14 @@ static void free_internal (void * ptr)
 	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
 	{
 		__m_print("%lf %d %s %d ptr=%p (pfree)\n",__m_time__,__m_tid__, __func__, __LINE__, ptr)
-		persistentheap->free (ptr);
 
+	    _ITM_transaction * td;
+    	td = _ITM_getTransaction();
+	    if (_ITM_inTransaction(td) > 0) {
+		    _ITM_addUserCommitAction (td, free_commit_action, 2, ptr);
+        } else {
+			persistentheap->free (ptr);
+        }
 	} else {
 		__tm_atomic 
 		{

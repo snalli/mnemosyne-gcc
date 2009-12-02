@@ -41,6 +41,8 @@
 #include "ldbm.h"
 #include "ldap_pvt_thread.h"
 
+#include "stat.h"
+
 void
 ldbm_datum_free( LDBM ldbm, Datum data )
 {
@@ -508,8 +510,18 @@ ldbm_fetch( LDBM ldbm, Datum key )
 int
 ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
-	int	rc;
+	int	           rc;
+	struct timeval     start_time;
+	struct timeval     lock_time;
+	struct timeval     stop_time;
+	unsigned long long store_time;
+	unsigned long long lockwait_time;
+
+	gettimeofday(&start_time, NULL);
+
 	LDBM_WLOCK;
+
+	gettimeofday(&lock_time, NULL);
 
 #if DB_VERSION_MAJOR >= 2
 	rc = ldbm->put( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
@@ -520,8 +532,17 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 	if ( flags & LDBM_SYNC ) {
 		ldbm->sync( ldbm, 0 );
 	}
+	gettimeofday(&stop_time, NULL);
 
 	LDBM_WUNLOCK;
+
+	lockwait_time = 1000000 * (lock_time.tv_sec - start_time.tv_sec) +
+                  lock_time.tv_usec - start_time.tv_usec;
+	store_time = 1000000 * (stop_time.tv_sec - lock_time.tv_sec) +
+                  stop_time.tv_usec - lock_time.tv_usec;
+	slapd_stats_mdbm_store(store_time, stop_time);
+	slapd_stats_mdbm_store_lockwait(lockwait_time, stop_time);
+
 
 	return( rc );
 }

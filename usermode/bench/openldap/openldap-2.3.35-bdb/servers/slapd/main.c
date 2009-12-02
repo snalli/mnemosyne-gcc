@@ -39,6 +39,8 @@
 #include "lutil.h"
 #include "ldif.h"
 
+#include "stat.h"
+
 #ifdef LDAP_SLAPI
 #include "slapi/slapi.h"
 #endif
@@ -331,6 +333,9 @@ int main( int argc, char **argv )
 
 	char *serverNamePrefix = "";
 	size_t	l;
+
+	/* HARIS: Init my simple stats collector */
+	slapd_stats_init();
 
 	int slapd_pid_file_unlink = 0, slapd_args_file_unlink = 0;
 
@@ -934,6 +939,8 @@ stop:
 #ifdef CSRIMALLOC
 	mal_dumpleaktrace( leakfile );
 #endif
+
+	slapd_stats_fini(); 
 
 	MAIN_RETURN(rc);
 }

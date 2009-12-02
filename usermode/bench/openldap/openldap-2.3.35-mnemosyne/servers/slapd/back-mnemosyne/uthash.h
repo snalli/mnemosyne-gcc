@@ -72,9 +72,9 @@ typedef unsigned int uint32_t;
 #define uthash_expand_fyi(tbl)            /* can be defined to log expands   */
 
 /* initial number of buckets */
-#define HASH_INITIAL_NUM_BUCKETS 16384      /* initial number of buckets        */
-#define HASH_INITIAL_NUM_BUCKETS_LOG2 14  /* lg2 of initial number of buckets */
-#define HASH_BKT_CAPACITY_THRESH 16384      /* expand when bucket count reaches */
+#define HASH_INITIAL_NUM_BUCKETS 262144   /* initial number of buckets        */
+#define HASH_INITIAL_NUM_BUCKETS_LOG2 18  /* lg2 of initial number of buckets */
+#define HASH_BKT_CAPACITY_THRESH 262144   /* expand when bucket count reaches */
 
 /* calculate the element whose hash handle address is hhe */
 #define ELMT_FROM_HH(tbl,hhp) ((void*)(((char*)(hhp)) - ((tbl)->hho)))
@@ -171,6 +171,8 @@ do {                                                                            
  HASH_EMIT_KEY(hh,head,keyptr,keylen_in);                                        \
  HASH_FSCK(hh,head);                                                             \
 } while(0)
+
+
 
 #define HASH_TO_BKT( hashv, num_bkts, bkt )                                      \
 do {                                                                             \

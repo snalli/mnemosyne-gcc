@@ -98,8 +98,8 @@ static int hashtable_put(hashtable_t *hashtable, datum_t *k, datum_t *v, int fla
 	//printf("hashtable_put: k->size: %llu\n", (unsigned long long) k->size);
 	//printf("hashtable_put: v->size: %llu\n", (unsigned long long) v->size);
 
-	/* check for duplicates */
 	HASH_FIND(hh, hashtable->ht, k->data, k->size, p);
+	/* check for duplicates */
 	__tm_atomic 
 	{
 		if (p) {
@@ -133,7 +133,6 @@ static int hashtable_get(hashtable_t *hashtable, datum_t *k, datum_t *v)
 	datum_t  dupv;
 
 	HASH_FIND(hh, hashtable->ht, k->data, k->size, r);
-
 	if (!r) {
 		return -1;
 	}

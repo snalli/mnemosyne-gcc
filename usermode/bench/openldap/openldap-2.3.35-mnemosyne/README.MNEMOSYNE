@@ -23,7 +23,7 @@ $BUILD_DIR    : OpenLDAP build directory; where you will build OpenLDAP
 1. Set the following environment variables:
 
    % export CC=icc
-   % export CFLAGS="-Qtm_enabled -gcc-version=410"
+   % export CFLAGS="-Qtm_enabled -gcc-version=410 -fno-omit-frame-pointer"
    % export CPPFLAGS=-D_GNU_SOURCE
    % export LDFLAGS=-T $MNEMOSYNE_DIR/usermode/util/linker_script_persistent_segment_m64
 
@@ -34,7 +34,7 @@ Example:
 
    % mkdir $BUILD_DIR
    % cd $BUILD_DIR
-   % $LDAP_SRC_DIR/configure --without-tls --with-ldbm
+   % $LDAP_SRC_DIR/configure --without-tls --enable-ldbm
 
 3. Edit $BUILD_DIR/servers/slapd/Makefile
 

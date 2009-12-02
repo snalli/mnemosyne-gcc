@@ -48,6 +48,11 @@ do_add( Operation *op, SlapReply *rs )
 	size_t		textlen = sizeof( textbuf );
 	int		rc = 0;
 	int		freevals = 1;
+	struct timeval  start_time;
+	struct timeval  stop_time;
+	unsigned long long op_time;
+
+	gettimeofday(&start_time, NULL);
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 	/*
@@ -207,6 +212,10 @@ done:;
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
+	gettimeofday(&stop_time, NULL);
+	op_time = 1000000 * (stop_time.tv_sec - start_time.tv_sec) +
+                  stop_time.tv_usec - start_time.tv_usec;
+	slapd_stats_op_add(op_time, stop_time);
 	return rc;
 }
 

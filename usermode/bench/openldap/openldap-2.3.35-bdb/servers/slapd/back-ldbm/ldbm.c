@@ -290,6 +290,8 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 #ifdef HAVE_BERKELEY_DB_THREAD
 	envFlags |= DB_THREAD;
 #endif
+	envFlags |= DB_INIT_LOG;
+	envFlags |= DB_INIT_TXN;
 
 #ifdef HAVE_EBCDIC
 	strncpy(n2, home, sizeof(n2)-1);
@@ -351,7 +353,11 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 #ifdef HAVE_EBCDIC
 	char n2[2048];
 #endif
-
+	/* HARIS: The original back-ldbm backend relies on periodic syncs to
+	 * to flush state out to disk. To provide a basis for fair comparison
+	 * to Mnemosyne we use logging instead
+	 */
+	rw |= DB_AUTO_COMMIT;
 #if DB_VERSION_MAJOR >= 3
 	int err;
 
@@ -503,7 +509,6 @@ int
 ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
 	int	rc;
-
 	LDBM_WLOCK;
 
 #if DB_VERSION_MAJOR >= 2
@@ -512,9 +517,9 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 #else
 	rc = ldbm->put( ldbm, &key, &data, flags & ~LDBM_SYNC );
 #endif
-
-	if ( flags & LDBM_SYNC )
+	if ( flags & LDBM_SYNC ) {
 		ldbm->sync( ldbm, 0 );
+	}
 
 	LDBM_WUNLOCK;
 

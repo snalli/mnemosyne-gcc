@@ -41,8 +41,6 @@
 #include "ldbm.h"
 #include "ldap_pvt_thread.h"
 
-#include "stat.h"
-
 void
 ldbm_datum_free( LDBM ldbm, Datum data )
 {
@@ -292,8 +290,6 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 #ifdef HAVE_BERKELEY_DB_THREAD
 	envFlags |= DB_THREAD;
 #endif
-	envFlags |= DB_INIT_LOG;
-	envFlags |= DB_INIT_TXN;
 
 #ifdef HAVE_EBCDIC
 	strncpy(n2, home, sizeof(n2)-1);
@@ -355,11 +351,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 #ifdef HAVE_EBCDIC
 	char n2[2048];
 #endif
-	/* HARIS: The original back-ldbm backend relies on periodic syncs to
-	 * to flush state out to disk. To provide a basis for fair comparison
-	 * to Mnemosyne we use logging instead
-	 */
-	rw |= DB_AUTO_COMMIT;
+
 #if DB_VERSION_MAJOR >= 3
 	int err;
 
@@ -510,18 +502,9 @@ ldbm_fetch( LDBM ldbm, Datum key )
 int
 ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 {
-	int	           rc;
-	struct timeval     start_time;
-	struct timeval     lock_time;
-	struct timeval     stop_time;
-	unsigned long long store_time;
-	unsigned long long lockwait_time;
-
-	gettimeofday(&start_time, NULL);
+	int	rc;
 
 	LDBM_WLOCK;
-
-	gettimeofday(&lock_time, NULL);
 
 #if DB_VERSION_MAJOR >= 2
 	rc = ldbm->put( ldbm, NULL, &key, &data, flags & ~LDBM_SYNC );
@@ -529,20 +512,11 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 #else
 	rc = ldbm->put( ldbm, &key, &data, flags & ~LDBM_SYNC );
 #endif
-	if ( flags & LDBM_SYNC ) {
+
+	if ( flags & LDBM_SYNC )
 		ldbm->sync( ldbm, 0 );
-	}
-	gettimeofday(&stop_time, NULL);
 
 	LDBM_WUNLOCK;
-
-	lockwait_time = 1000000 * (lock_time.tv_sec - start_time.tv_sec) +
-                  lock_time.tv_usec - start_time.tv_usec;
-	store_time = 1000000 * (stop_time.tv_sec - lock_time.tv_sec) +
-                  stop_time.tv_usec - lock_time.tv_usec;
-	slapd_stats_mdbm_store(store_time, stop_time);
-	slapd_stats_mdbm_store_lockwait(lockwait_time, stop_time);
-
 
 	return( rc );
 }

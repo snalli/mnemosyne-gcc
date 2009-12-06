@@ -44,6 +44,7 @@
 #include "mnemosynedbm.h"
 #include "ldap_pvt_thread.h"
 #include "hash.h"
+#include "hash-bits.h"
 #include "list.h"
 
 void
@@ -147,7 +148,8 @@ mnemosynedbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 	}
 
 	/* Hashtable does not exist; create it */
-	__tm_atomic {
+	//__tm_atomic 
+	{
 		ht = (hashtable_t *) pmalloc(sizeof(hashtable_t));
 		hashtable_init(ht, name);
 		list_add(&(ht->list), &hashtable_list);

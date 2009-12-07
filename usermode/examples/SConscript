@@ -1,0 +1,28 @@
+import os
+
+Import('env')
+
+examplesEnv = env.Clone()
+
+
+examplesEnv['CPPPATH'] = ['#src/inc']
+examplesEnv['LIBS'] = 'mnemosyne'
+examplesEnv['CFLAGS'] = '-g -Qtm_enabled'
+#examplesEnv['CXXFLAGS'] = '-g -Qtm_enabled -m32'
+examplesEnv['CXXFLAGS'] = '-g -Qtm_enabled'
+examplesEnv['LIBPATH'] = examplesEnv['MY_BUILD_DIR']
+#examplesEnv.Append(LINKFLAGS = '-Qtm_enabled -m32')
+examplesEnv.Append(LINKFLAGS = '-Qtm_enabled')
+examplesEnv.Append(LINKFLAGS = '-T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+examplesEnv.Append(LINKFLAGS = '-Wl,--rpath,' + examplesEnv['MY_BUILD_DIR'])
+
+example = examplesEnv['EXAMPLE']
+
+sconscript_path = example + '/SConstrict'
+variant_directory = os.path.join(examplesEnv['MY_BUILD_DIR'], 'examples')
+variant_directory = os.path.join(variant_directory, example)
+
+print variant_directory
+
+Export('examplesEnv')
+SConscript(sconscript_path, variant_dir = variant_directory)

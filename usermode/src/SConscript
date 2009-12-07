@@ -1,0 +1,40 @@
+Import('env')
+
+buildEnv = env.Clone()
+
+#buildEnv.Append(CCFLAGS = '-msse -m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -Wall -pthread')
+buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
+
+if buildEnv['BUILD_DEBUG'] == True:
+	buildEnv.Append(CCFLAGS = ' -g -D_MNEMOSYNE_BUILD_DEBUG')
+else:
+	buildEnv.Append(CCFLAGS = ' -O2')
+
+if buildEnv['HAVE_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_MNEMOSYNE_HAVE_STATS')
+
+
+buildEnv['CPPPATH'] = ['#src/']
+buildEnv.Append(LIBS = 'elf')
+#buildEnv.Append(CPPPATH = '#src/config/linux/x86')
+#buildEnv.Append(CPPPATH = '#src/config/linux')
+#buildEnv.Append(CPPPATH = '#src/config/x86')
+#buildEnv.Append(CPPPATH = '#src/config/posix')
+#buildEnv.Append(CPPPATH = '#src/config/generic')
+
+#buildEnv.Append(LINKFLAGS = ['-m64'])
+#buildEnv.Append(ASFLAGS = '-m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -fomit-frame-pointer -Wall')
+
+C_SRC = Split("""common/config.c
+				common/debug.c
+				common/init.c
+				common/segment.c
+					""")
+
+
+SRC = C_SRC
+
+if buildEnv['LINKAGE'] == 'dynamic':
+	buildEnv.SharedLibrary(buildEnv['LIBRARY_NAME'], SRC)
+elif buildEnv['LINKAGE'] == 'static':
+	buildEnv.StaticLibrary(buildEnv['LIBRARY_NAME'], SRC)

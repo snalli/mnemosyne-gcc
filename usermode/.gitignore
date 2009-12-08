@@ -1,2 +1,4 @@
 build
 .sconsign.dblite
+._*
+*~

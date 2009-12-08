@@ -8,6 +8,7 @@ extern "C" {
 # endif
 	
 void *mnemosyne_segment_create(void *start, size_t length, int prot, int flags);
+int mnemosyne_segment_destroy(void *start, size_t length);
 
 # ifdef __cplusplus
 }

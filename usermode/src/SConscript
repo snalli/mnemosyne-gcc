@@ -16,6 +16,7 @@ if buildEnv['HAVE_STATS'] == True:
 
 buildEnv['CPPPATH'] = ['#src/']
 buildEnv.Append(LIBS = 'elf')
+buildEnv.Append(LINKFLAGS = '-T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 #buildEnv.Append(CPPPATH = '#src/config/linux/x86')
 #buildEnv.Append(CPPPATH = '#src/config/linux')
 #buildEnv.Append(CPPPATH = '#src/config/x86')
@@ -28,6 +29,7 @@ buildEnv.Append(LIBS = 'elf')
 C_SRC = Split("""common/config.c
 				common/debug.c
 				common/init.c
+				common/malloc.c
 				common/segment.c
 					""")
 

@@ -2,10 +2,9 @@
 #define _MNEMOSYNE_SPRING_H
 
 #include <stdio.h>
+#include <common/result.h>
 
-typedef struct mnemosyne_segment_s mnemosyne_segment_t;
-typedef FILE mnemosyne_segment_backing_store_t;
-
-void mnemosyne_segment_reincarnate();
+mnemosyne_result_t mnemosyne_segment_reincarnate_address_space();
+mnemosyne_result_t mnemosyne_segment_checkpoint_address_space();
 
 #endif /* _MNEMOSYNE_SPRING_H */

@@ -29,6 +29,7 @@ typedef struct	{
 
 // This is our always-persistent data. As the programmer, I don't care how this works.
 MNEMOSYNE_PERSISTENT my_objects_t my_objects;
+MNEMOSYNE_PERSISTENT unsigned int my_counter = 0xDEAD0000;
 
 /*!
  * Initializes our persistent structures on the _first_ run of the program.
@@ -43,6 +44,9 @@ void InitializeFirstTime();
 int main (int argc, char const *argv[])
 {
 	InitializeFirstTime();
+	my_counter += 1;
+
+	std::cout << "my_counter : " << std::hex << my_counter << std::dec << std::endl;
 	
 	std::cout << "There were " <<
 		my_objects.messages->length() << " messages and " <<
@@ -70,5 +74,4 @@ void InitializeFirstTime()	{
 		if (my_objects.people == NULL)
 			my_objects.people = new SinglyLinkedList<Person>;        // As above, automatically persistent allocation.
 	}
-	mnemosyne_segment_create((void *) 0xa0000000, 1024, 0, 0);
 }

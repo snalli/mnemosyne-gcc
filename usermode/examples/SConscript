@@ -18,7 +18,7 @@ examplesEnv.Append(LINKFLAGS = '-Wl,--rpath,' + examplesEnv['MY_BUILD_DIR'])
 
 example = examplesEnv['EXAMPLE']
 
-sconscript_path = example + '/SConstrict'
+sconscript_path = example + '/SConscript'
 variant_directory = os.path.join(examplesEnv['MY_BUILD_DIR'], 'examples')
 variant_directory = os.path.join(variant_directory, example)
 

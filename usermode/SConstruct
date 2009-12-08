@@ -1,6 +1,9 @@
 import os
 
-env = Environment()
+env = Environment(  CCCOMSTR = '(COMPILE) $SOURCES',
+                   CXXCOMSTR = '(COMPILE) $SOURCES',
+                  SHCCCOMSTR = '(COMPILE) $SOURCES',
+                  LINKCOMSTR = '(LINK)    $TARGET')
 
 AddOption("--build-debug",
 			action="store_true", dest="build_debug", 

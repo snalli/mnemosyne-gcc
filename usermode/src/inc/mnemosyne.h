@@ -6,9 +6,13 @@
 # ifdef __cplusplus
 extern "C" {
 # endif
-	
+
+#include <sys/types.h>
+
 void *mnemosyne_segment_create(void *start, size_t length, int prot, int flags);
 int mnemosyne_segment_destroy(void *start, size_t length);
+void *mnemosyne_malloc(size_t bytes);
+void mnemosyne_free(void *ptr);
 
 # ifdef __cplusplus
 }

@@ -44,7 +44,7 @@ class Environment(SCons.Environment.Environment):
 		configuration_variables = self.GetConfigurationVariables(configuration_name)
 		configuration_variables.Update(self)
 		self.Append(RANLIBFLAGS = self.preprocessorDefinitions())
-		self.Append(CFLAGS = self.preprocessorDefinitions())
+		self.Append(CPPDEFINES = self.preprocessorDefinitions())
 		self.Append(LIBS=['atomic'])
 	
 	def GetConfigurationVariables(self, configuration_name):
@@ -95,7 +95,7 @@ class Environment(SCons.Environment.Environment):
 		
 		bool_directives = self.booleanDirectives()
 		debug_directive = directive_for_debug_level(self['DEBUG'])
-		design_directive = 'tnhauehsaeou -DDESIGN={design}'.format(design = self['DESIGN'])
+		design_directive = '-DDESIGN={design}'.format(design = self['DESIGN'])
 		conflict_manager_directive = '-DCM={cm}'.format(cm = self['CONFLICT_MANAGER'])
 		
 		all_directives = bool_directives

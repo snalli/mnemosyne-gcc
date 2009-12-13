@@ -16,5 +16,5 @@ wrapper_sources = [
 	'src/wrappers.c'
 ]
 
-Library('libstm.a',
+env.Library('libstm.a',
         [stm_library_sources, module_sources, wrapper_sources])

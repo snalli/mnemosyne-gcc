@@ -1,13 +1,17 @@
 import os
 import string
 import SCons.Environment
+from SCons.Script import ARGUMENTS
 from SCons.Variables import Variables, EnumVariable, BoolVariable
 
 class Environment(SCons.Environment.Environment):
-	"""A specialization of the SCons Environment class which does some particular
-	   munging of the build variables needed in the source files."""
+	"""
+		A specialization of the SCons Environment class which does some particular
+		munging of the build variables needed in the source files.
+	"""
 	
-	boolean_options = {
+	#: Build options which are either on or off.
+	_boolean_options = {
 		'ROLLOVER_CLOCK':           'Roll over clock when it reaches its maximum value.  Clock rollover can be safely disabled on 64 bits to save a few cycles, but it is necessary on 32 bits if the application executes more than 2^28 (write-through) or 2^31 (write-back) transactions.',
 		'CLOCK_IN_CACHE_LINE':      'Ensure that the global clock does not share the same cache line than some other variable of the program.  This should be normally enabled.',
 		'NO_DUPLICATES_IN_RW_SETS': 'Prevent duplicate entries in read/write sets when accessing the same address multiple times.  Enabling this option may reduce performance so leave it disabled unless transactions repeatedly read or write the same address.',
@@ -19,7 +23,8 @@ class Environment(SCons.Environment.Environment):
 		'LOCK_IDX_SWAP':            'Tweak the hash function that maps addresses to locks so that consecutive addresses do not map to consecutive locks. This can avoid cache line invalidations for application that perform sequential memory accesses. The last byte of the lock index is swapped with the previous byte.'
 	}
 	
-	enumerable_options = [
+	#: Build options which have enumerated values.
+	_enumerable_options = [
 		EnumVariable('DEBUG',
 		                 'Selects level of debugging output.',
 		                 'None', # Default
@@ -35,6 +40,7 @@ class Environment(SCons.Environment.Environment):
 		                 ['CM_SUICIDE', 'CM_DELAY', 'CM_BACKOFF', 'CM_PRIORITY'])
 	]
 	
+	
 	def __init__(self, configuration_name):
 		"""
 			Applies the definitions in configuration_name to generate a correct
@@ -44,7 +50,7 @@ class Environment(SCons.Environment.Environment):
 		SCons.Environment.Environment.__init__(self)
 		
 		# Apply the configuration variables specific to TinySTM.
-		configuration_variables = self.GetConfigurationVariables(configuration_name)
+		configuration_variables = self._GetConfigurationVariables(configuration_name)
 		configuration_variables.Update(self)
 		
 		# Bring in appropriate environment variables and preprocessor definitions.
@@ -52,12 +58,13 @@ class Environment(SCons.Environment.Environment):
 		# this build more brittle, but otherwise I have to write an SCons builder
 		# for libatomic_ops as well. Instead, I let the system paths make it
 		# visible and assume that the user has installed libatomic_ops themselves.
-		self.Append(CPPDEFINES = self.preprocessorDefinitions())
+		self.Append(CPPDEFINES = self._PreprocessorDefinitions())
 		self.Append(CPPPATH = 'include')
 		self.Append(ENV = os.environ)
 		self.Append(LIBS=['atomic'])
 	
-	def GetConfigurationVariables(self, configuration_name):
+	
+	def _GetConfigurationVariables(self, configuration_name):
 		"""
 			Retrieve and define help options for configuration variables of
 			TinySTM.
@@ -67,30 +74,32 @@ class Environment(SCons.Environment.Environment):
 			"configuration/" + configuration_name + "/other.py",
 			"configuration/" + configuration_name + "/policies.py"
 		]
-
+		
 		configuration = Variables(configuration_files)
-		[configuration.Add(option) for option in self.enumerable_options]
-		for boolean_name in self.boolean_options:
+		[configuration.Add(option) for option in self._enumerable_options]
+		for boolean_name in self._boolean_options:
 			name = boolean_name
-			definition = self.boolean_options[name]
+			definition = self._boolean_options[name]
 			variable = BoolVariable(name, definition, True)
 			configuration.Add(variable)
 		
 		return configuration
 	
-	def booleanDirectives(self):
+	
+	def _BooleanDirectives(self):
 		"""
 			Takes the boolean directives of this instance and composes them
 			into a list where each entry is '-DX' if X is True.
 		"""
 		directives = []
-		for boolean_name in self.boolean_options:
+		for boolean_name in self._boolean_options:
 			if self[boolean_name] is True:
 				directive = '-D{name}'.format(name = boolean_name)
 				directives.append(directive)
 		return directives
 	
-	def preprocessorDefinitions(self):
+	
+	def _PreprocessorDefinitions(self):
 		"""
 			Takes the input configuration and generates a string of preprocessor definitions
 			appropriate to the environment as the configuration demands.
@@ -103,7 +112,7 @@ class Environment(SCons.Environment.Environment):
 			else:
 				return None
 		
-		bool_directives = self.booleanDirectives()
+		bool_directives = self._BooleanDirectives()
 		debug_directive = directive_for_debug_level(self['DEBUG'])
 		design_directive = '-DDESIGN={design}'.format(design = self['DESIGN'])
 		conflict_manager_directive = '-DCM={cm}'.format(cm = self['CONFLICT_MANAGER'])

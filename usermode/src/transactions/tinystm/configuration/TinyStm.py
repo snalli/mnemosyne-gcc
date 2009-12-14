@@ -29,7 +29,7 @@ class Environment(SCons.Environment.Environment):
 		                 'Selects level of debugging output.',
 		                 'None', # Default
 		                 ['0', '1', '2'],
-		                 map = {'None': 0, 'Light': 1, 'Heavy': 2}),
+		                 map = {'None': '0', 'Light': '1', 'Heavy': '2'}),
 		EnumVariable('DESIGN',
 		                 'Determines the version management policy for the STM.',
 		                 'WRITE_BACK_ETL',
@@ -75,7 +75,9 @@ class Environment(SCons.Environment.Environment):
 			"configuration/" + configuration_name + "/policies.py"
 		]
 		
-		configuration = Variables(configuration_files)
+		command_line_arguments = ARGUMENTS
+		
+		configuration = Variables(configuration_files, command_line_arguments)
 		[configuration.Add(option) for option in self._enumerable_options]
 		for boolean_name in self._boolean_options:
 			name = boolean_name
@@ -105,9 +107,9 @@ class Environment(SCons.Environment.Environment):
 			appropriate to the environment as the configuration demands.
 		"""
 		def directive_for_debug_level(level):
-			if level is 1:
+			if level is '1':
 				return '-DDEBUG'
-			elif level is 2:
+			elif level is '2':
 				return '-DDEBUG -DDEBUG2'
 			else:
 				return None

@@ -1,3 +1,4 @@
+import os
 import string
 import SCons.Environment
 from SCons.Variables import Variables, EnumVariable, BoolVariable
@@ -41,10 +42,19 @@ class Environment(SCons.Environment.Environment):
 			TinySTM library. That environment is returned
 		"""
 		SCons.Environment.Environment.__init__(self)
+		
+		# Apply the configuration variables specific to TinySTM.
 		configuration_variables = self.GetConfigurationVariables(configuration_name)
 		configuration_variables.Update(self)
-		self.Append(RANLIBFLAGS = self.preprocessorDefinitions())
+		
+		# Bring in appropriate environment variables and preprocessor definitions.
+		# Note: the inclusion of the OS environment reportedly threatens to make
+		# this build more brittle, but otherwise I have to write an SCons builder
+		# for libatomic_ops as well. Instead, I let the system paths make it
+		# visible and assume that the user has installed libatomic_ops themselves.
 		self.Append(CPPDEFINES = self.preprocessorDefinitions())
+		self.Append(CPPPATH = 'include')
+		self.Append(ENV = os.environ)
 		self.Append(LIBS=['atomic'])
 	
 	def GetConfigurationVariables(self, configuration_name):

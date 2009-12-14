@@ -12,15 +12,28 @@ class Environment(SCons.Environment.Environment):
 	
 	#: Build options which are either on or off.
 	_boolean_options = {
-		'ROLLOVER_CLOCK':           'Roll over clock when it reaches its maximum value.  Clock rollover can be safely disabled on 64 bits to save a few cycles, but it is necessary on 32 bits if the application executes more than 2^28 (write-through) or 2^31 (write-back) transactions.',
-		'CLOCK_IN_CACHE_LINE':      'Ensure that the global clock does not share the same cache line than some other variable of the program.  This should be normally enabled.',
-		'NO_DUPLICATES_IN_RW_SETS': 'Prevent duplicate entries in read/write sets when accessing the same address multiple times.  Enabling this option may reduce performance so leave it disabled unless transactions repeatedly read or write the same address.',
-		'WAIT_YIELD':               'Yield the processor when waiting for a contended lock to be released. This only applies to the CM_WAIT and CM_PRIORITY contention managers.',
-		'USE_BLOOM_FILTER':         'Use a (degenerate) bloom filter for quickly checking in the write set whether an address has previously been written.  This approach is directly inspired by TL2.  It only applies to the WRITE_BACK_CTL design.',
-		'EPOCH_GC':                 'Use an epoch-based memory allocator and garbage collector to ensure that accesses to the dynamic memory allocated by a transaction from another transaction are valid.  There is a slight overhead from enabling this feature.',
-		'CONFLICT_TRACKING':        'Keep track of conflicts between transactions and notifies the application (using a callback), passing the identity of the two conflicting transaction and the associated threads.  This feature requires EPOCH_GC.',
-		'READ_LOCKED_DATA':         'Allow transactions to read the previous version of locked memory locations, as in the original LSA algorithm (see [DISC-06]). This is achieved by peeking into the write set of the transaction that owns the lock.  There is a small overhead with non-contended workloads but it may significantly reduce the abort rate, especially with transactions that read much data.  This feature only works with the WRITE_BACK_ETL design and requires EPOCH_GC.',
-		'LOCK_IDX_SWAP':            'Tweak the hash function that maps addresses to locks so that consecutive addresses do not map to consecutive locks. This can avoid cache line invalidations for application that perform sequential memory accesses. The last byte of the lock index is swapped with the previous byte.'
+		'ROLLOVER_CLOCK':           ('Roll over clock when it reaches its maximum value.  Clock rollover can be safely disabled on 64 bits to save a few cycles, but it is necessary on 32 bits if the application executes more than 2^28 (write-through) or 2^31 (write-back) transactions.',
+			True),
+		'CLOCK_IN_CACHE_LINE':      ('Ensure that the global clock does not share the same cache line than some other variable of the program.  This should be normally enabled.',
+			True),
+		'NO_DUPLICATES_IN_RW_SETS': ('Prevent duplicate entries in read/write sets when accessing the same address multiple times.  Enabling this option may reduce performance so leave it disabled unless transactions repeatedly read or write the same address.',
+			True),
+		'WAIT_YIELD':               ('Yield the processor when waiting for a contended lock to be released. This only applies to the CM_WAIT and CM_PRIORITY contention managers.',
+			True),
+		'USE_BLOOM_FILTER':         ('Use a (degenerate) bloom filter for quickly checking in the write set whether an address has previously been written.  This approach is directly inspired by TL2.  It only applies to the WRITE_BACK_CTL design.',
+			True),
+		'EPOCH_GC':                 ('Use an epoch-based memory allocator and garbage collector to ensure that accesses to the dynamic memory allocated by a transaction from another transaction are valid.  There is a slight overhead from enabling this feature.',
+			True),
+		'CONFLICT_TRACKING':        ('Keep track of conflicts between transactions and notifies the application (using a callback), passing the identity of the two conflicting transaction and the associated threads.  This feature requires EPOCH_GC.',
+			True),
+		'READ_LOCKED_DATA':         ('Allow transactions to read the previous version of locked memory locations, as in the original LSA algorithm (see [DISC-06]). This is achieved by peeking into the write set of the transaction that owns the lock.  There is a small overhead with non-contended workloads but it may significantly reduce the abort rate, especially with transactions that read much data.  This feature only works with the WRITE_BACK_ETL design and requires EPOCH_GC.',
+			True),
+		'LOCK_IDX_SWAP':            ('Tweak the hash function that maps addresses to locks so that consecutive addresses do not map to consecutive locks. This can avoid cache line invalidations for application that perform sequential memory accesses. The last byte of the lock index is swapped with the previous byte.',
+			True),
+		
+		# These are more to do with build behavior and output
+		'VERBOSE': ('If set, displays the actual commands used and their flags instead of the default "neat" output.',
+			False)
 	}
 	
 	#: Build options which have enumerated values.
@@ -58,10 +71,18 @@ class Environment(SCons.Environment.Environment):
 		# this build more brittle, but otherwise I have to write an SCons builder
 		# for libatomic_ops as well. Instead, I let the system paths make it
 		# visible and assume that the user has installed libatomic_ops themselves.
-		self.Append(CPPDEFINES = self._PreprocessorDefinitions())
-		self.Append(CPPPATH = 'include')
-		self.Append(ENV = os.environ)
-		self.Append(LIBS=['atomic'])
+		self.Append(
+			CPPDEFINES = self._PreprocessorDefinitions(),
+			CPPPATH = 'include',
+			ENV = os.environ,
+			LIBS=['atomic'])
+		
+		# Make output pretty.
+		if not self['VERBOSE']:
+			self.Replace(
+				    CCCOMSTR = '(COMPILE) $SOURCES',
+				    ARCOMSTR = '(BUILD)   $TARGET',
+				RANLIBCOMSTR = '(INDEX)   $TARGET')
 	
 	
 	def _GetConfigurationVariables(self, configuration_name):
@@ -81,8 +102,8 @@ class Environment(SCons.Environment.Environment):
 		[configuration.Add(option) for option in self._enumerable_options]
 		for boolean_name in self._boolean_options:
 			name = boolean_name
-			definition = self._boolean_options[name]
-			variable = BoolVariable(name, definition, True)
+			definition, default = self._boolean_options[name]
+			variable = BoolVariable(name, definition, default)
 			configuration.Add(variable)
 		
 		return configuration

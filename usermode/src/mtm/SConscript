@@ -19,6 +19,9 @@ buildEnv.Append(LINKFLAGS = ['-g'])
 #buildEnv.Append(ASFLAGS = '-m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -fomit-frame-pointer -Wall -g -O2')
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
 
+srcgen_sjlj = buildEnv.Program('generate_sjlj', 'srcgen/generate_sjlj.c')
+srcgen_vtable = buildEnv.Program('generate_vtable', 'srcgen/generate_vtable.c')
+
 #					readonly/method-readonly.c
 
 CC_SRC = Split("""aatree.c

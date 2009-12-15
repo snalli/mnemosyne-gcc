@@ -67,6 +67,7 @@ env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
 SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
+SConscript('util/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'util'))
 
 
 #Examples Environment

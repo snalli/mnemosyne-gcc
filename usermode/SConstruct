@@ -1,9 +1,11 @@
 import os
 
-env = Environment(  CCCOMSTR = '(COMPILE) $SOURCES',
-                   CXXCOMSTR = '(COMPILE) $SOURCES',
-                  SHCCCOMSTR = '(COMPILE) $SOURCES',
-                  LINKCOMSTR = '(LINK)    $TARGET')
+#env = Environment(  CCCOMSTR = '(COMPILE) $SOURCES',
+#                   CXXCOMSTR = '(COMPILE) $SOURCES',
+#                  SHCCCOMSTR = '(COMPILE) $SOURCES',
+#                  LINKCOMSTR = '(LINK)    $TARGET')
+
+env = Environment()
 
 AddOption("--build-debug",
 			action="store_true", dest="build_debug", 
@@ -51,9 +53,10 @@ env['HAVE_STATS'] = GetOption('have_stats')
 env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = GetOption('selected_example')
+env['CCCOMSTR'] = "Compiling $TARGET"
 
-#env['CC'] = '/afs/cs.wisc.edu/u/h/v/hvolos/intel/Compiler/11.0.606/bin/ia32/icc'
-#env['CXX'] = '/afs/cs.wisc.edu/u/h/v/hvolos/intel/Compiler/11.0.606/bin/ia32/icpc'
+#env['CC'] = '/scratch/local/intel/Compiler/11.0/606/bin/intel64/icc'
+#env['CXX'] = '/scratch/local/intel/Compiler/11.0/606/bin/intel64/icpc'
 env['LIBRARY_NAME'] = 'mnemosyne'
 
 Export('env')

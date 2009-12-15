@@ -1,0 +1,14 @@
+env = Environment()
+env['CC'] = '/scratch/local/intel/Compiler/11.0/606/bin/intel64/icc'
+Export('env')
+
+Import('env')
+
+buildEnv = env.Clone()
+buildEnv['CPPPATH'] = ['.']
+buildEnv.Append(CPPPATH = '../src/mtm')
+buildEnv.Append(CPPPATH = '../src/mtm/config/x86')
+buildEnv.Append(CPPPATH = '../src/mtm/config/linux')
+buildEnv.Append(CPPPATH = '../src/mtm/config/posix')
+buildEnv.Program('generate_sjlj', ['generate_sjlj.c']) 
+buildEnv.Program('generate_vtable', ['generate_vtable.c']) 

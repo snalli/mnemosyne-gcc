@@ -1,3 +1,5 @@
+import os
+
 Import('env')
 
 buildEnv = env.Clone()
@@ -33,6 +35,7 @@ C_SRC = Split("""common/config.c
 				common/segment.c
 					""")
 
+SConscript('#src/mtm/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'mtm'))
 
 SRC = C_SRC
 

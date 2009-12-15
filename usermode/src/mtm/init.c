@@ -1,34 +1,25 @@
 #include "mtm_i.h"
 #include <pthread.h>
 
-static uint32_t        proc_init = 0;
-static pthread_mutex_t proc_init_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t  proc_init_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t proc_fini_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t  proc_fini_cond = PTHREAD_COND_INITIALIZER;
-volatile uint32_t tm_initialized;
-
+static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
+volatile uint32_t mtm_initialized = 0;
 
 __thread mtm_thread_t *_mtm_thr;
 
-void 
-mtm_init_process(void)
+int 
+mtm_init_global(void)
 {
-	if (tm_initialized) {
-		return;
+	if (mtm_initialized) {
+		return 0;
 	}
 
-	pthread_mutex_lock(&proc_init_lock);
-	while (proc_init) {
-		pthread_cond_wait(&proc_init_cond, &proc_init_lock);
-	}
-
-	defaultVtables = &perfVtables;
-	proc_init = 1;
-	tm_initialized = 1;
-	printf("Initialize\n");
-	pthread_cond_signal(&proc_init_cond);
-	pthread_mutex_unlock(&proc_init_lock);
+	pthread_mutex_lock(&global_init_lock);
+	if (!mtm_initialized) {
+		defaultVtables = &perfVtables;
+		mtm_initialized = 1;
+	}	
+	pthread_mutex_unlock(&global_init_lock);
+	return 0;
 }
 
 
@@ -38,17 +29,28 @@ mtm_init_thread(void)
 	mtm_thread_t *thr = mtm_thr();
 
 	if (thr) {
-		printf("mtm_init_thread:1: thr = %p\n", thr);
 		return thr;
 	}
 
-	mtm_init_process();
+	mtm_init_global();
 	thr = (mtm_thread_t *) malloc(sizeof(mtm_thread_t));
 	_mtm_thr = thr;
 	thr->tx = NULL;
 	thr->tmp_jb_ptr = &(thr->tmp_jb);
 	thr->vtable = defaultVtables->mtm_wbetl;
-	printf("mtm_init_thread:2: thr = %p\n", thr);
-	printf("mtm_init_thread:2: &thr->tmp_jb = %p\n", &thr->tmp_jb);
+
 	return thr;
+}
+
+void 
+mtm_fini_global(void)
+{
+	//TODO
+}
+
+
+void 
+mtm_fini_thread(void)
+{
+	//TODO
 }

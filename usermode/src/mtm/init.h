@@ -1,7 +1,9 @@
 #ifndef _INIT_H
 #define _INIT_H
 
-void mtm_init_process(void);
+int mtm_init_global(void);
 mtm_thread_t *mtm_init_thread(void);
+void mtm_fini_global(void);
+void mtm_fini_thread(void);
 
 #endif

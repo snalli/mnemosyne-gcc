@@ -51,9 +51,9 @@ env['HAVE_STATS'] = GetOption('have_stats')
 env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = 'simple'
-
-#env['CC'] = '/afs/cs.wisc.edu/u/h/v/hvolos/intel/Compiler/11.0.606/bin/ia32/icc'
-#env['CXX'] = '/afs/cs.wisc.edu/u/h/v/hvolos/intel/Compiler/11.0.606/bin/ia32/icpc'
+env['ENV'] = os.environ
+env['CC']  = 'icc'
+env['CXX'] = 'icpc'
 env['LIBRARY_NAME'] = 'mnemosyne'
 
 Export('env')
@@ -63,8 +63,8 @@ env['MY_ROOT_DIR'] = rootDir
 env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
-TinyStm = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
-Export('TinyStm')
+TinyStm, MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
+Export('TinyStm', 'MnemosyneLibrary')
 
 #Examples Environment
 if env['EXAMPLE'] != None:

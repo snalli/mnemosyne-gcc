@@ -14,7 +14,7 @@ examplesEnv['LIBS'] = 'mnemosyne'
 examplesEnv['LIBPATH'] = examplesEnv['MY_BUILD_DIR']
 #examplesEnv.Append(LINKFLAGS = '-Qtm_enabled -m32')
 examplesEnv.Append(LINKFLAGS = '-Qtm_enabled')
-examplesEnv.Append(LINKFLAGS = '-T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+examplesEnv.Append(LINKFLAGS = '-T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m32')
 examplesEnv.Append(LINKFLAGS = '-Wl,--rpath,' + examplesEnv['MY_BUILD_DIR'])
 
 example = examplesEnv['EXAMPLE']

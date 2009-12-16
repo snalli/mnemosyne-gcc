@@ -73,7 +73,7 @@ class Environment(SCons.Environment.Environment):
 		# visible and assume that the user has installed libatomic_ops themselves.
 		self.Append(
 			CPPDEFINES = self._PreprocessorDefinitions(),
-			CPPPATH = 'include',
+			CPPPATH = ['include', string.split(os.environ['INCLUDE'], ':')],
 			ENV = os.environ,
 			LIBS=['atomic'])
 		

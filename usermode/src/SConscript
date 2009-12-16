@@ -1,9 +1,8 @@
 Import('env')
 buildEnv = env.Clone()
 TinyStm = SConscript('transactions/SConscript')
-Return('TinyStm')
 
-#buildEnv.Append(CCFLAGS = '-msse -m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -Wall -pthread')
+buildEnv.Append(CCFLAGS = '-msse -m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -Wall -pthread')
 buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
 
 if buildEnv['BUILD_DEBUG'] == True:
@@ -17,7 +16,7 @@ if buildEnv['HAVE_STATS'] == True:
 
 buildEnv['CPPPATH'] = ['#src/']
 buildEnv.Append(LIBS = 'elf')
-buildEnv.Append(LINKFLAGS = '-T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+buildEnv.Append(LINKFLAGS = '-T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m32')
 #buildEnv.Append(CPPPATH = '#src/config/linux/x86')
 #buildEnv.Append(CPPPATH = '#src/config/linux')
 #buildEnv.Append(CPPPATH = '#src/config/x86')
@@ -25,7 +24,7 @@ buildEnv.Append(LINKFLAGS = '-T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_per
 #buildEnv.Append(CPPPATH = '#src/config/generic')
 
 #buildEnv.Append(LINKFLAGS = ['-m64'])
-#buildEnv.Append(ASFLAGS = '-m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -fomit-frame-pointer -Wall')
+#buildEnv.Append(ARFLAGS = '-m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -fomit-frame-pointer -Wall')
 
 C_SRC = Split("""common/config.c
 				common/debug.c
@@ -38,6 +37,8 @@ C_SRC = Split("""common/config.c
 SRC = C_SRC
 
 if buildEnv['LINKAGE'] == 'dynamic':
-	buildEnv.SharedLibrary(buildEnv['LIBRARY_NAME'], SRC)
+	MnemosyneLibrary = buildEnv.SharedLibrary(buildEnv['LIBRARY_NAME'], SRC)
 elif buildEnv['LINKAGE'] == 'static':
-	buildEnv.StaticLibrary(buildEnv['LIBRARY_NAME'], SRC)
+	MnemosyneLibrary = buildEnv.StaticLibrary(buildEnv['LIBRARY_NAME'], SRC)
+Return('TinyStm', 'MnemosyneLibrary')
+

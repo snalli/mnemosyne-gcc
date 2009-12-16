@@ -1,15 +1,16 @@
 import os
 
 Import('env')
+Import('TinyStm')
 
-examplesEnv = env.Clone()
+examplesEnv = env.Clone(LIBS=[TinyStm])
 
 
 examplesEnv['CPPPATH'] = ['#src/inc']
 examplesEnv['LIBS'] = 'mnemosyne'
-examplesEnv['CFLAGS'] = '-g -Qtm_enabled'
+#examplesEnv['CFLAGS'] = '-g -Qtm_enabled'
 #examplesEnv['CXXFLAGS'] = '-g -Qtm_enabled -m32'
-examplesEnv['CXXFLAGS'] = '-g -Qtm_enabled'
+#examplesEnv['CXXFLAGS'] = '-g -Qtm_enabled'
 examplesEnv['LIBPATH'] = examplesEnv['MY_BUILD_DIR']
 #examplesEnv.Append(LINKFLAGS = '-Qtm_enabled -m32')
 examplesEnv.Append(LINKFLAGS = '-Qtm_enabled')

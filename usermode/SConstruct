@@ -50,7 +50,7 @@ env['LINKAGE'] = GetOption('linkage')
 env['HAVE_STATS'] = GetOption('have_stats')
 env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
-env['EXAMPLE'] = GetOption('selected_example')
+env['EXAMPLE'] = 'simple'
 
 #env['CC'] = '/afs/cs.wisc.edu/u/h/v/hvolos/intel/Compiler/11.0.606/bin/ia32/icc'
 #env['CXX'] = '/afs/cs.wisc.edu/u/h/v/hvolos/intel/Compiler/11.0.606/bin/ia32/icpc'
@@ -63,8 +63,8 @@ env['MY_ROOT_DIR'] = rootDir
 env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
-SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
-
+TinyStm = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
+Export('TinyStm')
 
 #Examples Environment
 if env['EXAMPLE'] != None:

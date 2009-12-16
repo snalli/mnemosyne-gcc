@@ -2,4 +2,4 @@ Import('examplesEnv')
 
 myEnv = examplesEnv.Clone() 
 
-myEnv.Program('main.cxx')
+myEnv.Program('main.cxx', LIBS='')

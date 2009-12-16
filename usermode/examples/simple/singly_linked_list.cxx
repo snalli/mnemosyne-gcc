@@ -6,15 +6,17 @@
  *
  * \author Andres Jaan Tack
  */
+#include <mnemosyne.h>
 
 
 template <typename DataType>
 void SinglyLinkedList<DataType>::append (DataType data)
 {
+	Node* new_node_area = reinterpret_cast<Node*>(mnemosyne_malloc(sizeof(Node)));
 	if (itsTailNode != NULL)
-		itsTailNode->itsNextNode = new Node(data);
+		itsTailNode->itsNextNode = new(new_node_area) Node(data);
 	else
-		itsHeadNode = itsTailNode = new Node(data);
+		itsHeadNode = itsTailNode = new(new_node_area) Node(data);
 	
 	++itsLength;
 }

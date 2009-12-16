@@ -16,5 +16,7 @@ wrapper_sources = [
 	'src/wrappers.c'
 ]
 
-env.Library('libstm',
+TinyStmLibrary = env.Library('libstm',
         [stm_library_sources, module_sources, wrapper_sources])
+
+Return('TinyStmLibrary')

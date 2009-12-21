@@ -50,7 +50,7 @@ env['LINKAGE'] = GetOption('linkage')
 env['HAVE_STATS'] = GetOption('have_stats')
 env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
-env['EXAMPLE'] = 'simple'
+env['EXAMPLE'] = GetOption('selected_example')
 env['ENV'] = os.environ
 env['CC']  = 'icc'
 env['CXX'] = 'icpc'
@@ -65,6 +65,7 @@ env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
 TinyStm, MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
 Export('TinyStm', 'MnemosyneLibrary')
+SConscript('util/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'util'))
 
 #Examples Environment
 if env['EXAMPLE'] != None:

@@ -24,7 +24,6 @@ do_global_init(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (!mnemosyne_initialized) {
-		//defaultVtables = &perfVtables;
 		mnemosyne_segment_reincarnate_address_space();
 		mnemosyne_initialized = 1;
 		MNEMOSYNE_WARNING("Initialize\n");

@@ -933,6 +933,17 @@ do {                                                                            
   }                                                                              \
 } while(0)
 
+#ifdef NO_DECLTYPE
+#define HASH_ITER(hh,head,el,tmp)                                                \
+	for((el)=(head), (*(char**)(&(tmp)))=(char*)((head)?(head)->hh.next:NULL);       \
+			  el; (el)=(tmp),(*(char**)(&(tmp)))=(char*)((tmp)?(tmp)->hh.next:NULL)) 
+#else
+#define HASH_ITER(hh,head,el,tmp)                                                \
+	for((el)=(head),(tmp)=DECLTYPE(el)((head)?(head)->hh.next:NULL);                 \
+			  el; (el)=(tmp),(tmp)=DECLTYPE(el)((tmp)?(tmp)->hh.next:NULL))
+#endif
+
+
 /* obtain a count of items in the hash */
 #define HASH_COUNT(head) HASH_CNT(hh,head) 
 #define HASH_CNT(hh,head) (head?(head->hh.tbl->num_items):0)

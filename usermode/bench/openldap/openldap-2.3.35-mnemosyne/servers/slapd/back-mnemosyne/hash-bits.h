@@ -166,4 +166,17 @@ static int hashtable_del(hashtable_t *hashtable, datum_t *k, int flags)
 }
 
 
+static int hashtable_iterate(hashtable_t *hashtable)
+{
+	object_t *p, *tmp;
+
+	HASH_ITER(hh, hashtable->ht, p, tmp) {
+		if (p) {
+			printf("ITER_ELEMENT\n");
+		}
+	}
+
+	return -1;
+}
+
 #endif /* _HASH_BITS_TYH111_H */

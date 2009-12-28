@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <mnemosyne.h>
-#include <malloc.h>
 #include "list.h"
 #include "uthash.h"
 

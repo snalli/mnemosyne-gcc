@@ -125,12 +125,18 @@ void mnemosynedbm_shutdown_env(DB_ENV *env)
 MNEMOSYNE_PERSISTENT struct list_head hashtable_list;
 MNEMOSYNE_PERSISTENT int              hashtable_list_init = 0;
 
+int dummy()
+{
+	return hashtable_list_init;
+}
+
 
 MNEMOSYNEDBM
 mnemosynedbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	hashtable_t  *ht_iter;
 	MNEMOSYNEDBM ht = NULL;
+
 
 	MNEMOSYNEDBM_WLOCK;
 

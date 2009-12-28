@@ -25,6 +25,9 @@
 #include "back-mnemosynedbm.h"
 #include <ldap_rq.h>
 
+void
+m_cache_check_version(Backend *);
+
 int
 mnemosyne_back_initialize(
     BackendInfo	*bi
@@ -183,6 +186,8 @@ mnemosynedbm_back_db_init(
 	ldap_pvt_thread_cond_init( &li->li_dbcache_cv );
 
 	be->be_private = li;
+
+	m_cache_check_version(be);
 
 	return 0;
 }

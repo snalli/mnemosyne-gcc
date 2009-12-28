@@ -29,6 +29,10 @@
 #include "back-mnemosynedbm.h"
 #include <ldap_rq.h>
 
+
+// TODO: Most of this functionality here is not necessary with Mnemosyne
+// so remove it. This should simplify code base and also improve performance
+
 DBCache *
 mnemosynedbm_cache_open(
     Backend	*be,
@@ -45,12 +49,16 @@ mnemosynedbm_cache_open(
 	struct stat	st;
 #endif
 
+	sprintf( buf, "%s", name);
+	/* 
+	 * Don't need to construct a path name as mnemosyne stores in memory
+	 *
 	if (li->li_envdirok)
 		sprintf( buf, "%s%s", name, suffix );
 	else
 		sprintf( buf, "%s" LDAP_DIRSEP "%s%s",
 			li->li_directory, name, suffix );
-
+	*/
 	if( li->li_dblocking ) {
 		flags |= MNEMOSYNEDBM_LOCKING;
 	} else {

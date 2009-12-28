@@ -1,5 +1,5 @@
 /* cache.c - routines to maintain an in-core cache of entries */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/cache.c,v 1.66.2.5 2007/01/02 21:44:02 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/cache.c,v 1.66.2.5 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -17,6 +17,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <assert.h>
 
 #include <ac/errno.h>
 #include <ac/string.h>
@@ -26,12 +27,20 @@
 
 #include "back-mnemosynedbm.h"
 
-#if 0
-# define pavl_insert    avl_insert
-# define pavl_delete    avl_delete
-# define pavl_find      avl_find
-# define pavl_dup_error avl_dup_error
-#endif
+#undef PERSISTENT_AVL_TREE
+#define PERSISTENT_AVL_TREE
+
+MNEMOSYNE_PERSISTENT int      cache_idtree_version = 0;
+MNEMOSYNE_PERSISTENT Avlnode  *cache_c_idtree = 0;
+
+/* The persistent node of the c_idtree */
+typedef struct c_idtree_node_s {
+	Entry *e;    /* this is a persistent pointer to volatile state */
+	ID e_id;     /* the identifier used to index the entry */
+	int version; /* version to detect whether need to reconstruct volatile state */
+} c_idtree_node_t;
+
+
 
 /* MNEMOSYNEDBM backend specific entry info -- visible only to the cache */
 typedef struct mnemosynedbm_entry_info {
@@ -59,6 +68,15 @@ static int	cache_delete_entry_internal(Cache *cache, Entry *e);
 static void	lru_print(Cache *cache);
 #endif
 #endif
+
+__attribute__((tm_callable))
+int
+c_idtree_node_id_cmp( const void *v_e1, const void *v_e2 )
+{
+	const c_idtree_node_t *e1 = v_e1, *e2 = v_e2;
+	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
+}
+
 
 static int
 cache_entry_private_init( Entry*e )
@@ -215,6 +233,7 @@ m_cache_add_entry_rw(
 	int	i, rc;
 	Entry	*ee;
 	int     ret;
+	c_idtree_node_t * c_idtree_node;
 
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
@@ -247,10 +266,27 @@ m_cache_add_entry_rw(
 		return( 1 );
 	}
 
-	__tm_atomic {
-		ret = pavl_insert( &cache->c_idtree, (caddr_t) e,
-	                 entry_id_cmp, pavl_dup_error );
+#ifdef PERSISTENT_AVL_TREE
+	__tm_atomic 
+	{
+		c_idtree_node = (c_idtree_node_t *) pmalloc(sizeof(c_idtree_node_t));
+		c_idtree_node->e = e;
+		c_idtree_node->e_id = e->e_id;
+		c_idtree_node->version = cache_idtree_version;
+		ret = pavl_insert( &cache->c_idtree, (caddr_t) c_idtree_node,
+	                      c_idtree_node_id_cmp, pavl_dup_error );
+# ifdef RECONSTRUCT_CACHE
+		if (!cache_c_idtree) {
+			cache_c_idtree = cache->c_idtree;
+		}
+# endif
 	}
+	assert(c_idtree_node->e == e);
+#else
+	ret = avl_insert( &cache->c_idtree, (caddr_t) e,
+	                 entry_id_cmp, avl_dup_error );
+#endif
+
 	/* id tree */
 	if ( ret != 0 )
 	{
@@ -259,8 +295,14 @@ m_cache_add_entry_rw(
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
-		                 entry_dn_cmp ) == NULL )
+#ifdef PERSISTENT_AVL_TREE
+		ret = avl_delete( &cache->c_dntree, (caddr_t) e,
+		                 entry_dn_cmp );
+#else
+		ret = avl_delete( &cache->c_dntree, (caddr_t) e,
+		                 entry_dn_cmp );
+#endif		
+		if ( ret == NULL)
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
@@ -336,6 +378,7 @@ m_cache_update_entry(
 	int	i, rc;
 	Entry	*ee;
 	int     ret;
+	c_idtree_node_t * c_idtree_node;
 
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
@@ -354,11 +397,20 @@ m_cache_update_entry(
 		return( 1 );
 	}
 
+#ifdef PERSISTENT_AVL_TREE
 	// __tm_atomic // FIXME: OSDI-2010 submission didn't have transaction here...why???
 	{
-		ret = pavl_insert( &cache->c_idtree, (caddr_t) e,
-		                  entry_id_cmp, pavl_dup_error );
+		c_idtree_node = (c_idtree_node_t *) pmalloc(sizeof(c_idtree_node_t));
+		c_idtree_node->e = e;
+		c_idtree_node->e_id = e->e_id;
+		c_idtree_node->version = cache_idtree_version;
+		ret = pavl_insert( &cache->c_idtree, (caddr_t) c_idtree_node,
+		                  c_idtree_node_id_cmp, pavl_dup_error );
 	}
+#else
+	ret = avl_insert( &cache->c_idtree, (caddr_t) e,
+	                 entry_id_cmp, avl_dup_error );
+#endif
 
 	/* id tree */
 	if ( ret != 0) 
@@ -368,8 +420,15 @@ m_cache_update_entry(
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
-		                 entry_dn_cmp ) == NULL )
+#ifdef PERSISTENT_AVL_TREE
+		ret = avl_delete( &cache->c_dntree, (caddr_t) e,
+		                 entry_dn_cmp );
+#else
+		ret = avl_delete( &cache->c_dntree, (caddr_t) e,
+		                 entry_dn_cmp );
+#endif		
+		if ( ret == NULL)
+		
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
@@ -472,7 +531,7 @@ try_again:
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 			Debug(LDAP_DEBUG_TRACE,
-				"====> m_cache_find_entry_ndn2id(\"%s\"): %ld (not ready) %d\n",
+				"====> cache_find_entry_ndn2id(\"%s\"): %ld (not ready) %d\n",
 				ndn->bv_val, id, state);
 
 			ldap_pvt_thread_yield();
@@ -487,7 +546,7 @@ try_again:
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 		Debug(LDAP_DEBUG_TRACE,
-			"====> m_cache_find_entry_ndn2id(\"%s\"): %ld (%d tries)\n",
+			"====> cache_find_entry_ndn2id(\"%s\"): %ld (%d tries)\n",
 			ndn->bv_val, id, count);
 
 	} else {
@@ -513,20 +572,31 @@ m_cache_find_entry_id(
 	Entry	e;
 	Entry	*ep;
 	int	count = 0;
+	c_idtree_node_t *c_idtree_nodep;
+	c_idtree_node_t c_idtree_node;
 
 	e.e_id = id;
+	c_idtree_node.e_id = id;
 
 try_again:
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	if ( (ep = (Entry *) pavl_find( cache->c_idtree, (caddr_t) &e,
+#ifdef PERSISTENT_AVL_TREE
+	if ( (c_idtree_nodep = (Entry *) pavl_find( cache->c_idtree, (caddr_t) &c_idtree_node,
+	                                           c_idtree_node_id_cmp )) != NULL )
+#else		
+	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
 	                               entry_id_cmp )) != NULL )
+#endif		
 	{
 		int state;
 		ID	ep_id;
 
 		count++;
+#ifdef PERSISTENT_AVL_TREE
+		ep = c_idtree_nodep->e;
+#endif		
 
 		assert( ep->e_private != NULL );
 
@@ -613,6 +683,7 @@ cache_delete_entry_internal(
 )
 {
 	int rc = 0;	/* return code */
+	c_idtree_node_t c_idtree_node;
 
 	/* dn tree */
 	if ( avl_delete( &cache->c_dntree, (caddr_t) e, entry_dn_cmp ) == NULL )
@@ -621,7 +692,12 @@ cache_delete_entry_internal(
 	}
 
 	/* id tree */
-	if ( pavl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
+#ifdef PERSISTENT_AVL_TREE	
+	c_idtree_node.e_id = e->e_id;
+	if ( pavl_delete( &cache->c_idtree, (caddr_t) &c_idtree_node, c_idtree_node_id_cmp ) == NULL )
+#else
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
+#endif
 	{
 		rc = -1;
 	}
@@ -690,3 +766,40 @@ lru_print( Cache *cache )
 }
 #endif
 #endif
+
+int cache_check_entry_version(void *data, void *arg)
+{
+	Entry *e;
+	Backend *be = (Backend *) arg;
+	c_idtree_node_t * c_idtree_node = (c_idtree_node_t *) data;
+
+	if (c_idtree_node != NULL) {
+		if (cache_idtree_version > c_idtree_node->version) {
+			assert(e = m_id2entry(be, c_idtree_node->e_id));
+			c_idtree_node->e = e;
+		}
+	}
+	return 0;
+}
+
+
+/* 
+ * TODO: Checking of entries' versions is now done once when OpenLDAP starts. 
+ * In the future we would like to defer it till we read the entry to enable
+ * faster startup.
+ */
+void
+m_cache_check_version(Backend *be)
+{
+#ifdef RECONSTRUCT_CACHE	
+	__tm_atomic {
+		cache_idtree_version++;
+	}	
+	if (!cache_c_idtree) {
+		return;
+	}
+
+	mnemosynedbm_initialize( NULL );
+	pavl_apply(cache_c_idtree, cache_check_entry_version, be, -1, AVL_INORDER);
+#endif	
+}

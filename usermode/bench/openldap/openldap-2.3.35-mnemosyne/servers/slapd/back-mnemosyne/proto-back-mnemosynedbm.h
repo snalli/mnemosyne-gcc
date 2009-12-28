@@ -128,6 +128,8 @@ Entry * m_id2entry_rw LDAP_P(( Backend *be, ID id, int rw ));
 #define m_id2entry_r(be, id)	m_id2entry_rw((be), (id), 0)
 #define m_id2entry_w(be, id)	m_id2entry_rw((be), (id), 1)
 
+Entry * m_id2entry LDAP_P(( Backend *be, ID id)); 
+
 /*
  * idl.c
  */

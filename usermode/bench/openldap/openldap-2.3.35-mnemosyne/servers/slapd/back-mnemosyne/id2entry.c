@@ -232,3 +232,54 @@ m_id2entry_rw( Backend *be, ID id, int rw )
 
 	return( e );
 }
+
+
+/* returns entry with reader/writer lock */
+Entry *
+m_id2entry( Backend *be, ID id)
+{
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
+	DBCache	*db;
+	Datum		key, data;
+	Entry		*e;
+#ifndef WORDS_BIGENDIAN
+	ID		id2;
+#endif
+
+	mnemosynedbm_datum_init( key );
+	mnemosynedbm_datum_init( data );
+
+	MNEMOSYNEDBM dbm;
+
+	dbm = mnemosynedbm_open(0, "id2entry", 0, 0, 0);
+	if ( dbm == NULL ) {
+		return( NULL );
+	}
+
+#ifdef WORDS_BIGENDIAN
+	key.dptr = (char *) &id;
+#else
+	id2 = htonl(id);
+	key.dptr = (char *) &id2;
+#endif
+	key.dsize = sizeof(ID);
+
+	data = mnemosynedbm_fetch( dbm, key );
+
+	if ( data.dptr == NULL ) {
+		mnemosynedbm_close( dbm );
+		return( NULL );
+	}
+
+	e = str2entry2( data.dptr, 0 );
+	mnemosynedbm_datum_free( dbm, data );
+	mnemosynedbm_close( dbm );
+
+	if ( e == NULL ) {
+		return( NULL );
+	}
+
+	e->e_id = id;
+
+	return( e );
+}

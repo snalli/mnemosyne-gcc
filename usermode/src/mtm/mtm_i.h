@@ -1,33 +1,5 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
-   Contributed by Richard Henderson <rth@redhat.com>.
-
-   This file is part of the GNU Transactional Memory Library (libitm).
-
-   Libitm is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version.
-
-   Libitm is distributed in the hope that it will be useful, but WITHOUT ANY
-   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-   more details.
-
-   Under Section 7 of GPL version 3, you are granted additional
-   permissions described in the GCC Runtime Library Exception, version
-   3.1, as published by the Free Software Foundation.
-
-   You should have received a copy of the GNU General Public License and
-   a copy of the GCC Runtime Library Exception along with this program;
-   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
-   <http://www.gnu.org/licenses/>.  */
-
-/* The following are internal implementation functions and definitions.
-   To distinguish them from those defined by the Intel ABI, they all
-   begin with mtm.  */
-
-#ifndef LIBITM_I_H
-#define LIBITM_I_H 1
+#ifndef __MTM_I_H
+#define __MTM_I_H 
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -50,203 +22,138 @@ typedef float _Complex       _ITM_TYPE_CF;
 typedef double _Complex      _ITM_TYPE_CD;
 typedef long double _Complex _ITM_TYPE_CE;
 
+#ifndef MTM_TX_T_DEFINED
+#define MTM_TX_T_DEFINED
+typedef struct mtm_tx_s mtm_tx_t;
+#endif
+
 #include "../inc/itm.h"
 
-//typedef struct mtm_thread_s mtm_thread_t;
-typedef struct mtm_transaction_s mtm_transaction_t;
+#include <result.h>
 
-#include "config.h"
+/*
+ * The library does not require to pass the current transaction as a
+ * parameter to the functions (the current transaction is stored in a
+ * thread-local variable).  One can, however, compile the library with
+ * explicit transaction parameters.  This is useful, for instance, for
+ * performance on architectures that do not support TLS or for easier
+ * compiler integration.
+ */
+#define EXPLICIT_TX_PARAMETER
+
+# ifdef EXPLICIT_TX_PARAMETER
+#  define TXTYPE                        mtm_tx_t *
+#  define TXPARAM                       mtm_tx_t *tx
+#  define TXPARAMS                      mtm_tx_t *tx,
+#  define TXARG                         (mtm_tx_t *)tx
+#  define TXARGS                        (mtm_tx_t *)tx,
+struct mtm_tx *mtm_current_tx();
+# else /* ! EXPLICIT_TX_PARAMETER */
+#  define TXTYPE                        void
+#  define TXPARAM                       /* Nothing */
+#  define TXPARAMS                      /* Nothing */
+#  define TXARG                         /* Nothing */
+#  define TXARGS                        /* Nothing */
+#endif /* ! EXPLICIT_TX_PARAMETER */
+
+#ifdef EXPLICIT_TX_PARAMETER
+# define TX_RETURN                      return tx
+# define TX_GET                         /* Nothing */
+#else /* ! EXPLICIT_TX_PARAMETER */
+# define TX_RETURN                      return
+# define TX_GET                         mtm_tx_t *tx = mtm_get_tx()
+#endif /* ! EXPLICIT_TX_PARAMETER */
+
+#define WRITE_BACK_ETL                  0
+#define WRITE_THROUGH                   1
+
+
+//FIXME: make this part of the Scons configuration
+//#include "config.h"
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unwind.h>
+#include <pthread.h>
 
-#include "vtable.h"
+#include <atomic.h>
+
+#include "mode/vtable.h"
+
+#if defined(CONFLICT_TRACKING) && ! defined(EPOCH_GC)
+# error "CONFLICT_TRACKING requires EPOCH_GC"
+#endif /* defined(CONFLICT_TRACKING) && ! defined(EPOCH_GC) */
+
+#if defined(READ_LOCKED_DATA) && ! defined(EPOCH_GC)
+# error "READ_LOCKED_DATA requires EPOCH_GC"
+#endif /* defined(READ_LOCKED_DATA) && ! defined(EPOCH_GC) */
+
+#define TLS
+
+#ifdef DEBUG
+/* Note: stdio is thread-safe */
+# define IO_FLUSH                       fflush(NULL)
+# define PRINT_DEBUG(...)               printf(__VA_ARGS__); fflush(NULL)
+#else /* ! DEBUG */
+# define IO_FLUSH
+# define PRINT_DEBUG(...)
+#endif /* ! DEBUG */
+
+#ifdef DEBUG2
+# define PRINT_DEBUG2(...)              PRINT_DEBUG(__VA_ARGS__)
+#else /* ! DEBUG2 */
+# define PRINT_DEBUG2(...)
+#endif /* ! DEBUG2 */
+
+#ifndef LOCK_SHIFT_EXTRA
+# define LOCK_SHIFT_EXTRA               2                   /* 2 extra shift */
+#endif /* LOCK_SHIFT_EXTRA */
+
+#if CM == CM_PRIORITY
+# define VR_THRESHOLD                   "VR_THRESHOLD"
+# define CM_THRESHOLD                   "CM_THRESHOLD"
+#endif
+
+extern int vr_threshold;
+extern int cm_threshold;
+
+
+
+#define STR2(str1, str2) str1##str2
+#define XSTR(s)                         STR(s)
+#define STR(s)                          #s
+
+#define COMPILE_TIME_ASSERT(pred)       switch (0) { case 0: case pred: ; }
 
 #define UNUSED		__attribute__((unused))
-
-/* Control how mtm_copy_cacheline_mask operates.  If set, we use byte masking
-   to update D, which *does* write to bytes not affected by the mask.  It's
-   unclear if this optimization is correct.  */
-#define ALLOW_UNMASKED_STORES 0
 
 #ifdef HAVE_ATTRIBUTE_VISIBILITY
 # pragma GCC visibility push(hidden)
 #endif
 
+#include "mode/mode.h"
 #include "target.h"
 #include "rwlock.h"
 #include "aatree.h"
+#include "locks.h"
 
+/**
+ * Size of a word (accessible atomically) on the target architecture.
+ * The library supports 32-bit and 64-bit architectures.
+ */
+typedef uintptr_t mtm_word_t;
 
-/* A mtm_cacheline_mask stores a modified bit for every modified byte
-   in the cacheline with which it is associated.  */
-#if CACHELINE_SIZE == 8
-typedef uint8_t mtm_cacheline_mask;
-#elif CACHELINE_SIZE == 16
-typedef uint16_t mtm_cacheline_mask;
-#elif CACHELINE_SIZE == 32
-typedef uint32_t mtm_cacheline_mask;
-#elif CACHELINE_SIZE == 64
-typedef uint64_t mtm_cacheline_mask;
-#else
-#error "Unsupported cacheline size"
-#endif
+enum {                                  /* Transaction status */
+  TX_IDLE = 0,
+  TX_ACTIVE = 1,
+  TX_COMMITTED = 2,
+  TX_ABORTED = 3,
+  TX_IRREVOCABLE = 4,
+  TX_SERIAL = 8,
+};
 
-typedef unsigned int mtm_word __attribute__((mode (word)));
-
-/* A cacheline.  The smallest unit with which locks are associated.  */
-typedef union mtm_cacheline
-{
-	/* Byte access to the cacheline.  */
-	unsigned char b[CACHELINE_SIZE] __attribute__((aligned(CACHELINE_SIZE)));
-
-	/* Larger sized access to the cacheline.  */
-	uint16_t u16[CACHELINE_SIZE / sizeof(uint16_t)];
-	uint32_t u32[CACHELINE_SIZE / sizeof(uint32_t)];
-	uint64_t u64[CACHELINE_SIZE / sizeof(uint64_t)];
-	mtm_word w[CACHELINE_SIZE / sizeof(mtm_word)];
-
-#if defined(__i386__) || defined(__x86_64__)
-	/* ??? The definitions of mtm_cacheline_copy{,_mask} require all three
-	 * of these types depending on the implementation, making it difficult
-	 * to hide these inside the target header file.  */
-# ifdef __SSE__
-	__m128 m128[CACHELINE_SIZE / sizeof(__m128)];
-# endif
-# ifdef __SSE2__
-	__m128i m128i[CACHELINE_SIZE / sizeof(__m128i)];
-# endif
-# ifdef __AVX__
-	__m256 m256[CACHELINE_SIZE / sizeof(__m256)];
-# endif
-#endif
-} mtm_cacheline;
-
-/* A "page" worth of saved cachelines plus modification masks.  This
-   arrangement is intended to minimize the overhead of alignment.  The
-   PAGE_SIZE defined by the target must be a constant for this to work,
-   which means that this definition may not be the same as the real
-   system page size.  */
-
-#define CACHELINES_PER_PAGE \
-	((PAGE_SIZE - sizeof(void *)) \
-	 / (CACHELINE_SIZE + sizeof(mtm_cacheline_mask)))
-
-typedef struct mtm_cacheline_page
-{
-	mtm_cacheline lines[CACHELINES_PER_PAGE] __attribute__((aligned(PAGE_SIZE)));
-	mtm_cacheline_mask masks[CACHELINES_PER_PAGE];
-	struct mtm_cacheline_page *prev;
-} mtm_cacheline_page;
-
-static inline mtm_cacheline_page *
-mtm_page_for_line (mtm_cacheline *c)
-{
-	return (mtm_cacheline_page *)((uintptr_t)c & -PAGE_SIZE);
-}
-
-static inline mtm_cacheline_mask *
-mtm_mask_for_line (mtm_cacheline *c)
-{
-	mtm_cacheline_page *p = mtm_page_for_line (c);
-	size_t index = c - &p->lines[0];
-	return &p->masks[index];
-}
-
-/* A read lock function locks a cacheline.  PTR must be cacheline aligned.
- * The return value is the cacheline address (equal to PTR for a write-through
- * implementation, and something else for a write-back implementation).  */
-typedef mtm_cacheline *(*mtm_read_lock_fn)(mtm_thread_t *td, uintptr_t cacheline);
-
-
-/* A write lock function locks a cacheline.  PTR must be cacheline aligned.
- * The return value is a pair of the cacheline address and a mask that must
- * be updated with the bytes that are subsequently modified.  We hope that
- * the target implements small structure return efficiently so that this
- * comes back in a pair of registers.  If not, we're not really worse off
- * than returning the second value via a second argument to the function.  */
-typedef struct mtm_cacheline_mask_pair
-{
-	mtm_cacheline *line;
-	mtm_cacheline_mask *mask;
-} mtm_cacheline_mask_pair;
-
-typedef mtm_cacheline_mask_pair (*mtm_write_lock_fn)(mtm_thread_t *td, uintptr_t cacheline);
-
-/* A versioned write lock on a cacheline.  This must be wide enough to 
-   store a pointer, and preferably wide enough to avoid overflowing the
-   version counter.  Thus we use a "word", which should be 64-bits on
-   64-bit systems even when their pointer size is forced smaller.  */
-typedef mtm_word mtm_stmlock;
-
-/* This has to be the same size as mtm_stmlock, we just use this name
-   for documentation purposes.  */
-typedef mtm_word mtm_version;
-
-/* The maximum value a version number can have.  This is a consequence
-   of having the low bit of mtm_stmlock reserved for the owned bit.  */
-#define mtm_VERSION_MAX		(~(mtm_version)0 >> 1)
-
-/* A value that may be used to indicate "uninitialized" for a version.  */
-#define mtm_VERSION_INVALID	(~(mtm_version)0)
-
-/* This bit is set when the write lock is held.  When set, the balance of
-   the bits in the lock is a pointer that references STM backend specific
-   data; it is up to the STM backend to determine if this thread holds the
-   lock.  If this bit is clear, the balance of the bits are the last 
-   version number committed to the cacheline.  */
-static inline bool
-mtm_stmlock_owned_p (mtm_stmlock lock)
-{
-	return lock & 1;
-}
-
-static inline mtm_stmlock
-mtm_stmlock_set_owned (void *data)
-{
-	return (mtm_stmlock)(uintptr_t)data | 1;
-}
-
-static inline void *
-mtm_stmlock_get_addr (mtm_stmlock lock)
-{
-	return (void *)((uintptr_t)lock & ~(uintptr_t)1);
-}
-
-static inline mtm_version
-mtm_stmlock_get_version (mtm_stmlock lock)
-{
-	return lock >> 1;
-}
-
-static inline mtm_stmlock
-mtm_stmlock_set_version (mtm_version ver)
-{
-	return ver << 1;
-}
-
-/* We use a fixed set of locks for all memory, hashed into the
-   following table.  */
-#define LOCK_ARRAY_SIZE  (1024 * 1024)
-extern mtm_stmlock mtm_stmlock_array[LOCK_ARRAY_SIZE];
-
-static inline mtm_stmlock *
-mtm_get_stmlock (uintptr_t addr)
-{
-	size_t idx = (addr / CACHELINE_SIZE) % LOCK_ARRAY_SIZE;
-	return mtm_stmlock_array + idx;
-}
-
-/* The current global version number.  */
-extern mtm_version mtm_clock;
-
-/* These values define a mask used in mtm_transaction_t.state.  */
-#define STATE_READONLY		0x0001
-#define STATE_SERIAL		0x0002
-#define STATE_IRREVOCABLE	0x0004
-#define STATE_ABORTING		0x0008
 
 /* These values are given to mtm_restart_transaction and indicate the
    reason for the restart.  The reason is used to decide what STM 
@@ -271,15 +178,11 @@ struct mtm_local_undo;
 /* This type is private to useraction.c.  */
 struct mtm_user_action;
 
-/* This type is private to the STM implementation.  */
-struct mtm_method;
 
-
+#if 0 
 /* All data relevant to a single transaction.  */
 struct mtm_transaction_s
 {
-	/* The jump buffer by which mtm_longjmp restarts the transaction.
-	   This field *must* be at the beginning of the transaction.  */
 	mtm_jmpbuf_t jb;
 
 	/* Data used by local.c for the local memory undo log.  */
@@ -298,13 +201,11 @@ struct mtm_transaction_s
 	struct mtm_method *m;
 
 	/* A pointer to the "outer" transaction.  */
-	mtm_transaction_t *prev;
+	mtm_tx_t *prev;
 
 	/* A numerical identifier for this transaction.  */
 	_ITM_transactionId id;
 
-	/* The _ITM_codeProperties of this transaction as given by the compiler.  */
-	uint32_t prop;
 
 	/* The nesting depth of this transaction.  */
 	uint32_t nesting;
@@ -322,79 +223,99 @@ struct mtm_transaction_s
 	uint32_t restart_reason[NUM_RESTARTS];
 	uint32_t restart_total;
 };
-
-/* The maximum number of free mtm_transaction_t structs to be kept.
-   This number must be greater than 1 in order for transaction abort
-   to be handled properly.  */
-#define MAX_FREE_TX	8
+#endif
 
 
-/* All thread-local data required by the entire library.  */
-struct mtm_thread_s
-{
-	uintptr_t dummy1;
+/* Transaction descriptor */
+struct mtm_tx_s {
+	uintptr_t dummy1;                     /* ICC expects to find the vtable pointer at offset 2*WORD_SIZE */
 	uintptr_t dummy2;
-	/* The dispatch table for the STM implementation currently in use.  */
-	txninterface_t *vtable;
-	/* The currently active transaction. */
-	mtm_transaction_t *tx;
+	mtm_vtable_t *vtable;                 /* The dispatch table for the STM implementation currently in use. */
 
 	mtm_jmpbuf_t *tmp_jb_ptr;
 	mtm_jmpbuf_t tmp_jb;
+	mtm_jmpbuf_t jb;
 
-	/* A queue of free mtm_transaction_t structs.  */
-	mtm_transaction_t *free_tx[MAX_FREE_TX];
-	unsigned free_tx_idx, free_tx_count;
+	mtm_mode_data_t *modedata[MTM_NUM_MODES];
+	mtm_mode_t      mode;
+	mtm_word_t      status;               /* Transaction status (not read by other threads) */
 
-	/* The value returned by _ITM_getThreadnum to identify this thread.  */
-	/* ??? At present, this is densely allocated beginning with 1 and
-	   we don't bother filling in this value until it is requested.
-	   Which means that the value returned is, as far as the user is
-	   concerned, essentially arbitrary.  We wouldn't need this at all
-	   if we knew that pthread_t is integral and fits into an int.  */
-	/* ??? Consider using gettid on Linux w/ NPTL.  At least that would
-	   be a value meaningful to the user.  */
+	uint32_t prop;                        /* The _ITM_codeProperties of this transaction as given by the compiler.  */
+	int nesting;                          /* Nesting level */
+	int can_extend;                       /* Can this transaction be extended? */
+	_ITM_transactionId id;                /* Instance number of the transaction */
 	int thread_num;
+#ifdef CONFLICT_TRACKING
+	pthread_t thread_id;                  /* Thread identifier (immutable) */
+#endif /* CONFLICT_TRACKING */
+#if CM == CM_DELAY || CM == CM_PRIORITY
+	volatile mtm_word_t *c_lock;          /* Pointer to contented lock (cause of abort) */
+#endif /* CM == CM_DELAY || CM == CM_PRIORITY */
+#if CM == CM_BACKOFF
+	unsigned long backoff;                /* Maximum backoff duration */
+	unsigned long seed;                   /* RNG seed */
+#endif /* CM == CM_BACKOFF */
+#if CM == CM_PRIORITY
+	int priority;                         /* Transaction priority */
+	int visible_reads;                    /* Should we use visible reads? */
+#endif /* CM == CM_PRIORITY */
+#if CM == CM_PRIORITY || defined(INTERNAL_STATS)
+	unsigned long retries;                /* Number of consecutive aborts (retries) */
+#endif /* CM == CM_PRIORITY || defined(INTERNAL_STATS) */
+
+	/* Data used by local.c for the local memory undo log.  */
+	struct mtm_local_undo **local_undo;
+	size_t n_local_undo;
+	size_t size_local_undo;
 };
 
-/* Don't access this variable directly; use the functions below.  */
-extern __thread mtm_thread_t *_mtm_thr;
+/*
+ * Transaction nesting is supported in a minimalist way (flat nesting):
+ * - When a transaction is started in the context of another
+ *   transaction, we simply increment a nesting counter but do not
+ *   actually start a new transaction.
+ * - The environment to be used for setjmp/longjmp is only returned when
+ *   no transaction is active so that it is not overwritten by nested
+ *   transactions. This allows for composability as the caller does not
+ *   need to know whether it executes inside another transaction.
+ * - The commit of a nested transaction simply decrements the nesting
+ *   counter. Only the commit of the top-level transaction will actually
+ *   carry through updates to shared memory.
+ * - An abort of a nested transaction will rollback the top-level
+ *   transaction and reset the nesting counter. The call to longjmp will
+ *   restart execution before the top-level transaction.
+ * Using nested transactions without setjmp/longjmp is not recommended
+ * as one would need to explicitly jump back outside of the top-level
+ * transaction upon abort of a nested transaction. This breaks
+ * composability.
+ */
 
-#include "target_i.h"
+/*
+ * Reading from the previous version of locked addresses is implemented
+ * by peeking into the write set of the transaction that owns the
+ * lock. Each transaction has a unique identifier, updated even upon
+ * retry. A special "commit" bit of this identifier is set upon commit,
+ * right before writing the values from the redo log to shared memory. A
+ * transaction can read a locked address if the identifier of the owner
+ * does not change between before and after reading the value and
+ * version, and it does not have the commit bit set.
+ */
 
-static inline void setup_mtm_thr(mtm_thread_t *thr) { _mtm_thr = thr; }
-static inline mtm_thread_t *mtm_thr(void) { return _mtm_thr; }
-static inline mtm_transaction_t * mtm_tx(void) { return _mtm_thr->tx; }
-static inline void set_mtm_tx(mtm_transaction_t *x) { _mtm_thr->tx = x; }
 
+extern volatile mtm_word_t locks[];
+#ifdef CLOCK_IN_CACHE_LINE
+extern volatile mtm_word_t gclock[];
+# define CLOCK                          (gclock[512 / sizeof(mtm_word_t)])
+#else /* ! CLOCK_IN_CACHE_LINE */
+extern volatile mtm_word_t gclock;
+# define CLOCK                          (gclock)
+#endif /* ! CLOCK_IN_CACHE_LINE */
 
-#ifndef HAVE_ARCH_MTM_CACHELINE_COPY
-/* Copy S to D, with S and D both aligned no overlap.  */
-static inline void
-mtm_cacheline_copy (mtm_cacheline * __restrict d,
-                    const mtm_cacheline * __restrict s)
-{
-	*d = *s;
-}
-#endif
-
-/* Similarly, but only modify bytes with bits set in M.  */
-extern void mtm_cacheline_copy_mask (mtm_cacheline * __restrict d,
-                                     const mtm_cacheline * __restrict s,
-                                     mtm_cacheline_mask m);
-
-#ifndef HAVE_ARCH_MTM_CCM_WRITE_BARRIER
-/* A write barrier to emit after mtm_copy_cacheline_mask.  */
-static inline void
-mtm_ccm_write_barrier (void)
-{
-  atomic_write_barrier ();
-}
-#endif
 
 /* The lock that provides access to serial mode.  Non-serialized transactions
    acquire read locks; the serialized transaction aquires a write lock.  */
-extern mtm_rwlock mtm_serial_lock;
+extern mtm_rwlock_t mtm_serial_lock;
+
 
 /* An unscaled count of the number of times we should spin attempting to 
    acquire locks before we block the current thread and defer to the OS.
@@ -406,9 +327,9 @@ extern uint32_t mtm_begin_transaction(uint32_t, const mtm_jmpbuf_t *);
 extern uint32_t mtm_longjmp (const mtm_jmpbuf_t *, uint32_t)
 	ITM_NORETURN;
 
-extern void mtm_commit_local (void);
-extern void mtm_rollback_local (void);
-extern void mtm_LB (mtm_thread_t *td, const void *, size_t) _ITM_CALL_CONVENTION;
+extern void mtm_commit_local (TXPARAM);
+extern void mtm_rollback_local (TXPARAM);
+extern void mtm_LB (mtm_tx_t *tx, const void *, size_t) _ITM_CALL_CONVENTION;
 
 extern void mtm_serialmode (bool, bool);
 extern void mtm_decide_retry_strategy (mtm_restart_reason);
@@ -421,40 +342,165 @@ extern void mtm_alloc_commit_allocations (bool);
 
 extern void mtm_revert_cpp_exceptions (void);
 
-extern mtm_cacheline_page *mtm_page_alloc (void);
-extern void mtm_page_release (mtm_cacheline_page *, mtm_cacheline_page *);
+//extern mtm_cacheline_page *mtm_page_alloc (void);
+//extern void mtm_page_release (mtm_cacheline_page *, mtm_cacheline_page *);
 
-extern mtm_cacheline *mtm_null_read_lock (mtm_thread_t *td, uintptr_t);
-extern mtm_cacheline_mask_pair mtm_null_write_lock (mtm_thread_t *td, uintptr_t);
+//extern mtm_cacheline *mtm_null_read_lock (mtm_tx_t *td, uintptr_t);
+//extern mtm_cacheline_mask_pair mtm_null_write_lock (mtm_tx_t *td, uintptr_t);
+extern void *mtm_null_read_lock (mtm_tx_t *td, uintptr_t);
+extern void *mtm_null_write_lock (mtm_tx_t *td, uintptr_t);
 
-static inline mtm_version
-mtm_get_clock (void)
+
+/* ################################################################### *
+ * CLOCK
+ * ################################################################### */
+
+#define GET_CLOCK                       (ATOMIC_LOAD_ACQ(&CLOCK))
+#define FETCH_INC_CLOCK                 (ATOMIC_FETCH_INC_FULL(&CLOCK))
+
+
+/* ################################################################### *
+ * STATIC
+ * ################################################################### */
+
+/* Don't access this variable directly; use the functions below.  */
+#ifdef TLS
+extern __thread mtm_tx_t *_mtm_thread_tx;
+#else /* !TLS */
+extern pthread_key_t _mtm_thread_tx;
+#endif /* !TLS */
+
+/*
+ * Returns the transaction descriptor for the CURRENT thread.
+ */
+static inline mtm_tx_t *mtm_get_tx()
 {
-	mtm_version r;
-
-	__sync_synchronize ();
-	r = mtm_clock;
-	atomic_read_barrier ();
-
-	return r;
+#ifdef TLS
+  return _mtm_thread_tx;
+#else /* ! TLS */
+  return (mtm_tx_t *)pthread_getspecific(_mtm_thread_tx);
+#endif /* ! TLS */
 }
 
-static inline mtm_version
-mtm_inc_clock (void)
+#ifdef LOCK_IDX_SWAP
+/*
+ * Compute index in lock table (swap bytes to avoid consecutive addresses to have neighboring locks).
+ */
+static inline unsigned int lock_idx_swap(unsigned int idx) {
+  return (idx & ~(unsigned int)0xFFFF) | ((idx & 0x00FF) << 8) | ((idx & 0xFF00) >> 8);
+}
+#endif /* LOCK_IDX_SWAP */
+
+#ifdef ROLLOVER_CLOCK
+/*
+ * We use a simple approach for clock roll-over:
+ * - We maintain the count of (active) transactions using a counter
+ *   protected by a mutex. This approach is not very efficient but the
+ *   cost is quickly amortized because we only modify the counter when
+ *   creating and deleting a transaction descriptor, which typically
+ *   happens much less often than starting and committing a transaction.
+ * - We detect overflows when reading the clock or when incrementing it.
+ *   Upon overflow, we wait until all threads have blocked on a barrier.
+ * - Threads can block on the barrier upon overflow when they (1) start
+ *   a transaction, or (2) delete a transaction. This means that threads
+ *   must ensure that they properly delete their transaction descriptor
+ *   before performing any blocking operation outside of a transaction
+ *   in order to guarantee liveness (our model prohibits blocking
+ *   inside a transaction).
+ */
+
+pthread_mutex_t tx_count_mutex;
+pthread_cond_t tx_reset;
+int tx_count;
+int tx_overflow;
+
+/*
+ * Enter new transactional thread.
+ */
+static inline void mtm_rollover_enter(mtm_tx_t *tx)
 {
-	mtm_version r = __sync_add_and_fetch (&mtm_clock, 1);
+  PRINT_DEBUG("==> mtm_rollover_enter(%p)\n", tx);
 
-	/* ??? Ought to handle wraparound for 32-bit.  */
-	if (sizeof(r) < 8 && r > mtm_VERSION_MAX) {
-		abort ();
-	}
-
-	return r;
+  pthread_mutex_lock(&tx_count_mutex);
+  while (tx_overflow != 0)
+    pthread_cond_wait(&tx_reset, &tx_count_mutex);
+  /* One more (active) transaction */
+  tx_count++;
+  pthread_mutex_unlock(&tx_count_mutex);
 }
 
+/*
+ * Exit transactional thread.
+ */
+static inline void mtm_rollover_exit(mtm_tx_t *tx)
+{
+  PRINT_DEBUG("==> mtm_rollover_exit(%p[%lu-%lu])\n", tx, (unsigned long)tx->start, (unsigned long)tx->end);
+
+  pthread_mutex_lock(&tx_count_mutex);
+  /* One less (active) transaction */
+  tx_count--;
+  assert(tx_count >= 0);
+  /* Are all transactions stopped? */
+  if (tx_overflow != 0 && tx_count == 0) {
+    /* Yes: reset clock */
+    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+    CLOCK = 0;
+    tx_overflow = 0;
+# ifdef EPOCH_GC
+    /* Reset GC */
+    gc_reset();
+# endif /* EPOCH_GC */
+    /* Wake up all thread */
+    pthread_cond_broadcast(&tx_reset);
+  }
+  pthread_mutex_unlock(&tx_count_mutex);
+}
+
+/*
+ * Clock overflow.
+ */
+static inline void mtm_overflow(mtm_tx_t *tx)
+{
+  PRINT_DEBUG("==> mtm_overflow(%p[%lu-%lu])\n", tx, (unsigned long)tx->start, (unsigned long)tx->end);
+
+  pthread_mutex_lock(&tx_count_mutex);
+  /* Set overflow flag (might already be set) */
+  tx_overflow = 1;
+  /* One less (active) transaction */
+  tx_count--;
+  assert(tx_count >= 0);
+  /* Are all transactions stopped? */
+  if (tx_count == 0) {
+    /* Yes: reset clock */
+    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+    CLOCK = 0;
+    tx_overflow = 0;
+# ifdef EPOCH_GC
+    /* Reset GC */
+    gc_reset();
+# endif /* EPOCH_GC */
+    /* Wake up all thread */
+    pthread_cond_broadcast(&tx_reset);
+  } else {
+    /* No: wait for other transactions to stop */
+    pthread_cond_wait(&tx_reset, &tx_count_mutex);
+  }
+  /* One more (active) transaction */
+  tx_count++;
+  pthread_mutex_unlock(&tx_count_mutex);
+}
+#endif /* ROLLOVER_CLOCK */
+
+/*
+ * Get curent value of global clock.
+ */
+static inline mtm_word_t mtm_get_clock()
+{
+  return GET_CLOCK;
+}
 
 #ifdef HAVE_ATTRIBUTE_VISIBILITY
 # pragma GCC visibility pop
 #endif
 
-#endif /* LIBITM_I_H */
+#endif /* __MTM_I_H */

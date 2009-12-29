@@ -68,7 +68,7 @@ _ITM_cxa_end_catch (void)
 void
 mtm_revert_cpp_exceptions (void)
 {
-  mtm_transaction_t *tx = mtm_tx();
+  mtm_tx_t *tx = mtm_tx();
 
   if (tx->cxa_unthrown || tx->cxa_catch_count)
     {

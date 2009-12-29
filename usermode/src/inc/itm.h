@@ -144,7 +144,7 @@ typedef enum
     modeObstinate,         /**< Obstinate mode. Abort or retry are possible, but this transaction wins all contention fights. */
     modeOptimistic,        /**< Optimistic mode. Force transaction to run in optimistic mode. */
     modePessimistic,       /**< Pessimistic mode. Force transaction to run in pessimistic mode. */
-} mtm_thread_tState;
+} mtm_tx_tState;
 
 /*! Values to be passed to _ITM_abort*Transaction */
 typedef enum {
@@ -184,8 +184,8 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_finalizeThread(void);
 /*! Error reporting */
 _ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_error (const _ITM_srcLocation *, int errorCode));
 
-/* _ITM_getTransaction(void), _ITM_inTransaction(mtm_thread_t*), and
-   _ITM_getTransactionId(mtm_thread_t*) are in itmuser.h */
+/* _ITM_getTransaction(void), _ITM_inTransaction(mtm_tx_t*), and
+   _ITM_getTransactionId(mtm_tx_t*) are in itmuser.h */
 
 /*! Begin a transaction.
  * This function can return more than once (cf setjump). The result always tells the compiled
@@ -194,7 +194,7 @@ _ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_error (const _I
  * \param __src The source location.
  * \return A bit mask composed of values from _ITM_actions or-ed together.
  */
-_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_beginTransaction  (mtm_thread_t *td,
+_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_beginTransaction  (mtm_tx_t *td,
                                                                          uint32 __properties,
                                                                          const _ITM_srcLocation *__src);
 
@@ -206,7 +206,7 @@ _ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_beginTransaction  (mtm_threa
  * \param __src The source location of the transaction.
  * 
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransaction     (mtm_thread_t *td,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransaction     (mtm_tx_t *td,
                                                                          const _ITM_srcLocation *__src);
 
 /*! Try to commit the innermost transaction. If the innermost transaction is also the outermost,
@@ -214,7 +214,7 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransaction     (mtm_thr
  * \param __src The source location of the transaction.
  * 
  */
-_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_tryCommitTransaction  (mtm_thread_t *td,
+_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_tryCommitTransaction  (mtm_tx_t *td,
                                                                              const _ITM_srcLocation *__src);
 
 /*! Commit the to the nested transaction specifed by the first arugment.
@@ -222,7 +222,7 @@ _ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_tryCommitTransaction  (mtm_t
  * \param __src The source location of the catch block.
  * 
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId (mtm_thread_t *td,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId (mtm_tx_t *td,
                                                                          const _ITM_transactionId tid,
                                                                          const _ITM_srcLocation *__src);
 
@@ -234,7 +234,7 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId (mtm_thr
  * \param __reason The reason for the abort.
  * \param __src The source location of the __tm_abort (if abort is called by the compiler).
  */
-_ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_abortTransaction(mtm_thread_t *td,
+_ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_abortTransaction(mtm_tx_t *td,
                                                                                   _ITM_abortReason __reason, 
                                                                                   const _ITM_srcLocation *__src));
 
@@ -246,7 +246,7 @@ _ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_abortTransactio
  */
 /*! Abort a transaction which may or may not be nested. Arguments and semantics as for abortOuterTransaction. */
 /* Will return if called with uplevelAbort, otherwise it longjumps */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(mtm_thread_t *td,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(mtm_tx_t *td,
                                                                       const _ITM_srcLocation *__src);
 
 /*! Register the thrown object to avoid undoing it, in case the transaction aborts and throws an exception
@@ -255,7 +255,7 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(mtm_thread
  * \param __obj The base address of the thrown object.
  * \param __size The size of the object in bytes.
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(mtm_thread_t *td, const void *__obj, size_t __size);
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(mtm_tx_t *td, const void *__obj, size_t __size);
 
 /*! Enter an irrevocable mode.
  * If this function returns then execution is now in the new mode, however it's possible that
@@ -266,8 +266,8 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(mtm_threa
  * \param __mode The new execution mode.
  * \param __src The source location.
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_changeTransactionMode (mtm_thread_t *td,
-                                                                         mtm_thread_tState __mode,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_changeTransactionMode (mtm_tx_t *td,
+                                                                         mtm_tx_tState __mode,
                                                                          const _ITM_srcLocation * __loc);
 
 /* Support macros to generate the multiple data transfer functions we need. 
@@ -341,30 +341,30 @@ ACTION (name,__m128,M128)
 
 
 # define _ITM_FOREACH_MEMCPY0(ACTION, NAME, ...)                                                            \
-ACTION (void, NAME##RnWt, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)           \
-ACTION (void, NAME##RnWtaR, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RnWtaW, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWn,   (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWt,   (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWtaR, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWtaW, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWn, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWt, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWtaR, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaRWtaW, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaWWn, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaWWt, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaWWtaR, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaWWtaW, (mtm_thread_t *, void *, const void *, size_t), __VA_ARGS__)
+ACTION (void, NAME##RnWt, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)           \
+ACTION (void, NAME##RnWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RnWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWn,   (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWt,   (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWn, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWt, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaRWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaWWn, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaWWt, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaWWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaWWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)
 
 #define _ITM_FOREACH_MEMCPY(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memcpy,__VA_ARGS__)
 
 #define _ITM_FOREACH_MEMMOVE(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memmove,__VA_ARGS__)
 
 # define _ITM_FOREACH_MEMSET(ACTION, ...)                                               \
-ACTION (void, memsetW, (mtm_thread_t *, void *, int, size_t), __VA_ARGS__)          \
-ACTION (void, memsetWaR, (mtm_thread_t *, void *, int, size_t), __VA_ARGS__)        \
-ACTION (void, memsetWaW, (mtm_thread_t *, void *, int, size_t), __VA_ARGS__)
+ACTION (void, memsetW, (mtm_tx_t *, void *, int, size_t), __VA_ARGS__)          \
+ACTION (void, memsetWaR, (mtm_tx_t *, void *, int, size_t), __VA_ARGS__)        \
+ACTION (void, memsetWaW, (mtm_tx_t *, void *, int, size_t), __VA_ARGS__)
 
 #define _ITM_FOREACH_SIMPLE_TRANSFER(ACTION,ARG)           \
     _ITM_FOREACH_SIMPLE_READ_TRANSFER(ACTION,ARG)          \
@@ -388,21 +388,21 @@ ACTION (void, memsetWaW, (mtm_thread_t *, void *, int, size_t), __VA_ARGS__)
 
 #  define _ITM_FOREACH_LOG_TRANSFER(ACTION,ARG)                         \
     _ITM_FOREACH_SIMPLE_LOG_TRANSFER(ACTION,ARG)                        \
-    ACTION(void, LB, (mtm_thread_t *, const void*, size_t), ARG)
+    ACTION(void, LB, (mtm_tx_t *, const void*, size_t), ARG)
 
 #  define _ITM_GENERATE_READ_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (result_type, R##encoding,   (mtm_thread_t *, const result_type *), ARG) \
-    ACTION (result_type, RaR##encoding, (mtm_thread_t *, const result_type *), ARG) \
-    ACTION (result_type, RaW##encoding, (mtm_thread_t *, const result_type *), ARG) \
-    ACTION (result_type, RfW##encoding, (mtm_thread_t *, const result_type *), ARG)         
+    ACTION (result_type, R##encoding,   (mtm_tx_t *, const result_type *), ARG) \
+    ACTION (result_type, RaR##encoding, (mtm_tx_t *, const result_type *), ARG) \
+    ACTION (result_type, RaW##encoding, (mtm_tx_t *, const result_type *), ARG) \
+    ACTION (result_type, RfW##encoding, (mtm_tx_t *, const result_type *), ARG)         
 
 #  define _ITM_GENERATE_WRITE_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (void, W##encoding,  (mtm_thread_t *, result_type *, result_type), ARG) \
-    ACTION (void, WaR##encoding,(mtm_thread_t *, result_type *, result_type), ARG) \
-    ACTION (void, WaW##encoding,(mtm_thread_t *, result_type *, result_type), ARG)
+    ACTION (void, W##encoding,  (mtm_tx_t *, result_type *, result_type), ARG) \
+    ACTION (void, WaR##encoding,(mtm_tx_t *, result_type *, result_type), ARG) \
+    ACTION (void, WaW##encoding,(mtm_tx_t *, result_type *, result_type), ARG)
 
 #  define _ITM_GENERATE_LOG_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (void, L##encoding,   (mtm_thread_t *, const result_type *), ARG) 
+    ACTION (void, L##encoding,   (mtm_tx_t *, const result_type *), ARG) 
 
 # define GENERATE_PROTOTYPE(result, function, args, ARG)    \
     _ITM_EXPORT extern result _ITM_CALL_CONVENTION _ITM_##function args;

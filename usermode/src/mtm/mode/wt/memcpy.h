@@ -1,0 +1,9 @@
+#ifndef _WT_MEMCPY_H
+#define _WT_MEMCPY_H
+
+#include "mode/common/memcpy.h"
+
+FORALL_MEMCOPY_VARIANTS(MEMCPY_DECLARATION, wt)
+FORALL_MEMMOVE_VARIANTS(MEMMOVE_DECLARATION, wt)
+
+#endif

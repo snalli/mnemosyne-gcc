@@ -26,12 +26,10 @@ _ITM_libraryVersion (void)
 
 
 _ITM_howExecuting _ITM_CALL_CONVENTION
-_ITM_inTransaction (mtm_thread_t *td)
+_ITM_inTransaction (mtm_tx_t *tx)
 {
-	//FIXME
-	mtm_transaction_t *tx = mtm_tx();
-	if (tx) {
-		if (tx->state & STATE_IRREVOCABLE) {
+	if (tx && tx->status != TX_IDLE) {
+		if (tx->status & TX_IRREVOCABLE) {
 			return inIrrevocableTransaction;
 		} else {
 			return inRetryableTransaction;
@@ -42,24 +40,24 @@ _ITM_inTransaction (mtm_thread_t *td)
 
 
 _ITM_transactionId _ITM_CALL_CONVENTION
-_ITM_getTransactionId (mtm_thread_t *td)
+_ITM_getTransactionId (mtm_tx_t *td)
 {
-	mtm_transaction_t *tx = mtm_tx();
+	mtm_tx_t *tx = mtm_tx();
 	return tx ? tx->id : _ITM_noTransactionId;
 }
 
 
-mtm_thread_t * _ITM_CALL_CONVENTION
+mtm_tx_t * _ITM_CALL_CONVENTION
 _ITM_getTransaction(void)
 {
-	mtm_thread_t *thr = mtm_thr();
+	mtm_tx_t *tx = mtm_get_tx();
 	
-	if (thr) {
-		return thr;
+	if (tx) {
+		return tx;
 	}
 	
-	thr = mtm_init_thread();
-	return thr;
+	tx = mtm_init_thread();
+	return tx;
 }
 
 
@@ -67,12 +65,12 @@ int _ITM_CALL_CONVENTION
 _ITM_getThreadnum (void)
 {
 	static int   global_num;
-	mtm_thread_t *thr = mtm_thr();
-	int          num = thr->thread_num;
+	mtm_tx_t     *tx = mtm_get_tx();
+	int          num = (int) tx->thread_num;
 
 	if (num == 0) {
 		num = __sync_add_and_fetch (&global_num, 1);
-		thr->thread_num = num;
+		tx->thread_num = num;
 	}
 
 	return num;
@@ -95,14 +93,14 @@ _ITM_userError (const char *errorStr, int errorCode)
 
 
 void _ITM_CALL_CONVENTION 
-_ITM_dropReferences (mtm_thread_t * td, const void *start, size_t size)
+_ITM_dropReferences (mtm_tx_t * td, const void *start, size_t size)
 {
 	//TODO
 }
 
 
 void _ITM_CALL_CONVENTION 
-_ITM_registerThrownObject(mtm_thread_t *td, 
+_ITM_registerThrownObject(mtm_tx_t *td, 
                           const void *exception_object, size_t s)
 {
 
@@ -114,7 +112,7 @@ int _ITM_CALL_CONVENTION
 _ITM_initializeProcess (void)
 {
 	int          ret;
-	mtm_thread_t *thr;
+	mtm_tx_t *thr;
 
 	if ((ret = mtm_init_global()) == 0) {
 		thr = mtm_init_thread();
@@ -161,7 +159,7 @@ _ITM_registerThreadFinalization (void (_ITM_CALL_CONVENTION * thread_fini_func) 
 }
 
 void _ITM_CALL_CONVENTION
-_ITM_addUserCommitAction(mtm_thread_t * __td,
+_ITM_addUserCommitAction(mtm_tx_t * __td,
                          _ITM_userCommitFunction fn,
                          _ITM_transactionId tid, 
                          void *arg)
@@ -171,9 +169,20 @@ _ITM_addUserCommitAction(mtm_thread_t * __td,
 
 
 void _ITM_CALL_CONVENTION
-_ITM_addUserUndoAction(mtm_thread_t * __td,
+_ITM_addUserUndoAction(mtm_tx_t * __td,
                        const _ITM_userUndoFunction fn, 
                        void *arg)
 {
 	MTM_useraction_adduserUndoAction(__td, fn, arg);
+}
+
+
+void _ITM_CALL_CONVENTION
+_ITM_changeTransactionMode(mtm_tx_t *td,
+                           mtm_tx_tState __mode,
+                           const _ITM_srcLocation * __loc)
+{
+	//FIXME
+	//assert (state == modeSerialIrrevocable);
+	//MTM_serialmode (false, true);
 }

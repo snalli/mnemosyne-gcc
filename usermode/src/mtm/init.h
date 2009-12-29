@@ -2,7 +2,7 @@
 #define _INIT_H
 
 int mtm_init_global(void);
-mtm_thread_t *mtm_init_thread(void);
+mtm_tx_t *mtm_init_thread(void);
 void mtm_fini_global(void);
 void mtm_fini_thread(void);
 

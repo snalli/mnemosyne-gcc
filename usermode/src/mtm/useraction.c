@@ -75,13 +75,13 @@ mtm_useraction_freeActions (mtm_user_action_t **list)
 
 
 void
-mtm_useraction_addUserCommitAction(mtm_thread_t * __td,
+mtm_useraction_addUserCommitAction(mtm_tx_t * __td,
                                    _ITM_userCommitFunction fn,
                                    _ITM_transactionId tid, 
                                    void *arg)
 {
 //FIXME
-  mtm_transaction_t *tx;
+  mtm_tx_t *tx;
   mtm_user_action_t *a;
 
   for (tx = mtm_tx(); tx->id != tid; tx = tx->prev)
@@ -96,12 +96,12 @@ mtm_useraction_addUserCommitAction(mtm_thread_t * __td,
 
 
 void
-mtm_useraction_addUserUndoAction(mtm_thread_t * __td,
+mtm_useraction_addUserUndoAction(mtm_tx_t * __td,
                                  const _ITM_userUndoFunction fn, 
                                  void *arg)
 {
 //FIXME
-  mtm_transaction_t *tx = mtm_tx();
+  mtm_tx_t *tx = mtm_tx();
   mtm_user_action_t *a;
 
   a = malloc (sizeof (*a));

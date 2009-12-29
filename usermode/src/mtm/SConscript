@@ -1,4 +1,9 @@
-Import('env')
+import sys
+#sys.path.append('/afs/cs.wisc.edu/p/multifacet/users/hvolos/workspace/mnemosyne/mnemosyne/usermode/src/mtm/')
+from config import mtm
+env = mtm.Environment('default')
+
+#Import('env')
 
 buildEnv = env.Clone()
 
@@ -8,11 +13,12 @@ buildEnv = env.Clone()
 buildEnv.Append(CCFLAGS = '-g -O2')
 
 buildEnv['CPPPATH'] = ['#src/mtm']
-buildEnv.Append(CPPPATH = '#src/mtm/config/linux/x86')
-buildEnv.Append(CPPPATH = '#src/mtm/config/linux')
-buildEnv.Append(CPPPATH = '#src/mtm/config/x86')
-buildEnv.Append(CPPPATH = '#src/mtm/config/posix')
-buildEnv.Append(CPPPATH = '#src/mtm/config/generic')
+buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux/x86')
+buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux')
+buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/x86')
+buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/posix')
+buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/generic')
+buildEnv.Append(CPPPATH = '#src/libatomic_ops-1.2/src')
 
 #buildEnv.Append(LINKFLAGS = ['-m32'])
 buildEnv.Append(LINKFLAGS = ['-g'])
@@ -24,7 +30,7 @@ srcgen_vtable = buildEnv.Program('generate_vtable', 'srcgen/generate_vtable.c')
 
 #					readonly/method-readonly.c
 
-CC_SRC = Split("""aatree.c
+OLD_CC_SRC = Split("""aatree.c
 					alloc.c
 					alloc_c.c
 					alloc_cpp.c
@@ -39,19 +45,36 @@ CC_SRC = Split("""aatree.c
 					wbetl/memset.c
 					serial/serial.c
 					useraction.c
-					vtable.c
+					mode.c
 					""")
 
-CC_LINUX_SRC = Split("""config/linux/rwlock.c
-						config/linux/futex.c""")
+CC_SRC = Split("""
+					gc.c
+					init.c
+					intelabi.c
+					local.c
+					mode/mode.c
+					mode/wbetl/barrier.c
+					mode/wbetl/beginend.c
+					mode/wbetl/memcpy.c
+					mode/wbetl/memset.c
+					mode/wbetl/wbetl.c
+					mode/serial/serial.c
+					mtm.c
+					""")
 
-CC_POSIX_SRC = Split("""config/posix/page.c""")
+CC_LINUX_SRC = Split("""sysdeps/linux/rwlock.c
+						sysdeps/linux/futex.c""")
 
-CC_X86_SRC = Split("""config/x86/copymask.c""")
-#						config/x86/x86_sse.c
-#						config/x86/x86_avx.c
+CC_POSIX_SRC = []
+#CC_POSIX_SRC = Split("""sysdeps/posix/page.c""")
 
-S_SRC = Split("""config/x86/sjlj.S""")
+CC_X86_SRC = []
+##CC_X86_SRC = Split("""sysdeps/x86/copymask.c""")
+#						sysdeps/x86/x86_sse.c
+#						sysdeps/x86/x86_avx.c
+
+S_SRC = Split("""sysdeps/x86/sjlj.S""")
 
 SRC = CC_SRC + S_SRC + CC_LINUX_SRC + CC_X86_SRC + CC_POSIX_SRC
 

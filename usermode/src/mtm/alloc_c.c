@@ -51,7 +51,7 @@ _ITM_calloc (size_t nm, size_t sz)
 void *
 _ITM_realloc (void *ptr, size_t sz)
 {
-	mtm_thread_t *thr = mtm_thr();
+	mtm_tx_t *thr = mtm_thr();
 	void         *r;
 
 

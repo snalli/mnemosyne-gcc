@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "vtable_macros.h"
+#include "mode/vtable_macros.h"
 
 #ifndef _BUILD64
 # if (defined (__x86_64__))

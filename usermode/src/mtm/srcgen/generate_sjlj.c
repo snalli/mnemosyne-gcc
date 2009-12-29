@@ -97,7 +97,7 @@ static void generate_setjmp (const char *prefix, const char *entry, int glock)
         printf ("\tje\t%s%s_internal\t# Irrevocable transaction has no need to save registers\n", prefix, entry);
     }
 
-    printf ("\tmov\t%d(%s),%s\n", offsetof (mtm_thread_t, tmp_jb_ptr), R_ARG1, BUFFER_REG);
+    printf ("\tmov\t%d(%s),%s\n", offsetof (mtm_tx_t, tmp_jb_ptr), R_ARG1, BUFFER_REG);
 
 	/* Save the registers. */
 # define saveReg(regName, field) \
@@ -170,11 +170,13 @@ static void file_suffix (void)
 
 int main (int argc, char **argv)
 {
-    if (offsetof (mtm_thread_t, tx) != 3 * sizeof (void *))
+#if 0
+    if (offsetof (mtm_tx_t, tx) != 3 * sizeof (void *))
     {
-        fprintf (stderr, "***tx field has moved in mtm_thread_t, fix generate_sjlj.c\n");
+        fprintf (stderr, "***tx field has moved in mtm_tx_t, fix generate_sjlj.c\n");
         exit (1);
     }
+#endif
 
     file_prefix ();
 

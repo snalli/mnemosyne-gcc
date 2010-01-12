@@ -53,8 +53,9 @@ env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = GetOption('selected_example')
 env['ENV'] = os.environ
-env['CC']  = 'icc'
-env['CXX'] = 'icpc'
+
+# TODO: Automatically select icc, if available, else use the default with TLS disabled?
+
 env['LIBRARY_NAME'] = 'mnemosyne'
 
 Export('env')

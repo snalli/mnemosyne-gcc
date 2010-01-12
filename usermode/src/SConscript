@@ -37,5 +37,5 @@ if buildEnv['LINKAGE'] == 'dynamic':
 	MnemosyneLibrary = buildEnv.SharedLibrary(buildEnv['LIBRARY_NAME'], SRC)
 elif buildEnv['LINKAGE'] == 'static':
 	MnemosyneLibrary = buildEnv.StaticLibrary(buildEnv['LIBRARY_NAME'], SRC)
-Return('TinyStm', 'MnemosyneLibrary')
+Return('MnemosyneLibrary')
 

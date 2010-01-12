@@ -2,9 +2,6 @@ import os
 
 Import('env')
 buildEnv = env.Clone()
-#TinyStm = SConscript('transactions/SConscript')
-TinyStm = ""
-
 
 #buildEnv.Append(CCFLAGS = '-msse -m64 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -Wall -pthread')
 buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')

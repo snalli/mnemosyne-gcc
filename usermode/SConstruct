@@ -64,8 +64,8 @@ env['MY_ROOT_DIR'] = rootDir
 env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
-TinyStm, MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
-Export('TinyStm', 'MnemosyneLibrary')
+MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
+Export('MnemosyneLibrary')
 SConscript('util/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'util'))
 
 #Examples Environment

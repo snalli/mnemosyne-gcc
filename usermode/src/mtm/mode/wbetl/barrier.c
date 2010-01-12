@@ -53,11 +53,7 @@ wbetl_write(mtm_tx_t *tx,
 	mtm_word_t          l;
 	mtm_word_t          version;
 	w_entry_t           *w;
-#if DESIGN == WRITE_BACK_ETL
 	w_entry_t           *prev = NULL;
-#elif DESIGN == WRITE_THROUGH
-	int                 duplicate = 0;
-#endif /* DESIGN == WRITE_THROUGH */
 
 	PRINT_DEBUG2("==> mtm_write(t=%p[%lu-%lu],a=%p,d=%p-%lu,m=0x%lx)\n", tx,
 	             (unsigned long)modedata->start,
@@ -80,47 +76,6 @@ restart_no_load:
 	if (LOCK_GET_OWNED(l)) {
 		/* Locked */
 		/* Do we own the lock? */
-#if DESIGN == WRITE_THROUGH
-		if (tx == (mtm_tx_t *)LOCK_GET_ADDR(l)) {
-			/* Yes */
-# ifdef NO_DUPLICATES_IN_RW_SETS
-			int i;
-			/* Check if address is in write set (a lock may cover multiple addresses) */
-			w = modedata->w_set.entries;
-			for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {
-				if (w->addr == addr) {
-					if (mask == 0) {
-						return w;
-					}
-				if (w->mask == 0) {
-					/* Remember old value */
-					w->value = ATOMIC_LOAD(addr);
-					w->mask = mask;
-				}
-				/* Yes: only write to memory */
-				PRINT_DEBUG2("==> mtm_write(t=%p[%lu-%lu],a=%p,l=%p,*l=%lu,d=%p-%lu,m=0x%lx)\n",
-							 tx, (unsigned long)modedata->start,
-							 (unsigned long)modedata->end, 
-							 addr,
-							 lock,
-							 (unsigned long)l,
-							 (void *)value,
-							 (unsigned long)value,
-							 (unsigned long)mask);
-				if (mask != ~(mtm_word_t)0) {
-					value = (ATOMIC_LOAD(addr) & ~mask) | (value & mask);
-				}	
-				ATOMIC_STORE(addr, value);
-				return w;
-				}
-			}
-# endif /* NO_DUPLICATES_IN_RW_SETS */
-			/* Mark entry so that we do not drop the lock upon undo */
-			duplicate = 1;
-			/* Must add to write set (may add entry multiple times) */
-			goto do_write;
-		}
-#elif DESIGN == WRITE_BACK_ETL
 		w = (w_entry_t *)LOCK_GET_ADDR(l);
 		/* Simply check if address falls inside our write set (avoids non-faulting load) */
 		if (modedata->w_set.entries <= w &&
@@ -178,17 +133,13 @@ restart_no_load:
 # endif /* READ_LOCKED_DATA */
 			goto do_write;
 		}
-#endif /* DESIGN == WRITE_BACK_ETL */
+
 		/* Conflict: CM kicks in */
 #if CM == CM_PRIORITY
 		if (tx->retries >= cm_threshold) {
 			if (LOCK_GET_PRIORITY(l) < tx->priority ||
 			    (LOCK_GET_PRIORITY(l) == tx->priority &&
-# if DESIGN == WRITE_BACK_ETL
 			    l < (mtm_word_t)modedata->w_set.entries
-# else /* DESIGN != WRITE_BACK_ETL */
-			    l < (mtm_word_t)tx
-# endif /* DESIGN != WRITE_BACK_ETL */
 			    && !LOCK_GET_WAIT(l))) 
 			{
 				/* We have higher priority */
@@ -237,15 +188,7 @@ give_up:
 		/* Not locked */
 		/* Handle write after reads (before CAS) */
 		version = LOCK_GET_TIMESTAMP(l);
-#if DESIGN == WRITE_THROUGH && defined(ROLLOVER_CLOCK)
-		if (version == VERSION_MAX) {
-			/* Cannot acquire lock on address with version VERSION_MAX: abort */
-# ifdef INTERNAL_STATS
-			tx->aborts_rollover++;
-# endif /* INTERNAL_STATS */
-			mtm_wbetl_restart_transaction (tx, RESTART_VALIDATE_WRITE);
-		}
-#endif /* DESIGN == WRITE_THROUGH && defined(ROLLOVER_CLOCK) */
+
 		if (version > modedata->end) {
 			/* We might have read an older version previously */
 			if (!tx->can_extend || mtm_has_read(tx, modedata, lock) != NULL) {
@@ -261,18 +204,8 @@ give_up:
 				mtm_wbetl_restart_transaction (tx, RESTART_VALIDATE_WRITE);
 			}
 		}
+		
 		/* Acquire lock (ETL) */
-#if DESIGN == WRITE_THROUGH
-# if CM == CM_PRIORITY
-		if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_ADDR((mtm_word_t)tx, tx->priority)) == 0) {
-			goto restart;
-		}	
-# else /* CM != CM_PRIORITY */
-		if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_ADDR((mtm_word_t)tx)) == 0) {
-			goto restart;
-		}	
-# endif /* CM != CM_PRIORITY */
-#elif DESIGN == WRITE_BACK_ETL
 		if (modedata->w_set.nb_entries == modedata->w_set.size) {
 			/* Extend write set (invalidate pointers to write set entries => abort and reallocate) */
 			modedata->w_set.size *= 2;
@@ -295,7 +228,6 @@ give_up:
 			goto restart;
 		}
 # endif /* CM != CM_PRIORITY */
-#endif /* DESIGN == WRITE_BACK_ETL */
 	}
 	
 	/* We own the lock here (ETL) */
@@ -312,12 +244,6 @@ do_write:
 	             (unsigned long)mask);
 
 	/* Add address to write set */
-#if DESIGN != WRITE_BACK_ETL
-	if (modedata->w_set.nb_entries == modedata->w_set.size) {
-		mtm_allocate_ws_entries(tx, modedata, 1);
-	}
-	w = &modedata->w_set.entries[modedata->w_set.nb_entries++];
-#endif /* DESIGN != WRITE_BACK_ETL */
 	w->addr = addr;
 	w->mask = mask;
 	w->lock = lock;
@@ -327,22 +253,6 @@ do_write:
 		w->value = 0;
 #endif /* ! NDEBUG */
 	} else
-#if DESIGN == WRITE_THROUGH
-	{
-		/* Remember old value */
-		w->value = ATOMIC_LOAD(addr);
-	}
-	/* We store the old value of the lock (timestamp and incarnation) */
-	w->version = l;
-	w->no_drop = duplicate;
-	if (mask == 0) {
-		return w;
-	}
-	if (mask != ~(mtm_word_t)0) {
-		value = (w->value & ~mask) | (value & mask);
-	}	
-	ATOMIC_STORE(addr, value);
-#elif DESIGN == WRITE_BACK_ETL
 	{
 		/* Remember new value */
 		if (mask != ~(mtm_word_t)0) {
@@ -359,7 +269,6 @@ do_write:
 		prev->next = w;
 	}
 	modedata->w_set.nb_entries++;
-#endif /* DESIGN == WRITE_BACK_ETL */
 
 	return w;
 }

@@ -1,10 +1,7 @@
 import os
+from configuration import mtm
 
-env = Environment()
-#env = Environment(  CCCOMSTR = '(COMPILE) $SOURCES',
-#                   CXXCOMSTR = '(COMPILE) $SOURCES',
-#                  SHCCCOMSTR = '(COMPILE) $SOURCES',
-#                 LINKCOMSTR = '(LINK)    $TARGET')
+env = mtm.Environment('mtm')
 
 AddOption("--build-debug",
 			action="store_true", dest="build_debug", 
@@ -53,8 +50,9 @@ env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = GetOption('selected_example')
 env['ENV'] = os.environ
-env['CC']  = 'icc'
-env['CXX'] = 'icpc'
+
+# TODO: Automatically select icc, if available, else use the default with TLS disabled?
+
 env['LIBRARY_NAME'] = 'mnemosyne'
 
 Export('env')
@@ -64,10 +62,8 @@ env['MY_ROOT_DIR'] = rootDir
 env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
-TinyStm, MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
-Export('TinyStm', 'MnemosyneLibrary')
-SConscript('util/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'util'))
+MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
 
-#Examples Environment
 if env['EXAMPLE'] != None:
+	Export('MnemosyneLibrary')
 	SConscript('examples/SConscript')

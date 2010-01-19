@@ -1,2 +1,0 @@
-TinyStm = SConscript('tinystm/SConscript')
-Return('TinyStm')

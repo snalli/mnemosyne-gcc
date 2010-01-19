@@ -59,21 +59,6 @@ wbetl_trycommit (mtm_tx_t *tx)
 			return false;
 		}
 
-#if DESIGN == WRITE_THROUGH
-		/* Make sure that the updates become visible before releasing locks */
-		ATOMIC_MB_WRITE;
-		/* Drop locks and set new timestamp (traverse in reverse order) */
-		w = modedata->w_set.entries + modedata->w_set.nb_entries - 1;
-		for (i = modedata->w_set.nb_entries; i > 0; i--, w--) {
-			if (w->no_drop) {
-				continue;
-			}
-			/* No need for CAS (can only be modified by owner transaction) */
-			ATOMIC_STORE(w->lock, LOCK_SET_TIMESTAMP(t));
-		}
-		/* Make sure that all lock releases become visible */
-		ATOMIC_MB_WRITE;
-#elif DESIGN == WRITE_BACK_ETL
 # ifdef READ_LOCKED_DATA
 		/* Update instance number (becomes odd) */
 		id = tx->id;
@@ -99,7 +84,6 @@ wbetl_trycommit (mtm_tx_t *tx)
 		/* Update instance number (becomes even) */
 		ATOMIC_STORE_REL(&tx->id, id + 2);
 # endif /* READ_LOCKED_DATA */
-#endif /* DESIGN == WRITE_BACK_ETL */
 	}
 
 #if CM == CM_PRIORITY || defined(INTERNAL_STATS)
@@ -142,50 +126,6 @@ wbetl_rollback(mtm_tx_t *tx)
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
 
-
-#if DESIGN == WRITE_THROUGH
-	t = 0;
-	/* Undo writes and drop locks (traverse in reverse order) */
-	w = modedata->w_set.entries + modedata->w_set.nb_entries;
-	while (w != tx->w_set.entries) {
-		w--;
-		PRINT_DEBUG2("==> undo(t=%p[%lu-%lu],a=%p,d=%p-%lu,v=%lu,m=0x%lx)\n", tx,
-		             (unsigned long)modedata->start, 
-		             (unsigned long)modedata->end,
-		             w->addr,
-		             (void *)w->value,
-		             (unsigned long)w->value,
-		             (unsigned long)w->version,
-		             (unsigned long)w->mask);
-		if (w->mask != 0) {
-			ATOMIC_STORE(w->addr, w->value);
-		}
-		if (w->no_drop) {
-			continue;
-		}
-		/* Incarnation numbers allow readers to detect dirty reads */
-		i = LOCK_GET_INCARNATION(w->version) + 1;
-		if (i > INCARNATION_MAX) {
-			/* Simple approach: write new version (might trigger unnecessary aborts) */
-			if (t == 0) {
-				t = FETCH_INC_CLOCK + 1;
-				if (t >= VERSION_MAX) {
-# ifdef ROLLOVER_CLOCK
-					/* We can still use VERSION_MAX for protecting read-only trasanctions from dirty reads */
-					t = VERSION_MAX;
-# else /* ! ROLLOVER_CLOCK */
-					fprintf(stderr, "Exceeded maximum version number: 0x%lx\n", (unsigned long)t);
-					exit(1);
-# endif /* ! ROLLOVER_CLOCK */
-				}
-			}
-			ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
-		} else {
-			/* Use new incarnation number */
-			ATOMIC_STORE_REL(w->lock, LOCK_UPD_INCARNATION(w->version, i));
-		}
-	}
-#elif DESIGN == WRITE_BACK_ETL
 	/* Drop locks */
 	i = modedata->w_set.nb_entries;
 	if (i > 0) {
@@ -216,8 +156,6 @@ wbetl_rollback(mtm_tx_t *tx)
 		ATOMIC_STORE_REL(&tx->id, id + 2);
 # endif /* READ_LOCKED_DATA */
 	}
-#endif /* DESIGN == WRITE_BACK_ETL */
-
 
 #if CM == CM_PRIORITY || defined(INTERNAL_STATS)
 	tx->retries++;
@@ -228,15 +166,6 @@ wbetl_rollback(mtm_tx_t *tx)
 		tx->max_retries = tx->retries;
 	}	
 #endif /* INTERNAL_STATS */
-
-#if 0
-	/* Callbacks */
-	if (nb_abort_cb != 0) {
-    	int cb;
-		for (cb = 0; cb < nb_abort_cb; cb++)
-			abort_cb[cb].f(TXARGS abort_cb[cb].arg);
-	}
-#endif	
 
 	/* Set status (no need for CAS or atomic op) */
 	tx->status = TX_ABORTED;
@@ -313,7 +242,6 @@ start:
 	}
 #endif /* ROLLOVER_CLOCK */
 	/* Read/write set */
-#if DESIGN == WRITE_BACK_ETL
 	if (modedata->w_set.reallocate) {
 		/* Don't need to copy the content from the previous write set */
 # ifdef EPOCH_GC
@@ -324,23 +252,13 @@ start:
 		mtm_allocate_ws_entries(tx, modedata, 0);
 		modedata->w_set.reallocate = 0;
 	}
-#endif /* DESIGN == WRITE_BACK_ETL */
+
 	modedata->w_set.nb_entries = 0;
 	modedata->r_set.nb_entries = 0;
 
 #ifdef EPOCH_GC
 	gc_set_epoch(modedata->start);
 #endif /* EPOCH_GC */
-
-#if 0
-	/* Callbacks */
-	if (nb_start_cb != 0) {
-		int cb;
-		for (cb = 0; cb < nb_start_cb; cb++) {
-			start_cb[cb].f(TXARGS start_cb[cb].arg);
-		}	
-	}
-#endif	
 
 	//FIXME
 	if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
@@ -349,7 +267,6 @@ start:
 		return (prop & pr_uninstrumentedCode
 		        ? a_runUninstrumentedCode : a_runInstrumentedCode);
 	}
-
 
 	mtm_rwlock_read_lock (&mtm_serial_lock);
 
@@ -476,15 +393,6 @@ trycommit_transaction (mtm_tx_t *tx)
 		//mtm_useraction_runActions (&mtm_tx()->commit_actions);
 		//mtm_alloc_commit_allocations (false);
 
-#if 0
-		/* Callbacks */
-		if (nb_commit_cb != 0) {
-			int cb;
-			for (cb = 0; cb < nb_commit_cb; cb++) {
-				commit_cb[cb].f(TXARGS commit_cb[cb].arg);
-			} 
-		}
-#endif
 		/* Set status (no need for CAS or atomic op) */
 		tx->status = TX_COMMITTED;
 		return true;

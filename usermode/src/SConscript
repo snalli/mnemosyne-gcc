@@ -2,9 +2,6 @@ import os
 
 Import('env')
 buildEnv = env.Clone()
-#TinyStm = SConscript('transactions/SConscript')
-TinyStm = ""
-
 
 #buildEnv.Append(CCFLAGS = '-msse -m64 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -Wall -pthread')
 buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
@@ -40,5 +37,5 @@ if buildEnv['LINKAGE'] == 'dynamic':
 	MnemosyneLibrary = buildEnv.SharedLibrary(buildEnv['LIBRARY_NAME'], SRC)
 elif buildEnv['LINKAGE'] == 'static':
 	MnemosyneLibrary = buildEnv.StaticLibrary(buildEnv['LIBRARY_NAME'], SRC)
-Return('TinyStm', 'MnemosyneLibrary')
+Return('MnemosyneLibrary')
 

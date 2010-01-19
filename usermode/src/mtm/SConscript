@@ -1,15 +1,9 @@
 import sys
-#sys.path.append('/afs/cs.wisc.edu/p/multifacet/users/hvolos/workspace/mnemosyne/mnemosyne/usermode/src/mtm/')
-from config import mtm
+from configuration import mtm
 env = mtm.Environment('default')
-
-#Import('env')
 
 buildEnv = env.Clone()
 
-#buildEnv.Append(CCFLAGS = '-msse -m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -fomit-frame-pointer -Wall -pthread -g -O2')
-#buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread -g -O2 -fPIC')
-#buildEnv['CCFLAGS'] = ['-DHAVE_CONFIG_H -Wall -pthread -g -O2 -fPIC']
 buildEnv.Append(CCFLAGS = '-g -O2')
 
 buildEnv['CPPPATH'] = ['#src/mtm']
@@ -20,33 +14,12 @@ buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/posix')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/generic')
 buildEnv.Append(CPPPATH = '#src/libatomic_ops-1.2/src')
 
-#buildEnv.Append(LINKFLAGS = ['-m32'])
 buildEnv.Append(LINKFLAGS = ['-g'])
-#buildEnv.Append(ASFLAGS = '-m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -fomit-frame-pointer -Wall -g -O2')
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
 
+# Programs to generate VTable mappings to the Intel ABI. Ask Haris.
 srcgen_sjlj = buildEnv.Program('generate_sjlj', 'srcgen/generate_sjlj.c')
 srcgen_vtable = buildEnv.Program('generate_vtable', 'srcgen/generate_vtable.c')
-
-#					readonly/method-readonly.c
-
-OLD_CC_SRC = Split("""aatree.c
-					alloc.c
-					alloc_c.c
-					alloc_cpp.c
-					eh_cpp.c
-					init.c
-					intelabi.c
-					local.c
-					retry.c
-					wbetl/barrier.c
-					wbetl/beginend.c
-					wbetl/memcpy.c
-					wbetl/memset.c
-					serial/serial.c
-					useraction.c
-					mode.c
-					""")
 
 CC_SRC = Split("""
 					gc.c
@@ -63,19 +36,12 @@ CC_SRC = Split("""
 					mtm.c
 					""")
 
+# Mike Swift's code for transaction-safe locks.
 CC_LINUX_SRC = Split("""sysdeps/linux/rwlock.c
 						sysdeps/linux/futex.c""")
 
-CC_POSIX_SRC = []
-#CC_POSIX_SRC = Split("""sysdeps/posix/page.c""")
-
-CC_X86_SRC = []
-##CC_X86_SRC = Split("""sysdeps/x86/copymask.c""")
-#						sysdeps/x86/x86_sse.c
-#						sysdeps/x86/x86_avx.c
-
 S_SRC = Split("""sysdeps/x86/sjlj.S""")
 
-SRC = CC_SRC + S_SRC + CC_LINUX_SRC + CC_X86_SRC + CC_POSIX_SRC
+SRC = CC_SRC + S_SRC + CC_LINUX_SRC
 
 buildEnv.SharedLibrary('itmdyn', SRC)

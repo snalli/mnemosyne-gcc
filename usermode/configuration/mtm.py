@@ -45,7 +45,8 @@ class Environment(SCons.Environment.Environment):
 				    ARCOMSTR = '(BUILD)   $TARGET',
 				RANLIBCOMSTR = '(INDEX)   $TARGET',
 				  SHCCCOMSTR = '(COMPILE) $SOURCES',
-				  LINKCOMSTR = '(LINK)    $TARGET')
+				  LINKCOMSTR = '(LINK)    $TARGET',
+				SHLINKCOMSTR = '(LINK)    $TARGET')
 	
 	
 	def _GetConfigurationVariables(self, configuration_name):

@@ -1,10 +1,7 @@
 import os
+from configuration import mtm
 
-env = Environment()
-#env = Environment(  CCCOMSTR = '(COMPILE) $SOURCES',
-#                   CXXCOMSTR = '(COMPILE) $SOURCES',
-#                  SHCCCOMSTR = '(COMPILE) $SOURCES',
-#                 LINKCOMSTR = '(LINK)    $TARGET')
+env = mtm.Environment('mtm')
 
 AddOption("--build-debug",
 			action="store_true", dest="build_debug", 
@@ -66,9 +63,7 @@ env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
 MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
-Export('MnemosyneLibrary')
-SConscript('util/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'util'))
 
-#Examples Environment
 if env['EXAMPLE'] != None:
+	Export('MnemosyneLibrary')
 	SConscript('examples/SConscript')

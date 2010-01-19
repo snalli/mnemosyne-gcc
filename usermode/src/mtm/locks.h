@@ -39,6 +39,11 @@
 # define ALIGNMENT_MASK                 (ALIGNMENT - 1)
 #endif /* CM == CM_PRIORITY */
 
+/*
+ * Everything hereafter relates to the actual locking protection mechanism.
+ */ 
+#ifdef ENABLE_ISOLATION
+
 #define LOCK_GET_OWNED(l)               (l & OWNED_MASK)
 #if CM == CM_PRIORITY
 # define LOCK_SET_ADDR(a, p)            (a | (p << 2) | OWNED_MASK)
@@ -79,4 +84,5 @@
 #endif /* ! LOCK_IDX_SWAP */
 
 
-#endif
+#endif /* ENABLE_ISOLATION */
+#endif /* _LOCKS_H */

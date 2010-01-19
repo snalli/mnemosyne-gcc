@@ -56,7 +56,9 @@ init_global()
 	gc_init(mtm_get_clock);
 #endif /* EPOCH_GC */
 
-	memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+    #ifdef ENABLE_ISOLATION
+    	memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+    #endif
 
 #if CM == CM_PRIORITY
 	s = getenv(VR_THRESHOLD);

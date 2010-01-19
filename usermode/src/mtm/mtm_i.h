@@ -301,8 +301,9 @@ struct mtm_tx_s {
  * version, and it does not have the commit bit set.
  */
 
-
+#ifdef ENABLE_ISOLATION
 extern volatile mtm_word_t locks[];
+#endif
 #ifdef CLOCK_IN_CACHE_LINE
 extern volatile mtm_word_t gclock[];
 # define CLOCK                          (gclock[512 / sizeof(mtm_word_t)])
@@ -443,7 +444,9 @@ static inline void mtm_rollover_exit(mtm_tx_t *tx)
   /* Are all transactions stopped? */
   if (tx_overflow != 0 && tx_count == 0) {
     /* Yes: reset clock */
-    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+	#ifdef ENABLE_ISOLATION
+	    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+	#endif
     CLOCK = 0;
     tx_overflow = 0;
 # ifdef EPOCH_GC
@@ -472,7 +475,9 @@ static inline void mtm_overflow(mtm_tx_t *tx)
   /* Are all transactions stopped? */
   if (tx_count == 0) {
     /* Yes: reset clock */
-    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+	#ifdef ENABLE_ISOLATION
+	    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+	#endif
     CLOCK = 0;
     tx_overflow = 0;
 # ifdef EPOCH_GC

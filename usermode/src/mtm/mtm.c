@@ -6,7 +6,9 @@ __thread mtm_tx_t* _mtm_thread_tx;
 pthread_key_t _mtm_thread_tx;
 #endif /* ! TLS */
 
-volatile mtm_word_t locks[LOCK_ARRAY_SIZE];
+#ifdef ENABLE_ISOLATION
+	volatile mtm_word_t locks[LOCK_ARRAY_SIZE];
+#endif
 
 
 #ifdef CLOCK_IN_CACHE_LINE

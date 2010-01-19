@@ -381,6 +381,7 @@ restart_no_load:
 			             (unsigned long)value);
 			return value;
 		}
+		#ifdef ENABLE_ISOLATION
 # ifdef READ_LOCKED_DATA
 		if (l == LOCK_UNIT) {
 			/* Data modified by a unit store: should not last long => retry */
@@ -422,6 +423,7 @@ restart_no_load:
 		tx->locked_reads_failed++;
 #  endif /* INTERNAL_STATS */
 # endif /* READ_LOCKED_DATA */
+		#endif /* ENABLE_ISOLATION */
 #endif /* DESIGN == WRITE_BACK_ETL */
 		/* Conflict: CM kicks in */
 		/* TODO: we could check for duplicate reads and get value from read set (should be rare) */

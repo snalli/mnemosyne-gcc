@@ -96,8 +96,8 @@ class Environment(SCons.Environment.Environment):
 		self.Append(
 			CPPDEFINES = self._PreprocessorDefinitions(),
 			CPPPATH = ['include'] + osinclude,
-			ENV = os.environ)
-		#	LIBS=['atomic'])
+			ENV = os.environ,
+			LIBS = ['atomic_ops'])
 		
 		# Make output pretty.
 		#if not self['VERBOSE']:

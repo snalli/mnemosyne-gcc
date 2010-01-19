@@ -119,6 +119,7 @@ class Environment(SCons.Environment.Environment):
 	
 	#: Build options which are either on or off.
 	_boolean_options = {
+		# Options from TinySTM code.
 		'ROLLOVER_CLOCK':           ('Roll over clock when it reaches its maximum value.  Clock rollover can be safely disabled on 64 bits to save a few cycles, but it is necessary on 32 bits if the application executes more than 2^28 (write-through) or 2^31 (write-back) transactions.',
 			True),
 		'CLOCK_IN_CACHE_LINE':      ('Ensure that the global clock does not share the same cache line than some other variable of the program.  This should be normally enabled.',
@@ -135,6 +136,10 @@ class Environment(SCons.Environment.Environment):
 			True),
 		'LOCK_IDX_SWAP':            ('Tweak the hash function that maps addresses to locks so that consecutive addresses do not map to consecutive locks. This can avoid cache line invalidations for application that perform sequential memory accesses. The last byte of the lock index is swapped with the previous byte.',
 			True),
+		
+		# Options added to support Mnemosyne persistent memory.
+		'ENABLE_ISOLATION':         ('Turns on or off the isolation features of the transactions implemented here. Disabling isolation means that transactions are never aborted; they in fact are atomicity-only transactions. Once they commit, the result is guaranteed to write out to any persistent memory (or at least be redo-logged so the commit can finish on the next system or application restart).',
+			False),
 		
 		# These are more to do with build behavior and output
 		'VERBOSE': ('If set, displays the actual commands used and their flags instead of the default "neat" output.',

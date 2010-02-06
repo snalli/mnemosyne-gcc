@@ -1,78 +1,149 @@
 #include <mtm_i.h>
 
+#define LOCAL_LOG_SIZE 16384
 
-typedef struct mtm_local_undo
-{
-  void *addr;
+struct mtm_local_undo_entry_s {
+  void   *addr;
   size_t len;
-  char saved[];
-} mtm_local_undo;
+  char   *saved;
+};
 
+/*
+ * Layout of the local undo log
+ *
+ *
+ *  +------------+
+ *  |            | <--+  <--   local_undo->buf
+ *  |            |    |
+ *  |            |    |
+ *  |            |    |
+ *  |            |    |
+ *  +------------+    |   _
+ *  |   addr     |    |    |  
+ *  |   len      |    |     >  mtm_local_undo_entry_t
+ *  |   saved    | ---+   _|
+ *  +------------+        
+ *  |            | <--+
+ *  |            |    |
+ *  |            |    |
+ *  +------------+    |
+ *  |   addr     |    |  <--   local_undo->last_entry
+ *  |   len      |    |
+ *  |   saved    | ---+
+ *  +------------+
+ *
+ *
+ * Rollback proceeds backwards first starting at local_undo->last_entry then 
+ * finding the previous mtm_local_undo_entry_t by doing arithmetic on saved 
+ * and len.
+ */
 
-void
-mtm_commit_local (TXPARAM)
+static void
+local_allocate (mtm_tx_t *tx, int extend)
 {
-	TX_GET;
-	mtm_local_undo **local_undo = tx->local_undo;
-	size_t         i;
-	size_t         n = tx->n_local_undo;
+	mtm_local_undo_t *local_undo = &tx->local_undo;
 
-	if (n > 0) {
-		for (i = 0; i < n; ++i) {
-			free (local_undo[i]);
-		}	
-		tx->n_local_undo = 0;
-	}
-	if (local_undo)	{
-		free (local_undo);
-		tx->local_undo = NULL;
-		tx->size_local_undo = 0;
+	if (extend) {
+		/* Extend read set */
+		local_undo->size *= 2;
+		PRINT_DEBUG2("==> reallocate read set (%p[%lu-%lu],%d)\n", tx, 
+		             (unsigned long)data->start, 
+		             (unsigned long)data->end, 
+		             data->r_set.size);
+		if ((local_undo->buf = 
+		     (char *)realloc(local_undo->buf, 
+		                     local_undo->size)) == NULL) 
+		{
+			perror("realloc");
+			exit(1);
+		}
+	} else {
+		if ((local_undo->buf = 
+		     (char *)malloc(local_undo->size)) == NULL) 
+		{
+			perror("malloc");
+			exit(1);
+		}
 	}
 }
 
 
 void
-mtm_rollback_local (TXPARAM)
+mtm_local_init(mtm_tx_t *tx)
 {
-	TX_GET;
-	mtm_local_undo **local_undo = tx->local_undo;
-	size_t         i;
-	size_t         n = tx->n_local_undo;
+	mtm_local_undo_t *local_undo = &tx->local_undo;
 
-	if (n > 0) {
-		for (i = n; i-- > 0; ) {
-			mtm_local_undo *u = local_undo[i];
-			memcpy (u->addr, u->saved, u->len);
-			free (u);
+	local_undo->size = LOCAL_LOG_SIZE;
+	local_undo->last_entry = NULL;
+	local_undo->n = 0;
+	local_allocate(tx, 0);
+}
+
+
+void
+mtm_local_commit (mtm_tx_t *tx)
+{
+	mtm_local_undo_t *local_undo = &tx->local_undo;
+
+	local_undo->last_entry = NULL;
+	local_undo->n = 0;
+}
+
+
+void
+mtm_local_rollback (mtm_tx_t *tx)
+{
+	mtm_local_undo_t       *local_undo = &tx->local_undo;
+	mtm_local_undo_entry_t *local_undo_entry;
+	char                   *buf;
+	uintptr_t              entryp;
+	void                   *addr;
+    uintptr_t              *sp = (uintptr_t *) tx->jb.spSave;
+    uintptr_t              *current_sp = get_stack_pointer();
+ 
+	local_undo_entry = local_undo->last_entry;
+	while(local_undo_entry) {
+		/* 
+		 * Make sure I don't corrupt the stack I am operating on. 
+		 * See Wang et al [CGO'07] for more information. 
+		 */
+		addr = local_undo_entry->addr;
+		if (sp+1 < addr || addr <= current_sp) {
+			memcpy (addr, local_undo_entry->saved, local_undo_entry->len);
 		}
-		tx->n_local_undo = 0;
+		/* Get next local_undo_entry */
+		entryp = (uintptr_t) local_undo_entry - local_undo_entry->len - sizeof(mtm_local_undo_entry_t);
+		if (entryp > (uintptr_t) local_undo->buf) {
+			local_undo_entry = (mtm_local_undo_entry_t *) entryp;
+		} else {
+			local_undo_entry = NULL;
+		}
 	}
 }
 
 
 static
 void _ITM_CALL_CONVENTION
-log_arbitrarily (TXPARAMS const void *ptr, size_t len)
+log_arbitrarily (mtm_tx_t *tx, const void *ptr, size_t len)
 {
-	TX_GET;
-	mtm_local_undo *undo;
+	mtm_local_undo_t       *local_undo = &tx->local_undo;
+	mtm_local_undo_entry_t *local_undo_entry;
+	char                   *buf;
 
-	undo = malloc (sizeof (struct mtm_local_undo) + len);
-	undo->addr = (void *) ptr;
-	undo->len = len;
-
-	if (tx->local_undo == NULL) {
-		tx->size_local_undo = 32;
-		tx->local_undo = malloc (sizeof (undo) * tx->size_local_undo);
-    }
-	else if (tx->n_local_undo == tx->size_local_undo) {
-		tx->size_local_undo *= 2;
-		tx->local_undo = realloc (tx->local_undo,
-		                          sizeof (undo) * tx->size_local_undo);
+	if ((local_undo->n + len + sizeof(mtm_local_undo_entry_t)) > local_undo->size) {
+		local_allocate(tx, 1);	
 	}
-	tx->local_undo[tx->n_local_undo++] = undo;
+	
+	buf = &local_undo->buf[local_undo->n];
+	local_undo_entry = (mtm_local_undo_entry_t *) &local_undo->buf[local_undo->n + len];
+	local_undo->n += (len + sizeof(mtm_local_undo_entry_t));
+	local_undo_entry->addr = ptr;
+	local_undo_entry->len = len;
+	local_undo_entry->saved = buf;
 
-	memcpy (undo->saved, ptr, len);
+	memcpy (local_undo_entry->saved, ptr, len);
+
+	local_undo->last_entry = local_undo_entry;
 }
 
 

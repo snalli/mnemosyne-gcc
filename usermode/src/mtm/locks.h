@@ -42,7 +42,6 @@
 /*
  * Everything hereafter relates to the actual locking protection mechanism.
  */ 
-#ifdef ENABLE_ISOLATION
 
 #define LOCK_GET_OWNED(l)               (l & OWNED_MASK)
 #if CM == CM_PRIORITY
@@ -72,7 +71,9 @@
  */
 #define LOCK_ARRAY_SIZE                 (1 << LOCK_ARRAY_LOG_SIZE)
 #define LOCK_MASK                       (LOCK_ARRAY_SIZE - 1)
-#define LOCK_SHIFT                      (((sizeof(mtm_word_t) == 4) ? 2 : 3) + LOCK_SHIFT_EXTRA)
+//#define LOCK_SHIFT                      (((sizeof(mtm_word_t) == 4) ? 2 : 3) + LOCK_SHIFT_EXTRA)
+// Map the words of a cacheline on the same lock
+#define LOCK_SHIFT                      6
 #define LOCK_IDX(a)                     (((mtm_word_t)(a) >> LOCK_SHIFT) & LOCK_MASK)
 #ifdef LOCK_IDX_SWAP
 # if LOCK_ARRAY_LOG_SIZE < 16
@@ -83,6 +84,4 @@
 # define GET_LOCK(a)                    (locks + LOCK_IDX(a))
 #endif /* ! LOCK_IDX_SWAP */
 
-
-#endif /* ENABLE_ISOLATION */
 #endif /* _LOCKS_H */

@@ -3,7 +3,6 @@ import os
 Import('env')
 buildEnv = env.Clone()
 
-#buildEnv.Append(CCFLAGS = '-msse -m64 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -Wall -pthread')
 buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
 
 if buildEnv['BUILD_DEBUG'] == True:
@@ -17,10 +16,14 @@ if buildEnv['HAVE_STATS'] == True:
 
 buildEnv['CPPPATH'] = ['#src/']
 buildEnv.Append(LIBS = 'elf')
-buildEnv.Append(LINKFLAGS = '-T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 
-#buildEnv.Append(LINKFLAGS = ['-m64'])
-#buildEnv.Append(ARFLAGS = '-m32 -DHAVE_CONFIG_H -march=i486 -mtune=i686 -fomit-frame-pointer -Wall')
+if env['ARCH'] == 'x86':
+	buildEnv.Append(CCFLAGS = ' -m32')
+	buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m32')
+elif env['ARCH'] == 'x86_64':
+	buildEnv.Append(CCFLAGS = ' -m64 ')
+	buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+
 
 C_SRC = Split("""common/config.c
 				common/debug.c

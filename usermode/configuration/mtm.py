@@ -34,10 +34,11 @@ class Environment(SCons.Environment.Environment):
 			osinclude = []
 		self.Append(
 			CPPDEFINES = self._PreprocessorDefinitions(),
-			CPPPATH = ['include'] + osinclude,
+			CPPPATH = ['include'] + osinclude + ['/s/libatomic_ops-7.2a4/include'],
 			ENV = os.environ,
-			LIBS = ['atomic_ops'])
-		
+			LIBS = ['atomic_ops'],
+			LIBPATH = ['/s/libatomic_ops-7.2a4/lib'])
+		self['VERBOSE'] = 1
 		# Make output pretty.
 		if not self['VERBOSE']:
 			self.Replace(
@@ -80,7 +81,7 @@ class Environment(SCons.Environment.Environment):
 		directives = []
 		for boolean_name in self._boolean_options:
 			if self[boolean_name] is True:
-				directive = '{name}'.format(name = boolean_name)
+				directive = '%s' % boolean_name
 				directives.append(directive)
 		return directives
 
@@ -91,7 +92,7 @@ class Environment(SCons.Environment.Environment):
 		"""
 		directives = []
 		for option in options:
-			directive = '-D{name}={val}'.format(name = option[0], val = self[option[0]])
+			directive = '-D%s=%s' % (option[0], self[option[0]])
 			directives.append(directive)
 		return directives
 	
@@ -111,7 +112,7 @@ class Environment(SCons.Environment.Environment):
 
 		bool_directives = self._BooleanDirectives()
 		numerical_directives = self._Directives(self._numerical_options)
-		conflict_manager_directive = 'CM={cm}'.format(cm = self['CONFLICT_MANAGER'])
+		conflict_manager_directive = 'CM=%s' % self['CONFLICT_MANAGER']
 		all_directives = bool_directives + numerical_directives
 		all_directives.append(conflict_manager_directive)
 
@@ -134,7 +135,7 @@ class Environment(SCons.Environment.Environment):
 		'CONFLICT_TRACKING':        ('Keep track of conflicts between transactions and notifies the application (using a callback), passing the identity of the two conflicting transaction and the associated threads.  This feature requires EPOCH_GC.',
 			True),
 		'READ_LOCKED_DATA':         ('Allow transactions to read the previous version of locked memory locations, as in the original LSA algorithm (see [DISC-06]). This is achieved by peeking into the write set of the transaction that owns the lock.  There is a small overhead with non-contended workloads but it may significantly reduce the abort rate, especially with transactions that read much data.  This feature only works with the WRITE_BACK_ETL design and requires EPOCH_GC.',
-			True),
+			False),
 		'LOCK_IDX_SWAP':            ('Tweak the hash function that maps addresses to locks so that consecutive addresses do not map to consecutive locks. This can avoid cache line invalidations for application that perform sequential memory accesses. The last byte of the lock index is swapped with the previous byte.',
 			True),
 		

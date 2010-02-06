@@ -1,21 +1,29 @@
 import os
 
 Import('env')
-Import('TinyStm')
-
-examplesEnv = env.Clone(LIBS=[TinyStm])
-
+examplesEnv = env.Clone()
 
 examplesEnv['CPPPATH'] = ['#src/inc']
 examplesEnv['LIBS'] = 'mnemosyne'
-#examplesEnv['CFLAGS'] = '-g -Qtm_enabled'
-#examplesEnv['CXXFLAGS'] = '-g -Qtm_enabled -m32'
-#examplesEnv['CXXFLAGS'] = '-g -Qtm_enabled'
+
+examplesEnv['CCFLAGS'] = '-Qtm_enabled'
+examplesEnv['LINKFLAGS'] = '-Qtm_enabled'
+
+if examplesEnv['BUILD_DEBUG'] == True:
+	examplesEnv.Append(CCFLAGS = ' -g')
+else:	
+	examplesEnv.Append(CCFLAGS = ' -O2')
+
+if env['ARCH'] == 'x86':
+	examplesEnv.Append(CCFLAGS = ' -m32')
+	examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m32')
+elif env['ARCH'] == 'x86_64':
+	examplesEnv.Append(CCFLAGS = ' -m64 ')
+	examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+
+	
 examplesEnv['LIBPATH'] = examplesEnv['MY_BUILD_DIR']
-#examplesEnv.Append(LINKFLAGS = '-Qtm_enabled -m32')
-examplesEnv.Append(LINKFLAGS = '-Qtm_enabled')
-examplesEnv.Append(LINKFLAGS = '-T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m32')
-examplesEnv.Append(LINKFLAGS = '-Wl,--rpath,' + examplesEnv['MY_BUILD_DIR'])
+examplesEnv.Append(LINKFLAGS = ' -Wl,--rpath,' + examplesEnv['MY_BUILD_DIR'])
 
 example = examplesEnv['EXAMPLE']
 

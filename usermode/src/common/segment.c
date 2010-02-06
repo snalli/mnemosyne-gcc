@@ -14,6 +14,8 @@
 #include <common/list.h>
 #include <common/segment.h>
 
+#define SEGMENTS_DIR ".segments"
+
 typedef struct mnemosyne_segment_file_header_s mnemosyne_segment_file_header_t;
 typedef struct mnemosyne_segment_s mnemosyne_segment_t;
 typedef struct mnemosyne_segment_list_node_s mnemosyne_segment_list_node_t;
@@ -282,9 +284,9 @@ sync_segment_table()
 	int                           fd_segment_table;
 	char                          buf[256];
 
-	sprintf(segment_table_path, ".spring/segment_table");
-	sprintf(segment_table_path_tildes, ".spring/segment_table~");
-	mkdir_r(".spring", S_IRWXU);
+	sprintf(segment_table_path, "%s/segment_table", SEGMENTS_DIR);
+	sprintf(segment_table_path_tildes, "%s/segment_table~", SEGMENTS_DIR);
+	mkdir_r(SEGMENTS_DIR, S_IRWXU);
 	fd_segment_table = open(segment_table_path_tildes, 
 	                        O_CREAT | O_TRUNC| O_WRONLY, 
 	                        S_IRWXU);
@@ -293,7 +295,8 @@ sync_segment_table()
 	}
 	i = 0;
 	list_for_each_entry(iter, &segment_list.list, node) {
-		sprintf(buf, "%p %llu .spring/segment_file_%d\n", 
+		sprintf(buf, "%p %llu %s/segment_file_%d\n",
+		        SEGMENTS_DIR,
 		        iter->segment.start, 
 		        (unsigned long long) iter->segment.length, 
 		        i);
@@ -423,7 +426,7 @@ mnemosyne_segment_reincarnate_address_space()
 			//FIXME: assuming relocation happens always at 0x400000
 			persistent_shdr_absolute_addr = (uint64_t) (persistent_shdr.sh_addr+module_list.base[i]-0x400000);
 			path2file(module_list.path[i], &modulename);
-			sprintf(segment_backing_store_path, ".spring/segment_%s", modulename);
+			sprintf(segment_backing_store_path, "%s/segment_%s", SEGMENTS_DIR, modulename);
 			load_memory_from_file(segment_backing_store_path, 
 			                      (void *) persistent_shdr_absolute_addr, 
 			                      persistent_shdr.sh_size);
@@ -434,7 +437,7 @@ mnemosyne_segment_reincarnate_address_space()
 	/* Reincarnate the dynamic segments */
 	pthread_mutex_init(&segment_list.mutex, NULL);
 	INIT_LIST_HEAD(&segment_list.list);
-	sprintf(segment_table_path, ".spring/segment_table");
+	sprintf(segment_table_path, "%s/segment_table", SEGMENTS_DIR);
 	fsegment_table = fopen(segment_table_path, "r");
 	if (fsegment_table) {
 		while(!feof(fsegment_table)) {
@@ -465,7 +468,7 @@ mnemosyne_segment_checkpoint_address_space()
 	uint64_t           persistent_shdr_absolute_addr;
 	int                i;
 
-	mkdir_r(".spring", S_IRWXU);
+	mkdir_r(SEGMENTS_DIR, S_IRWXU);
 
 	/* Checkpoint the static persistent segment of each loaded module (ELF shdr) */
 	module_list.size = 128;
@@ -477,7 +480,7 @@ mnemosyne_segment_checkpoint_address_space()
 			//FIXME: assuming relocation happens always at 0x400000
 			persistent_shdr_absolute_addr = (uint64_t) (persistent_shdr.sh_addr+module_list.base[i]-0x400000);
 			path2file(module_list.path[i], &modulename);
-			sprintf(segment_backing_store_path, ".spring/segment_%s", modulename);
+			sprintf(segment_backing_store_path, "%s/segment_%s", SEGMENTS_DIR, modulename);
 			save_memory_to_file(segment_backing_store_path, 
 			                    (void *) persistent_shdr_absolute_addr, 
 			                    persistent_shdr.sh_size);
@@ -488,7 +491,7 @@ mnemosyne_segment_checkpoint_address_space()
 	
 	/* Checkpoint the dynamic segments */
 	pthread_mutex_init(&segment_list.mutex, NULL);
-	sprintf(segment_table_path, ".spring/segment_table");
+	sprintf(segment_table_path, "%s/segment_table", SEGMENTS_DIR);
 	fsegment_table = fopen(segment_table_path, "r");
 	if (fsegment_table) {
 		while(!feof(fsegment_table)) {

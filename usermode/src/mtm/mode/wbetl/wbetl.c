@@ -11,6 +11,7 @@
 #include "mode/common/memset.h"
 #include "mode/common/rwset.h"
 
+#define RW_SET_SIZE 16384
 
 #undef DEFINE_VTABLE_MEMBER
 #define DEFINE_VTABLE_MEMBER(result, function, args, ARG)   \

@@ -3,6 +3,17 @@
 #include "mode/wbetl/wbetl_i.h"
 #include "mode/common/rwset.h"
 
+__attribute__ ((noinline)) void breakpoint_here()
+{
+	asm volatile ("");
+}
+
+
+__attribute__ ((noinline)) void breakpoint_here2()
+{
+	asm volatile ("");
+}
+
 
 static inline 
 bool
@@ -68,6 +79,10 @@ wbetl_trycommit (mtm_tx_t *tx)
 		/* Install new versions, drop locks and set new timestamp */
 		w = modedata->w_set.entries;
 		for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {
+			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,v=%d,m=%x)\n", tx,
+			             (unsigned long)modedata->start, (unsigned long)modedata->end,
+			             w->addr, (void *)w->value, (int)w->value, (int)w->version, w->mask);
+
 			if (w->mask != 0) {
 				ATOMIC_STORE(w->addr, w->value);
 			}
@@ -75,10 +90,6 @@ wbetl_trycommit (mtm_tx_t *tx)
 			if (w->next == NULL) {
 				ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
 			}	
-
-			PRINT_DEBUG2("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,v=%d)\n", tx,
-			             (unsigned long)modedata->start, (unsigned long)modedata->end,
-			             w->addr, (void *)w->value, (int)w->value, (int)w->version);
 		}
 # ifdef READ_LOCKED_DATA
 		/* Update instance number (becomes even) */
@@ -100,7 +111,6 @@ wbetl_trycommit (mtm_tx_t *tx)
 	tx->priority = 0;
 	tx->visible_reads = 0;
 #endif /* CM == CM_PRIORITY */
-
 	return true;
 }
 
@@ -308,7 +318,7 @@ mtm_wbetl_rollbackTransaction (mtm_tx_t *tx, const _ITM_srcLocation *loc)
 
 
 void
-print_properties(uint32_t prop) 
+mtm_wbetl_print_properties(uint32_t prop) 
 {
 	printf("pr_instrumentedCode     = %d\n", (prop & pr_instrumentedCode) ? 1 : 0);
 	printf("pr_uninstrumentedCode   = %d\n", (prop & pr_uninstrumentedCode) ? 1 : 0);

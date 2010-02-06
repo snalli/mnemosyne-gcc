@@ -9,6 +9,7 @@
 #endif
 
 extern mtm_vtable_t STR2(mtm_wbetl, _vtable);
+extern mtm_vtable_t STR2(mtm_pwb, _vtable);
 
 #define ACTION(mode) &mtm_##mode##_vtable,
 mtm_vtable_group_t perfVtables = { FOREACH_MODE (ACTION) };

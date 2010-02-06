@@ -54,8 +54,11 @@ wbetl_write(mtm_tx_t *tx,
 	mtm_word_t          version;
 	w_entry_t           *w;
 	w_entry_t           *prev = NULL;
+	uintptr_t           *stack_pointer;
 
-	PRINT_DEBUG2("==> mtm_write(t=%p[%lu-%lu],a=%p,d=%p-%lu,m=0x%lx)\n", tx,
+	asm volatile ("mov %%rsp,%0": "=r"(stack_pointer):);
+
+	MTM_DEBUG_PRINT("==> mtm_write(t=%p[%lu-%lu],a=%p,d=%p-%lu,m=0x%lx)\n", tx,
 	             (unsigned long)modedata->start,
 	             (unsigned long)modedata->end, 
 	             addr, 
@@ -65,6 +68,23 @@ wbetl_write(mtm_tx_t *tx,
 
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
+
+	/* Filter out stack accesses */
+	if ((uintptr_t) addr <= tx->stack_base && 
+	    (uintptr_t) addr > tx->stack_base - tx->stack_size)
+	{
+		mtm_word_t prev_value;
+		prev_value = ATOMIC_LOAD(addr);
+		if (mask == 0) {
+			return NULL;
+		}
+		if (mask != ~(mtm_word_t)0) {
+			value = (prev_value & ~mask) | (value & mask);
+		}	
+
+		ATOMIC_STORE(addr, value);
+		return NULL;
+	}
 
 	/* Get reference to lock */
 	lock = GET_LOCK(addr);

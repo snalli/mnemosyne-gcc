@@ -92,26 +92,26 @@ restart_no_load:
 					if (mask == 0) {
 						return w;
 					}
-				if (w->mask == 0) {
-					/* Remember old value */
-					w->value = ATOMIC_LOAD(addr);
-					w->mask = mask;
-				}
-				/* Yes: only write to memory */
-				PRINT_DEBUG2("==> mtm_write(t=%p[%lu-%lu],a=%p,l=%p,*l=%lu,d=%p-%lu,m=0x%lx)\n",
-							 tx, (unsigned long)modedata->start,
-							 (unsigned long)modedata->end, 
-							 addr,
-							 lock,
-							 (unsigned long)l,
-							 (void *)value,
-							 (unsigned long)value,
-							 (unsigned long)mask);
-				if (mask != ~(mtm_word_t)0) {
-					value = (ATOMIC_LOAD(addr) & ~mask) | (value & mask);
-				}	
-				ATOMIC_STORE(addr, value);
-				return w;
+					if (w->mask == 0) {
+						/* Remember old value */
+						w->value = ATOMIC_LOAD(addr);
+						w->mask = mask;
+					}
+					/* Yes: only write to memory */
+					PRINT_DEBUG2("==> mtm_write(t=%p[%lu-%lu],a=%p,l=%p,*l=%lu,d=%p-%lu,m=0x%lx)\n",
+								 tx, (unsigned long)modedata->start,
+								 (unsigned long)modedata->end, 
+								 addr,
+								 lock,
+								 (unsigned long)l,
+								 (void *)value,
+								 (unsigned long)value,
+								 (unsigned long)mask);
+					if (mask != ~(mtm_word_t)0) {
+						value = (ATOMIC_LOAD(addr) & ~mask) | (value & mask);
+					}	
+					ATOMIC_STORE(addr, value);
+					return w;
 				}
 			}
 # endif /* NO_DUPLICATES_IN_RW_SETS */

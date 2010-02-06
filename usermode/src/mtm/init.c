@@ -1,3 +1,4 @@
+#include <execinfo.h>
 #include <signal.h>
 #include <pthread.h>
 #include "mtm_i.h"
@@ -36,6 +37,8 @@ signal_catcher(int sig)
 }
 
 
+
+
 static inline
 void 
 init_global()
@@ -56,9 +59,7 @@ init_global()
 	gc_init(mtm_get_clock);
 #endif /* EPOCH_GC */
 
-    #ifdef ENABLE_ISOLATION
-    	memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
-    #endif
+   	memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
 
 #if CM == CM_PRIORITY
 	s = getenv(VR_THRESHOLD);
@@ -161,7 +162,9 @@ mtm_fini_global(void)
 TXTYPE 
 mtm_init_thread(void)
 {
-	mtm_tx_t *tx = mtm_get_tx();
+	mtm_tx_t       *tx = mtm_get_tx();
+	pthread_attr_t attr;
+
 
 	if (tx) {
 		TX_RETURN;
@@ -189,8 +192,10 @@ mtm_init_thread(void)
 	mtm_##mode##_create(tx, &(tx->modedata[MTM_MODE_##mode]));
 	FOREACH_MODE(ACTION)
 #undef ACTION  
-	tx->mode = MTM_MODE_wbetl;
-	tx->vtable = defaultVtables->mtm_wbetl;
+	//tx->mode = MTM_MODE_wbetl;
+	//tx->vtable = defaultVtables->mtm_wbetl;
+	tx->mode = MTM_MODE_pwb;
+	tx->vtable = defaultVtables->mtm_pwb;
 
 	/* Nesting level */
 	tx->nesting = 0;
@@ -252,6 +257,12 @@ mtm_init_thread(void)
 #endif /* ROLLOVER_CLOCK */
 
 	tx->tmp_jb_ptr = &(tx->tmp_jb);
+
+	tx->stack_base = get_stack_base();
+	pthread_attr_init(&attr);
+	pthread_attr_getstacksize(&attr, &tx->stack_size);
+
+	mtm_local_init(tx);
 
 #if 0
 	/* Callbacks */

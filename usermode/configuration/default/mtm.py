@@ -64,7 +64,7 @@ EPOCH_GC = True
 # requires EPOCH_GC.
 ########################################################################
 
-CONFLICT_TRACKING = True
+CONFLICT_TRACKING = False
 
 ########################################################################
 # Allow transactions to read the previous version of locked memory
@@ -102,7 +102,7 @@ LOCK_IDX_SWAP = True
 #   transaction can succeed with no interruption upon retry, which
 #   improves execution time on the processor.
 #
-# CM_DELAY: like CM_SUICIDE but wait for a random delay before
+# CM_BACKOFF: like CM_SUICIDE but wait for a random delay before
 #   restarting the transaction.  The delay duration is chosen uniformly
 #   at random from a range whose size increases exponentially with every
 #   restart.
@@ -155,7 +155,7 @@ CONFLICT_MANAGER = 'CM_SUICIDE'
 #   sets.  These sets will grow dynamically when they become full.
 ########################################################################
 
-RW_SET_SIZE = 4096
+RW_SET_SIZE = 16384
 
 ########################################################################
 # LOCK_ARRAY_LOG_SIZE (default=20): number of bits used for indexes in

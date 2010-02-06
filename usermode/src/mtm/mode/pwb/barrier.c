@@ -47,8 +47,7 @@ w_entry_t *
 pwb_write(mtm_tx_t *tx, 
           volatile mtm_word_t *addr, 
           mtm_word_t value,
-          mtm_word_t mask,
-          int DO_ISOLATION)
+          mtm_word_t mask)
 {
 	assert(tx->mode == MTM_MODE_pwb);
 	mode_data_t         *modedata = (mode_data_t *) tx->modedata[tx->mode];
@@ -89,8 +88,12 @@ pwb_write(mtm_tx_t *tx,
 		return NULL;
 	}
 
-	/* Get reference to lock */
-	lock = GET_LOCK(addr);
+	if (DO_ISOLATION) {
+		/* Get reference to lock */
+		lock = GET_LOCK(addr);
+	} else {
+
+	}
 
 	/* Try to acquire lock */
 restart:
@@ -123,6 +126,7 @@ restart_no_load:
 								 (void *)value,
 								 (unsigned long)value,
 								 (unsigned long)mask);
+
 					if (mask != ~(mtm_word_t)0) {
 						if (prev->mask == 0) {
 							prev->value = ATOMIC_LOAD(addr);

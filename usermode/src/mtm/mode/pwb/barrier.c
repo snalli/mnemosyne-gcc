@@ -88,12 +88,8 @@ pwb_write(mtm_tx_t *tx,
 		return NULL;
 	}
 
-	if (DO_ISOLATION) {
-		/* Get reference to lock */
-		lock = GET_LOCK(addr);
-	} else {
-
-	}
+	/* Get reference to lock */
+	lock = GET_LOCK(addr);
 
 	/* Try to acquire lock */
 restart:

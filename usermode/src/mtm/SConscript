@@ -32,8 +32,7 @@ CC_SRC = Split("""
 					mode/pwb/memcpy.c
 					mode/pwb/memset.c
 					mode/pwb/pwb.c
-					mode/pwbi/barrier.c
-					mode/pwbni/barrier.c
+					mode/pwb/barrier.c
 					mode/wbetl/barrier.c
 					mode/wbetl/beginend.c
 					mode/wbetl/memcpy.c

@@ -1,7 +1,7 @@
 #ifndef _MNEMOSYNE_H
 
 # define MNEMOSYNE_PERSISTENT __attribute__ ((section("PERSISTENT")))
-# define MNEMOSYNE_ATOMIC
+# define MNEMOSYNE_ATOMIC __tm_atomic
 
 # ifdef __cplusplus
 extern "C" {

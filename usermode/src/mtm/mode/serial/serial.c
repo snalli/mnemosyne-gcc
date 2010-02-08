@@ -68,7 +68,7 @@ void
 MTM_serialmode (bool initial, bool irrevokable)
 {
 #if 0
-  mtm_tx_t *tx = mtm_tx();
+  mtm_tx_t *tx = mtm_get_tx();
   //const struct mtm_dispatch *old_disp;
 
   if (tx->state & STATE_SERIAL)

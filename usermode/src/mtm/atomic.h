@@ -63,4 +63,5 @@ typedef AO_t atomic_t;
 #  endif /* ! SAFE */
 # endif /* ! NO_AO */
 
+// 1
 #endif /* _ATOMIC_H_ */

@@ -37,7 +37,7 @@ typedef struct mtm_alloc_action
 void
 mtm_alloc_record_allocation (void *ptr, size_t size, void (*free_fn)(void *))
 {
-	mtm_tx_t *tx = mtm_tx ();
+	mtm_tx_t *tx = mtm_get_tx ();
 	mtm_alloc_action  *a;
 	uintptr_t         iptr = (uintptr_t) ptr;
 
@@ -53,7 +53,7 @@ mtm_alloc_record_allocation (void *ptr, size_t size, void (*free_fn)(void *))
 void
 mtm_alloc_forget_allocation (void *ptr, void (*free_fn)(void *))
 {
-	mtm_tx_t *tx = mtm_tx ();
+	mtm_tx_t *tx = mtm_get_tx ();
 	mtm_alloc_action  *a;
 	uintptr_t         iptr = (uintptr_t) ptr;
 
@@ -70,7 +70,7 @@ mtm_alloc_forget_allocation (void *ptr, void (*free_fn)(void *))
 size_t
 mtm_alloc_get_allocation_size (void *ptr)
 {
-	mtm_tx_t *tx = mtm_tx ();
+	mtm_tx_t *tx = mtm_get_tx ();
 	mtm_alloc_action  *a;
 	uintptr_t         iptr = (uintptr_t) ptr;
 
@@ -93,6 +93,6 @@ commit_allocations_1 (aa_key key, void *node_data, void *cb_data)
 void
 mtm_alloc_commit_allocations (bool revert_p)
 {
-	aa_traverse (mtm_tx()->alloc_actions, commit_allocations_1,
+	aa_traverse (mtm_get_tx()->alloc_actions, commit_allocations_1,
 	             (void *)(uintptr_t)revert_p);
 }

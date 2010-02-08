@@ -27,6 +27,12 @@ AddOption("--linkage",
 			default = "dynamic",
 			help="library linkage: dynamic, static [default: %default]")
 
+AddOption("--arch",
+			action="store", dest="arch", 
+			type="choice", choices=["x86", "x86_64"],
+			default = "x86_64",
+			help="CPU architecture: x86, x86_64 [default: %default]")
+
 AddOption("--test",
 			action="store_true", dest="test", 
 			default = False,
@@ -49,6 +55,7 @@ env['HAVE_STATS'] = GetOption('have_stats')
 env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = GetOption('selected_example')
+env['ARCH'] = GetOption('arch')
 env['ENV'] = os.environ
 
 # TODO: Automatically select icc, if available, else use the default with TLS disabled?

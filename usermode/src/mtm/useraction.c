@@ -84,7 +84,7 @@ mtm_useraction_addUserCommitAction(mtm_tx_t * __td,
   mtm_tx_t *tx;
   mtm_user_action_t *a;
 
-  for (tx = mtm_tx(); tx->id != tid; tx = tx->prev)
+  for (tx = mtm_get_tx(); tx->id != tid; tx = tx->prev)
     continue;
 
   a = malloc (sizeof (*a));
@@ -101,7 +101,7 @@ mtm_useraction_addUserUndoAction(mtm_tx_t * __td,
                                  void *arg)
 {
 //FIXME
-  mtm_tx_t *tx = mtm_tx();
+  mtm_tx_t *tx = mtm_get_tx();
   mtm_user_action_t *a;
 
   a = malloc (sizeof (*a));

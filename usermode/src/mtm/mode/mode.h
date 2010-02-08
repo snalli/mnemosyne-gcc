@@ -3,13 +3,15 @@
 
 
 # define FOREACH_MODE(ACTION)   \
-    ACTION(wbetl)           
+    ACTION(wbetl)               \
+    ACTION(pwb)           
 
 
 
 typedef enum {
 	MTM_MODE_none  = -1,
 	MTM_MODE_wbetl = 0,
+	MTM_MODE_pwb = 1,
 	MTM_NUM_MODES
 } mtm_mode_t;
 

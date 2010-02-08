@@ -5,13 +5,15 @@ env = mtm.Environment('default')
 buildEnv = env.Clone()
 
 buildEnv.Append(CCFLAGS = '-g -O2')
+buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 
-buildEnv['CPPPATH'] = ['#src/mtm']
+buildEnv.Append(CPPPATH = '#src/mtm')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux/x86')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/x86')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/posix')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/generic')
+buildEnv.Append(CPPPATH = '#src')
 
 buildEnv.Append(LINKFLAGS = ['-g'])
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
@@ -26,6 +28,11 @@ CC_SRC = Split("""
 					intelabi.c
 					local.c
 					mode/mode.c
+					mode/pwb/beginend.c
+					mode/pwb/memcpy.c
+					mode/pwb/memset.c
+					mode/pwb/pwb.c
+					mode/pwb/barrier.c
 					mode/wbetl/barrier.c
 					mode/wbetl/beginend.c
 					mode/wbetl/memcpy.c
@@ -33,9 +40,9 @@ CC_SRC = Split("""
 					mode/wbetl/wbetl.c
 					mode/serial/serial.c
 					mtm.c
+					../hal/pcm.c
 					""")
 
-# Mike Swift's code for transaction-safe locks.
 CC_LINUX_SRC = Split("""sysdeps/linux/rwlock.c
 						sysdeps/linux/futex.c""")
 

@@ -41,8 +41,7 @@
 
 /*
  * Everything hereafter relates to the actual locking protection mechanism.
- */ 
-#ifdef ENABLE_ISOLATION
+ */
 #define LOCK_GET_OWNED(l)               (l & OWNED_MASK)
 #if CM == CM_PRIORITY
 # define LOCK_SET_ADDR(a, p)            (a | (p << 2) | OWNED_MASK)
@@ -55,8 +54,6 @@
 # define LOCK_GET_ADDR(l)               (l & ~(mtm_word_t)OWNED_MASK)
 #endif /* CM != CM_PRIORITY */
 #define LOCK_UNIT                       (~(mtm_word_t)0)
-#endif /* ENABLE_ISOLATION */
-
 
 /*
  * We use an array of locks and hash the address to find the location of the lock.
@@ -64,7 +61,9 @@
  */
 #define LOCK_ARRAY_SIZE                 (1 << LOCK_ARRAY_LOG_SIZE)
 #define LOCK_MASK                       (LOCK_ARRAY_SIZE - 1)
-#define LOCK_SHIFT                      (((sizeof(mtm_word_t) == 4) ? 2 : 3) + LOCK_SHIFT_EXTRA)
+//#define LOCK_SHIFT                      (((sizeof(mtm_word_t) == 4) ? 2 : 3) + LOCK_SHIFT_EXTRA)
+// Map the words of a cacheline on the same lock
+#define LOCK_SHIFT                      6
 #define LOCK_IDX(a)                     (((mtm_word_t)(a) >> LOCK_SHIFT) & LOCK_MASK)
 #ifdef LOCK_IDX_SWAP
 # if LOCK_ARRAY_LOG_SIZE < 16

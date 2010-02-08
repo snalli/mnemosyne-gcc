@@ -42,7 +42,7 @@ _ITM_inTransaction (mtm_tx_t *tx)
 _ITM_transactionId _ITM_CALL_CONVENTION
 _ITM_getTransactionId (mtm_tx_t *td)
 {
-	mtm_tx_t *tx = mtm_tx();
+	mtm_tx_t *tx = mtm_get_tx();
 	return tx ? tx->id : _ITM_noTransactionId;
 }
 
@@ -155,7 +155,7 @@ void _ITM_CALL_CONVENTION
 _ITM_registerThreadFinalization (void (_ITM_CALL_CONVENTION * thread_fini_func) (void *), void *arg)
 {
 	/* Not yet implemented. */
-	abort();
+	//abort();
 }
 
 void _ITM_CALL_CONVENTION
@@ -164,7 +164,7 @@ _ITM_addUserCommitAction(mtm_tx_t * __td,
                          _ITM_transactionId tid, 
                          void *arg)
 {
-	MTM_useraction_addUserCommitAction(__td, fn, tid, arg);
+	//MTM_useraction_addUserCommitAction(__td, fn, tid, arg);
 }
 
 
@@ -173,7 +173,7 @@ _ITM_addUserUndoAction(mtm_tx_t * __td,
                        const _ITM_userUndoFunction fn, 
                        void *arg)
 {
-	MTM_useraction_adduserUndoAction(__td, fn, arg);
+	//MTM_useraction_adduserUndoAction(__td, fn, arg);
 }
 
 

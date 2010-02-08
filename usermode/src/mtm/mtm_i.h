@@ -92,6 +92,9 @@ struct mtm_tx *mtm_current_tx();
 
 #define TLS
 
+# define MTM_DEBUG_PRINT(...)
+//# define MTM_DEBUG_PRINT(...)               printf(__VA_ARGS__); fflush(NULL)
+
 #ifdef DEBUG
 /* Note: stdio is thread-safe */
 # define IO_FLUSH                       fflush(NULL)
@@ -138,6 +141,7 @@ extern int cm_threshold;
 #include "rwlock.h"
 #include "aatree.h"
 #include "locks.h"
+#include "local.h"
 
 /**
  * Size of a word (accessible atomically) on the target architecture.
@@ -213,13 +217,12 @@ struct mtm_tx_s {
 	int visible_reads;                    /* Should we use visible reads? */
 #endif /* CM == CM_PRIORITY */
 #if CM == CM_PRIORITY || defined(INTERNAL_STATS)
-	unsigned long retries;                /* Number of consecutive aborts (retries) */
+	unsigned long    retries;             /* Number of consecutive aborts (retries) */
 #endif /* CM == CM_PRIORITY || defined(INTERNAL_STATS) */
 
-	/* Data used by local.c for the local memory undo log.  */
-	struct mtm_local_undo **local_undo;
-	size_t n_local_undo;
-	size_t size_local_undo;
+	uintptr_t        stack_base;          /* Stack base address */
+	uintptr_t        stack_size;          /* Stack size */
+	mtm_local_undo_t local_undo;   	      /* Data used by local.c for the local memory undo log.  */
 };
 
 /*

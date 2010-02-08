@@ -12,7 +12,6 @@ buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/x86')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/posix')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/generic')
-buildEnv.Append(CPPPATH = '#src/libatomic_ops-1.2/src')
 
 buildEnv.Append(LINKFLAGS = ['-g'])
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')

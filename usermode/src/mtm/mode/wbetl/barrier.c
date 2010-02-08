@@ -159,7 +159,8 @@ w_entry_t* matching_write_set_entry(w_entry_t* const list_head,
  *  to the write set entry and/or memory.
  *
  * \return If addr is a stack address, this routine returns NULL (stack addresses
- *  are not logged).
+ *  are not logged). Otherwise, returns a pointer to the updated write-set entry
+ *  reflecting the write.
  */
 static inline 
 w_entry_t *

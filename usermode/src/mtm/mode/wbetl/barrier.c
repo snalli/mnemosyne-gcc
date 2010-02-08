@@ -1,5 +1,8 @@
+// These two must come before all other includes; they define things like w_entry_t.
 #include "mtm_i.h"
 #include "mode/wbetl/wbetl_i.h"
+
+#include "mode/common/mask.h"
 #include "mode/wbetl/barrier.h"
 
 
@@ -37,8 +40,126 @@ wbetl_extend (mtm_tx_t *tx, mode_data_t *modedata)
 }
 
 
+/*!
+ * Write the value to an uninitialized write-set entry. This should be done, for
+ * instance, if this transaction has not previously written to the address given,
+ * by passing an unused write-set entry to this function. This entry is filled with
+ * the existing value in memory, with the new value masked on top of it.
+ *
+ * \param entry the write-set entry that will express this write operation. This
+ *  entry must be uninitialized; this routine assumes the mask is zero.
+ * \param address the address in memory at which the write occurs.
+ * \param value the value being written. This value must be in position within
+ *  the word; it will not be shifted to agree with the mask.
+ * \param mask identifies which bits of value are to be written in the entry. A
+ *  1 in the mask indicates bits in value which will overwrite existing data.
+ * \param version is the version identifier associated with this entry. It should
+ *  match other entries in the same write set.
+ * \param lock is the lock-set entry that indicated the write-set containing
+ *  entry.
+ *
+ * \return the pointer given to entry, where the object is now initialized with
+ *  the written address and masked value.
+ */
+static
+w_entry_t* initialize_write_set_entry(w_entry_t* entry,
+                                      volatile mtm_word_t *address,
+                                      mtm_word_t value,
+                                      mtm_word_t mask,
+                                      volatile mtm_word_t version,
+                                      volatile mtm_word_t* lock)
+{	
+	/* Add address to write set */
+	entry->addr = address;
+	entry->lock = lock;
+	mask_new_value(entry, address, value, mask);
+	#ifndef READ_LOCKED_DATA
+		entry->version = version;
+	#endif
+	entry->next = NULL;
+
+	return entry;
+}
+
+
+/*!
+ * Correctly adds a given write-set entry after another in the singly-linked list
+ * which composes the write set. Normal singly-linked-list semantics apply,
+ * specifically that any sequels to tail will be correctly appended after new_entry.
+ *
+ * \param tail is the write-set entry after which new_entry will be chained. If this
+ *  is NULL, it is assumed that new_entry is the only entry in the list and that it
+ *  is reachable by some other list-head pointer.
+ * \param new_entry is a correctly-initialized entry. This must not be NULL.
+ * \param transaction is the transaction under which the insertion is made. This is
+ *  necessary for bookkeeping on the total size of the list.
+ */
+static
+void insert_write_set_entry_after(w_entry_t* new_entry, w_entry_t* tail, mtm_tx_t* transaction)
+{
+	if (tail != NULL) {
+		new_entry->next = tail->next;
+		tail->next = new_entry;
+	} else {
+		new_entry->next = NULL;
+	}
+		
+	mode_data_t* modedata = (mode_data_t *) transaction->modedata[transaction->mode];
+	modedata->w_set.nb_entries++;
+}
+
+
+/*!
+ * Searches a given linked list of write-set entries for a reference to the given address.
+ *
+ * \param list_head is the beginning of a singly-linked list of write-set entries
+ *  which may or may not contain a reference to addr. This must not be NULL.
+ * \param address is an address whose membership in the write-set is in question.
+ * \param list_tail if the address in question is not found in the given write-set,
+ *  this output parameter is set to the tail of the write-set to aid in the appending
+ *  of a new entry. If the given parameter is NULL or a matching entry is located,
+ *  this value is undefined.
+ *
+ * \return NULL, if the address is not referenced in the write set. Otherwise, returns
+ *  a pointer to the write-set entry that contained that address.
+ */
+static
+w_entry_t* matching_write_set_entry(w_entry_t* const list_head,
+                                    volatile mtm_word_t* address,
+                                    w_entry_t** list_tail)
+{
+	w_entry_t* this_entry = list_head;  // The entry examined in "this" iteration of the loop.
+	while (true) {
+		if (address == this_entry->addr) {
+			// Found a matching entry!
+			return this_entry;
+		}
+		else if (this_entry->next == NULL) {
+			// EOL: Could not find a matching write-set entry.
+			if (list_tail != NULL)
+				*list_tail = this_entry;
+			
+			return NULL;
+		}
+		else {
+			this_entry = this_entry->next;
+		}
+	}
+}
+
+
 /*
- * Store a word-sized value (return write set entry or NULL).
+ * Store a masked value of size less than or equal to a word, creating or
+ * updating a write-set entry as necessary.
+ *
+ * \param tx is the local transaction in the current thread.
+ * \param addr is the address to which value is being written.
+ * \param value includes the bits which are being written.
+ * \param mask determines the relevant bits of value. Only these bits are written
+ *  to the write set entry and/or memory.
+ *
+ * \return If addr is a stack address, this routine returns NULL (stack addresses
+ *  are not logged).
  */
 static inline 
 w_entry_t *
@@ -96,62 +217,44 @@ restart_no_load:
 	if (LOCK_GET_OWNED(l)) {
 		/* Locked */
 		/* Do we own the lock? */
-		w = (w_entry_t *)LOCK_GET_ADDR(l);
+		w_entry_t *write_set_head;
+		write_set_head = (w_entry_t *)LOCK_GET_ADDR(l);
+		
 		/* Simply check if address falls inside our write set (avoids non-faulting load) */
-		if (modedata->w_set.entries <= w &&
-		    w < modedata->w_set.entries + modedata->w_set.nb_entries) 
+		if (modedata->w_set.entries <= write_set_head &&
+		    write_set_head < modedata->w_set.entries + modedata->w_set.nb_entries) 
 		{
-			/* Yes */
-			prev = w;
-			/* Did we previously write the same address? */
-			while (1) {
-				if (addr == prev->addr) {
-					if (mask == 0) {
-						return prev;
-					}
-					/* No need to add to write set */
-					PRINT_DEBUG2("==> mtm_write(t=%p[%lu-%lu],a=%p,l=%p,*l=%lu,d=%p-%lu,m=0x%lx)\n",
-								 tx, (unsigned long)modedata->start,
-								 (unsigned long)modedata->end,
-								 addr,
-								 lock,
-								 (unsigned long)l,
-								 (void *)value,
-								 (unsigned long)value,
-								 (unsigned long)mask);
-					if (mask != ~(mtm_word_t)0) {
-						if (prev->mask == 0) {
-							prev->value = ATOMIC_LOAD(addr);
-						}
-						value = (prev->value & ~mask) | (value & mask);
-					}
-					prev->value = value;
-					prev->mask |= mask;
-					return prev;
+			/* The written address is already in our write set. */
+			/* Did we previously write the exact same address? */
+			w_entry_t* write_set_tail = NULL;
+			w_entry_t* matching_entry = matching_write_set_entry(write_set_head, addr, &write_set_tail);
+			if (matching_entry != NULL) {
+				if (matching_entry->mask != 0)
+					mask_new_value(matching_entry, addr, value, mask);
+				
+				return matching_entry;
+			} else {
+				if (modedata->w_set.nb_entries == modedata->w_set.size) {
+					/* Extend write set (invalidate pointers to write set entries => abort and reallocate) */
+					modedata->w_set.size *= 2;
+					modedata->w_set.reallocate = 1;
+					#ifdef INTERNAL_STATS
+						tx->aborts_reallocate++;
+					#endif
+					
+					mtm_wbetl_restart_transaction (tx, RESTART_REALLOCATE);  // Does not return!
+				} else {
+					// Build a new write set entry
+					w = &modedata->w_set.entries[modedata->w_set.nb_entries];
+					version = write_set_tail->version;  // Get version from previous write set entry (all
+					                                    // entries in linked list have same version)
+					w_entry_t* initialized_entry = initialize_write_set_entry(w, addr, value, mask, version, lock);
+					
+					// Add entry to the write set
+					insert_write_set_entry_after(write_set_tail, initialized_entry, tx);					
+					return initialized_entry;
 				}
-				if (prev->next == NULL) {
-					/* Remember last entry in linked list (for adding new entry) */
-					break;
-				}
-				prev = prev->next;
 			}
-			/* Get version from previous write set entry (all entries in linked list have same version) */
-			version = prev->version;
-			/* Must add to write set */
-			if (modedata->w_set.nb_entries == modedata->w_set.size) {
-				/* Extend write set (invalidate pointers to write set entries => abort and reallocate) */
-				modedata->w_set.size *= 2;
-				modedata->w_set.reallocate = 1;
-# ifdef INTERNAL_STATS
-				tx->aborts_reallocate++;
-# endif /* INTERNAL_STATS */
-				mtm_wbetl_restart_transaction (tx, RESTART_REALLOCATE);
-			}
-			w = &modedata->w_set.entries[modedata->w_set.nb_entries];
-# ifdef READ_LOCKED_DATA
-			w->version = version;
-# endif /* READ_LOCKED_DATA */
-			goto do_write;
 		}
 
 		/* Conflict: CM kicks in */
@@ -205,7 +308,7 @@ give_up:
 #endif /* INTERNAL_STATS */
 		mtm_wbetl_restart_transaction (tx, RESTART_LOCKED_WRITE);
 	} else {
-		/* Not locked */
+		/* This region has not been locked by this thread. */
 		/* Handle write after reads (before CAS) */
 		version = LOCK_GET_TIMESTAMP(l);
 
@@ -248,51 +351,12 @@ give_up:
 			goto restart;
 		}
 # endif /* CM != CM_PRIORITY */
+		
+		initialize_write_set_entry(w, addr, value, mask, version, lock);
+		insert_write_set_entry_after(prev, w, tx);
+		return w;
 	}
-	
-	/* We own the lock here (ETL) */
-do_write:
-	PRINT_DEBUG2("==> mtm_write(t=%p[%lu-%lu],a=%p,l=%p,*l=%lu,d=%p-%lu,m=0x%lx)\n",
-	             tx, 
-	             (unsigned long)modedata->start,
-	             (unsigned long)modedata->end,
-	             addr,
-	             lock,
-	             (unsigned long)l,
-	             (void *)value,
-	             (unsigned long)value,
-	             (unsigned long)mask);
-
-	/* Add address to write set */
-	w->addr = addr;
-	w->mask = mask;
-	w->lock = lock;
-	if (mask == 0) {
-		/* Do not write anything */
-#ifndef NDEBUG
-		w->value = 0;
-#endif /* ! NDEBUG */
-	} else
-	{
-		/* Remember new value */
-		if (mask != ~(mtm_word_t)0) {
-			value = (ATOMIC_LOAD(addr) & ~mask) | (value & mask);
-		}	
-		w->value = value;
-	}
-# ifndef READ_LOCKED_DATA
-	w->version = version;
-# endif /* ! READ_LOCKED_DATA */
-	w->next = NULL;
-	if (prev != NULL) {
-		/* Link new entry in list */
-		prev->next = w;
-	}
-	modedata->w_set.nb_entries++;
-
-	return w;
 }
-
 
 
 /*

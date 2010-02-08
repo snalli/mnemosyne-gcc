@@ -38,7 +38,6 @@ class Environment(SCons.Environment.Environment):
 			ENV = os.environ,
 			LIBS = ['atomic_ops'],
 			LIBPATH = ['/s/libatomic_ops-7.2a4/lib'])
-		self['VERBOSE'] = 1
 		# Make output pretty.
 		if not self['VERBOSE']:
 			self.Replace(

@@ -179,53 +179,6 @@ struct mtm_local_undo;
 struct mtm_user_action;
 
 
-#if 0 
-/* All data relevant to a single transaction.  */
-struct mtm_transaction_s
-{
-	mtm_jmpbuf_t jb;
-
-	/* Data used by local.c for the local memory undo log.  */
-	struct mtm_local_undo **local_undo;
-	size_t n_local_undo;
-	size_t size_local_undo;
-
-	/* Data used by alloc.c for the malloc/free undo log.  */
-	aa_tree alloc_actions;
-
-	/* Data used by useraction.c for the user defined undo log.  */
-	struct mtm_user_action *commit_actions;
-	struct mtm_user_action *undo_actions;
-
-	/* Data used by the STM implementation.  */
-	struct mtm_method *m;
-
-	/* A pointer to the "outer" transaction.  */
-	mtm_tx_t *prev;
-
-	/* A numerical identifier for this transaction.  */
-	_ITM_transactionId id;
-
-
-	/* The nesting depth of this transaction.  */
-	uint32_t nesting;
-
-	/* A mask of bits indicating the current status of the transaction.  */
-	uint32_t state;
-
-	/* Data used by eh_cpp.c for managing exceptions within the transaction.  */
-	uint32_t cxa_catch_count;
-	void *cxa_unthrown;
-	void *eh_in_flight;
-
-	/* Data used by retry.c for deciding what STM implementation should
-	   be used for the next iteration of the transaction.  */
-	uint32_t restart_reason[NUM_RESTARTS];
-	uint32_t restart_total;
-};
-#endif
-
-
 /* Transaction descriptor */
 struct mtm_tx_s {
 	uintptr_t dummy1;                     /* ICC expects to find the vtable pointer at offset 2*WORD_SIZE */
@@ -301,9 +254,35 @@ struct mtm_tx_s {
  * version, and it does not have the commit bit set.
  */
 
-#ifdef ENABLE_ISOLATION
+/*!
+ * The set of locks and write-set pointers (together!).
+ * 
+ * A lock is a unsigned int of the size of a pointer (mtm_word_t).
+ * The LSB is the lock bit. If it is set, this means:
+ * - At least some covered memory addresses is being written.
+ * - Write-back (ETL): all bits of the lock apart from the lock bit form
+ *   a pointer that points to the write log entry holding the new
+ *   value. Multiple values covered by the same log entry and orginized
+ *   in a linked list in the write log.
+ * - Write-through and write-back (CTL): all bits of the lock apart from
+ *   the lock bit form a pointer that points to the transaction
+ *   descriptor containing the write-set.
+ * If the lock bit is not set, then:
+ * - All covered memory addresses contain consistent values.
+ * - Write-back (ETL and CTL): all bits of the lock besides the lock bit
+ *   contain a version number (timestamp).
+ * - Write-through: all bits of the lock besides the lock bit contain a
+ *   version number.
+ *   - The high order bits contain the commit time.
+ *   - The low order bits contain an incarnation number (incremented
+ *     upon abort while writing the covered memory addresses).
+ * When using the PRIORITY contention manager, the format of locks is
+ * slightly different. It is documented elsewhere.
+ *
+ * \see locks.h
+ */
 extern volatile mtm_word_t locks[];
-#endif
+
 #ifdef CLOCK_IN_CACHE_LINE
 extern volatile mtm_word_t gclock[];
 # define CLOCK                          (gclock[512 / sizeof(mtm_word_t)])
@@ -444,9 +423,7 @@ static inline void mtm_rollover_exit(mtm_tx_t *tx)
   /* Are all transactions stopped? */
   if (tx_overflow != 0 && tx_count == 0) {
     /* Yes: reset clock */
-	#ifdef ENABLE_ISOLATION
-	    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
-	#endif
+    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
     CLOCK = 0;
     tx_overflow = 0;
 # ifdef EPOCH_GC
@@ -459,8 +436,13 @@ static inline void mtm_rollover_exit(mtm_tx_t *tx)
   pthread_mutex_unlock(&tx_count_mutex);
 }
 
-/*
- * Clock overflow.
+/*!
+ * Cleans all transactions in the current thread, wipes away all write sets, and
+ * sets the version clock back to zero.
+ *
+ * \param tx the active transaction in this thread. This has no bearing on the
+ *  actions performed unless debugging output is enabled, in which case the
+ *  transaction here is described on the console.
  */
 static inline void mtm_overflow(mtm_tx_t *tx)
 {
@@ -475,9 +457,7 @@ static inline void mtm_overflow(mtm_tx_t *tx)
   /* Are all transactions stopped? */
   if (tx_count == 0) {
     /* Yes: reset clock */
-	#ifdef ENABLE_ISOLATION
-	    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
-	#endif
+    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
     CLOCK = 0;
     tx_overflow = 0;
 # ifdef EPOCH_GC

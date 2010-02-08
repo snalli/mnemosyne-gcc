@@ -43,7 +43,6 @@
  * Everything hereafter relates to the actual locking protection mechanism.
  */ 
 #ifdef ENABLE_ISOLATION
-
 #define LOCK_GET_OWNED(l)               (l & OWNED_MASK)
 #if CM == CM_PRIORITY
 # define LOCK_SET_ADDR(a, p)            (a | (p << 2) | OWNED_MASK)
@@ -56,15 +55,8 @@
 # define LOCK_GET_ADDR(l)               (l & ~(mtm_word_t)OWNED_MASK)
 #endif /* CM != CM_PRIORITY */
 #define LOCK_UNIT                       (~(mtm_word_t)0)
+#endif /* ENABLE_ISOLATION */
 
-/*
- * We use the very same hash functions as TL2 for degenerate Bloom
- * filters on 32 bits.
- */
-#ifdef USE_BLOOM_FILTER
-# define FILTER_HASH(a)                 (((mtm_word_t)a >> 2) ^ ((mtm_word_t)a >> 5))
-# define FILTER_BITS(a)                 (1 << (FILTER_HASH(a) & 0x1F))
-#endif /* USE_BLOOM_FILTER */
 
 /*
  * We use an array of locks and hash the address to find the location of the lock.
@@ -83,6 +75,4 @@
 # define GET_LOCK(a)                    (locks + LOCK_IDX(a))
 #endif /* ! LOCK_IDX_SWAP */
 
-
-#endif /* ENABLE_ISOLATION */
 #endif /* _LOCKS_H */

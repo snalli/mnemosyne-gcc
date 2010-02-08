@@ -176,9 +176,6 @@ wbetl_write(mtm_tx_t *tx,
 	mtm_word_t          version;
 	w_entry_t           *w;
 	w_entry_t           *prev = NULL;
-	uintptr_t           *stack_pointer;
-
-	asm volatile ("mov %%rsp,%0": "=r"(stack_pointer):);
 
 	MTM_DEBUG_PRINT("==> mtm_write(t=%p[%lu-%lu],a=%p,d=%p-%lu,m=0x%lx)\n", tx,
 	             (unsigned long)modedata->start,

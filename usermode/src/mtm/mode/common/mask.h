@@ -25,6 +25,7 @@ static const mtm_word_t whole_word_mask = ~(mtm_word_t)0;
  *
  * \return the masked combination of old_value and new_value (per mask).
  */
+static inline
 mtm_word_t masked_word(mtm_word_t old_value, mtm_word_t new_value, mtm_word_t mask)
 {
 	return (old_value & ~mask) | (new_value & mask);

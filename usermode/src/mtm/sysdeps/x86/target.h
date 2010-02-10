@@ -102,10 +102,10 @@ get_stack_base()
 	asm volatile ("movq %%rbp,%0": "=r"(frame_pointer):);
 	while (frame_pointer) {
 		stack_base = frame_pointer;
-		if (*frame_pointer <= frame_pointer) {
+		if ((uintptr_t*) *frame_pointer <= frame_pointer) {
 			break;
 		}
-		frame_pointer = *frame_pointer;
+		frame_pointer = (uintptr_t*) *frame_pointer;
 	}
 	return stack_base;
 }

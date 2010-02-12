@@ -1,3 +1,7 @@
+/*!
+ * \file
+ * Implements global utilities which are required by the transactional functions of MTM.
+ */
 #include <mtm_i.h>
 
 #ifdef TLS

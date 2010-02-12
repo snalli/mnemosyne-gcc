@@ -401,6 +401,13 @@ path2file(char *path, char **file)
 	return MNEMOSYNE_R_FAILURE;
 }
 
+
+/*!
+ * Maps persistent memory segments back into the live address space of the program. This is
+ * done by reading the persistent segments roster file.
+ *
+ * \todo More details would be nice.
+ */
 mnemosyne_result_t
 mnemosyne_segment_reincarnate_address_space()
 {

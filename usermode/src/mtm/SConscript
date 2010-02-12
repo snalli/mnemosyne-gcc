@@ -14,6 +14,7 @@ buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/x86')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/posix')
 buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/generic')
 buildEnv.Append(CPPPATH = '#src')
+buildEnv.Append(CPPPATH = '#src/inc')
 
 buildEnv.Append(LINKFLAGS = ['-g'])
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
@@ -40,6 +41,7 @@ CC_SRC = Split("""
 					mode/wbetl/wbetl.c
 					mode/serial/serial.c
 					mtm.c
+					recovery.c
 					../hal/pcm.c
 					""")
 

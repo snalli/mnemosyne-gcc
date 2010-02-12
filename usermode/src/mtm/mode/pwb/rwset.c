@@ -1,41 +1,29 @@
-/*
- * (Re)allocate non-volatile write set entries.
+/*!
+ * \file
+ * 
+ */
+#include "recovery.h"
+
+/*!
+ * Allocate non-volatile write-set entries to the active transaction.
+ *
+ * \param tx the transaction receiving the write-set space. Unused.
+ * \param data the mode-specific descriptor of the active transaction.
+ * \param extend an indicator whether the
  */
 static inline 
 void 
 mtm_allocate_ws_entries_nv(mtm_tx_t *tx, mode_data_t *data, int extend)
 {
-	if (extend) {
-		/* Extend write set */
-		data->w_set_nv.size *= 2;
-		PRINT_DEBUG("==> reallocate write set (%p[%lu-%lu],%d)\n", tx, 
-		            (unsigned long)data->start, (unsigned long)data->end, data->w_set_nv.size);
-		if ((data->w_set_nv.entries = 
-		     (w_entry_t *)realloc(data->w_set_nv.entries, 
-		                          data->w_set_nv.size * sizeof(w_entry_t))) == NULL) 
-		{
-			perror("realloc");
-			exit(1);
-		}
-	} else {
-		/* Allocate write set */
-#if CM == CM_PRIORITY
-		if (posix_memalign((void **)&data->w_set_nv.entries, 
-		                   ALIGNMENT, 
-		                   data->w_set_nv.size * sizeof(w_entry_t)) != 0) 
-		{
-			fprintf(stderr, "Error: cannot allocate aligned memory\n");
-			exit(1);
-		}
-#else /* CM != CM_PRIORITY */
-		if ((tx->w_set_nv.entries = 
-		     (w_entry_t *)malloc(tx->w_set_nv.size * sizeof(w_entry_t))) == NULL)
-		{
-			perror("malloc");
-			exit(1);
-		}
-#endif /* CM != CM_PRIORITY */
-	}
+	/* Because of the current state of the recoverable write-set block, reallocation is not
+	   possible. This program cannot be run until the recoverable blocks are
+	   somehow extendable. */
+	assert(!extend);
+	data->w_set_nv = nonvolatile_write_set_next_available();
+	
+	/* If there were no available write-set blocks, fail immediately. This is a todo
+	   item for the seeking of nonvolatile write-set blocks. */
+	assert(data->w_set_nv != NULL);
 }
 
 

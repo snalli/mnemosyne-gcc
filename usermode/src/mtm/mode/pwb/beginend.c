@@ -66,13 +66,7 @@ pwb_trycommit (mtm_tx_t *tx)
 		ATOMIC_STORE_REL(&tx->id, id + 1);
 # endif /* READ_LOCKED_DATA */
 
-		/* Flush the non-volatile log */
-		uintptr_t nv_log_base = (uintptr_t) &modedata->w_set_nv.entries[0];
-		uintptr_t nv_log_max = (uintptr_t) &modedata->w_set_nv.entries[modedata->w_set.nb_entries];
-		uintptr_t block_addr;
-		for (block_addr = nv_log_base; block_addr < nv_log_max ; block_addr+=CACHELINE_SIZE) {
-			pcm_wb_flush(modedata->pcm_storeset, block_addr);
-		}
+		nonvolatile_write_set_make_persistent(modedata->w_set_nv);
 	
 		/* Install new versions, drop locks and set new timestamp */
 		w = modedata->w_set.entries;
@@ -81,12 +75,12 @@ pwb_trycommit (mtm_tx_t *tx)
 			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,v=%d)\n", tx,
 			                (unsigned long)modedata->start, (unsigned long)modedata->end,
 			                w->addr, (void *)w->value, (int)w->value, (int)w->version);
-			if (w->mask != 0) {
-				//ATOMIC_STORE(w->addr, w->value);
-				pcm_wb_store(modedata->pcm_storeset, w->w_entry_nv->addr, w->w_entry_nv->value);
-			}
-			/* Flush the cacheline if this is the last covered address in write set. */
-			if (w->next_cacheline == NULL) {
+			/* Write the value in this entry to memory (it will probably land in the cache; that's okay.) */
+			if (w->mask != 0)
+				pcm_wb_store(modedata->pcm_storeset, w->w_entry_nv->address, w->w_entry_nv->value);
+			
+			/* Flush the cacheline to persistent memory if this is the last entry in this line. */
+			if (w->w_entry_nv->next_cache_neighbor == NULL) {
 				pcm_wb_flush(modedata->pcm_storeset, w->addr);
 			}
 			/* Only drop lock for last covered address in write set */
@@ -256,22 +250,14 @@ start:
 	}
 #endif /* ROLLOVER_CLOCK */
 	/* Read/write set */
-	if (modedata->w_set.reallocate) {
-		/* Don't need to copy the content from the previous write set */
-# ifdef EPOCH_GC
-		gc_free(modedata->w_set.entries, modedata->start);
-		gc_free(modedata->w_set_nv.entries, modedata->start);
-# else /* ! EPOCH_GC */
-		free(modedata->w_set.entries);
-		free(modedata->w_set_nv.entries);
-# endif /* ! EPOCH_GC */
-		mtm_allocate_ws_entries(tx, modedata, 0);
-		modedata->w_set.reallocate = 0;
-		mtm_allocate_ws_entries_nv(tx, modedata, 0);
-		modedata->w_set_nv.reallocate = 0;
-	}
+	
+	/* Because of the current state of the recoverable write-set block, reallocation is not
+	   possible. This program cannot be run until the recoverable blocks are
+	   somehow extendable. */
+	assert(modedata->w_set.reallocate == 0);
+	
 	modedata->w_set.nb_entries = 0;
-	modedata->w_set_nv.nb_entries = 0;
+	modedata->w_set_nv->nb_entries = 0;
 	modedata->r_set.nb_entries = 0;
 
 #ifdef EPOCH_GC

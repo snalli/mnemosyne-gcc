@@ -2,7 +2,7 @@
  * \file
  * 
  */
-#include "recovery.h"
+#include "nonvolatile_write_set.h"
 
 /*!
  * Allocate non-volatile write-set entries to the active transaction.

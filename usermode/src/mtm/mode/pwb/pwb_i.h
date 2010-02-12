@@ -11,7 +11,7 @@
 #include "mtm_i.h"
 #include "mode/pwb/locks.h"
 #include "hal/pcm.h"
-#include "recovery.h"
+#include "nonvolatile_write_set.h"
 
 #undef  DESIGN
 #define DESIGN WRITE_BACK_ETL

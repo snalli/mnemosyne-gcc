@@ -1,11 +1,11 @@
 /*!
  * \file
  * Implements the recovery mechanisms for in-commit persistent transactions declared in
- * recovery.h.
+ * nonvolatile_write_set.h.
  *
  * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
-#include "recovery.h"
+#include "nonvolatile_write_set.h"
 #include "hal/pcm.h"
 #include "mtm_i.h"
 #include <mnemosyne.h>

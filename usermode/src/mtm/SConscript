@@ -41,7 +41,7 @@ CC_SRC = Split("""
 					mode/wbetl/wbetl.c
 					mode/serial/serial.c
 					mtm.c
-					recovery.c
+					nonvolatile_write_set.c
 					../hal/pcm.c
 					""")
 

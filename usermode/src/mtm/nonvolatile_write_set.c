@@ -16,6 +16,22 @@
 pthread_mutex_t the_write_set_blocks_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
+void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
+{
+	int i;
+	
+	nonvolatile_write_set_entry_t* entry = &write_set->entries[0];
+	for (i = write_set->nb_entries; i > 0; i--, entry++) {
+		/* Write the value in this entry to memory (it will probably land in the cache; that's okay.) */
+		pcm_wb_store(NULL, entry->address, entry->value);
+		
+		/* Flush the cacheline to persistent memory if this is the last entry in this line. */
+		if (entry->next_cache_neighbor == NULL)
+			pcm_wb_flush(NULL, entry->address);
+	}
+}
+
+
 nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 {
 	// Use this static pointer to iterate through the sets, clock-style.
@@ -67,22 +83,6 @@ void nonvolatile_write_set_make_persistent(nonvolatile_write_set_t* write_set)
 	}
 	
 	write_set->isFinal = true;
-}
-
-
-void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
-{
-	int i;
-	
-	nonvolatile_write_set_entry_t* entry = &write_set->entries[0];
-	for (i = write_set->nb_entries; i > 0; i--, entry++) {
-		/* Write the value in this entry to memory (it will probably land in the cache; that's okay.) */
-		pcm_wb_store(NULL, entry->address, entry->value);
-		
-		/* Flush the cacheline to persistent memory if this is the last entry in this line. */
-		if (entry->next_cache_neighbor == NULL)
-			pcm_wb_flush(NULL, entry->address);
-	}
 }
 
 

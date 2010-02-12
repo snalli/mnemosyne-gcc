@@ -60,6 +60,12 @@ typedef struct nonvolatile_write_set_block_s nonvolatile_write_set_t;
 void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set);
 
 /*!
+ * Searches through the logs for write sets that are finalized but that haven't been
+ * committed to stable storage (they are not idle) and commits those write sets.
+ */
+void nonvolatile_write_set_finish_commits_in_progress();
+
+/*!
  * Flushes the given write set to stable storage. This is not the same as flushing
  * the values in the write set to their targets in persistent storage. Rather,
  * this is a guarantee that the log, which needs to be persistent to

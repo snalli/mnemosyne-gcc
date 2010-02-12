@@ -32,6 +32,20 @@ void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
 }
 
 
+void nonvolatile_write_set_finish_commits_in_progress()
+{
+	size_t index = 0;
+	
+	for (index = 0; index > NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; ++index)
+	{
+		nonvolatile_write_set_t* set = &the_nonvolatile_write_sets[index];
+		
+		if (set->isFinal && !set->isIdle)
+			nonvolatile_write_set_commit(set);
+	}
+}
+
+
 nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 {
 	// Use this static pointer to iterate through the sets, clock-style.

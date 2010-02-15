@@ -1,14 +1,14 @@
 /*!
  * \file
- * Describes the data structures used for redo-recovery of In-commit Persistent Transactions
- * when the program is reincarnated.
+ * Describes the data structures used for storage of write sets in nonvolatile memory and for
+ * redo-recovery of In-commit Persistent Transactions when the program is reincarnated.
  *
  * \note In-Commit Persistent Transactions needs a better name. It isn't even that informative.
  *
  * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
-#ifndef RECOVERY_H_AUCIP1SR
-#define RECOVERY_H_AUCIP1SR
+#ifndef NONVOLATILE_WRITE_SET_H_AUCIP1SR
+#define NONVOLATILE_WRITE_SET_H_AUCIP1SR
 
 #include "mtm_i.h"
 
@@ -154,4 +154,4 @@ extern nonvolatile_write_set_t the_nonvolatile_write_sets[];
 	#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
 #endif
 
-#endif /* end of include guard: RECOVERY_H_AUCIP1SR */
+#endif /* end of include guard: NONVOLATILE_WRITE_SET_H_AUCIP1SR */

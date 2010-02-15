@@ -12,7 +12,6 @@ void handle_cltr_c (int sig) {
 }
 
 int main (int argc, char const *argv[]) {
-
     signal(SIGINT, handle_cltr_c);
     
     if (argc != 2) {
@@ -21,7 +20,7 @@ int main (int argc, char const *argv[]) {
     }
     
     short int acceptor_id = atoi(argv[1]);
-    
+
     if (acceptor_init(acceptor_id) != 0) {
         printf("Could not start the acceptor!\n");
         exit(1);

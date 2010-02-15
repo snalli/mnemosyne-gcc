@@ -70,10 +70,13 @@ pwb_trycommit (mtm_tx_t *tx)
 		uintptr_t nv_log_base = (uintptr_t) &modedata->w_set_nv.entries[0];
 		uintptr_t nv_log_max = (uintptr_t) &modedata->w_set_nv.entries[modedata->w_set.nb_entries];
 		uintptr_t block_addr;
+#if 0
 		for (block_addr = nv_log_base; block_addr < nv_log_max ; block_addr+=CACHELINE_SIZE) {
 			pcm_wb_flush(modedata->pcm_storeset, block_addr);
 		}
-	
+#else
+		pcm_stream_flush(modedata->pcm_storeset);
+#endif	
 		/* Install new versions, drop locks and set new timestamp */
 		w = modedata->w_set.entries;
 		for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {

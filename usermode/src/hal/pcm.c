@@ -12,14 +12,14 @@
 #undef EMULATE_CRASH
 
 /* Emulate latency */
-#define EMULATE_LATENCY 0x1
-//#undef EMULATE_LATENCY
+//#define EMULATE_LATENCY 0x1
+#undef EMULATE_LATENCY
 
 /* CPU frequency */
-#define CPUFREQ 2261LLU /* GHz */
+#define CPUFREQ 2000LLU /* GHz */
 
 /* PCM write latency*/
-#define LATENCY_PCM_WRITE 1400 /* ns */
+#define LATENCY_PCM_WRITE 0 /* ns */
 
 /* 
  * Stores may block wait to find space in the cache (write buffer is full and 
@@ -64,7 +64,9 @@
 
 /* Definitions */
 
-#define CYCLE2NS(__ns) (__ns * CPUFREQ / 1000)
+#define NS2CYCLE(__ns) ((__ns) * CPUFREQ / 1000)
+#define CYCLE2NS(__cycles) ((__cycles) * 1000 / CPUFREQ)
+
 
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
@@ -556,7 +558,7 @@ emulate_latency_ns(int ns)
 	hrtime_t stop;
 	
 	start = asm_rdtsc();
-	cycles = CYCLE2NS(ns);
+	cycles = NS2CYCLE(ns);
 
 	do { 
 		/* RDTSC doesn't necessarily wait for previous instructions to complete 

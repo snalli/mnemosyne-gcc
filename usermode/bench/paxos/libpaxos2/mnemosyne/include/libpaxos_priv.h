@@ -126,7 +126,7 @@ void* paxos_normal_malloc(size_t size);
 #define DBG 3
 
 #define LOG(L, S) if(VERBOSITY_LEVEL >= L) {\
-   __tm_waiver {   \
+   TM_WAIVER {   \
    printf("[%s] ", __func__) ;\
    printf S ;\
    } \

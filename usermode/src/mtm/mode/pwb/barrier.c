@@ -74,6 +74,7 @@ pwb_write(mtm_tx_t *tx,
 	if ((uintptr_t) addr <= tx->stack_base && 
 	   (uintptr_t) addr > tx->stack_base - tx->stack_size)
 	{
+		//MTM_DEBUG_PRINT("Filter out stack access\n");
 		mtm_word_t prev_value;
 		prev_value = ATOMIC_LOAD(addr);
 		if (mask == 0) {
@@ -131,8 +132,8 @@ restart_no_load:
 					}
 					prev->value = value;
 					prev->mask |= mask;
-					pcm_wb_store(modedata->pcm_storeset, &prev->w_entry_nv->value, value);
-					pcm_wb_store(modedata->pcm_storeset, &prev->w_entry_nv->mask, prev->mask);
+					pcm_stream_store(modedata->pcm_storeset, &prev->w_entry_nv->value, value);
+					pcm_stream_store(modedata->pcm_storeset, &prev->w_entry_nv->mask, prev->mask);
 					return prev;
 				}
 				if (block_addr == BLOCK_ADDR(prev->addr)) {
@@ -276,13 +277,13 @@ do_write:
 	w->addr = addr;
 	w->mask = mask;
 	w->lock = lock;
-	pcm_wb_store(modedata->pcm_storeset, &w->w_entry_nv->addr, addr);	
-	pcm_wb_store(modedata->pcm_storeset, &w->w_entry_nv->mask, mask);	
+	pcm_stream_store(modedata->pcm_storeset, &w->w_entry_nv->addr, addr);	
+	pcm_stream_store(modedata->pcm_storeset, &w->w_entry_nv->mask, mask);	
 	if (mask == 0) {
 		/* Do not write anything */
 #ifndef NDEBUG
 		w->value = 0;
-		pcm_wb_store(modedata->pcm_storeset, &w->w_entry_nv->value, 0);	
+		pcm_stream_store(modedata->pcm_storeset, &w->w_entry_nv->value, 0);	
 #endif /* ! NDEBUG */
 	} else
 	{
@@ -291,7 +292,7 @@ do_write:
 			value = (ATOMIC_LOAD(addr) & ~mask) | (value & mask);
 		}	
 		w->value = value;
-		pcm_wb_store(modedata->pcm_storeset, &w->w_entry_nv->value, value);	
+		pcm_stream_store(modedata->pcm_storeset, &w->w_entry_nv->value, value);	
 	}
 	w->version = version;
 	w->next = NULL;

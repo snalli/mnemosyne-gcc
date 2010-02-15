@@ -104,13 +104,13 @@ void parse_args(int argc, char * const argv[]) {
                 print_step = atoi(optarg);
             }
             break;
-            
+
             case 's': {
                 sample_frequency = atoi(optarg);
                 samples = malloc(sizeof(double)*max_samples);
             }
             break;
-            
+
             case 'h':
             default: {
                 pusage();

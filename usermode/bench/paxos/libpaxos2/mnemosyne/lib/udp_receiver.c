@@ -286,7 +286,7 @@ udp_receiver * udp_receiver_blocking_new(char* address_string, int port) {
         return NULL;
     }
     addr_p->sin_family = AF_INET;
-    addr_p->sin_port = htons((uint16_t)port);   
+    addr_p->sin_port = htons((uint16_t)port);
 
     // Bind the socket 
     if (bind(rec->sock, (struct sockaddr *) &rec->addr, sizeof(struct sockaddr_in)) != 0) {

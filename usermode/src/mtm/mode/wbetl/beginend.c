@@ -338,6 +338,12 @@ mtm_wbetl_print_properties(uint32_t prop)
 }
 
 
+/*!
+ * Immediately (without returning to the caller) cancels the current transaction.
+ *
+ * \param tx is the transaction being restarted.
+ * \param r is the reason for the restart, which may determine the retry strategy.
+ */
 void ITM_NORETURN
 mtm_wbetl_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r)
 {

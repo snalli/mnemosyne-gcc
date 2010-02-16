@@ -572,7 +572,14 @@ emulate_latency_ns(int ns)
 }
 
 
-
+/*!
+ * Emulates the latency of a write to PCM. In reality, this method simply stores to an address and
+ * spins to emulate a nonzero latency.
+ *
+ * \param is something that Haris needs to explain.
+ * \param addr is the address being written.
+ * \param val is the word written at address.
+ */
 void
 pcm_wb_store(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 {
@@ -584,6 +591,8 @@ pcm_wb_store(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 	set->in_crash_emulation_code = 0;
 #endif	
 
+	// This is a fake store to PCM. For now, we just store the data at the given address in DRAM.
+	// This will change when we have a real 
 	*addr = val;
 	//printf("STORE: (0x%lx, %lx)\n", addr, val);
 

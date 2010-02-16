@@ -59,6 +59,9 @@ init_global()
 	gc_init(mtm_get_clock);
 #endif /* EPOCH_GC */
 
+	// Clear the lock bits (and also the write-set bits) for all addresses
+	// in memory. Because the write-sets are also referenced by this array,
+	// we must do this even in the case of disabled isolation.
    	memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
 
 #if CM == CM_PRIORITY

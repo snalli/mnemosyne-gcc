@@ -331,7 +331,7 @@ extern Void_t*     sbrk _ARG_((size_t));
 #endif
 
 #include <common/mnemosyne_i.h>
-#include <common/segment.h>
+#include <persistent/segment.h>
 
 
 /*  CHUNKS */

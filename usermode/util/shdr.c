@@ -1,7 +1,9 @@
-/*
- * Print the names of ELF sections.
+/*!
+ * \file
+ * A self-contained program which prints the names of ELF sections per a given ELF filename.
+ *
+ * \author Haris Volos <hvolos@cs.wisc.edu>
  */
-
 #include <err.h>
 #include <fcntl.h>
 #include <gelf.h>

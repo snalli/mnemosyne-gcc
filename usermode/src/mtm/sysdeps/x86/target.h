@@ -1,3 +1,14 @@
+/*!
+ * \file
+ * Defines constants and data structures matching the target architecture during compilation.
+ *
+ * The two architectures supported herein are x86 (32-bit) and x86 (64-bit).
+ *
+ * \author Andres Jaan Tack <tack@cs.wisc.edu>
+ */
+#ifndef TARGET_H_HBX9MKK6
+#define TARGET_H_HBX9MKK6
+
 # include <stdint.h>
 # include <xmmintrin.h>
 
@@ -35,8 +46,10 @@ struct mtm_jmpbuf_s
 
 #ifdef __x86_64__
 # define CACHELINE_SIZE 64
+# define CACHELINE_SIZE_LOG 6
 #else
 # define CACHELINE_SIZE 32
+# define CACHELINE_SIZE_LOG 5
 #endif
 
 /* These are taken from the GCC's TM library */
@@ -110,4 +123,4 @@ get_stack_base()
 	return stack_base;
 }
 
-
+#endif /* end of include guard: TARGET_H_HBX9MKK6 */

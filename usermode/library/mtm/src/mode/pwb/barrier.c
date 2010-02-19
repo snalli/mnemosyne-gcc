@@ -79,7 +79,7 @@ w_entry_t* initialize_write_set_entry(w_entry_t* entry,
 	mask_new_value(entry, address, value, mask);
 	entry->version = version;
 	entry->next = NULL;
-	entry->next_cacheline = NULL;
+	entry->w_entry_nv->next_cache_neighbor = NULL;
 	
 	return entry;
 }
@@ -112,21 +112,21 @@ void insert_write_set_entry_after(w_entry_t* new_entry, w_entry_t* tail, mtm_tx_
 	
 	// Attach the new entry to others in the same cache block/line.
 	if (cache_neighbor != NULL) {
-		new_entry->next_cacheline = cache_neighbor->next_cacheline;
-		cache_neighbor->next_cacheline = new_entry;
+		new_entry->w_entry_nv->next_cache_neighbor = cache_neighbor->w_entry_nv->next_cache_neighbor;
+		cache_neighbor->w_entry_nv->next_cache_neighbor = new_entry;
 	} else {
-		new_entry->next_cacheline = NULL;
+		new_entry->w_entry_nv->next_cache_neighbor = NULL;
 	}
 	
 	mode_data_t* modedata = (mode_data_t *) transaction->modedata[transaction->mode];
 	
 	// Write out the entry to nonvolatile storage.
 	pcm_wb_store(modedata->pcm_storeset, &new_entry->w_entry_nv->value, new_entry->value);
-	pcm_wb_store(modedata->pcm_storeset, &new_entry->w_entry_nv->mask, new_entry->mask);
+	pcm_wb_store(modedata->pcm_storeset, &new_entry->w_entry_nv->address, new_entry->addr);
 	
 	// Update the total number of entries.
 	modedata->w_set.nb_entries++;
-	modedata->w_set_nv.nb_entries++;
+	modedata->w_set_nv->nb_entries++;
 }
 
 
@@ -265,9 +265,7 @@ restart_no_load:
 				if (modedata->w_set.nb_entries == modedata->w_set.size) {
 					/* Extend write set (invalidate pointers to write set entries => abort and reallocate) */
 					modedata->w_set.size *= 2;
-					modedata->w_set_nv.size *= 2;
 					modedata->w_set.reallocate = 1;
-					modedata->w_set_nv.reallocate = 1;
 					#ifdef INTERNAL_STATS
 						tx->aborts_reallocate++;
 					#endif
@@ -276,7 +274,7 @@ restart_no_load:
 				} else {
 					// Build a new write set entry
 					w = &modedata->w_set.entries[modedata->w_set.nb_entries];
-					w->w_entry_nv = &modedata->w_set_nv.entries[modedata->w_set_nv.nb_entries];
+					w->w_entry_nv = &modedata->w_set_nv->entries[modedata->w_set_nv->nb_entries];
 					version = write_set_tail->version;  // Get version from previous write set entry (all
 					                                    // entries in linked list have same version)
 					w_entry_t* initialized_entry = initialize_write_set_entry(w, addr, value, mask, version, lock);

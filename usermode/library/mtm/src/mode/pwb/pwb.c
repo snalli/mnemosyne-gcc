@@ -63,9 +63,6 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 	mtm_allocate_ws_entries(tx, data, 0);
 
 	/* Non-volatile write set */
-	data->w_set_nv.nb_entries = 0;
-	data->w_set_nv.size = RW_SET_SIZE;
-	data->w_set_nv.reallocate = 0;
 	mtm_allocate_ws_entries_nv(tx, data, 0);
 
 
@@ -89,10 +86,10 @@ mtm_pwb_destroy(mtm_mode_data_t *_data)
 	t = GET_CLOCK;
 	gc_free(data->r_set.entries, t);
 	gc_free(data->w_set.entries, t);
-	gc_free(data->w_set_nv.entries, t);
+	data->w_set_nv->isIdle = true;
 #else /* ! EPOCH_GC */
 	free(data->r_set.entries);
 	free(data->w_set.entries);
-	free(data->w_set_nv.entries);
+	data->w_set_nv->isIdle = true;
 #endif /* ! EPOCH_GC */
 }

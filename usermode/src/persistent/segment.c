@@ -318,6 +318,8 @@ mnemosyne_segment_destroy(void *start, size_t length)
 		sync_segment_table();
 	}	
 	pthread_mutex_unlock(&segment_list.mutex);
+	
+	return 0;
 }
 
 

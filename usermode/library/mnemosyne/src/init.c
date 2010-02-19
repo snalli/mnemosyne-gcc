@@ -1,4 +1,5 @@
 #include "mnemosyne_i.h"
+#include "reincarnation_callback.h"
 #include "segment.h"
 #include <pthread.h>
 
@@ -12,8 +13,8 @@ volatile uint32_t      mnemosyne_initialized = 0;
 
 __thread mnemosyne_thrdesc_t *_mnemosyne_thr;
 
-static void do_global_init(void) __attribute__((constructor));
-static void do_global_fini(void) __attribute__((destructor));
+static void do_global_init(void) __attribute__(( constructor (0xffff) ));
+static void do_global_fini(void) __attribute__(( destructor  (0xffff) ));
 
 void
 do_global_init(void)
@@ -26,6 +27,7 @@ do_global_init(void)
 	if (!mnemosyne_initialized) {
 		mnemosyne_segment_address_space_reincarnate();
 		mnemosyne_initialized = 1;
+		mnemosyne_reincarnation_callback_execute_all();
 		MNEMOSYNE_WARNING("Initialize\n");
 	}	
 	pthread_mutex_unlock(&global_init_lock);

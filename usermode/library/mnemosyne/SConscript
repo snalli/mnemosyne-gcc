@@ -21,9 +21,10 @@ else:
 	buildEnv.Append(CCFLAGS = ' -O2')
 
 C_SRC = Split("""
-              src/init.c
               src/address_space.c
+              src/init.c
               src/malloc.c
+              src/reincarnation_callback.c
               src/segment.c
               """)
 

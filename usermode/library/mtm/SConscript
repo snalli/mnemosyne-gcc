@@ -46,6 +46,7 @@ CC_SRC = Split("""
                src/mode/serial/serial.c
                src/mtm.c
                src/nonvolatile_write_set.c
+               src/retry.c
                """)
 
 CC_LINUX_SRC = Split("""src/sysdeps/linux/rwlock.c

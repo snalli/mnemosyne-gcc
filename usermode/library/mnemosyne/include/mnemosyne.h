@@ -1,25 +1,36 @@
 /*!
  * \file
- * Defines the public interface to the mnemosyne persistent memory allocator.
+ * Defines the public interface to the mnemosyne persistent memory allocator. Having this
+ * header, one is able to map persistent segments and allocate memory from them safely. One
+ * may use persistent globals to point to these dynamic segments. All persistent segments will
+ * be automatically reincarnated on every process startup without intervention by the
+ * application programmer.
+ *
+ * Library implementors making use of Mnemosyne transactional memory will appreciate the 
+ * reincarnation callback functionality. This functionality allows the implementor to
+ * attach his own initializations to be run after persistent segments are guaranteed
+ * to have been mapped back into the process.
  *
  * \author Haris Volos <hvolos@cs.wisc.edu>
  * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
-#ifndef _MNEMOSYNE_H
+#ifndef MNEMOSYNE_H_4EOVRWJH
+#define MNEMOSYNE_H_4EOVRWJH
 
-# define MNEMOSYNE_PERSISTENT __attribute__ ((section("PERSISTENT")))
-# define MNEMOSYNE_ATOMIC __tm_atomic
+#include <sys/types.h>
+
+/*!
+ * Allows the declaration of a persistent global variable. A programmer making use
+ * of dynamic mnemosyne segments is advised to use these variables to point into
+ * the dynamic segments (which, practically, could be mapped anywhere in the
+ * virtual address space). Without a global persistent pointer, the programmer
+ * risks losing a portion of his address space to memory he will not recover.
+ */
+#define MNEMOSYNE_PERSISTENT __attribute__ ((section("PERSISTENT")))
 
 # ifdef __cplusplus
 extern "C" {
 # endif
-
-#include <sys/types.h>
-
-/*! The priority with which the mnemosyne initialization routines will run. */
-#ifndef MNEMOSYNE_INITIALIZATION_PRIORITY
-#define MNEMOSYNE_INITIALIZATION_PRIORITY 0xffff
-#endif
 
 /*!
  * Registers an callback function which is run upon reincarnation of a persistent
@@ -47,4 +58,9 @@ void mnemosyne_free(void *ptr);
 }
 # endif
 
-#endif /* _MNEMOSYNE_H */
+/*! The priority with which the mnemosyne initialization routines will run. */
+#ifndef MNEMOSYNE_INITIALIZATION_PRIORITY
+#define MNEMOSYNE_INITIALIZATION_PRIORITY 0xffff
+#endif
+
+#endif /* end of include guard: MNEMOSYNE_H_4EOVRWJH */

@@ -26,11 +26,12 @@ elif env['ARCH'] == 'x86_64':
 
 
 C_SRC = Split("""common/config.c
-				common/debug.c
-				common/init.c
-				common/malloc.c
-				common/segment.c
-					""")
+                 common/debug.c
+                 common/init.c
+                 persistent/address_space.c
+                 persistent/malloc.c
+                 persistent/segment.c
+              """)
 
 SConscript('#src/mtm/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'mtm'))
 

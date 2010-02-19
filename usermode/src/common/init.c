@@ -1,5 +1,5 @@
 #include <common/mnemosyne_i.h>
-#include <common/segment.h>
+#include <persistent/segment.h>
 #include <pthread.h>
 
 
@@ -24,7 +24,7 @@ do_global_init(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (!mnemosyne_initialized) {
-		mnemosyne_segment_reincarnate_address_space();
+		mnemosyne_segment_address_space_reincarnate();
 		mnemosyne_initialized = 1;
 		MNEMOSYNE_WARNING("Initialize\n");
 	}	
@@ -41,7 +41,7 @@ do_global_fini(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (mnemosyne_initialized) {
-		mnemosyne_segment_checkpoint_address_space();
+		mnemosyne_segment_address_space_checkpoint();
 		mnemosyne_initialized = 1;
 		MNEMOSYNE_WARNING("Shutdown\n");
 	}	

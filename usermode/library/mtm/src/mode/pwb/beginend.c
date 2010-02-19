@@ -419,7 +419,7 @@ mtm_pwb_commitTransaction(mtm_tx_t *tx, _ITM_srcLocation *loc)
 {
 	MTM_DEBUG_PRINT("==> mtm_pwb_commitTransaction(%p)\n", tx);
 	if (!trycommit_transaction(tx)) {
-		mtm_pwb_restart_transactions(tx, RESTART_VALIDATE_COMMIT);
+		mtm_pwb_restart_transaction(tx, RESTART_VALIDATE_COMMIT);
 	}
 	MTM_DEBUG_PRINT("==> mtm_pwb_commitTransaction(%p): DONE\n", tx);
 }

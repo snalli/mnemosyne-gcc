@@ -504,7 +504,7 @@ void _ITM_CALL_CONVENTION
 mtm_wt_commitTransaction(mtm_tx_t *tx, _ITM_srcLocation *loc)
 {
 	if (!trycommit_transaction(tx)) {
-		mtm_wt_restart_transactions(tx, RESTART_VALIDATE_COMMIT);
+		mtm_wt_restart_transaction(tx, RESTART_VALIDATE_COMMIT);
 	}
 }
 

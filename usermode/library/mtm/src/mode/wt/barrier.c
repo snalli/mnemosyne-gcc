@@ -399,7 +399,7 @@ mtm_wt_load(mtm_tx_t *tx, volatile mtm_word_t *addr)
 #if CM == CM_PRIORITY
 	if (tx->visible_reads >= vr_threshold && vr_threshold >= 0) {
 		/* Visible reads: acquire lock first */
-		w = mtm_wt_write(tx, addr, 0, 0);
+		w = wt_write(tx, addr, 0, 0);
 		/* Make sure we did not abort */
 		if(tx->status != TX_ACTIVE) {
 			return 0;

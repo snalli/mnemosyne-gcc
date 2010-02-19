@@ -428,7 +428,7 @@ void _ITM_CALL_CONVENTION
 mtm_wbetl_commitTransaction(mtm_tx_t *tx, _ITM_srcLocation *loc)
 {
 	if (!trycommit_transaction(tx)) {
-		mtm_wbetl_restart_transactions(tx, RESTART_VALIDATE_COMMIT);
+		mtm_wbetl_restart_transaction(tx, RESTART_VALIDATE_COMMIT);
 	}
 }
 

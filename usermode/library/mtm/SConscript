@@ -16,6 +16,13 @@ buildEnv.Append(CPPPATH = 'src/common')
 buildEnv.Append(LINKFLAGS = ['-g', '-fPIC'])
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
 
+# I would love to use SCons's automatic linking with this, but it appears that 
+# the whole-archive option (necessary to build static libraries into dynamic ones)
+# cannot be built except by hand.
+Import('CommonObjects')
+buildEnv.Append(LIBS = [CommonObjects])
+buildEnv.Append(LINKFLAGS = '-Wl,--whole-archive build/library/common/libmnemosyne_common.a -Wl,--no-whole-archive')
+
 # Programs to generate VTable mappings to the Intel ABI. Ask Haris.
 srcgen_sjlj = buildEnv.Program('generate_sjlj', 'src/srcgen/generate_sjlj.c')
 srcgen_vtable = buildEnv.Program('generate_vtable', 'src/srcgen/generate_vtable.c')
@@ -48,5 +55,5 @@ S_SRC = Split("""src/sysdeps/x86/sjlj.S""")
 
 SRC = CC_SRC + S_SRC + CC_LINUX_SRC
 
-MtmLibrary = buildEnv.SharedLibrary('mtm', SRC, LIBRARY = Import('CommonObjects'))
+MtmLibrary = buildEnv.SharedLibrary('mtm', SRC)
 Return('MtmLibrary')

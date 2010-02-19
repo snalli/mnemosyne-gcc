@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 #include <stdio.h>
-#include <common/list.h>
+#include <list.h>
 #include "result.h"
 
 struct mnemosyne_segment_list_s {

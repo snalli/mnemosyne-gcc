@@ -27,6 +27,7 @@ class Environment(SCons.Environment.Environment):
 		if not self['VERBOSE']:
 			self.Replace(
 			                 CCCOMSTR = '(COMPILE)  $SOURCES',
+			                CXXCOMSTR = '(COMPILE)  $SOURCES',
 			               SHCCCOMSTR = '(COMPILE)  $SOURCES',
 			               ASPPCOMSTR = '(ASSEMBLE) $SOURCES',
 			                 ARCOMSTR = '(BUILD)    $TARGET',

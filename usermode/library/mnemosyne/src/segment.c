@@ -109,7 +109,6 @@ get_exe_name(char* buf, size_t size)
 }
 
 
-static
 mnemosyne_result_t 
 get_persistent_shdr(char *modulename, GElf_Shdr *persistent_shdr)
 {
@@ -162,7 +161,6 @@ get_persistent_shdr(char *modulename, GElf_Shdr *persistent_shdr)
 }
 
 
-static
 mnemosyne_result_t
 load_memory_from_file(char *file, void *mem_start, size_t size)
 {
@@ -184,7 +182,6 @@ load_memory_from_file(char *file, void *mem_start, size_t size)
 }
 
 
-static
 mnemosyne_result_t
 save_memory_to_file(char *file, void *mem_start, size_t size)
 {

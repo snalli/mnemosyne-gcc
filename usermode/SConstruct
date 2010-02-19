@@ -31,5 +31,8 @@ MnemosyneLibrary = SConscript('library/mnemosyne/SConscript', 'CommonObjects', v
 MtmLibrary = SConscript('library/mtm/SConscript', 'CommonObjects', variant_dir = 'build/library/mtm')
 
 if env['EXAMPLE'] != None:
+	examplesEnv = env.Clone()
+	examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+	Export('examplesEnv')
 	Export('MnemosyneLibrary', 'MtmLibrary')
-	SConscript('examples/SConscript')
+	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'example', examplesEnv['EXAMPLE']))

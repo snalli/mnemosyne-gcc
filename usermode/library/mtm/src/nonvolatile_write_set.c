@@ -6,9 +6,9 @@
  * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
 #include "nonvolatile_write_set.h"
-#include "hal/pcm.h"
 #include "mtm_i.h"
-#include <mnemosyne.h>
+#include <hal/pcm.h>
+#include <mnemosyne/include/mnemosyne.h>
 #include <pthread.h>
 
 

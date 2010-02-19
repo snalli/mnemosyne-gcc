@@ -1,54 +1,25 @@
 import os
-from configuration import mtm
-
-env = mtm.Environment('mtm')
-
-AddOption("--build-debug",
-			action="store_true", dest="build_debug", 
-			default = True,
-			help="build library with debug info [default]")
-
-AddOption("--no-build-debug",
-			action="store_false", dest="build_debug", default = True, 
-			help="build library with no debug info")
-
-AddOption("--stats",
-			action="store_true", dest="have_stats", 
-			default = True,
-			help="build library with statistics support [default]")
-
-AddOption("--no-stats",
-			action="store_false", dest="stats", default = True,
-			help="build library with no statistics support")
-
-AddOption("--linkage",
-			action="store", dest="linkage", 
-			type="choice", choices=["dynamic", "static"],
-			default = "dynamic",
-			help="library linkage: dynamic, static [default: %default]")
-
-AddOption("--arch",
-			action="store", dest="arch", 
-			type="choice", choices=["x86", "x86_64"],
-			default = "x86_64",
-			help="CPU architecture: x86, x86_64 [default: %default]")
-
-AddOption("--test-list",
-			action="store", dest="test_list", 
-			help="list of tests to run")
+from library.configuration import mnemosyne
 
 AddOption('--example',
-			action="store", dest='selected_example',
-			type='string',
-			metavar='NAME',
-			help='build this example')
-
+           action="store", dest='selected_example',
+           type='string',
+           metavar='NAME',
+           help='build this example')
+AddOption("--build-debug",
+           action="store_true", dest="build_debug", 
+           default = True,
+           help="build library with debug info [default]")
+AddOption("--linkage",
+          action="store", dest="linkage", 
+          type="choice", choices=["dynamic", "static"],
+          default = "dynamic",
+          help="library linkage: dynamic, static [default: %default]")
 
 # Custom help message. Overrides the help output of the local options.
 Help("""
 Type: 'scons' to build the libraries.
       'scons check' to build and run unit tests.
-
 """)
 
 # Ugly hack to extract the optparse help output for my local options and add 
@@ -64,30 +35,26 @@ for help_line in help_lines:
 option_help = '\n'.join(help_lines[count-1:])
 Help(option_help)
 
-
+env = mnemosyne.Environment()
 env['BUILD_DEBUG'] = GetOption('build_debug')
 env['LINKAGE'] = GetOption('linkage')
-env['HAVE_STATS'] = GetOption('have_stats')
-env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = GetOption('selected_example')
-env['ARCH'] = GetOption('arch')
-env['ENV'] = os.environ
-
-env['LIBRARY_NAME'] = 'mnemosyne'
-
-Export('env')
-
 rootDir = os.getcwd()
 env['MY_ROOT_DIR'] = rootDir
-env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
+Export('env')
 
-MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
+CommonObjects = SConscript('library/common/SConscript', variant_dir = 'build/library/common')
+MnemosyneLibrary = SConscript('library/mnemosyne/SConscript', 'CommonObjects', variant_dir = 'build/library/mnemosyne')
+MtmLibrary = SConscript('library/mtm/SConscript', 'CommonObjects', variant_dir = 'build/library/mtm')
 
 if env['EXAMPLE'] != None:
-	Export('MnemosyneLibrary')
-	SConscript('examples/SConscript')
+	examplesEnv = env.Clone()
+	examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+	Export('examplesEnv')
+	Export('MnemosyneLibrary', 'MtmLibrary')
+	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'example', examplesEnv['EXAMPLE']))
 
 #Testing Environment
 if 'check' in COMMAND_LINE_TARGETS:
-	SConscript('test/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'test'))
+	SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))

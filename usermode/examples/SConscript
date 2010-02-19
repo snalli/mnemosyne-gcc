@@ -1,37 +1,18 @@
 import os
 
-Import('env')
-examplesEnv = env.Clone()
+Import('examplesEnv')
 
-examplesEnv['CPPPATH'] = ['#src/inc']
-examplesEnv['LIBS'] = 'mnemosyne'
-
-examplesEnv['CCFLAGS'] = '-Qtm_enabled'
-examplesEnv['LINKFLAGS'] = '-Qtm_enabled'
+examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
 
 if examplesEnv['BUILD_DEBUG'] == True:
 	examplesEnv.Append(CCFLAGS = ' -g')
 else:	
 	examplesEnv.Append(CCFLAGS = ' -O2')
 
-if env['ARCH'] == 'x86':
-	examplesEnv.Append(CCFLAGS = ' -m32')
-	examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m32')
-elif env['ARCH'] == 'x86_64':
-	examplesEnv.Append(CCFLAGS = ' -m64 ')
-	examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
-
-	
-examplesEnv['LIBPATH'] = examplesEnv['MY_BUILD_DIR']
-examplesEnv.Append(LINKFLAGS = ' -Wl,--rpath,' + examplesEnv['MY_BUILD_DIR'])
+examplesEnv.Append(CCFLAGS = ' -m64 ')
+examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+Export('examplesEnv')
 
 example = examplesEnv['EXAMPLE']
-
 sconscript_path = example + '/SConscript'
-variant_directory = os.path.join(examplesEnv['MY_BUILD_DIR'], 'examples')
-variant_directory = os.path.join(variant_directory, example)
-
-print variant_directory
-
-Export('examplesEnv')
-SConscript(sconscript_path, variant_dir = variant_directory)
+SConscript(sconscript_path)

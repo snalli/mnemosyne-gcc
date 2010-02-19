@@ -53,11 +53,9 @@ int main (int argc, char const *argv[])
 		my_objects.people->length() << " people stored here." << std::endl;
 		
 	std::cerr << "Adding two new messages and a person..." << std::endl;
-	MNEMOSYNE_ATOMIC	{
-		my_objects.messages->append(Message(42));
-		my_objects.messages->append(Message(89));
-		my_objects.people->append(Person(2114));
-	}
+	my_objects.messages->append(Message(42));
+	my_objects.messages->append(Message(89));
+	my_objects.people->append(Person(2114));
 	
 	return 0;
 }
@@ -65,13 +63,11 @@ int main (int argc, char const *argv[])
 
 static
 void InitializeFirstTime()	{
-	MNEMOSYNE_ATOMIC	{
-		if (my_objects.messages == NULL)
-			my_objects.messages = new SinglyLinkedList<Message>;   // This is automatically a persistent allocation,
-			                                             // and it's automatically recovered when we run
-			                                             // the process!
+	if (my_objects.messages == NULL)
+		my_objects.messages = new SinglyLinkedList<Message>;   // This is automatically a persistent allocation,
+		                                             // and it's automatically recovered when we run
+		                                             // the process!
 
-		if (my_objects.people == NULL)
-			my_objects.people = new SinglyLinkedList<Person>;        // As above, automatically persistent allocation.
-	}
+	if (my_objects.people == NULL)
+		my_objects.people = new SinglyLinkedList<Person>;        // As above, automatically persistent allocation.
 }

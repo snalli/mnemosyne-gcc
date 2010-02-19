@@ -1,0 +1,42 @@
+import os
+import sys
+sys.path.append('%s/library' % (Dir('#').abspath))
+from configuration import mnemosyne
+
+Import('env')
+configEnv = env.Clone()
+buildEnv = mnemosyne.Environment()
+
+Import('CommonObjects')
+buildEnv.Append(CPPPATH = ['#library'])
+buildEnv.Append(LIBS = ['elf', CommonObjects, 'pthread'])
+buildEnv.Append(CCFLAGS = ' -m64 ')
+buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
+
+# I would love to use SCons's automatic linking with this, but it appears that 
+# the whole-archive option (necessary to build static libraries into dynamic ones)
+# cannot be built except by hand.
+Import('CommonObjects')
+buildEnv.Append(LINKFLAGS = '-Wl,--whole-archive build/library/common/libmnemosyne_common.a -Wl,--no-whole-archive')
+
+if configEnv['BUILD_DEBUG'] == True:
+	buildEnv.Append(CCFLAGS = ' -g -D_MNEMOSYNE_BUILD_DEBUG')
+else:
+	buildEnv.Append(CCFLAGS = ' -O2')
+
+C_SRC = Split("""
+              src/address_space.c
+              src/init.c
+              src/malloc.c
+              src/reincarnation_callback.c
+              src/segment.c
+              """)
+
+SRC = C_SRC
+
+if configEnv['LINKAGE'] == 'dynamic':
+	MnemosyneLibrary = buildEnv.SharedLibrary('mnemosyne', SRC)
+else:
+	MnemosyneLibrary = buildEnv.StaticLibrary('mnemosyne', SRC)
+Return('MnemosyneLibrary')

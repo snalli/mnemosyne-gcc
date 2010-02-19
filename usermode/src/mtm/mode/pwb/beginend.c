@@ -4,6 +4,7 @@
 #include "mode/common/rwset.h"
 #include "cm.h" 
 
+int ENABLE_ISOLATION = 1; /* TODO: make this a runtime configuration parameter */
 
 static inline 
 bool

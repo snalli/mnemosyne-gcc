@@ -17,7 +17,6 @@
 typedef struct mnemosyne_segment_file_header_s mnemosyne_segment_file_header_t;
 typedef struct mnemosyne_segment_s mnemosyne_segment_t;
 typedef struct mnemosyne_segment_list_node_s mnemosyne_segment_list_node_t;
-typedef struct mnemosyne_segment_list_s mnemosyne_segment_list_t;
 
 struct mnemosyne_segment_file_header_s {
 	uint32_t num_segments;

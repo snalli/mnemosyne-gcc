@@ -8,7 +8,7 @@
 #include "nonvolatile_write_set.h"
 #include "mtm_i.h"
 #include <hal/pcm.h>
-#include <mnemosyne/include/mnemosyne.h>
+#include <mnemosyne.h>
 #include <pthread.h>
 
 

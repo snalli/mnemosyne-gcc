@@ -5,7 +5,7 @@ from configuration import mtm
 buildEnv = mtm.Environment()
 buildEnv.Append(CCFLAGS = '-g -O2')
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
-buildEnv.Append(CPPPATH = ['#library'])
+buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
 buildEnv.Append(CPPPATH = 'src/sysdeps/linux/x86')
 buildEnv.Append(CPPPATH = 'src/sysdeps/linux')
 buildEnv.Append(CPPPATH = 'src/sysdeps/x86')

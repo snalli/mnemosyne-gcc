@@ -1,0 +1,15 @@
+import sys
+sys.path.append('%s/library' % (Dir('#').abspath))
+from configuration import mnemosyne
+
+buildEnv = mnemosyne.Environment()
+buildEnv.Append(CCFLAGS = ['-fPIC'])
+
+SRC = Split("""
+            config.c
+            debug.c
+            hal/pcm.c
+            """)
+
+CommonObjects = buildEnv.StaticLibrary('mnemosyne_common', SRC)
+Return('CommonObjects')

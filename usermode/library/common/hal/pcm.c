@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <mmintrin.h>
-#include "common/chash/PointerHashInline.h"
-#include "hal/pcm.h"
+#include <chash/PointerHashInline.h>
+#include "pcm.h"
 
 /* Static configuration */
 

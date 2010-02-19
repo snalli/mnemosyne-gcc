@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <errno.h>
 
-#include <common/debug.h>
+#include <debug.h>
 
 #ifdef __i386__
 # define ITM_REGPARM	__attribute__((regparm(2)))

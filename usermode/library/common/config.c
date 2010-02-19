@@ -11,9 +11,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <common/result.h>
-#include <common/config.h>
-#include <common/debug.h>
+#include <result.h>
+#include <config.h>
+#include <debug.h>
 
 
 #define CONFIG_OPTION_DEFVALUE(name,                                        \

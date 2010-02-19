@@ -1,0 +1,49 @@
+import sys
+sys.path.append('%s/library' % (Dir('#').abspath))
+from configuration import mtm
+
+buildEnv = mtm.Environment()
+buildEnv.Append(CCFLAGS = '-g -O2')
+buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+buildEnv.Append(CPPPATH = ['#library'])
+buildEnv.Append(CPPPATH = 'sysdeps/linux/x86')
+buildEnv.Append(CPPPATH = 'sysdeps/linux')
+buildEnv.Append(CPPPATH = 'sysdeps/x86')
+buildEnv.Append(CPPPATH = 'sysdeps/posix')
+buildEnv.Append(CPPPATH = 'sysdeps/generic')
+buildEnv.Append(LINKFLAGS = ['-g', '-fPIC'])
+buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
+
+# Programs to generate VTable mappings to the Intel ABI. Ask Haris.
+srcgen_sjlj = buildEnv.Program('generate_sjlj', 'srcgen/generate_sjlj.c')
+srcgen_vtable = buildEnv.Program('generate_vtable', 'srcgen/generate_vtable.c')
+
+CC_SRC = Split("""
+               gc.c
+               init.c
+               intelabi.c
+               local.c
+               mode/mode.c
+               mode/pwb/beginend.c
+               mode/pwb/memcpy.c
+               mode/pwb/memset.c
+               mode/pwb/pwb.c
+               mode/pwb/barrier.c
+               mode/wbetl/barrier.c
+               mode/wbetl/beginend.c
+               mode/wbetl/memcpy.c
+               mode/wbetl/memset.c
+               mode/wbetl/wbetl.c
+               mode/serial/serial.c
+               mtm.c
+               """)
+
+CC_LINUX_SRC = Split("""sysdeps/linux/rwlock.c
+						sysdeps/linux/futex.c""")
+
+S_SRC = Split("""sysdeps/x86/sjlj.S""")
+
+SRC = CC_SRC + S_SRC + CC_LINUX_SRC
+
+MtmLibrary = buildEnv.SharedLibrary('mtm', SRC, LIBRARY = Import('CommonObjects'))
+Return('MtmLibrary')

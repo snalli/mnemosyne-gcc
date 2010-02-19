@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <common/debug.h>
-#include <common/config.h>
+#include <debug.h>
+#include <config.h>
 
 void
 mnemosyne_debug_printmsg(char *file, int line, int fatal, const char *prefix,

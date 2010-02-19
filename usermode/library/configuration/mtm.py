@@ -3,24 +3,25 @@ import string
 import SCons.Environment
 from SCons.Script import ARGUMENTS
 from SCons.Variables import Variables, EnumVariable, BoolVariable
+import mnemosyne
 
 
-class Environment(SCons.Environment.Environment):
+class Environment(mnemosyne.Environment):
 	"""
 		A specialization of the SCons Environment class which does some particular
 		munging of the build variables needed in the source files.
 	"""
 	
-	def __init__(self, configuration_name):
+	def __init__(self, configuration_name = 'default'):
 		"""
 			Applies the definitions in configuration_name to generate a correct
 			environment (specificall the set of compilation flags() for the
 			TinySTM library. That environment is returned
 		"""
-		SCons.Environment.Environment.__init__(self)
+		mnemosyne.Environment.__init__(self)
 		
 		# Apply the configuration variables specific to TinySTM.
-		configuration_variables = self._GetConfigurationVariables(configuration_name)
+		configuration_variables = Environment._GetConfigurationVariables(self, configuration_name)
 		configuration_variables.Update(self)
 		
 		# Bring in appropriate environment variables and preprocessor definitions.
@@ -38,17 +39,6 @@ class Environment(SCons.Environment.Environment):
 			ENV = os.environ,
 			LIBS = ['atomic_ops'],
 			LIBPATH = ['/s/libatomic_ops-7.2a4/lib'])
-		# Make output pretty.
-		if not self['VERBOSE']:
-			self.Replace(
-				    CCCOMSTR = '(COMPILE)  $SOURCES',
-				  SHCCCOMSTR = '(COMPILE)  $SOURCES',
-				  ASPPCOMSTR = '(ASSEMBLE) $SOURCES',
-				    ARCOMSTR = '(BUILD)    $TARGET',
-				RANLIBCOMSTR = '(INDEX)    $TARGET',
-				  LINKCOMSTR = '(LINK)     $TARGET',
-				SHLINKCOMSTR = '(LINK)     $TARGET')
-	
 	
 	def _GetConfigurationVariables(self, configuration_name):
 		"""
@@ -71,7 +61,6 @@ class Environment(SCons.Environment.Environment):
 			configuration.Add(variable)
 		
 		return configuration
-	
 	
 	def _BooleanDirectives(self):
 		"""
@@ -96,7 +85,6 @@ class Environment(SCons.Environment.Environment):
 			directives.append(directive)
 		return directives
 	
-	
 	def _PreprocessorDefinitions(self):
 		"""
 			Takes the input configuration and generates a string of preprocessor definitions
@@ -117,7 +105,6 @@ class Environment(SCons.Environment.Environment):
 		all_directives.append(conflict_manager_directive)
 
 		return all_directives
-	
 	
 	#: Build options which are either on or off.
 	_boolean_options = {
@@ -141,10 +128,6 @@ class Environment(SCons.Environment.Environment):
 		
 		# Options added to support Mnemosyne persistent memory.
 		'ENABLE_ISOLATION':         ('Turns on or off the isolation features of the transactions implemented here. Disabling isolation means that transactions are never aborted; they in fact are atomicity-only transactions. Once they commit, the result is guaranteed to write out to any persistent memory (or at least be redo-logged so the commit can finish on the next system or application restart).',
-			False),
-		
-		# These are more to do with build behavior and output
-		'VERBOSE': ('If set, displays the actual commands used and their flags instead of the default "neat" output.',
 			False)
 	}
 	

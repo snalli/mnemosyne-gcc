@@ -9,8 +9,8 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <assert.h>
-#include <common/mnemosyne_i.h>
-#include <persistent/segment.h>
+#include "mnemosyne_i.h"
+#include "segment.h"
 
 #define SEGMENTS_DIR ".segments"
 

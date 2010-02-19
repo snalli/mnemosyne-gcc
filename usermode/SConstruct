@@ -1,74 +1,33 @@
 import os
-from configuration import mtm
-
-env = mtm.Environment('mtm')
-
-AddOption("--build-debug",
-			action="store_true", dest="build_debug", 
-			default = True,
-			help="build library with debug info [default]")
-
-AddOption("--no-build-debug",
-			action="store_false", dest="build_debug", default = True, 
-			help="build library with no debug info")
-
-AddOption("--stats",
-			action="store_true", dest="have_stats", 
-			default = True,
-			help="build library with statistics support [default]")
-
-AddOption("--no-stats",
-			action="store_false", dest="stats", default = True,
-			help="build library with no statistics support")
-
-AddOption("--linkage",
-			action="store", dest="linkage", 
-			type="choice", choices=["dynamic", "static"],
-			default = "dynamic",
-			help="library linkage: dynamic, static [default: %default]")
-
-AddOption("--arch",
-			action="store", dest="arch", 
-			type="choice", choices=["x86", "x86_64"],
-			default = "x86_64",
-			help="CPU architecture: x86, x86_64 [default: %default]")
-
-AddOption("--test",
-			action="store_true", dest="test", 
-			default = False,
-			help="run unit tests [default: %default]")
-
-AddOption("--test-list",
-			action="store", dest="test_list", 
-			help="list of tests to run")
+from library.configuration import mnemosyne
 
 AddOption('--example',
-			action="store", dest='selected_example',
-			type='string',
-			metavar='NAME',
-			help='build this example')
+           action="store", dest='selected_example',
+           type='string',
+           metavar='NAME',
+           help='build this example')
+AddOption("--build-debug",
+           action="store_true", dest="build_debug", 
+           default = True,
+           help="build library with debug info [default]")
+AddOption("--linkage",
+           action="store", dest="linkage", 
+           type="choice", choices=["dynamic", "static"],
+           default = "dynamic",
+           help="library linkage: dynamic, static [default: %default]")
 
 
+env = mnemosyne.Environment()
 env['BUILD_DEBUG'] = GetOption('build_debug')
 env['LINKAGE'] = GetOption('linkage')
-env['HAVE_STATS'] = GetOption('have_stats')
-env['TEST'] = GetOption('test')
-env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = GetOption('selected_example')
-env['ARCH'] = GetOption('arch')
-env['ENV'] = os.environ
-
-env['LIBRARY_NAME'] = 'mnemosyne'
-
-Export('env')
-
 rootDir = os.getcwd()
 env['MY_ROOT_DIR'] = rootDir
-env['MY_BUILD_DIR'] = os.path.join(rootDir, 'build')
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
+Export('env')
 
-MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'])
+MnemosyneLibrary, MtmLibrary = SConscript('library/SConscript', variant_dir = 'build/library')
 
 if env['EXAMPLE'] != None:
-	Export('MnemosyneLibrary')
+	Export('MnemosyneLibrary', 'MtmLibrary')
 	SConscript('examples/SConscript')

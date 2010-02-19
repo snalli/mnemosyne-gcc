@@ -9,7 +9,7 @@
 #ifndef _MNEMOSYNE_CONFIG_H
 #define _MNEMOSYNE_CONFIG_H
 
-#include <common/result.h>
+#include <result.h>
 #include <stdbool.h>
 
 /*

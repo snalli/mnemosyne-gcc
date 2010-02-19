@@ -1,0 +1,6 @@
+import os
+
+CommonObjects = SConscript('common/SConscript', variant_dir = 'build/library/common')
+MnemosyneLibrary = SConscript('mnemosyne/SConscript', 'CommonObjects', variant_dir = 'build/library/mnemosyne')
+MtmLibrary = SConscript('mtm/SConscript', 'CommonObjects', variant_dir = 'build/library/mtm')
+Return('MnemosyneLibrary', 'MtmLibrary')

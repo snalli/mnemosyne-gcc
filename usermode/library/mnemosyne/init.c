@@ -1,5 +1,5 @@
-#include <common/mnemosyne_i.h>
-#include <persistent/segment.h>
+#include "mnemosyne_i.h"
+#include "segment.h"
 #include <pthread.h>
 
 

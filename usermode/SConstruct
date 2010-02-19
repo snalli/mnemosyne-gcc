@@ -26,7 +26,9 @@ env['MY_ROOT_DIR'] = rootDir
 env['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 Export('env')
 
-MnemosyneLibrary, MtmLibrary = SConscript('library/SConscript', variant_dir = 'build/library')
+CommonObjects = SConscript('library/common/SConscript', variant_dir = 'build/library/common')
+MnemosyneLibrary = SConscript('library/mnemosyne/SConscript', 'CommonObjects', variant_dir = 'build/library/mnemosyne')
+MtmLibrary = SConscript('library/mtm/SConscript', 'CommonObjects', variant_dir = 'build/library/mtm')
 
 if env['EXAMPLE'] != None:
 	Export('MnemosyneLibrary', 'MtmLibrary')

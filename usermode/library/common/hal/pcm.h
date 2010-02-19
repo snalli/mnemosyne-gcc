@@ -1,7 +1,6 @@
 #ifndef _PCM_H
 #define _PCM_H
 
-#include <target.h>
 #include <stdint.h>
 
 typedef uintptr_t pcm_word_t;

@@ -27,7 +27,7 @@ typedef long double _Complex _ITM_TYPE_CE;
 typedef struct mtm_tx_s mtm_tx_t;
 #endif
 
-#include "../inc/itm.h"
+#include "itm.h"
 
 #include <result.h>
 
@@ -137,7 +137,7 @@ extern int cm_threshold;
 #endif
 
 #include "mode/mode.h"
-#include "target.h"
+#include "sysdeps/x86/target.h"
 #include "rwlock.h"
 #include "aatree.h"
 #include "locks.h"

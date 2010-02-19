@@ -7,7 +7,7 @@
 #ifndef ADDRESS_SPACE_H_XBFT9DH2
 #define ADDRESS_SPACE_H_XBFT9DH2
 
-#include <common/result.h>
+#include "result.h"
 
 /*!
  * Maps persistent memory segments back into the live address space of the program. This is

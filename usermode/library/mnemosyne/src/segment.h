@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <common/list.h>
-#include <common/result.h>
+#include "result.h"
 
 struct mnemosyne_segment_list_s {
 	pthread_mutex_t  mutex;

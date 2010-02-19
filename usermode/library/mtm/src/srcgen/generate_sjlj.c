@@ -8,7 +8,7 @@
  */
 
 #define GENERATING_SAVES
-#include <mtm_i.h>
+#include "mtm_i.h"
 #include <stdio.h>
 
 #ifndef offsetof

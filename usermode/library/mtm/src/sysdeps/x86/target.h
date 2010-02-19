@@ -9,9 +9,16 @@
 #ifndef TARGET_H_HBX9MKK6
 #define TARGET_H_HBX9MKK6
 
-#include <target.h>
 # include <stdint.h>
 # include <xmmintrin.h>
+
+#ifdef __x86_64__
+# define CACHELINE_SIZE 64
+# define CACHELINE_SIZE_LOG 6
+#else
+# define CACHELINE_SIZE 32
+# define CACHELINE_SIZE_LOG 5
+#endif
 
 typedef struct mtm_jmpbuf_s mtm_jmpbuf_t;
 

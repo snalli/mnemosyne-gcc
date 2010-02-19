@@ -4,7 +4,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <debug.h>
-#include <config.h>
 
 void
 mnemosyne_debug_printmsg(char *file, int line, int fatal, const char *prefix,

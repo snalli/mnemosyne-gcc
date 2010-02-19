@@ -10,7 +10,7 @@
 #if (!defined (_VTABLE_MACROS_INCLUDED))
 # define _VTABLE_MACROS_INCLUDED
 
-# include "../inc/itm.h"
+# include "itm.h"
 
 /*! Invoke the ACTION on each function in the vtable.
  *

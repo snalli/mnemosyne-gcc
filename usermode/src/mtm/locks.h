@@ -36,22 +36,24 @@
 # define PRIORITY_MAX                   ((1 << PRIORITY_BITS) - 1)
 # define PRIORITY_MASK                  (PRIORITY_MAX << 2)
 # define ALIGNMENT                      (1 << (PRIORITY_BITS + 2))
-# define ALIGNMENT_MASK                 (ALIGNMENT - 1)
+#else
+# define ALIGNMENT                      1 /* no alignment requirement */  
 #endif /* CM == CM_PRIORITY */
+#define ALIGNMENT_MASK                 (ALIGNMENT - 1)
 
 /*
  * Everything hereafter relates to the actual locking protection mechanism.
  */
-#define LOCK_GET_OWNED(l)               (l & OWNED_MASK)
+#define LOCK_GET_OWNED(l)               ((l) & OWNED_MASK)
 #if CM == CM_PRIORITY
-# define LOCK_SET_ADDR(a, p)            (a | (p << 2) | OWNED_MASK)
-# define LOCK_GET_WAIT(l)               (l & WAIT_MASK)
-# define LOCK_GET_PRIORITY(l)           ((l & PRIORITY_MASK) >> 2)
-# define LOCK_SET_PRIORITY_WAIT(l, p)   ((l & ~(mtm_word_t)PRIORITY_MASK) | (p << 2) | WAIT_MASK)
-# define LOCK_GET_ADDR(l)               (l & ~(mtm_word_t)(OWNED_MASK | WAIT_MASK | PRIORITY_MASK))
+# define LOCK_SET_ADDR(a, p)            ((a) | ((p) << 2) | OWNED_MASK)
+# define LOCK_GET_WAIT(l)               ((l) & WAIT_MASK)
+# define LOCK_GET_PRIORITY(l)           (((l) & PRIORITY_MASK) >> 2)
+# define LOCK_SET_PRIORITY_WAIT(l, p)   (((l) & ~(mtm_word_t)PRIORITY_MASK) | ((p) << 2) | WAIT_MASK)
+# define LOCK_GET_ADDR(l)               ((l) & ~(mtm_word_t)(OWNED_MASK | WAIT_MASK | PRIORITY_MASK))
 #else /* CM != CM_PRIORITY */
-# define LOCK_SET_ADDR(a)               (a | OWNED_MASK)    /* OWNED bit set */
-# define LOCK_GET_ADDR(l)               (l & ~(mtm_word_t)OWNED_MASK)
+# define LOCK_SET_ADDR(a)               ((a) | OWNED_MASK)    /* OWNED bit set */
+# define LOCK_GET_ADDR(l)               ((l) & ~(mtm_word_t)OWNED_MASK)
 #endif /* CM != CM_PRIORITY */
 #define LOCK_UNIT                       (~(mtm_word_t)0)
 
@@ -64,14 +66,46 @@
 //#define LOCK_SHIFT                      (((sizeof(mtm_word_t) == 4) ? 2 : 3) + LOCK_SHIFT_EXTRA)
 // Map the words of a cacheline on the same lock
 #define LOCK_SHIFT                      6
-#define LOCK_IDX(a)                     (((mtm_word_t)(a) >> LOCK_SHIFT) & LOCK_MASK)
+#define LOCK_IDX(a)                     (((mtm_word_t)((a)) >> LOCK_SHIFT) & LOCK_MASK)
 #ifdef LOCK_IDX_SWAP
 # if LOCK_ARRAY_LOG_SIZE < 16
 #  error "LOCK_IDX_SWAP requires LOCK_ARRAY_LOG_SIZE to be at least 16"
 # endif /* LOCK_ARRAY_LOG_SIZE < 16 */
-# define GET_LOCK(a)                    (locks + lock_idx_swap(LOCK_IDX(a)))
+# define GET_LOCK(a)                    (locks + lock_idx_swap(LOCK_IDX((a))))
 #else /* ! LOCK_IDX_SWAP */
-# define GET_LOCK(a)                    (locks + LOCK_IDX(a))
+# define GET_LOCK(a)                    (locks + LOCK_IDX((a)))
 #endif /* ! LOCK_IDX_SWAP */
+
+
+
+/* ################################################################### *
+ * PRIVATE PSEUDO-LOCKS
+ * ################################################################### */
+
+/* 
+ * For write-back, the original TinySTM keeps new values into linked lists
+ * accessible through the global lock hash-table. 
+ * 
+ * For persistent write-back, when isolation is disabled, going through
+ * the global lock hash-table would require fine-grain synchronization 
+ * so that locks are not held for the duration of a transaction. To avoid 
+ * paying the cost of such unnecessary synchronization we use a private lock 
+ * hash-table instead. The structure of the private table is the same as 
+ * the global one's to keep code changes minimal; its size may be different 
+ * though.
+ *
+ * Private pseudo-locks are not actually locks but a hack to keep the code 
+ * that deals with version-management common between the isolation and 
+ * no-isolation path. Since never two threads may compete for these pseudo-locks, 
+ * we don't need to use CAS to atomically acquire them but instead we can just 
+ * set them using a normal STORE.
+ */
+ 
+#define PRIVATE_LOCK_ARRAY_SIZE         (1 << PRIVATE_LOCK_ARRAY_LOG_SIZE)
+#define PRIVATE_LOCK_MASK               (PRIVATE_LOCK_ARRAY_SIZE - 1)
+#define PRIVATE_LOCK_SHIFT              6
+#define PRIBATE_LOCK_IDX(a)             (((mtm_word_t)((a)) >> PRIVATE_LOCK_SHIFT) & PRIVATE_LOCK_MASK)
+#define PRIVATE_GET_LOCK(tx, a)         (tx->wb_table + PRIVATE_LOCK_IDX((a)))
+
 
 #endif /* _LOCKS_H */

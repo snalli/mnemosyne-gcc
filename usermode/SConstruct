@@ -33,11 +33,6 @@ AddOption("--arch",
 			default = "x86_64",
 			help="CPU architecture: x86, x86_64 [default: %default]")
 
-AddOption("--test",
-			action="store_true", dest="test", 
-			default = False,
-			help="run unit tests [default: %default]")
-
 AddOption("--test-list",
 			action="store", dest="test_list", 
 			help="list of tests to run")
@@ -49,10 +44,30 @@ AddOption('--example',
 			help='build this example')
 
 
+# Custom help message. Overrides the help output of the local options.
+Help("""
+Type: 'scons' to build the libraries.
+      'scons check' to build and run unit tests.
+
+""")
+
+# Ugly hack to extract the optparse help output for my local options and add 
+# it to our custom help text.
+import SCons.Script.Main as main
+help_lines = main.OptionsParser.format_help().split('\n')
+count = 0
+for help_line in help_lines:
+	count = count+1
+	if help_line == "Local Options:":
+		break
+
+option_help = '\n'.join(help_lines[count-1:])
+Help(option_help)
+
+
 env['BUILD_DEBUG'] = GetOption('build_debug')
 env['LINKAGE'] = GetOption('linkage')
 env['HAVE_STATS'] = GetOption('have_stats')
-env['TEST'] = GetOption('test')
 env['TEST_LIST'] = GetOption('test_list')
 env['EXAMPLE'] = GetOption('selected_example')
 env['ARCH'] = GetOption('arch')
@@ -76,3 +91,7 @@ MnemosyneLibrary = SConscript('src/SConscript', variant_dir = env['MY_BUILD_DIR'
 if env['EXAMPLE'] != None:
 	Export('MnemosyneLibrary')
 	SConscript('examples/SConscript')
+
+#Testing Environment
+if 'check' in COMMAND_LINE_TARGETS:
+	SConscript('test/SConscript', variant_dir = os.path.join(env['MY_BUILD_DIR'], 'test'))

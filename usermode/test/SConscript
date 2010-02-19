@@ -1,0 +1,25 @@
+import sys
+from configuration import test
+testEnv = test.Environment('default')
+
+testEnv['CXXTEST_CPPPATH'] = ['/opt/cxxtest/', '#']
+testEnv.CxxTest('test_quaternion', source = 'quaternion.t.h')
+
+testEnv['ENV']['MTMINI'] = "mtminitA"
+#env = Environment(tools = ['default', 'cxxtest'])
+
+#buildEnv = env.Clone()
+
+#buildEnv.Append(CCFLAGS = '-g -O2')
+#buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+
+#buildEnv.Append(CPPPATH = '#src/mtm')
+#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux/x86')
+#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux')
+#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/x86')
+#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/posix')
+#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/generic')
+#buildEnv.Append(CPPPATH = '#src')
+
+#buildEnv.Append(LINKFLAGS = ['-g'])
+#buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')

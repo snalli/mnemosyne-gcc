@@ -2,10 +2,12 @@
 #include "mtm_i.h"
 #include "mode/pwb/pwb_i.h"
 
+#include "cm.h"
 #include "mode/common/mask.h"
 #include "mode/pwb/barrier.h"
 #include "mode/pwb/rwset.c"
 #include "hal/pcm.h"
+
 
 
 /*
@@ -147,11 +149,12 @@ void insert_write_set_entry_after(w_entry_t* new_entry, w_entry_t* tail, mtm_tx_
  * \return NULL, if the address is not referenced in the write set. Otherwise, returns
  *  a pointer to the write-set entry that contained that address.
  */
-static
-w_entry_t* matching_write_set_entry(w_entry_t* const list_head,
-                                    volatile mtm_word_t* address,
-                                    w_entry_t** list_tail,
-                                    w_entry_t** last_cache_neighbor)
+static inline
+w_entry_t *
+matching_write_set_entry(w_entry_t* const list_head,
+                         volatile mtm_word_t* address,
+                         w_entry_t** list_tail,
+                         w_entry_t** last_cache_neighbor)
 {
 	w_entry_t* this_entry = list_head;  // The entry examined in "this" iteration of the loop.
 	while (true) {
@@ -164,9 +167,9 @@ w_entry_t* matching_write_set_entry(w_entry_t* const list_head,
 		}
 		else if (this_entry->next == NULL) {
 			// EOL: Could not find a matching write-set entry.
-			if (list_tail != NULL)
+			if (list_tail != NULL) {
 				*list_tail = this_entry;
-			
+			}
 			return NULL;
 		}
 		else {
@@ -176,9 +179,21 @@ w_entry_t* matching_write_set_entry(w_entry_t* const list_head,
 }
 
 
-/*
- * Store a masked value of size less than or equal to a word, creating or
+/**
+ * \brief Store a masked value of size less than or equal to a word, creating or
  * updating a write-set entry as necessary.
+ * 
+ * If isolation is disabled (!ENABLE_ISOLATION) then instead of keeping new 
+ * values in the global lock table, we keep them in a private hash table. 
+ * The structure of the private table is the same as the global one's to 
+ * keep code changes minimal; its size may be different.
+ *
+ * Private pseudo-locks are not actually locks but a hack to keep the code 
+ * that deals with version-management common between the isolation and 
+ * no-isolation path. Since no two threads may compete for these pseudo-locks, 
+ * we don't need to use CAS to atomically acquire them but instead we can just 
+ * set them using a normal STORE. The set-operation may be done together with the
+ * assignment of the hash-table entry to point to the head of the linked list.
  *
  * \param tx is the local transaction in the current thread.
  * \param addr is the address to which value is being written.
@@ -192,10 +207,11 @@ w_entry_t* matching_write_set_entry(w_entry_t* const list_head,
  */
 static inline 
 w_entry_t *
-pwb_write(mtm_tx_t *tx, 
-          volatile mtm_word_t *addr, 
-          mtm_word_t value,
-          mtm_word_t mask)
+pwb_write_internal(mtm_tx_t *tx, 
+                   volatile mtm_word_t *addr, 
+                   mtm_word_t value,
+                   mtm_word_t mask,
+		           int ENABLE_ISOLATION)
 {
 	assert(tx->mode == MTM_MODE_pwb);
 	mode_data_t         *modedata = (mode_data_t *) tx->modedata[tx->mode];
@@ -203,7 +219,8 @@ pwb_write(mtm_tx_t *tx,
 	mtm_word_t          l;
 	mtm_word_t          version;
 	w_entry_t           *w;
-	w_entry_t           *prev = NULL;
+	w_entry_t           *write_set_tail = NULL;
+	int                 ret;
 
 	MTM_DEBUG_PRINT("==> pwb_write(t=%p[%lu-%lu],a=%p,d=%p-%lu,m=0x%lx)\n", tx,
 	                (unsigned long)modedata->start,
@@ -235,7 +252,18 @@ pwb_write(mtm_tx_t *tx,
 	}
 
 	/* Get reference to lock */
-	lock = GET_LOCK(addr);
+	if (ENABLE_ISOLATION) {
+		lock = GET_LOCK(addr);
+	} else {
+		/* Since isolation is off, go through the private pseudo-lock hash table 
+		 * instead of the global one. Since it's private, there is no notion of locking
+		 * so it might be confusing why we assign the hash table entry to a 
+		 * variable lock. The reason is that besides locking, the logic behind
+		 * the private table is the same as the global table's logic. So this
+		 * helps us keep most of the path the same and avoid code changes.
+		 */
+		lock = PRIVATE_GET_LOCK(tx, addr);
+	}
 
 	/* Try to acquire lock */
 restart:
@@ -257,9 +285,9 @@ restart_no_load:
 			w_entry_t* last_entry_in_same_cache_block = NULL;
 			w_entry_t* matching_entry = matching_write_set_entry(write_set_head, addr, &write_set_tail, &last_entry_in_same_cache_block);
 			if (matching_entry != NULL) {
-				if (matching_entry->mask != 0)
+				if (matching_entry->mask != 0) {
 					mask_new_value(matching_entry, addr, value, mask);
-				
+				}
 				return matching_entry;
 			} else {
 				if (modedata->w_set.nb_entries == modedata->w_set.size) {
@@ -287,75 +315,44 @@ restart_no_load:
 				}
 			}
 		}
+		/* If isolation is off and the pseudo-lock was set then we should have already 
+		 * found a written-back value entry and never reach here. */
+		assert(ENABLE_ISOLATION);
 
 		/* Conflict: CM kicks in */
-#if CM == CM_PRIORITY
-		if (tx->retries >= cm_threshold) {
-			if (LOCK_GET_PRIORITY(l) < tx->priority ||
-			    (LOCK_GET_PRIORITY(l) == tx->priority &&
-			    l < (mtm_word_t)modedata->w_set.entries
-			    && !LOCK_GET_WAIT(l))) 
-			{
-				/* We have higher priority */
-				if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_PRIORITY_WAIT(l, tx->priority)) == 0) {
-					goto restart;
-				}
-				l = LOCK_SET_PRIORITY_WAIT(l, tx->priority);
-			}
-			/* Wait until lock is free or another transaction waits for one of our locks */
-			while (1) {
-				int        nb;
-				mtm_word_t lw;
-
-				w = modedata->w_set.entries;
-				for (nb = modedata->w_set.nb_entries; nb > 0; nb--, w++) {
-					lw = ATOMIC_LOAD(w->lock);
-					if (LOCK_GET_WAIT(lw)) {
-						/* Another transaction waits for one of our locks */
-						goto give_up;
-					}
-				}
-				/* Did the lock we are waiting for get updated? */
-				lw = ATOMIC_LOAD(lock);
-				if (l != lw) {
-					l = lw;
-					goto restart_no_load;
-				}
-			}
-give_up:
-			if (tx->priority < PRIORITY_MAX) {
-				tx->priority++;
-			} else {
-				PRINT_DEBUG("Reached maximum priority\n");
-			}
-			tx->c_lock = lock;
-		}
-#elif CM == CM_DELAY
-		tx->c_lock = lock;
-#endif /* CM == CM_DELAY */
-		/* Abort */
+		ret = cm_conflict(tx, lock, &l);
+		switch (ret) {
+			case CM_RESTART:
+				goto restart;
+			case CM_RESTART_NO_LOAD:
+				goto restart_no_load;
+			case CM_RESTART_LOCKED:
+				/* Abort */
 #ifdef INTERNAL_STATS
-		tx->aborts_locked_write++;
+				tx->aborts_locked_write++;
 #endif /* INTERNAL_STATS */
-		mtm_pwb_restart_transaction(tx, RESTART_LOCKED_WRITE);
+				mtm_pwb_restart_transaction(tx, RESTART_LOCKED_WRITE);
+		}
+		/* Should never reach here. */
+		assert(0);
 	} else {
 		/* This region has not been locked by this thread. */
-		/* Handle write after reads (before CAS) */
-		version = LOCK_GET_TIMESTAMP(l);
+		if (ENABLE_ISOLATION) {
+			/* Handle write after reads (before CAS) */
+			version = LOCK_GET_TIMESTAMP(l);
 
-		if (version > modedata->end) {
-			/* We might have read an older version previously */
-			if (!tx->can_extend || mtm_has_read(tx, modedata, lock) != NULL) {
-				/* Read version must be older (otherwise, tx->end >= version) */
-				/* Not much we can do: abort */
-#if CM == CM_PRIORITY
-				/* Abort caused by invisible reads */
-				tx->visible_reads++;
-#endif /* CM == CM_PRIORITY */
+			if (version > modedata->end) {
+				/* We might have read an older version previously */
+				if (!tx->can_extend || mtm_has_read(tx, modedata, lock) != NULL) {
+					/* Read version must be older (otherwise, tx->end >= version) */
+					/* Not much we can do: abort */
+					/* Abort caused by invisible reads */
+					cm_visible_read(tx);
 #ifdef INTERNAL_STATS
-				tx->aborts_validate_write++;
+					tx->aborts_validate_write++;
 #endif /* INTERNAL_STATS */
-				mtm_pwb_restart_transaction(tx, RESTART_VALIDATE_WRITE);
+					mtm_pwb_restart_transaction(tx, RESTART_VALIDATE_WRITE);
+				}
 			}
 		}
 		
@@ -370,32 +367,36 @@ give_up:
 			mtm_pwb_restart_transaction (tx, RESTART_REALLOCATE);
 		}
 	    w = &modedata->w_set.entries[modedata->w_set.nb_entries];
+		if (ENABLE_ISOLATION) {
 # ifdef READ_LOCKED_DATA
-		w->version = version;
+			w->version = version;
 # endif /* READ_LOCKED_DATA */
 # if CM == CM_PRIORITY
-		if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_ADDR((mtm_word_t)w, tx->priority)) == 0) {
-			goto restart;
-		}
+			if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_ADDR((mtm_word_t)w, tx->priority)) == 0) {
+				goto restart;
+			}
 # else /* CM != CM_PRIORITY */
-		if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_ADDR((mtm_word_t)w)) == 0) {
-			goto restart;
-		}
+			if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_ADDR((mtm_word_t)w)) == 0) {
+				goto restart;
+			}
 # endif /* CM != CM_PRIORITY */
+		} else {
+			/* Don't need a CAS; just use a regular STORE. */
+			/* We also set the lock bit to ensure that the next write will 
+			 * see the write entry as valid. */
+			*lock = LOCK_SET_ADDR((mtm_word_t)w);
+		}
 		
-		initialize_write_set_entry(w, addr, value, mask, version, lock);
-		insert_write_set_entry_after(prev, w, tx, NULL);
+		w_entry_t* initialized_entry = 	initialize_write_set_entry(w, addr, value, mask, version, lock);
+		insert_write_set_entry_after(write_set_tail, initialized_entry, tx, NULL);
 		return w;
 	}
 }
 
 
-/*
- * Called by the CURRENT thread to load a word-sized value.
- */
-//static inline
+static inline
 mtm_word_t 
-mtm_pwb_load(mtm_tx_t *tx, volatile mtm_word_t *addr)
+pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int ENABLE_ISOLATION)
 {
 	assert(tx->mode == MTM_MODE_pwb);
 	mode_data_t         *modedata = (mode_data_t *) tx->modedata[tx->mode];
@@ -406,6 +407,7 @@ mtm_pwb_load(mtm_tx_t *tx, volatile mtm_word_t *addr)
 	mtm_word_t          version;
 	r_entry_t           *r;
 	w_entry_t           *w;
+	int                 ret;
 
 
 	MTM_DEBUG_PRINT("==> mtm_pwb_load(t=%p[%lu-%lu],a=%p)\n", tx, 
@@ -424,23 +426,28 @@ mtm_pwb_load(mtm_tx_t *tx, volatile mtm_word_t *addr)
 		return value;
 	}
 
-
-#if CM == CM_PRIORITY
-	if (tx->visible_reads >= vr_threshold && vr_threshold >= 0) {
-		/* Visible reads: acquire lock first */
-		w = mtm_pwb_write(tx, addr, 0, 0);
-		/* Make sure we did not abort */
-		if(tx->status != TX_ACTIVE) {
-			return 0;
+	if (ENABLE_ISOLATION) {
+		/* Check with contention manager whether to upgrade to write lock. */
+		if (cm_upgrade_lock(tx)) {
+			w = pwb_write(tx, addr, 0, 0);
+			/* Make sure we did not abort */
+			if(tx->status != TX_ACTIVE) {
+				return 0;
+			}
+			assert(w != NULL);
+			/* We now own the lock */
+			return w->mask == 0 ? ATOMIC_LOAD(addr) : w->value;
 		}
-		assert(w != NULL);
-		/* We now own the lock */
-		return w->mask == 0 ? ATOMIC_LOAD(addr) : w->value;
 	}
-#endif /* CM == CM_PRIORITY */
 
 	/* Get reference to lock */
-	lock = GET_LOCK(addr);
+	if (ENABLE_ISOLATION) {
+		lock = GET_LOCK(addr);
+	} else {
+		/* See comments under pwb_write. */
+		lock = PRIVATE_GET_LOCK(tx, addr);
+	}
+
 
 	/* Note: we could check for duplicate reads and get value from read set */
 
@@ -483,103 +490,75 @@ restart_no_load:
 			                (unsigned long)value);
 			return value;
 		}
+		/* If isolation is off and the pseudo-lock was set then we should have already 
+		 * found a written-back value entry and never reach here. */
+		assert(ENABLE_ISOLATION);
+
 		/* Conflict: CM kicks in */
 		/* TODO: we could check for duplicate reads and get value from read set (should be rare) */
-#if CM == CM_PRIORITY
-		if (tx->retries >= cm_threshold) {
-			if (LOCK_GET_PRIORITY(l) < tx->priority ||
-				(LOCK_GET_PRIORITY(l) == tx->priority &&
-			    l < (mtm_word_t)modedata->w_set.entries
-			    && !LOCK_GET_WAIT(l))) 
-			{
-				/* We have higher priority */
-				if (ATOMIC_CAS_FULL(lock, l, LOCK_SET_PRIORITY_WAIT(l, tx->priority)) == 0) {
-					goto restart;
-				}
-				l = LOCK_SET_PRIORITY_WAIT(l, tx->priority);
-			}
-			/* Wait until lock is free or another transaction waits for one of our locks */
-			while (1) {
-				int        nb;
-				mtm_word_t lw;
-
-				w = modedata->w_set.entries;
-				for (nb = modedata->w_set.nb_entries; nb > 0; nb--, w++) {
-					lw = ATOMIC_LOAD(w->lock);
-					if (LOCK_GET_WAIT(lw)) {
-						/* Another transaction waits for one of our locks */
-						goto give_up;
-					}
-				}
-				/* Did the lock we are waiting for get updated? */
-				lw = ATOMIC_LOAD(lock);
-				if (l != lw) {
-					l = lw;
-					goto restart_no_load;
-				}
-			}
-give_up:
-			if (tx->priority < PRIORITY_MAX) {
-				tx->priority++;
-			} else {
-				MTM_DEBUG_PRINT("Reached maximum priority\n");
-			}
-			tx->c_lock = lock;
-		}
-#elif CM == CM_DELAY
-		tx->c_lock = lock;
-#endif /* CM == CM_DELAY */
-		/* Abort */
+		ret = cm_conflict(tx, lock, &l);
+		switch (ret) {
+			case CM_RESTART:
+				goto restart;
+			case CM_RESTART_NO_LOAD:
+				goto restart_no_load;
+			case CM_RESTART_LOCKED:
+				/* Abort */
 #ifdef INTERNAL_STATS
-		tx->aborts_locked_read++;
+				tx->aborts_locked_write++;
 #endif /* INTERNAL_STATS */
-		mtm_pwb_restart_transaction (RESTART_LOCKED_READ);
+				mtm_pwb_restart_transaction(tx, RESTART_LOCKED_READ);
+		}
+		/* Should never reach here. */
+		assert(0);
 	} else {
 		/* Not locked */
 		value = ATOMIC_LOAD_ACQ(addr);
-		l2 = ATOMIC_LOAD_ACQ(lock);
-		if (l != l2) {
-			l = l2;
-			goto restart_no_load;
-		}
-		/* Check timestamp */
-		version = LOCK_GET_TIMESTAMP(l);
-		/* Valid version? */
-		if (version > modedata->end) {
-			/* No: try to extend first (except for read-only transactions: no read set) */
-			if (!tx->can_extend || !pwb_extend(tx, modedata)) {
-				/* Not much we can do: abort */
-#if CM == CM_PRIORITY
-				/* Abort caused by invisible reads */
-				tx->visible_reads++;
-#endif /* CM == CM_PRIORITY */
-#ifdef INTERNAL_STATS
-				tx->aborts_validate_read++;
-#endif /* INTERNAL_STATS */
-				mtm_pwb_restart_transaction (RESTART_VALIDATE_READ);
-			}
-			/* Verify that version has not been overwritten (read value has not
-			 * yet been added to read set and may have not been checked during
-			 * extend) */
-			l = ATOMIC_LOAD_ACQ(lock);
+		if (ENABLE_ISOLATION) {
+			l2 = ATOMIC_LOAD_ACQ(lock);
 			if (l != l2) {
 				l = l2;
 				goto restart_no_load;
 			}
-			/* Worked: we now have a good version (version <= tx->end) */
+			/* Check timestamp */
+			version = LOCK_GET_TIMESTAMP(l);
+			/* Valid version? */
+			if (version > modedata->end) {
+				/* No: try to extend first (except for read-only transactions: no read set) */
+				if (!tx->can_extend || !pwb_extend(tx, modedata)) {
+					/* Not much we can do: abort */
+					/* Abort caused by invisible reads */
+					cm_visible_read(tx);
+#ifdef INTERNAL_STATS
+					tx->aborts_validate_read++;
+#endif /* INTERNAL_STATS */
+					mtm_pwb_restart_transaction (RESTART_VALIDATE_READ);
+				}
+				/* Verify that version has not been overwritten (read value has not
+				 * yet been added to read set and may have not been checked during
+				 * extend) */
+				l = ATOMIC_LOAD_ACQ(lock);
+				if (l != l2) {
+					l = l2;
+					goto restart_no_load;
+				}
+				/* Worked: we now have a good version (version <= tx->end) */
+			}
 		}
 	}
+
 	/* We have a good version: add to read set (update transactions) and return value */
-
-	/* Add address and version to read set */
-	if (modedata->r_set.nb_entries == modedata->r_set.size) {
-		mtm_allocate_rs_entries(tx, modedata, 1);
+	if (ENABLE_ISOLATION) {
+		/* Add address and version to read set */
+		if (modedata->r_set.nb_entries == modedata->r_set.size) {
+			mtm_allocate_rs_entries(tx, modedata, 1);
+		}
+		r = &modedata->r_set.entries[modedata->r_set.nb_entries++];
+		r->version = version;
+		r->lock = lock;
 	}
-	r = &modedata->r_set.entries[modedata->r_set.nb_entries++];
-	r->version = version;
-	r->lock = lock;
 
-	MTM_DEBUG_PRINT("==> mtm_pwb_load[NOT LOCKED](t=%p[%lu-%lu],a=%p,l=%p,*l=%lu,d=%p-%lu,v=%lu)\n",
+	MTM_DEBUG_PRINT("==> mtm_pwb_load(t=%p[%lu-%lu],a=%p,l=%p,*l=%lu,d=%p-%lu,v=%lu)\n",
 	                tx, (unsigned long)modedata->start, 
 	                (unsigned long)modedata->end, 
 	                addr,
@@ -596,20 +575,30 @@ give_up:
 /*
  * Called by the CURRENT thread to store a word-sized value.
  */
-void mtm_pwb_store(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value)
+void 
+mtm_pwb_store(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value)
 {
-	pwb_write(tx, addr, value, ~(mtm_word_t)0);
+	pwb_write_internal(tx, addr, value, ~(mtm_word_t)0, 1);
 }
 
 
 /*
  * Called by the CURRENT thread to store part of a word-sized value.
  */
-void mtm_pwb_store2(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value, mtm_word_t mask)
+void 
+mtm_pwb_store2(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value, mtm_word_t mask)
 {
-	pwb_write(tx, addr, value, mask);
+	pwb_write_internal(tx, addr, value, mask, 1);
 }
 
+/*
+ * Called by the CURRENT thread to load a word-sized value.
+ */
+mtm_word_t 
+mtm_pwb_load(mtm_tx_t *tx, volatile mtm_word_t *addr)
+{
+	pwb_load_internal(tx, addr, 1);
+}
 
 
 DEFINE_LOAD_BYTES(pwb)

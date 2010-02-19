@@ -2,6 +2,7 @@
 #include "useraction.h"
 #include "mode/pwb/pwb_i.h"
 #include "mode/common/rwset.h"
+#include "cm.h" 
 
 
 static inline 
@@ -47,16 +48,16 @@ pwb_trycommit (mtm_tx_t *tx)
 		}
 
 		/* Try to validate (only if a concurrent transaction has committed since tx->start) */
-		if (modedata->start != t - 1 && !mtm_validate(tx, modedata)) {
-			/* Cannot commit */
-#if CM == CM_PRIORITY
-			/* Abort caused by invisible reads */
-			tx->visible_reads++;
-#endif /* CM == CM_PRIORITY */
+		if (ENABLE_ISOLATION) {
+			if (modedata->start != t - 1 && !mtm_validate(tx, modedata)) {
+				/* Cannot commit */
+				/* Abort caused by invisible reads. */
+				cm_visible_read(tx);
 #ifdef INTERNAL_STATS
-			tx->aborts_validate_commit++;
+				tx->aborts_validate_commit++;
 #endif /* INTERNAL_STATS */
-			return false;
+				return false;
+			}
 		}
 
 # ifdef READ_LOCKED_DATA
@@ -71,16 +72,18 @@ pwb_trycommit (mtm_tx_t *tx)
 		uintptr_t nv_log_max = (uintptr_t) &modedata->w_set_nv.entries[modedata->w_set.nb_entries];
 		uintptr_t block_addr;
 #if 0
+		/* Flush by invalidating cachelines. */
 		for (block_addr = nv_log_base; block_addr < nv_log_max ; block_addr+=CACHELINE_SIZE) {
 			pcm_wb_flush(modedata->pcm_storeset, block_addr);
 		}
 #else
+		/* Flush using WC */
 		pcm_stream_flush(modedata->pcm_storeset);
 #endif	
 		/* Install new versions, drop locks and set new timestamp */
-		w = modedata->w_set.entries;
+		/* In the case when isolation is off, the write set contains entries 
+		 * that point to private pseudo-locks. */
 		for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {
-
 			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,v=%d)\n", tx,
 			                (unsigned long)modedata->start, (unsigned long)modedata->end,
 			                w->addr, (void *)w->value, (int)w->value, (int)w->version);
@@ -102,22 +105,7 @@ pwb_trycommit (mtm_tx_t *tx)
 		ATOMIC_STORE_REL(&tx->id, id + 2);
 # endif /* READ_LOCKED_DATA */
 	}
-
-#if CM == CM_PRIORITY || defined(INTERNAL_STATS)
-	tx->retries = 0;
-#endif /* CM == CM_PRIORITY || defined(INTERNAL_STATS) */
-
-#if CM == CM_BACKOFF
-	/* Reset backoff */
-	tx->backoff = MIN_BACKOFF;
-#endif /* CM == CM_BACKOFF */
-
-#if CM == CM_PRIORITY
-	/* Reset priority */
-	tx->priority = 0;
-	tx->visible_reads = 0;
-#endif /* CM == CM_PRIORITY */
-
+	cm_reset(tx);
 	return true;
 }
 
@@ -174,9 +162,7 @@ pwb_rollback(mtm_tx_t *tx)
 # endif /* READ_LOCKED_DATA */
 	}
 
-#if CM == CM_PRIORITY || defined(INTERNAL_STATS)
 	tx->retries++;
-#endif /* CM == CM_PRIORITY || defined(INTERNAL_STATS) */
 #ifdef INTERNAL_STATS
 	tx->aborts++;
 	if (tx->max_retries < tx->retries) {
@@ -192,40 +178,6 @@ pwb_rollback(mtm_tx_t *tx)
 
 }
 
-
-void
-pwb_cm(mtm_tx_t *tx)
-{
-#if CM == CM_BACKOFF
-	unsigned long wait;
-	volatile int  j;
-
-	/* Simple RNG (good enough for backoff) */
-	tx->seed ^= (tx->seed << 17);
-	tx->seed ^= (tx->seed >> 13);
-	tx->seed ^= (tx->seed << 5);
-	wait = tx->seed % tx->backoff;
-	for (j = 0; j < wait; j++) {
-		/* Do nothing */
-	}
-	if (tx->backoff < MAX_BACKOFF) {
-		tx->backoff <<= 1;
-	}
-#endif /* CM == CM_BACKOFF */
-
-#if CM == CM_DELAY || CM == CM_PRIORITY
-	/* Wait until contented lock is free */
-	if (tx->c_lock != NULL) {
-		/* Busy waiting (yielding is expensive) */
-		while (LOCK_GET_OWNED(ATOMIC_LOAD(tx->c_lock))) {
-# ifdef WAIT_YIELD
-			sched_yield();
-# endif /* WAIT_YIELD */
-		}
-		tx->c_lock = NULL;
-	}
-#endif /* CM == CM_DELAY || CM == CM_PRIORITY */
-}
 
 
 uint32_t
@@ -356,7 +308,7 @@ mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r)
 	uint32_t actions;
 
 	rollback_transaction(tx);
-	pwb_cm(tx);
+	cm_delay(tx);
 	mtm_decide_retry_strategy (r); 
 
 	actions = a_runInstrumentedCode | a_restoreLiveVariables;

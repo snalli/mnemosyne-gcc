@@ -67,6 +67,10 @@ struct mtm_tx *mtm_current_tx();
 #define WRITE_BACK_ETL                  0
 #define WRITE_THROUGH                   1
 
+#define CM_SUICIDE                      0
+#define CM_DELAY                        1
+#define CM_BACKOFF                      2
+#define CM_PRIORITY                     3
 
 //FIXME: make this part of the Scons configuration
 //#include "config.h"
@@ -185,45 +189,45 @@ struct mtm_user_action;
 
 /* Transaction descriptor */
 struct mtm_tx_s {
-	uintptr_t dummy1;                     /* ICC expects to find the vtable pointer at offset 2*WORD_SIZE */
-	uintptr_t dummy2;
-	mtm_vtable_t *vtable;                 /* The dispatch table for the STM implementation currently in use. */
+	uintptr_t           dummy1;           /* ICC expects to find the vtable pointer at offset 2*WORD_SIZE. */
+	uintptr_t           dummy2;
+	mtm_vtable_t        *vtable;          /* The dispatch table for the STM implementation currently in use. */
 
-	mtm_jmpbuf_t *tmp_jb_ptr;
-	mtm_jmpbuf_t tmp_jb;
-	mtm_jmpbuf_t jb;
+	mtm_jmpbuf_t        *tmp_jb_ptr;      /* Pointer to the temporary register checkpoint. This simplifies the assembly checkpoint code. */
+	mtm_jmpbuf_t        tmp_jb;           /* Temporary register checkpoint; this is where the assebly register checkpoint code will save the registers.  */
+	mtm_jmpbuf_t        jb;               /* Register checkpoint of this transaction. Keeping this separate from tmp_jb allows a nested transaction to transparently execute the assembly checkpoint code without destroying the active register checkpoint.  */
 
-	mtm_mode_data_t *modedata[MTM_NUM_MODES];
-	mtm_mode_t      mode;
-	mtm_word_t      status;               /* Transaction status (not read by other threads) */
+	mtm_mode_data_t     *modedata[MTM_NUM_MODES];
+	mtm_mode_t          mode;
+	mtm_word_t          status;           /* Transaction status (not read by other threads). */
 
 	uint32_t prop;                        /* The _ITM_codeProperties of this transaction as given by the compiler.  */
-	int nesting;                          /* Nesting level */
-	int can_extend;                       /* Can this transaction be extended? */
-	_ITM_transactionId id;                /* Instance number of the transaction */
-	int thread_num;
+	int                 nesting;          /* Nesting level. */
+	int                 can_extend;       /* Can this transaction be extended? */
+	_ITM_transactionId  id;               /* Instance number of the transaction */
+	int                 thread_num;
 #ifdef CONFLICT_TRACKING
-	pthread_t thread_id;                  /* Thread identifier (immutable) */
+	pthread_t           thread_id;        /* Thread identifier (immutable) */
 #endif /* CONFLICT_TRACKING */
 #if CM == CM_DELAY || CM == CM_PRIORITY
-	volatile mtm_word_t *c_lock;          /* Pointer to contented lock (cause of abort) */
+	volatile mtm_word_t *c_lock;          /* Pointer to contented lock (cause of abort). */
 #endif /* CM == CM_DELAY || CM == CM_PRIORITY */
 #if CM == CM_BACKOFF
-	unsigned long backoff;                /* Maximum backoff duration */
-	unsigned long seed;                   /* RNG seed */
+	unsigned long       backoff;          /* Maximum backoff duration. */
+	unsigned long       seed;             /* RNG seed. */
 #endif /* CM == CM_BACKOFF */
 #if CM == CM_PRIORITY
-	int priority;                         /* Transaction priority */
-	int visible_reads;                    /* Should we use visible reads? */
+	int                 priority;         /* Transaction priority */
+	int                 visible_reads;    /* Should we use visible reads? */
 #endif /* CM == CM_PRIORITY */
-#if CM == CM_PRIORITY || defined(INTERNAL_STATS)
-	unsigned long    retries;             /* Number of consecutive aborts (retries) */
-#endif /* CM == CM_PRIORITY || defined(INTERNAL_STATS) */
+	unsigned long       retries;          /* Number of consecutive aborts (retries) */
 
-	uintptr_t        stack_base;          /* Stack base address */
-	uintptr_t        stack_size;          /* Stack size */
-	mtm_local_undo_t local_undo;   	      /* Data used by local.c for the local memory undo log.  */
+	uintptr_t           stack_base;       /* Stack base address */
+	uintptr_t           stack_size;       /* Stack size */
+	mtm_local_undo_t    local_undo;       /* Data used by local.c for the local memory undo log.  */
+	mtm_word_t          *wb_table;        /* Private write-back table for use when isolation is off. */
 };
+
 
 /*
  * Transaction nesting is supported in a minimalist way (flat nesting):

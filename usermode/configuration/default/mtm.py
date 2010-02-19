@@ -179,6 +179,15 @@ LOCK_ARRAY_LOG_SIZE = 20
 LOCK_SHIFT_EXTRA = 2
 
 ########################################################################
+# PRIVATE_LOCK_ARRAY_LOG_SIZE (default=20): number of bits used for indexes 
+#   in the private pseudo-lock array.  The size of the array will be 2 to 
+#   the power of  PRIVATE_LOCK_ARRAY_LOG_SIZE.
+########################################################################
+
+PRIVATE_LOCK_ARRAY_LOG_SIZE = 8
+
+
+########################################################################
 # MIN_BACKOFF (default=0x04UL) and MAX_BACKOFF (default=0x80000000UL):
 #   minimum and maximum values of the exponential backoff delay.  This
 #   parameter is only used with the CM_BACKOFF contention manager.

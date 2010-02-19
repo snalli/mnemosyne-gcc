@@ -19,7 +19,14 @@ mtm_allocate_ws_entries_nv(mtm_tx_t *tx, mode_data_t *data, int extend)
 		}
 	} else {
 		/* Allocate write set */
-#if CM == CM_PRIORITY
+#if ALIGNMENT == 1 /* no alignment requirement */
+		if ((data->w_set_nv.entries = 
+		     (w_entry_t *)malloc(data->w_set_nv.size * sizeof(w_entry_t))) == NULL)
+		{
+			perror("malloc");
+			exit(1);
+		}
+#else
 		if (posix_memalign((void **)&data->w_set_nv.entries, 
 		                   ALIGNMENT, 
 		                   data->w_set_nv.size * sizeof(w_entry_t)) != 0) 
@@ -27,14 +34,7 @@ mtm_allocate_ws_entries_nv(mtm_tx_t *tx, mode_data_t *data, int extend)
 			fprintf(stderr, "Error: cannot allocate aligned memory\n");
 			exit(1);
 		}
-#else /* CM != CM_PRIORITY */
-		if ((tx->w_set_nv.entries = 
-		     (w_entry_t *)malloc(tx->w_set_nv.size * sizeof(w_entry_t))) == NULL)
-		{
-			perror("malloc");
-			exit(1);
-		}
-#endif /* CM != CM_PRIORITY */
+#endif
 	}
 }
 

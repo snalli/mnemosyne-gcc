@@ -181,10 +181,20 @@ mtm_init_thread(void)
 	gc_init_thread();
 #endif /* EPOCH_GC */
 
+
+	/* Allocate descriptor */
+#if ALIGNMENT == 1 /* no alignment requirement */
+	if ((tx = (mtm_tx_t *)malloc(sizeof(mtm_tx_t))) == NULL) {
+		perror("malloc");
+		exit(1);
+	}
+#else
 	if (posix_memalign((void **)&tx, ALIGNMENT, sizeof(mtm_tx_t)) != 0) {
 		fprintf(stderr, "Error: cannot allocate aligned memory\n");
 		exit(1);
 	}
+#endif
+
 
 	/* Set status (no need for CAS or atomic op) */
 	tx->status = TX_IDLE;
@@ -267,6 +277,12 @@ mtm_init_thread(void)
 
 	mtm_local_init(tx);
 
+	/* Allocate private write-back table; entries are set to zero by calloc. */
+	if ((tx->wb_table = (mtm_tx_t *)calloc(PRIVATE_LOCK_ARRAY_SIZE, sizeof(mtm_tx_t))) == NULL) {
+		perror("malloc");
+		exit(1);
+	}	
+	
 #if 0
 	/* Callbacks */
 	if (nb_init_cb != 0) {

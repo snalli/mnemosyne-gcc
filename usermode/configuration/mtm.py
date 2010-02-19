@@ -1,7 +1,7 @@
 import os
 import string
 import SCons.Environment
-from SCons.Script import ARGUMENTS
+from SCons.Script import ARGUMENTS, Dir
 from SCons.Variables import Variables, EnumVariable, BoolVariable
 
 
@@ -54,8 +54,9 @@ class Environment(SCons.Environment.Environment):
 			Retrieve and define help options for configuration variables of
 			TinySTM.
 		"""
+		rootdir = Dir('#').abspath
 		configuration_files = [
-			"../../config/" + configuration_name + "/mtm.py",
+			rootdir + "/configuration/" + configuration_name + "/mtm.py",
 		]
 		
 		command_line_arguments = ARGUMENTS
@@ -164,6 +165,10 @@ class Environment(SCons.Environment.Environment):
 		('LOCK_ARRAY_LOG_SIZE',
 		 'Number of bits used for indexes in the lock array. The size of the array will be 2 to the power of LOCK_ARRAY_LOG_SIZE.',
 		 20 # Default
+				 ),
+		('PRIVATE_LOCK_ARRAY_LOG_SIZE',
+		 'Number of bits used for indexes in the private pseudo-lock array. The size of the array will be 2 to the power of PRIVATE_LOCK_ARRAY_LOG_SIZE.',
+		 8 # Default
 				 ),
 		('MIN_BACKOFF',
 		 'Minimum value of the exponential backoff delay. This parameter is only used with the CM_BACKOFF contention manager.',

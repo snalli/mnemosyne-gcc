@@ -49,11 +49,12 @@ init_global()
 	struct sigaction act;
 
 	PRINT_DEBUG("==> mtm_init()\n");
-
 	PRINT_DEBUG("\tsizeof(word)=%d\n", (int)sizeof(mtm_word_t));
 
 	COMPILE_TIME_ASSERT(sizeof(mtm_word_t) == sizeof(void *));
 	COMPILE_TIME_ASSERT(sizeof(mtm_word_t) == sizeof(atomic_t));
+
+	mtm_config_init();
 
 #ifdef EPOCH_GC
 	gc_init(mtm_get_clock);

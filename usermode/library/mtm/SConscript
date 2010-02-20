@@ -28,6 +28,7 @@ srcgen_sjlj = buildEnv.Program('generate_sjlj', 'src/srcgen/generate_sjlj.c')
 srcgen_vtable = buildEnv.Program('generate_vtable', 'src/srcgen/generate_vtable.c')
 
 CC_SRC = Split("""
+               src/config.c 
                src/gc.c
                src/init.c
                src/intelabi.c

@@ -179,37 +179,6 @@ parse(FILE *fin, char *option, char *value)
 }  
 
 
-static void 
-config_print()
-{
-	int i;
-
-	option_t options[] = {
-		FOREACH_RUNTIME_CONFIG_OPTION(CONFIG_OPTION_KEY)
-	};
-
-	fprintf(MNEMOSYNE_DEBUG_OUT, "Configuration parameters\n");
-	fprintf(MNEMOSYNE_DEBUG_OUT, "========================\n");
-	for (i=0; i < sizeof (options) / sizeof(option_t); i++) {
-		fprintf(MNEMOSYNE_DEBUG_OUT, "%s=", options[i].name);
-		switch(options[i].type) {
-			case mnemosyne_config_integer_data:
-				fprintf(MNEMOSYNE_DEBUG_OUT, "%d\n", *((int *) options[i].value_ptr));
-				break;
-			case mnemosyne_config_string_data:
-				fprintf(MNEMOSYNE_DEBUG_OUT, "%s\n", *((char **) options[i].value_ptr));
-				break;
-			case mnemosyne_config_boolean_data:
-				fprintf(MNEMOSYNE_DEBUG_OUT, "%s\n", 
-				        *((bool *) options[i].value_ptr) == true ?
-				        "enable": "disable");
-				break;
-			default:
-				MNEMOSYNE_INTERNALERROR("Not supported configuration parameter type");
-		} 
-	}
-}
-
 
 static 
 void 

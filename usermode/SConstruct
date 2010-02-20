@@ -53,7 +53,7 @@ if env['EXAMPLE'] != None:
 	examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
 	Export('examplesEnv')
 	Export('MnemosyneLibrary', 'MtmLibrary')
-	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'example', examplesEnv['EXAMPLE']))
+	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'examples'))
 
 #Testing Environment
 if 'check' in COMMAND_LINE_TARGETS:

@@ -226,9 +226,9 @@ sync_segment_table()
 	i = 0;
 	list_for_each_entry(iter, &segment_list.list, node) {
 		sprintf(buf, "%p %llu %s/segment_file_%d\n",
-		        SEGMENTS_DIR,
 		        iter->segment.start, 
 		        (unsigned long long) iter->segment.length, 
+		        SEGMENTS_DIR,
 		        i);
 		write(fd_segment_table, buf, strlen(buf));		
 		i++;		
@@ -262,7 +262,7 @@ mnemosyne_segment_create(void *start, size_t length, int prot, int flags)
 	/* Ensure segment does not already exist. */
 	list_for_each_entry(iter, &segment_list.list, node) {
 		if ((uint64_t) iter->segment.start <= (uint64_t) start &&
-		    (uint64_t) iter->segment.start + (uint64_t) iter->segment.length > start) 
+		    (uint64_t) iter->segment.start + (uint64_t) iter->segment.length > (uint64_t) start) 
 		{
 			return NULL;
 		}
@@ -288,6 +288,8 @@ mnemosyne_segment_create(void *start, size_t length, int prot, int flags)
 	ptr = mmap(start, length, PROT_READ|PROT_WRITE,  MAP_SHARED|MAP_ANONYMOUS, 0, 0);
 	assert(ptr == start); /* FIXME: mmap uses start as a hint -- our interface does not */
 	pthread_mutex_unlock(&segment_list.mutex);
+	
+	return segment_node->segment.start;
 }
 
 
@@ -302,7 +304,7 @@ mnemosyne_segment_destroy(void *start, size_t length)
 	pthread_mutex_lock(&segment_list.mutex);
 	list_for_each_entry(iter, &segment_list.list, node) {
 		if ((uint64_t) iter->segment.start <= (uint64_t) start &&
-		    (uint64_t) iter->segment.start + (uint64_t) iter->segment.length > start) 
+		    (uint64_t) iter->segment.start + (uint64_t) iter->segment.length > (uint64_t) start) 
 		{
 			node_to_delete = iter;
 			break;
@@ -325,7 +327,7 @@ path2file(char *path, char **file)
 {
 	int i;
 
-	for (i=strlen(path); i--; i>=0) {
+	for (i=strlen(path); i>=0; i--) {
 		if (path[i] == '/') {
 			*file = &path[i+1];
 			return MNEMOSYNE_R_SUCCESS;

@@ -198,7 +198,7 @@ option_set(option_t *option, char *value)
 			    || (int_value > ((int *) option->validvalues_ptr)[1])) 
 			{
 			    value_is_valid = 0;
-				MNEMOSYNE_WARNING("Value given for parameter '%s' is out of range. Using default value.", 
+				M_WARNING("Value given for parameter '%s' is out of range. Using default value.", 
 				            option->name); 	
 			}
 			if (value_is_valid) {
@@ -217,7 +217,7 @@ option_set(option_t *option, char *value)
 				value_is_valid = 1;
 			}
 			if (value_is_valid == 0) {
-				MNEMOSYNE_WARNING("Value given for parameter '%s' is not recognized. Using default value.", 
+				M_WARNING("Value given for parameter '%s' is not recognized. Using default value.", 
 				            option->name); 	
 			} else {
 				char *bufp;
@@ -238,7 +238,7 @@ option_set(option_t *option, char *value)
 				value_is_valid = 1;
 			}
 			if (value_is_valid == 0) {
-				MNEMOSYNE_WARNING("Value given for parameter '%s' is not recognized. Using default value.", 
+				M_WARNING("Value given for parameter '%s' is not recognized. Using default value.", 
 				            option->name); 	
 			} else {
 				if (strcmp(value, "enable") == 0) {
@@ -326,7 +326,7 @@ config_init_use_file(char *filename)
 			}  
 		}		
 		if (known_parameter == 0) {
-			MNEMOSYNE_WARNING("Ignoring unknown parameter '%s'.", buf_option);
+			M_WARNING("Ignoring unknown parameter '%s'.", buf_option);
 		} 
 	}
 
@@ -366,7 +366,7 @@ mnemosyne_config_set_option(char *option, char *value)
 		}  
 	}		
 	if (known_parameter == 0) {
-		MNEMOSYNE_WARNING("Ignoring unknown parameter '%s'.", option);
+		M_WARNING("Ignoring unknown parameter '%s'.", option);
 	} 
 
 	return MNEMOSYNE_R_SUCCESS;

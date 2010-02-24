@@ -19,6 +19,7 @@ config_init_internal(char *config_file)
 void
 mtm_config_init()
 {
+/*
 	char *config_file;
 	config_file = getenv("MNEMOSYNE_CONFIG");
 	if (config_file) {
@@ -26,16 +27,18 @@ mtm_config_init()
 	} else {
 		config_init_internal("mnemosyne.ini");
 	}
+	*/
 }
 
 void
 mtm_config_fini()
 {
-	config_destroy(&mtm_cfg);
+
+//	config_destroy(&mtm_cfg);
 }
 
 void
 mtm_config_print(FILE *stream) 
 {
-	CONFIG_GROUP_PRINT(stream, mtm, &mtm_runtime_settings);
+//	CONFIG_GROUP_PRINT(stream, mtm, &mtm_runtime_settings);
 }

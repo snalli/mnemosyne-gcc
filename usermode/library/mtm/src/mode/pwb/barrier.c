@@ -427,7 +427,7 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int ENABLE_ISOLATION)
 	if (ENABLE_ISOLATION) {
 		/* Check with contention manager whether to upgrade to write lock. */
 		if (cm_upgrade_lock(tx)) {
-			w = pwb_write(tx, addr, 0, 0);
+			w = pwb_write_internal(tx, addr, 0, 0, ENABLE_ISOLATION);
 			/* Make sure we did not abort */
 			if(tx->status != TX_ACTIVE) {
 				return 0;

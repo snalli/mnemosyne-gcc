@@ -1,14 +1,14 @@
-#ifndef _MNEMOSYNE_DEBUG_H
-#define _MNEMOSYNE_DEBUG_H
+#ifndef _M_DEBUG_H
+#define _M_DEBUG_H
 
 #include <stdio.h>
 #include <assert.h>
 
 /* Debugging levels per module */
 
-#define MNEMOSYNE_DEBUG_MODULEX     mnemosyne_runtime_settings.debug_moduleX
+#define M_DEBUG_MODULEX     m_runtime_settings.debug_moduleX
 
-#define MNEMOSYNE_DEBUG_OUT      stderr
+#define M_DEBUG_OUT      stderr
 
 
 /* Operations on timevals */
@@ -34,37 +34,37 @@
     } while (0)
 
 
-#define MNEMOSYNE_INTERNALERROR(msg, ...)                                         \
-    mnemosyne_debug_printmsg(__FILE__, __LINE__, 1, "Internal Error: ",           \
+#define M_INTERNALERROR(msg, ...)                                         \
+    m_debug_printmsg(__FILE__, __LINE__, 1, "Internal Error: ",           \
                        msg, ##__VA_ARGS__ )
 
-#define MNEMOSYNE_ERROR(msg, ...)                                                 \
-    mnemosyne_debug_printmsg(NULL, 0, 1, "Error",	msg, ##__VA_ARGS__ )
+#define M_ERROR(msg, ...)                                                 \
+    m_debug_printmsg(NULL, 0, 1, "Error",	msg, ##__VA_ARGS__ )
 
 
-#ifdef _MNEMOSYNE_BUILD_DEBUG
+#ifdef _M_BUILD_DEBUG
 
-# define MNEMOSYNE_WARNING(msg, ...)                                              \
-    mnemosyne_debug_printmsg(NULL, 0, 0, "Warning",	msg, ##__VA_ARGS__ )
+# define M_WARNING(msg, ...)                                              \
+    m_debug_printmsg(NULL, 0, 0, "Warning",	msg, ##__VA_ARGS__ )
 
 
-# define MNEMOSYNE_DEBUG_PRINT(debug_level, msg, ...)                             \
-    mnemosyne_debug_printmsg_L(debug_level,	msg, ##__VA_ARGS__ )
+# define M_DEBUG_PRINT(debug_level, msg, ...)                             \
+    m_debug_printmsg_L(debug_level,	msg, ##__VA_ARGS__ )
 
-# define MNEMOSYNE_ASSERT(condition) assert(condition) 
+# define M_ASSERT(condition) assert(condition) 
 
-#else /* !_MNEMOSYNE_BUILD_DEBUG */
+#else /* !_M_BUILD_DEBUG */
 
-# define MNEMOSYNE_WARNING(msg, ...)                   ((void) 0)
-# define MNEMOSYNE_DEBUG_PRINT(debug_level, msg, ...)  ((void) 0)
-# define MNEMOSYNE_ASSERT(condition)                   ((void) 0)
+# define M_WARNING(msg, ...)                   ((void) 0)
+# define M_DEBUG_PRINT(debug_level, msg, ...)  ((void) 0)
+# define M_ASSERT(condition)                   ((void) 0)
 
-#endif /* !_MNEMOSYNE_BUILD_DEBUG */
+#endif /* !_M_BUILD_DEBUG */
 
 
 /* Interface functions */
 
-void mnemosyne_debug_printmsg(char *file, int line, int fatal, const char *prefix, const char *strformat, ...); 
-void mnemosyne_debug_printmsg_L(int debug_level, const char *strformat, ...); 
+void m_debug_printmsg(char *file, int line, int fatal, const char *prefix, const char *strformat, ...); 
+void m_debug_printmsg_L(int debug_level, const char *strformat, ...); 
 
-#endif /* _MNEMOSYNE_DEBUG_H */
+#endif /* _M_DEBUG_H */

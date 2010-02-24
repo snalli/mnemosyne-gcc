@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <mmintrin.h>
-#include <chash/PointerHashInline.h>
+#include <cuckoo_hash/PointerHashInline.h>
 #include "pcm.h"
 
 /* Static configuration */

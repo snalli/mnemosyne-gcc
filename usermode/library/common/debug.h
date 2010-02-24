@@ -34,22 +34,22 @@
     } while (0)
 
 
-#define M_INTERNALERROR(msg, ...)                                         \
-    m_debug_printmsg(__FILE__, __LINE__, 1, "Internal Error: ",           \
-                       msg, ##__VA_ARGS__ )
+#define M_INTERNALERROR(msg, ...)                                           \
+    m_debug_print(__FILE__, __LINE__, 1, "Internal Error: ",                \
+                  msg, ##__VA_ARGS__ )
 
-#define M_ERROR(msg, ...)                                                 \
-    m_debug_printmsg(NULL, 0, 1, "Error",	msg, ##__VA_ARGS__ )
+#define M_ERROR(msg, ...)                                                   \
+    m_debug_print(NULL, 0, 1, "Error",	msg, ##__VA_ARGS__ )
 
 
 #ifdef _M_BUILD_DEBUG
 
-# define M_WARNING(msg, ...)                                              \
-    m_debug_printmsg(NULL, 0, 0, "Warning",	msg, ##__VA_ARGS__ )
+# define M_WARNING(msg, ...)                                                \
+    m_debug_print(NULL, 0, 0, "Warning",	msg, ##__VA_ARGS__ )
 
 
-# define M_DEBUG_PRINT(debug_level, msg, ...)                             \
-    m_debug_printmsg_L(debug_level,	msg, ##__VA_ARGS__ )
+# define M_DEBUG_PRINT(debug_level, msg, ...)                               \
+    m_debug_print_L(debug_level,	msg, ##__VA_ARGS__ )
 
 # define M_ASSERT(condition) assert(condition) 
 
@@ -64,7 +64,7 @@
 
 /* Interface functions */
 
-void m_debug_printmsg(char *file, int line, int fatal, const char *prefix, const char *strformat, ...); 
-void m_debug_printmsg_L(int debug_level, const char *strformat, ...); 
+void m_debug_print(char *file, int line, int fatal, const char *prefix, const char *strformat, ...); 
+void m_debug_print_L(int debug_level, const char *strformat, ...); 
 
 #endif /* _M_DEBUG_H */

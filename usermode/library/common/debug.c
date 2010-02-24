@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <debug.h>
+#include "debug.h"
 
 void
-mnemosyne_debug_printmsg(char *file, int line, int fatal, const char *prefix,
-                   const char *strformat, ...) 
+m_debug_print(char *file, int line, int fatal, const char *prefix,
+              const char *strformat, ...) 
 {
 	char    buf[512];
 	va_list ap;
@@ -24,7 +24,7 @@ mnemosyne_debug_printmsg(char *file, int line, int fatal, const char *prefix,
 	va_start (ap, strformat);
 	vsnprintf(&buf[len], sizeof (buf) - 1 - len, strformat, ap);
 	va_end (ap);
-	fprintf(MNEMOSYNE_DEBUG_OUT, "%s", buf);
+	fprintf(M_DEBUG_OUT, "%s", buf);
 	if (fatal) {
 		exit(1);
 	}
@@ -32,7 +32,7 @@ mnemosyne_debug_printmsg(char *file, int line, int fatal, const char *prefix,
 
 
 void 
-mnemosyne_debug_printmsg_L(int debug_flag, const char *strformat, ...) 
+m_debug_print_L(int debug_flag, const char *strformat, ...) 
 {
 	char           msg[512];
 	int            len; 
@@ -54,7 +54,7 @@ mnemosyne_debug_printmsg_L(int debug_flag, const char *strformat, ...)
 	tid = 0;
 	tid_pthread = 0;
 	gettimeofday(&curtime, NULL); 
-	len = sprintf(msg, "[MNEMOSYNE_DEBUG: T-%02u (%u) TS=%04u%06u TX=%d PC=%p] ", 
+	len = sprintf(msg, "[M_DEBUG: T-%02u (%u) TS=%04u%06u TX=%d PC=%p] ", 
 	              tid, 
 	              tid_pthread, 
 	              (unsigned int) curtime.tv_sec, (unsigned int) curtime.tv_usec,
@@ -67,13 +67,13 @@ mnemosyne_debug_printmsg_L(int debug_flag, const char *strformat, ...)
 	len = strlen(msg);
 	msg[len] = '\0';
 
-	fprintf(MNEMOSYNE_DEBUG_OUT, "%s", msg);
+	fprintf(M_DEBUG_OUT, "%s", msg);
 }
 
 
 /* Obtain a backtrace and print it to stdout. */
 void 
-mnemosyne_print_trace (void)
+m_print_trace (void)
 {
        void *array[10];
        size_t size;

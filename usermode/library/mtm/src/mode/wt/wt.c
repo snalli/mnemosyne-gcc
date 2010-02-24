@@ -33,7 +33,7 @@ mtm_vtable_t STR2 (mtm_wt, _vtable) =
 
 
 
-mtm_result_t
+m_result_t
 mtm_wt_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 {
 	mtm_wt_mode_data_t *data;
@@ -45,7 +45,7 @@ mtm_wt_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 	if ((data = (mtm_wt_mode_data_t *) malloc(sizeof(mtm_wt_mode_data_t)))
 	    == NULL)
 	{
-		return MTM_R_FAILURE;
+		return M_R_FAILURE;
 	}
 
 	/* Read set */
@@ -61,11 +61,11 @@ mtm_wt_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 
 	*datap = (mtm_mode_data_t *) data;
 
-	return MTM_R_SUCCESS;
+	return M_R_SUCCESS;
 }
 
 
-mtm_result_t
+m_result_t
 mtm_wt_destroy(mtm_mode_data_t *_data)
 {
 	mode_data_t *data = (mode_data_t *) _data;

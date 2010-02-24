@@ -34,7 +34,7 @@ mtm_vtable_t STR2 (mtm_pwb, _vtable) =
 };
 
 /* Called by mtm_init_thread */
-mtm_result_t
+m_result_t
 mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 {
 	mtm_pwb_mode_data_t *data;
@@ -46,7 +46,7 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 	if ((data = (mtm_pwb_mode_data_t *) malloc(sizeof(mtm_pwb_mode_data_t)))
 	    == NULL)
 	{
-		return MTM_R_FAILURE;
+		return M_R_FAILURE;
 	}
 
 	pcm_storeset_create(&data->pcm_storeset);
@@ -68,11 +68,11 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 
 	*datap = (mtm_mode_data_t *) data;
 
-	return MTM_R_SUCCESS;
+	return M_R_SUCCESS;
 }
 
 
-mtm_result_t
+m_result_t
 mtm_pwb_destroy(mtm_mode_data_t *_data)
 {
 	mode_data_t *data = (mode_data_t *) _data;

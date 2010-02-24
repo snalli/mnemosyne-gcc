@@ -11,7 +11,7 @@
 #ifndef _WT_H
 #define _WT_H
 
-mtm_result_t mtm_wt_create(mtm_tx_t *tx, mtm_mode_data_t **descp);
-mtm_result_t mtm_wt_destroy(mtm_mode_data_t *desc);
+m_result_t mtm_wt_create(mtm_tx_t *tx, mtm_mode_data_t **descp);
+m_result_t mtm_wt_destroy(mtm_mode_data_t *desc);
 
 #endif

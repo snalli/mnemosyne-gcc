@@ -12,7 +12,7 @@
 #ifndef _WBETL_H
 #define _WBETL_H
 
-mtm_result_t mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **descp);
-mtm_result_t mtm_pwb_destroy(mtm_mode_data_t *desc);
+m_result_t mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **descp);
+m_result_t mtm_pwb_destroy(mtm_mode_data_t *desc);
 
 #endif

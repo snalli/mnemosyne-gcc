@@ -28,7 +28,7 @@ else:
 C_SRC = Split("""
               src/address_space.c
               src/init.c
-              src/malloc.c
+              src/malloc-lea.c
               src/reincarnation_callback.c
               src/segment.c
               """)

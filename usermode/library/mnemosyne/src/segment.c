@@ -14,6 +14,8 @@
 
 #define SEGMENTS_DIR ".segments"
 
+mnemosyne_segment_list_t segment_list;
+
 typedef struct mnemosyne_segment_file_header_s mnemosyne_segment_file_header_t;
 typedef struct mnemosyne_segment_s mnemosyne_segment_t;
 typedef struct mnemosyne_segment_list_node_s mnemosyne_segment_list_node_t;

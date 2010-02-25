@@ -8,6 +8,7 @@
 #define LIST_HXX_QGJ6Z72Y
 
 #include <ostream>
+#include <mnemosyne.h>
 
 /*!
  * A simple, singly-linked list implementation. The goal here is an extremely
@@ -17,7 +18,10 @@ template <class DataType>
 class SinglyLinkedList
 {
 public:
-	
+	void *operator new(size_t  num_bytes) {
+		return mnemosyne_malloc(num_bytes);
+	}
+
 	/*!
 	 * Constructs an empty list, having zero elements.
 	 */
@@ -49,6 +53,7 @@ public:
 	 */
 	class Node
 	{
+	
 	public:
 		/*!
 		 * Build a list node with the given data.

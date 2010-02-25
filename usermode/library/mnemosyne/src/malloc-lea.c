@@ -332,7 +332,6 @@ extern Void_t*     sbrk _ARG_((size_t));
 
 #include "mnemosyne_i.h"
 #include "segment.h"
-#include "plist.h"
 
 
 /*  CHUNKS */
@@ -343,7 +342,8 @@ struct malloc_chunk
   size_t size;               /* Size in bytes, including overhead. */
                              /* Or'ed with INUSE if in use. */
 
-  struct list_head list;    /* doubly linked list -- used only if free. */
+  struct malloc_chunk* fd;   /* double links -- used only if free. */
+  struct malloc_chunk* bk;
 
 };
 
@@ -419,9 +419,7 @@ typedef struct malloc_chunk* mchunkptr;
 struct malloc_bin
 {
   struct malloc_chunk dhd;   /* dirty list header */
-  struct malloc_chunk dtl;   /* dirty list tail */
   struct malloc_chunk chd;   /* clean list header */
-  struct malloc_chunk ctl;   /* clean list tail */
 };
 
 typedef struct malloc_bin* mbinptr;
@@ -438,6 +436,7 @@ typedef struct malloc_bin* mbinptr;
 #define last_dirty(b)  ((b)->dhd.bk)
 
 
+
 
 /* The bins, initialized to have null double linked lists */
 
@@ -450,20 +449,30 @@ typedef struct malloc_bin* mbinptr;
 #define MAX_SMALLBIN_OFFSET  18
 #define MAX_SMALLBIN_SIZE   144  /* Max size for which small bin rules apply */
 
+/* Helper macro to initialize bins */
+#define IAV(i)\
+  {{ 0, &(av[i].dhd),  &(av[i].dhd) }, { 0, &(av[i].chd),  &(av[i].chd) }}
 
-struct malloc_bin *av;
-
-__attribute__ ((section("PERSISTENT"))) uintptr_t          pheap = 0x0;
+__attribute__ ((section("PERSISTENT"))) uint64_t           pheap = 0x0;
 __attribute__ ((section("PERSISTENT"))) size_t             sbrk_limit = 0; 
-__attribute__ ((section("PERSISTENT"))) bool               init_done = false; 
+__attribute__ ((section("PERSISTENT"))) int                init_done = 0; 
+__attribute__ ((section("PERSISTENT"))) struct malloc_bin  *av;
+
+/* The end of memory returned from previous sbrk call */
+__attribute__ ((section("PERSISTENT"))) size_t* last_sbrk_end = 0; 
+__attribute__ ((section("PERSISTENT"))) size_t sbrked_mem = 0; /* Keep track of total mem for malloc_stats */
 
 /* Keep track of the maximum actually used clean bin, to make loops faster */
 /* (Not worth it to do the same for dirty ones) */
 __attribute__ ((section("PERSISTENT"))) mbinptr maxClean;
 
 
+void *persistent_sbrk(size_t size) {
+	sbrk_limit += size;
+	return (void *) (pheap + sbrk_limit);
+}	
 
-/* This operation is idempotent.  */
+static inline
 size_t
 init_bin_lists(uintptr_t av_base)
 {
@@ -471,45 +480,46 @@ init_bin_lists(uintptr_t av_base)
 
 	av = (struct malloc_bin *) av_base;
 	for (i=0; i<NBINS; i++) {
-		PCM_STORE(&(av[i].dhd.size), 0);
-		PCM_STORE(&(av[i].dtl.size), 0);
-		PCM_STORE(&(av[i].chd.size), 0);
-		PCM_STORE(&(av[i].ctl.size), 0);
-		plist_init(&(av[i].dhd.list), &(av[i].dtl.list));
+		av[i].dhd.size = 0;
+		av[i].dhd.fd = &(av[i].dhd);
+		av[i].dhd.bk = &(av[i].dhd);
+		av[i].chd.size = 0;
+		av[i].chd.fd = &(av[i].chd);
+		av[i].chd.bk = &(av[i].chd);
 	}
 	return NBINS*sizeof(struct malloc_bin);
 }
 
+static inline
 void
-pheap_init()
+init()
 {
+	int    i;
 	size_t av_size;
 
-	if (init_done == true) {
+	if (init_done) {
 		return;
 	}
+
 	if (pheap == 0x0) {
 		mnemosyne_segment_create(0xa00000000, 1024*1024, 0, 0);
-		PCM_STORE(&pheap, 0xa00000000);
-		PCM_BARRIER
+		pheap = 0xa00000000;
 		if ((void *) pheap == -1) {
 			abort();
 		}
 	}
 
 	av_size = init_bin_lists(pheap);
-	printf("pheap: %p\n", (void *) pheap);
-	PCM_STORE(&sbrk_limit, (pheap + av_size));
 	maxClean = FIRSTBIN;
 
-	PCM_STORE(&init_done, true);
-	PCM_BARRIER
-
-	//sbrk_limit += size;
-	//return (void *) (pheap + sbrk_limit);
-
-
+	/* Advance the sbrk_limit by av_size + MINSIZE to ensure no memory is 
+	 * allocated over the av table.
+	 */
+	persistent_sbrk(av_size + 2*MINSIZE);
+	last_sbrk_end = (size_t *) (av_size + pheap + MINSIZE);
+	*last_sbrk_end = SIZE_SZ | INUSE;
 }
+
 
 
 /* 
@@ -564,6 +574,8 @@ __attribute__ ((section("PERSISTENT"))) mchunkptr last_remainder = 0; /* last re
   }																			  \
 }																			  \
 
+
+
 
 #define reset_maxClean														  \
 {																			  \
@@ -675,8 +687,6 @@ __attribute__ ((section("PERSISTENT"))) mchunkptr last_remainder = 0; /* last re
 
 /* A helper for realloc */
 
-#if 0
-
 static void free_returned_list()
 {
   clear_last_remainder;
@@ -689,30 +699,51 @@ static void free_returned_list()
   }
 }
 
-#endif
+/* Utilities needed below for memalign */
+/* Standard greatest common divisor algorithm */
 
-void *persistent_sbrk(size_t size) {
-	if (pheap == 0x0) {
-		mnemosyne_segment_create(0xa00000000, 1024*1024, 0, 0);
-		pheap = 0xa00000000;
-		if ((void *) pheap == -1) {
-			abort();
-		}
-	}
-	sbrk_limit += size;
-	return (void *) (pheap + sbrk_limit);
-}	
+#if __STD_C
+static size_t gcd(size_t a, size_t b)
+#else
+static size_t gcd(a,b) size_t a; size_t b;
+#endif
+{
+  size_t tmp;
+  
+  if (b > a)
+  {
+    tmp = a; a = b; b = tmp;
+  }
+  for(;;)
+  {
+    if (b == 0)
+      return a;
+    else if (b == 1)
+      return b;
+    else
+    {
+      tmp = b;
+      b = a % b;
+      a = tmp;
+    }
+  }
+}
+
+#if __STD_C
+static size_t  lcm(size_t x, size_t y)
+#else
+static size_t  lcm(x, y) size_t x; size_t y;
+#endif
+{
+  return x / gcd(x, y) * y;
+}
+
+
 
 
 
 /* Dealing with sbrk */
 /* This is one step of malloc; broken out for simplicity */
-
-/* The end of memory returned from previous sbrk call */
-__attribute__ ((section("PERSISTENT"))) size_t* last_sbrk_end = 0; 
-__attribute__ ((section("PERSISTENT"))) size_t sbrked_mem = 0; /* Keep track of total mem for malloc_stats */
-
-#if 0
 
 #if __STD_C
 static mchunkptr malloc_from_sys(size_t nb)
@@ -799,8 +830,13 @@ static mchunkptr malloc_find_space(nb) size_t nb;
 #endif
 {
   /* Circularly traverse bins so as not to pick on any one too much */
-  static mbinptr rover = LASTBIN;    /* Circular roving ptr */
+  static int rover_init = 0;
+  static mbinptr rover;        /* Circular roving ptr */
 
+  if (rover_init == 0) {
+		rover = LASTBIN;
+		rover_init = 1;
+  }
   mbinptr origin = rover;
   mbinptr b      = rover;
 
@@ -865,20 +901,24 @@ static void malloc_clean_bin(bin) mbinptr bin;
   }
 }
 
-#endif 
 
+
 
 /*   Finally, the user-level functions  */
 
+#if __STD_C
 Void_t* mnemosyne_malloc(size_t bytes)
+#else
+Void_t* mnemosyne_malloc(bytes) size_t bytes;
+#endif
 {
-#if 0
   static size_t previous_request = 0;  /* To control preallocation */
 
   size_t    nb = request2size(bytes);  /* padded request size */
   mbinptr   bin;                       /* corresponding bin */
   mchunkptr victim;                    /* will hold selected chunk */
 
+  init();
   /* ----------- Peek at returned_list; hope for luck */
 
   if ((victim = returned_list) != 0 && 
@@ -1044,19 +1084,265 @@ Void_t* mnemosyne_malloc(size_t bytes)
     set_inuse(victim);
     return chunk2mem(victim);
   }
-#endif  
 }
 
 
+
+
+#if __STD_C
 void mnemosyne_free(Void_t* mem)
+#else
+void mnemosyne_free(mem) Void_t* mem;
+#endif
 {
-#if 0
   if (mem != 0)
   {
     mchunkptr p = mem2chunk(mem);
     return_chunk(p);
   }
-#endif
 }
+
+ 
+
+
+#if __STD_C
+Void_t* mnemosyne_realloc(Void_t* mem, size_t bytes)
+#else
+Void_t* mnemosyne_realloc(mem, bytes) Void_t* mem; size_t bytes;
+#endif
+{
+  if (mem == 0) 
+    return malloc(bytes);
+  else
+  {
+    size_t       nb      = request2size(bytes);
+    mchunkptr    p       = mem2chunk(mem);
+    size_t       oldsize;
+    long         room;
+    mchunkptr    nxt;
+
+    if (p == returned_list) /* support realloc-last-freed-chunk idiocy */
+       returned_list = returned_list->fd;
+
+    clear_inuse(p);
+    oldsize = p->size;
+
+    /* try to expand (even if already big enough), to clean up chunk */
+
+    free_returned_list(); /* make freed chunks available to consolidate */
+
+    while (!inuse(nxt = next_chunk(p))) /* Expand the chunk forward */
+    {
+      unlink(nxt);
+      set_size(p, p->size + nxt->size);
+    }
+
+    room = p->size - nb;
+    if (room >= 0)          /* Successful expansion */
+    {
+      if (room >= MINSIZE)  /* give some back if possible */
+      {
+        mchunkptr remainder = (mchunkptr)((char*)(p) + nb);
+        set_size(remainder, room);
+        cleanlink(remainder);
+        set_size(p, nb);
+      }
+      set_inuse(p);
+      return chunk2mem(p);
+    }
+    else /* Could not expand. Get another chunk and copy. */
+    {
+      Void_t* newmem;
+      size_t count;
+      size_t* src;
+      size_t* dst;
+
+      set_inuse(p);    /* don't let malloc consolidate us yet! */
+      newmem = malloc(nb);
+
+      if (newmem != 0) {
+        /* Copy -- we know that alignment is at least `size_t' */
+        src = (size_t*) mem;
+        dst = (size_t*) newmem;
+        count = (oldsize - SIZE_SZ) / sizeof(size_t);
+        while (count-- > 0) *dst++ = *src++;
+      }
+
+      free(mem);
+      return newmem;
+    }
+  }
+}
+
+
+
+/* Return a pointer to space with at least the alignment requested */
+/* Alignment argument should be a power of two */
+
+#if __STD_C
+Void_t* mnemosyne_memalign(size_t alignment, size_t bytes)
+#else
+Void_t* mnemosyne_memalign(alignment, bytes) size_t alignment; size_t bytes;
+#endif
+{
+  mchunkptr p;
+  size_t    nb = request2size(bytes);
+  size_t    room;
+
+  /* find an alignment that both we and the user can live with: */
+  /* least common multiple guarantees mutual happiness */
+  size_t    align = lcm(alignment, MALLOC_MIN_OVERHEAD);
+
+  /* call malloc with worst case padding to hit alignment; */
+  /* we will give back extra */
+
+  size_t req = nb + align + MINSIZE;
+  Void_t*  m = malloc(req);
+
+  if (m == 0) return 0; /* propagate failure */
+
+  p = mem2chunk(m);
+  clear_inuse(p);
+
+
+  if (((size_t)(m) % align) != 0) /* misaligned */
+  {
+
+    /* find an aligned spot inside chunk */
+
+    mchunkptr ap = (mchunkptr)((((size_t)(m) + align-1) & -align) - SIZE_SZ);
+
+    size_t gap = (size_t)(ap) - (size_t)(p);
+
+    /* we need to give back leading space in a chunk of at least MINSIZE */
+
+    if (gap < MINSIZE)
+    {
+      /* This works since align >= MINSIZE */
+      /* and we've malloc'd enough total room */
+
+      ap = (mchunkptr)( (size_t)(ap) + align );
+      gap += align;    
+    }
+
+    room = p->size - gap;
+
+    /* give back leader */
+    set_size(p, gap);
+    dirtylink(p); /* Don't really know if clean or dirty; be safe */
+
+    /* use the rest */
+    p = ap;
+    set_size(p, room);
+  }
+
+  /* also give back spare room at the end */
+
+  room = p->size - nb;
+  if (room >= MINSIZE)
+  {
+    mchunkptr remainder = (mchunkptr)((char*)(p) + nb);
+    set_size(remainder, room);
+    dirtylink(remainder); /* Don't really know; be safe */
+    set_size(p, nb);
+  }
+
+  set_inuse(p);
+  return chunk2mem(p);
+
+}
+
+
+
+/* Derivatives */
+
+#if __STD_C
+Void_t* mnemosyne_valloc(size_t bytes)
+#else
+Void_t* mnemosyne_valloc(bytes) size_t bytes;
+#endif
+{
+  /* Cache result of getpagesize */
+  static size_t malloc_pagesize = 0;
+
+  if (malloc_pagesize == 0) malloc_pagesize = malloc_getpagesize;
+  return memalign (malloc_pagesize, bytes);
+}
+
+
+#if __STD_C
+Void_t* mnemosyne_calloc(size_t n, size_t elem_size)
+#else
+Void_t* mnemosyne_calloc(n, elem_size) size_t n; size_t elem_size;
+#endif
+{
+  size_t sz = n * elem_size;
+  Void_t* p = malloc(sz);
+  char* q = (char*) p;
+  while (sz-- > 0) *q++ = 0;
+  return p;
+}
+
+#if __STD_C
+void cfree(Void_t *mem)
+#else
+void cfree(mem) Void_t *mem;
+#endif
+{
+  free(mem);
+}
+
+#if __STD_C
+size_t mnemosyne_malloc_usable_size(Void_t* mem)
+#else
+size_t mnemosyne_malloc_usable_size(mem) Void_t* mem;
+#endif
+{
+  if (mem == 0)
+    return 0;
+  else
+  {
+    mchunkptr p = (mchunkptr)((char*)(mem) - SIZE_SZ); 
+    size_t sz = p->size & ~(INUSE);
+    /* report zero if not in use or detectably corrupt */
+    if (p->size == sz || sz != *((size_t*)((char*)(p) + sz - SIZE_SZ)))
+      return 0;
+    else
+      return sz - MALLOC_MIN_OVERHEAD;
+  }
+}
+    
+
+void mnemosyne_malloc_stats()
+{
+
+  /* Traverse through and count all sizes of all chunks */
+
+  size_t avail = 0;
+  size_t malloced_mem;
+
+  mbinptr b;
+
+  free_returned_list();
+
+  for (b = FIRSTBIN; b <= LASTBIN; ++b)
+  {
+    mchunkptr p;
+
+    for (p = first_dirty(b); p != dirty_head(b); p = p->fd)
+      avail += p->size;
+
+    for (p = first_clean(b); p != clean_head(b); p = p->fd)
+      avail += p->size;
+  }
+
+  malloced_mem = sbrked_mem - avail;
+
+  fprintf(stderr, "total mem = %10u\n", sbrked_mem);
+  fprintf(stderr, "in use    = %10u\n", malloced_mem);
+
+}
+
+
 
 

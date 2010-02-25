@@ -12,7 +12,6 @@ struct mnemosyne_segment_list_s {
 };
 typedef struct mnemosyne_segment_list_s mnemosyne_segment_list_t;
 
-mnemosyne_segment_list_t segment_list;
 
 /*!
  * The active list of segments mapped into this process.

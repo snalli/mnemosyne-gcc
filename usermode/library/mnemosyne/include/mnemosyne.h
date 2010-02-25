@@ -54,6 +54,8 @@ int mnemosyne_segment_destroy(void *start, size_t length);
 void *mnemosyne_malloc(size_t bytes);
 void mnemosyne_free(void *ptr);
 
+void mnemosyne_init_global(void);
+
 # ifdef __cplusplus
 }
 # endif

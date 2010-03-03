@@ -10,6 +10,8 @@
  * Second Run:
  *   There were 2 messages and 1 people stored here.
  *   Adding two new messages and a person...
+ *
+ * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
 #include <iostream>
 #include <mnemosyne.h>

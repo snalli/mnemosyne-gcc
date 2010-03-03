@@ -4,7 +4,7 @@
  *
  * \note This is not a compilation unit. It is included with the matching header.
  *
- * \author Andres Jaan Tack
+ * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
 #include <mnemosyne.h>
 

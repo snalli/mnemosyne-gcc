@@ -2,7 +2,7 @@
  * \file
  * Defines an extremely simple linked-list class, with which we are able to play easily.
  *
- * \author Andres Jaan Tack
+ * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
 #ifndef LIST_HXX_QGJ6Z72Y
 #define LIST_HXX_QGJ6Z72Y

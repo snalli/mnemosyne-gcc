@@ -58,5 +58,5 @@ if env['EXAMPLE'] != None:
 #Testing Environment
 Export('MnemosyneLibrary', 'MtmLibrary')
 unit_tests = SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))
-env.Alias('check', unit_tests)
+env.Alias('check', unit_tests[0].path)
 AddPostAction(unit_tests, unit_tests[0].path)

@@ -3,7 +3,7 @@ from configuration import test
 testEnv = test.Environment('default')
 
 # For correct and complete compilation.
-testEnv.Append(CCFLAGS = ' -m64 ')
+testEnv.Append(CCFLAGS = ' -m64 -g')
 testEnv.Append(LINKFLAGS = ' -T '+ 'util/linker_script_persistent_segment_m64')
 
 # LibMTM Unit Tests

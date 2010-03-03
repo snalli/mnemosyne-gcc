@@ -17,6 +17,7 @@ SUITE(NonvolatileWriteSet) {
 	TEST_FIXTURE(AllWriteSetsAvailable, SecondAllocationDoesNotFail) {
 		nonvolatile_write_set_t* first_set  = nonvolatile_write_set_next_available();
 		nonvolatile_write_set_t* second_set = nonvolatile_write_set_next_available();
-		CHECK(first_set != NULL);
+		CHECK(second_set != NULL);
+		CHECK(second_set != first_set);
 	}
 }

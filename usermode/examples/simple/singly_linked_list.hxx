@@ -66,6 +66,9 @@ public:
 		{	}
 		
 		friend class SinglyLinkedList<DataType>;
+		
+		template <class T>
+		friend std::ostream& operator<< (std::ostream&, SinglyLinkedList<T>&);
 
 	private:
 		DataType itsData;   /*!< The data stored at this list node. */

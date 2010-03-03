@@ -51,6 +51,8 @@ int main (int argc, char const *argv[])
 	std::cout << "There were " <<
 		my_objects.messages->length() << " messages and " <<
 		my_objects.people->length() << " people stored here." << std::endl;
+	std::cout << "  People: " << *my_objects.people << std::endl;
+	std::cout << "Messages: " << *my_objects.messages << std::endl;
 		
 	std::cerr << "Adding two new messages and a person..." << std::endl;
 	my_objects.messages->append(Message(42));

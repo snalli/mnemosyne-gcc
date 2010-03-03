@@ -26,7 +26,7 @@ template <class T>
 std::ostream& operator<< (std::ostream &output, SinglyLinkedList<T>& list)
 {
 	typename SinglyLinkedList<T>::Node* current;
-	for (current = list.itsFirstNode; current != NULL; current = current->nextNode)
+	for (current = list.itsHeadNode; current != NULL; current = current->itsNextNode)
 		output << "[" << current->itsData << "] -> ";
 		
 	output << "[/]";

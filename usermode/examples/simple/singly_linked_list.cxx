@@ -13,8 +13,10 @@ template <typename DataType>
 void SinglyLinkedList<DataType>::append (DataType data)
 {
 	Node* new_node_area = reinterpret_cast<Node*>(mnemosyne_malloc(sizeof(Node)));
-	if (itsTailNode != NULL)
+	if (itsTailNode != NULL) {
 		itsTailNode->itsNextNode = new(new_node_area) Node(data);
+		itsTailNode = itsTailNode->itsNextNode;
+	}
 	else
 		itsHeadNode = itsTailNode = new(new_node_area) Node(data);
 	

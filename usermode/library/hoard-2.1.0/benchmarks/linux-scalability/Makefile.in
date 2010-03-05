@@ -1,0 +1,21 @@
+TARGETS = linux-scalability-hoard linux-scalability
+
+all: $(TARGETS)
+
+clean:
+	rm -f $(TARGETS)
+
+DEFS = -D_REENTRANT
+
+linux-scalability-hoard:
+	@CXX@ @CXXFLAGS@ $(DEFS) -O linux-scalability.c ../../libhoard.a @LIBTHREAD@ @LIBSCHED@ -o linux-scalability-hoard
+
+linux-scalability-ptmalloc:
+	@CXX@ @CXXFLAGS@ $(DEFS) ../../../allocators/ptmalloc/ptmalloc.o linux-scalability.c @LIBTHREAD@ @LIBSCHED@ -o linux-scalability-ptmalloc
+
+linux-scalability-mtmalloc:
+	@CXX@ @CXXFLAGS@ $(DEFS) linux-scalability.c @LIBTHREAD@ @LIBSCHED@ -lmtmalloc -o linux-scalability-mtmalloc
+
+linux-scalability:
+	@CXX@ @CXXFLAGS@ $(DEFS) linux-scalability.c @LIBTHREAD@ @LIBSCHED@ -o linux-scalability
+

@@ -1,0 +1,2 @@
+0xa00000000 2560 .segments/segment_file_0
+0xb00000000 131072 .segments/segment_file_1

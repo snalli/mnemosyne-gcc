@@ -1,0 +1,171 @@
+
+	      The Hoard Multiprocessor Memory Allocator
+			<http://www.hoard.org>
+
+			 Version Information
+			 -------------------
+
+version 2.1:
+
+	* Now ships as a DLL for Windows.
+	* Reduced internal fragmentation for small objects.
+	* A variety of performance improvements.
+	* Patched to work on 64-bit Solaris.
+	* Removed BeOS support.
+	* Simplified user-level locking.
+	* Incorporated Doug Lea's malloc as a faster backing store
+	  than mmap(), for non-Windows execution.
+
+version 2.0.6:
+
+	* Fix to allow Hoard to work with MFC under Windows.
+
+version 2.0.5:
+
+	* Fix to work with the new Sun WorkShop compiler.
+
+version 2.0.4:
+
+	* Fix to allow Hoard to work with Debug builds under Windows.
+
+version 2.0.3:
+
+	* Added a fix for better fragmentation on uniprocessors,
+	added a "winprojects" directory for easier building on Windows
+	under Visual Studio, improved realloc performance, and fixed a bug
+	for out-of-memory conditions.
+
+version 2.0.2:
+
+	* Fixed a memory leak for SGI.
+
+version 2.0.1:
+
+	* Fixed compilation on AIX with xlC (IBM).
+
+version 2.0:
+
+	* Added very aggressive superblock recycling. Now an empty
+	superblock is immediately available for reuse for another size
+	class. This can dramatically reduce fragmentation.
+
+	* We now preferentially allocate from recently-touched
+	superblocks to improve page locality.
+
+	* Incorporated a protocol to guarantee swift superblock
+	'acquisition' by free().
+
+version 1.5.3: (not generally released)
+
+	* Miscellaneous bug fixes.
+
+version 1.5.2:
+
+	* Fixed a problem on some Linux systems that caused
+	many large allocations to fail.
+	* Fixed a call to VirtualFree which didn't actually
+	release memory back to the system.
+
+
+version 1.5.1:
+
+	* Changed initialization of the process heap to fix
+	a problem with Visual C++.
+
+version 1.5:
+
+	* Large blocks (> 4K) are now immediately returned to
+	the system when they are freed.
+
+	* Made a number of improvements to the algorithm that ensure
+        O(1) cost for malloc & free and guarantee low contention for
+	free's. (These will be discussed in a paper currently in
+	progress.) Also added a method that further reduces the number
+	of system calls when allocating memory.
+
+	* Added superblock recycling to reduce fragmentation.
+
+	* Hoard now compiles with Sun's Workshop compilers (version 5.0)
+	on SPARCs. (Thanks to Ganesan Rajagopal of Novell for the
+	undocumented .il trick for inlining assembly.)
+
+	* Ported to AIX (IBM, PowerPC-based).
+
+version 1.4.2:
+
+	* A bug fix -- corrects a subtle problem with memalign.
+	Hoard now successfully passes Wolfram Gloger's
+	malloc-test (included with the distribution).
+
+version 1.4.1:
+
+	* A few fixes for backward compatibility with Solaris 2.6.
+
+version 1.4:
+
+	* Doubled the speed of calls to free().
+	* Further improved scalability, especially on Solaris.
+	* Reduced memory consumption and improved performance on
+	uniprocessors.
+	* Changed the lock implementation for Windows from spin to
+	spin-yield, as in the UNIX implementations (thanks to Paul
+	Larson of Microsoft Research for pointing out how to do this).
+	* Removed the shbench benchmark from the distribution, per
+	request from MicroQuill, Inc.
+
+version 1.3.3:
+
+	* Changed some casts of pointers to unsigned longs
+	to allow Hoard to work on 64-bit machines (read: SGI O2K).
+
+version 1.3.2:
+
+	* Minor modifications for the Windows NT port,
+	along with workspace and project files for Visual C++
+	(thanks to Arnd Bohm).
+
+version 1.3.1:
+
+	* Included a customized version of 'atexit' for Linux,
+	since the newest version of libc (2.1.2) caused Hoard to
+	deadlock (it called malloc internally).
+
+version 1.3:
+
+	* Ported to the BeOS (thanks to Trey Boudreau of Be).
+	* Replaced the per-sizeclass locks with per-heap locks,
+	since this has no impact on scalability and reduces Hoard's
+	static footprint.
+
+version 1.2:
+
+	* Dramatically improved performance with fast user-level locks
+ 	for SPARC, x86, and the SGI.
+	* Added sproc support (for the SGI).
+	* Hoard can now be built under Visual C++ (thanks to John
+	Hickin).
+
+version 1.1:
+
+	* Added autoconf and automake scripts to facilitate compilation
+	and installation (including shared libraries).
+	(thanks to Ganesan Rajagopal of Novell for submitting the scripts)
+
+version 1.0.3:
+
+	* Hoard now scales on OS's besides Linux and Solaris.
+	(the thread ID hash function was pathological for other OS's)
+
+version 1.0.2:
+
+	* Ported to Windows NT.
+	* Added in the benchmark suite (larson, linux-scalability, shbench).
+
+version 1.0.1:
+
+	* Fixed a build problem.
+
+version 1.0:
+
+	* Initial release.
+

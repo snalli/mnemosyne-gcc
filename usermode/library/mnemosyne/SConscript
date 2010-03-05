@@ -8,6 +8,9 @@ configEnv = env.Clone()
 buildEnv = mnemosyne.Environment()
 
 Import('CommonObjects')
+buildEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
+buildEnv.Append(CCFLAGS = ' -Qtm_enabled ')
+buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library'])
 buildEnv.Append(LIBS = ['elf', CommonObjects, 'pthread'])
 buildEnv.Append(CCFLAGS = ' -m64 ')

@@ -334,7 +334,21 @@ extern Void_t*     sbrk _ARG_((size_t));
 #include "segment.h"
 #include "plist.h"
 
-
+typedef uint64_t hrtime_t;
+
+static inline void asm_cpuid() {
+    asm volatile( "cpuid" :::"rax", "rbx", "rcx", "rdx");
+}
+
+
+static inline unsigned long long asm_rdtsc(void)
+{
+    unsigned hi, lo;
+    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
+
 /*  CHUNKS */
 
 
@@ -462,6 +476,7 @@ __attribute__ ((section("PERSISTENT"))) bool               init_done = false;
 __attribute__ ((section("PERSISTENT"))) mbinptr maxClean;
 
 
+__attribute__ ((section("PERSISTENT"))) void *malloc_log;
 
 /* This operation is idempotent.  */
 size_t
@@ -498,12 +513,13 @@ pheap_init()
 	}
 
 	av_size = init_bin_lists(pheap);
-	printf("pheap: %p\n", (void *) pheap);
-	PCM_STORE(&sbrk_limit, (pheap + av_size));
+	malloc_log =  (void *) (pheap + av_size);
+	PCM_STORE(&sbrk_limit, (pheap + av_size+1024));
 	maxClean = FIRSTBIN;
 
 	PCM_STORE(&init_done, true);
 	PCM_BARRIER
+
 
 	//sbrk_limit += size;
 	//return (void *) (pheap + sbrk_limit);
@@ -524,8 +540,6 @@ pheap_init()
 
 __attribute__ ((section("PERSISTENT"))) mchunkptr returned_list = 0;  /* List of (unbinned) returned chunks */
 __attribute__ ((section("PERSISTENT"))) mchunkptr last_remainder = 0; /* last remaindered chunk from malloc */
-//static mchunkptr returned_list = 0;  /* List of (unbinned) returned chunks */
-//static mchunkptr last_remainder = 0; /* last remaindered chunk from malloc */
 
 
 
@@ -670,35 +684,8 @@ __attribute__ ((section("PERSISTENT"))) mchunkptr last_remainder = 0; /* last re
 }																			  \
 
 
-
-/* Misc utilities */
-
-/* A helper for realloc */
-
-#if 0
-
-static void free_returned_list()
-{
-  clear_last_remainder;
-  while (returned_list != 0)
-  {
-    mchunkptr p = returned_list;
-    returned_list = p->fd;
-    clear_inuse(p);
-    dirtylink(p);
-  }
-}
-
-#endif
 
 void *persistent_sbrk(size_t size) {
-	if (pheap == 0x0) {
-		mnemosyne_segment_create(0xa00000000, 1024*1024, 0, 0);
-		pheap = 0xa00000000;
-		if ((void *) pheap == -1) {
-			abort();
-		}
-	}
 	sbrk_limit += size;
 	return (void *) (pheap + sbrk_limit);
 }	
@@ -833,16 +820,12 @@ static mchunkptr malloc_find_space(nb) size_t nb;
   /* If no return above, chain to the next step of malloc */
   return  malloc_from_sys(nb);
 }
-
+
 
 /* Clear out dirty chunks from a bin, along with the free list. */
 /* Invoked from malloc when things look too fragmented */
 
-#if __STD_C
 static void malloc_clean_bin(mbinptr bin)
-#else
-static void malloc_clean_bin(bin) mbinptr bin;
-#endif
 {
   mchunkptr p;
 
@@ -867,26 +850,94 @@ static void malloc_clean_bin(bin) mbinptr bin;
 
 #endif 
 
+typedef struct log_entry_s log_entry_t;
+typedef void log_logical_t;
+struct log_entry_s {
+	int    type;
+	void   *addr;
+	size_t size;
+};
+
+log_entry_set(void *log, void *addr)
+{
+	log_entry_t *log_entry = (log_entry_t *) log;
+	log_entry->addr = addr;
+}
+
+#define LOGICAL_DO1(log, op, arg1, arg2) logical_do(log, op, arg1, 0, 0, 0, 0, 0)
+#define LOGICAL_DO2(log, op, arg1, arg2) logical_do(log, op, arg1, arg2, 0, 0, 0, 0)
+#define LOGICAL_DO3(log, op, arg1, arg2, arg3) logical_do(log, op, arg1, arg2, arg3, 0, 0, 0)
+#define LOGICAL_DO4(log, op, arg1, arg2, arg3, arg4) logical_do(log, op, arg1, arg2, arg3, arg4, 0, 0)
+#define LOGICAL_DO5(log, op, arg1, arg2, arg3, arg4, arg5) logical_do(log, op, arg1, arg2, arg3, arg4, arg5, 0)
+#define LOGICAL_DO6(log, op, arg1, arg2, arg3, arg4, arg5, arg6) logical_do(log, op, arg1, arg2, arg3, arg4, arg5, arg6)
+
+void
+logical_log(log_logical_t *log, 
+            int logical_op, 
+            uint64_t arg1, 
+            uint64_t arg2, 
+            uint64_t arg3, 
+            uint64_t arg4, 
+            uint64_t arg5, 
+            uint64_t arg6)
+{
+	/* TODO */
+}
+
+void
+logical_do(log_logical_t *log, 
+           int logical_op, 
+           uint64_t arg1, 
+           uint64_t arg2, 
+           uint64_t arg3, 
+           uint64_t arg4, 
+           uint64_t arg5, 
+           uint64_t arg6)
+{
+#if 0
+	switch(logical_operation)
+	{
+		case ALLOC_FROM_RETURNED_LIST:
+			logical_log(log, logical_op, arg1, arg2, arg3, arg4, arg5, arg6);
+			/* arg1: victim */
+			/* arg2: victim->list.next */
+			PCM_STORE(&(returned_list->list.next), arg2);
+			break;
+
+	}
+#endif
+}
+
 
 /*   Finally, the user-level functions  */
 
-Void_t* mnemosyne_malloc(size_t bytes)
+Void_t* malloc_internal(log_logical_t *log, size_t bytes)
 {
+	static size_t previous_request = 0;  /* To control preallocation */
+	hrtime_t start;
+	hrtime_t stop;
+
 #if 0
-  static size_t previous_request = 0;  /* To control preallocation */
+	start = asm_rdtsc();
 
-  size_t    nb = request2size(bytes);  /* padded request size */
-  mbinptr   bin;                       /* corresponding bin */
-  mchunkptr victim;                    /* will hold selected chunk */
+	size_t    nb = request2size(bytes);  /* padded request size */
+	mbinptr   bin;                       /* corresponding bin */
+	mchunkptr victim;                    /* will hold selected chunk */
 
-  /* ----------- Peek at returned_list; hope for luck */
+	pheap_init();
 
-  if ((victim = returned_list) != 0 && 
-      exact_fit(victim, nb)) /* size check works even though INUSE set */
-  {
-    returned_list = victim->fd;
-    return chunk2mem(victim);
-  }
+	/* ----------- Peek at returned_list; hope for luck */
+	if ((victim = returned_list->list.next) != 0 && 
+	    exact_fit(victim, nb)) /* size check works even though INUSE set */
+	{
+		LOGICAL_DO2(log, ALLOC_FROM_RETURNED_LIST, victim, victim->list.next);
+		return chunk2mem(victim);
+	}
+
+	asm_cpuid();
+	stop = asm_rdtsc();
+#endif
+#if 0
   
   findbin(nb, bin);  /*  Need to know bin for other traversals */
 
@@ -1045,6 +1096,12 @@ Void_t* mnemosyne_malloc(size_t bytes)
     return chunk2mem(victim);
   }
 #endif  
+}
+
+Void_t* mnemosyne_malloc(void *log, size_t bytes)
+{
+	malloc_internal(malloc_log, bytes);
+
 }
 
 

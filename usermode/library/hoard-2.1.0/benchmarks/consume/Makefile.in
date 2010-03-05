@@ -1,0 +1,21 @@
+TARGETS = consume-hoard consume
+
+all: $(TARGETS)
+
+clean:
+	rm -f $(TARGETS)
+
+DEFS = -D_REENTRANT
+INCLUDES = -I../..
+
+consume-hoard: consume.cpp
+	@CXX@ @CXXFLAGS@ $(DEFS) $(INCLUDES) consume.cpp ../../libhoard.a @LIBTHREAD@ @LIBSCHED@ -o consume-hoard
+
+consume-ptmalloc: consume.cpp
+	@CXX@ @CXXFLAGS@ $(DEFS) $(INCLUDES) ../../../allocators/ptmalloc/ptmalloc.o consume.cpp @LIBTHREAD@ -o consume-ptmalloc
+
+consume-mtmalloc: consume.cpp
+	@CXX@ @CXXFLAGS@ $(DEFS) $(INCLUDES) consume.cpp @LIBTHREAD@ @LIBSCHED@ -lmtmalloc -o consume-mtmalloc
+
+consume: consume.cpp
+	@CXX@ @CXXFLAGS@ $(DEFS) $(INCLUDES) consume.cpp @LIBTHREAD@ -o consume

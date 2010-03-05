@@ -70,6 +70,7 @@ nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 	// Did we find an available block?
 	if (found_block != NULL) {
 		nonvolatile_write_set_t* next_available_set = found_block;
+		assert(next_available_set != NULL);
 		
 		// Prepare the block for use.
 		next_available_set->nb_entries = 0;

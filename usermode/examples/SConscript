@@ -3,6 +3,7 @@ import os
 Import('examplesEnv')
 
 examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+examplesEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc -Qtm_enabled';
 
 if examplesEnv['BUILD_DEBUG'] == True:
 	examplesEnv.Append(CCFLAGS = ' -g')

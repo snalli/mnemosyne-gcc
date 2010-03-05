@@ -20,6 +20,7 @@
  */
 #include <iostream>
 #include <mnemosyne.h>
+#include <mtm.h>
 #include "singly_linked_list.hxx"
 
 // Imagine we have two custom classes, that we wrote as the programmer...
@@ -62,9 +63,12 @@ int main (int argc, char const *argv[])
 	std::cout << "  Messages: " << *my_objects.messages << std::endl;
 		
 	std::cerr << "Adding two new messages and a person..." << std::endl;
-	my_objects.messages->append(Message(42));
-	my_objects.messages->append(Message(89));
-	my_objects.people->append(Person(2114));
+	
+	MNEMOSYNE_ATOMIC {
+		my_objects.messages->append(Message(42));
+		my_objects.messages->append(Message(89));
+		my_objects.people->append(Person(2114));
+	}
 	
 	return 0;
 }

@@ -21,7 +21,7 @@ Import('CommonObjects')
 buildEnv.Append(LINKFLAGS = '-Wl,--whole-archive build/library/common/libmnemosyne_common.a -Wl,--no-whole-archive')
 
 if configEnv['BUILD_DEBUG'] == True:
-	buildEnv.Append(CCFLAGS = ' -g -D_MNEMOSYNE_BUILD_DEBUG')
+	buildEnv.Append(CCFLAGS = ' -g -O0 -D_MNEMOSYNE_BUILD_DEBUG')
 else:
 	buildEnv.Append(CCFLAGS = ' -O2')
 

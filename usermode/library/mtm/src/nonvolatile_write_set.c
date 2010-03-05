@@ -51,8 +51,6 @@ nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 	// Use this static pointer to iterate through the sets, clock-style.
 	static nonvolatile_write_set_block_t* the_next_block = the_nonvolatile_write_sets;
 	
-	nonvolatile_write_set_t* next_available_set = NULL;
-	
 	/* Search for the next idle block. */
 	pthread_mutex_lock(&the_write_set_blocks_mutex);
 	nonvolatile_write_set_block_t* first_block   = the_next_block;  // Watch for a wrap-around.
@@ -71,6 +69,8 @@ nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 	
 	// Did we find an available block?
 	if (found_block != NULL) {
+		nonvolatile_write_set_t* next_available_set = found_block;
+		
 		// Prepare the block for use.
 		next_available_set->nb_entries = 0;
 		next_available_set->isFinal = false;

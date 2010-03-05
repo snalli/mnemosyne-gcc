@@ -56,5 +56,6 @@ if env['EXAMPLE'] != None:
 	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'examples'))
 
 #Testing Environment
-if 'check' in COMMAND_LINE_TARGETS:
-	SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))
+Export('MnemosyneLibrary', 'MtmLibrary')
+unit_tests = SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))
+AddPostAction(unit_tests, unit_tests[0].path)

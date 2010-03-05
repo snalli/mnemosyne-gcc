@@ -1,15 +1,22 @@
 /*!
  * \file
  * This example program, if implemented correctly, will generate the following output across
- * two runs.
+ * two runs. After printing this output, the program will append 2 messages and 1 person to
+ * the linked list represented.
  *
  * First Run:
+ *   my_counter : dead0001
  *   There were 0 messages and 0 people stored here.
- *   Adding two new messages and a person...
+ *       People: [/]
+ *     Messages: [/]
  *
  * Second Run:
+ *   my_counter : dead0002
  *   There were 2 messages and 1 people stored here.
- *   Adding two new messages and a person...
+ *       People: [2114] -> [/]
+ *     Messages: [42] -> [89] -> [/]
+ *
+ * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
 #include <iostream>
 #include <mnemosyne.h>
@@ -51,6 +58,8 @@ int main (int argc, char const *argv[])
 	std::cout << "There were " <<
 		my_objects.messages->length() << " messages and " <<
 		my_objects.people->length() << " people stored here." << std::endl;
+	std::cout << "    People: " << *my_objects.people << std::endl;
+	std::cout << "  Messages: " << *my_objects.messages << std::endl;
 		
 	std::cerr << "Adding two new messages and a person..." << std::endl;
 	my_objects.messages->append(Message(42));

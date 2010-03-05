@@ -3,9 +3,10 @@ import string
 import SCons.Environment
 from SCons.Script import ARGUMENTS, Dir
 from SCons.Variables import Variables, EnumVariable, BoolVariable, PathVariable
+import mnemosyne
 
 
-class Environment(SCons.Environment.Environment):
+class Environment(mnemosyne.Environment):
 	"""
 		A specialization of the SCons Environment class which properly configures 
         the CxxTest framework.
@@ -16,15 +17,11 @@ class Environment(SCons.Environment.Environment):
 			Applies the definitions in configuration_name to generate a correct
 			environment. That environment is returned.
 		"""
-		SCons.Environment.Environment.__init__(self)
+		mnemosyne.Environment.__init__(self)
 		
 		# Apply the configuration variables
 		configuration_variables = self._GetConfigurationVariables(configuration_name)
 		configuration_variables.Update(self)
-
-		self['CXXTEST'] = os.path.join(self['CXXTEST_PATH'], 'python/cxxtest/cxxtestgen.py')
-		self.Tool('cxxtest', toolpath=[os.path.join(self['CXXTEST_PATH'], 'build_tools/SCons')])
-
 	
 	def _GetConfigurationVariables(self, configuration_name):
 		"""
@@ -38,9 +35,6 @@ class Environment(SCons.Environment.Environment):
 		command_line_arguments = ARGUMENTS
 		
 		configuration = Variables(configuration_files, command_line_arguments)
-		configuration.Add(PathVariable('CXXTEST_PATH', 'where the CxxTest framework is installed', '$cxxtest_dir'))
-		#[configuration.Add(option) for option in self._enumerable_options]
-		#[configuration.Add(option) for option in self._numerical_options]
 		
 		return configuration
 	

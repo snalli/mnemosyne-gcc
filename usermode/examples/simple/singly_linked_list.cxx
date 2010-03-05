@@ -4,7 +4,7 @@
  *
  * \note This is not a compilation unit. It is included with the matching header.
  *
- * \author Andres Jaan Tack
+ * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
 #include <mnemosyne.h>
 
@@ -13,8 +13,10 @@ template <typename DataType>
 void SinglyLinkedList<DataType>::append (DataType data)
 {
 	Node* new_node_area = reinterpret_cast<Node*>(mnemosyne_malloc(sizeof(Node)));
-	if (itsTailNode != NULL)
+	if (itsTailNode != NULL) {
 		itsTailNode->itsNextNode = new(new_node_area) Node(data);
+		itsTailNode = itsTailNode->itsNextNode;
+	}
 	else
 		itsHeadNode = itsTailNode = new(new_node_area) Node(data);
 	
@@ -26,7 +28,7 @@ template <class T>
 std::ostream& operator<< (std::ostream &output, SinglyLinkedList<T>& list)
 {
 	typename SinglyLinkedList<T>::Node* current;
-	for (current = list.itsFirstNode; current != NULL; current = current->nextNode)
+	for (current = list.itsHeadNode; current != NULL; current = current->itsNextNode)
 		output << "[" << current->itsData << "] -> ";
 		
 	output << "[/]";

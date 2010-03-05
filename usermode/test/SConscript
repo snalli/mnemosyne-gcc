@@ -2,24 +2,12 @@ import sys
 from configuration import test
 testEnv = test.Environment('default')
 
-testEnv['CXXTEST_CPPPATH'] = ['/opt/cxxtest/', '#']
-testEnv.CxxTest('test_quaternion', source = 'quaternion.t.h')
+# For correct and complete compilation.
+testEnv.Append(CCFLAGS = ' -m64 -g')
+testEnv.Append(LINKFLAGS = ' -T '+ 'util/linker_script_persistent_segment_m64')
 
-testEnv['ENV']['MTMINI'] = "mtminitA"
-#env = Environment(tools = ['default', 'cxxtest'])
-
-#buildEnv = env.Clone()
-
-#buildEnv.Append(CCFLAGS = '-g -O2')
-#buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
-
-#buildEnv.Append(CPPPATH = '#src/mtm')
-#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux/x86')
-#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/linux')
-#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/x86')
-#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/posix')
-#buildEnv.Append(CPPPATH = '#src/mtm/sysdeps/generic')
-#buildEnv.Append(CPPPATH = '#src')
-
-#buildEnv.Append(LINKFLAGS = ['-g'])
-#buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
+# LibMTM Unit Tests
+Import('MtmLibrary', 'MnemosyneLibrary')
+testEnv.Append(CPPPATH = ['#library/mtm/src/sysdeps/linux', '#library/mtm/src'])
+mtm_tests = testEnv.Program('mtm_tests', source = [Glob('mtm/*.tests.cxx'), Glob('mtm/*.fixtures.cxx'), 'main.cxx'], LIBS=['UnitTest++', MnemosyneLibrary, MtmLibrary])
+Return('mtm_tests')

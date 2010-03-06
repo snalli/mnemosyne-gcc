@@ -73,6 +73,7 @@ pwb_trycommit (mtm_tx_t *tx)
 		/* Install new versions, drop locks and set new timestamp */
 		/* In the case when isolation is off, the write set contains entries 
 		 * that point to private pseudo-locks. */
+		w = modedata->w_set.entries;
 		for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {
 			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,v=%d)\n", tx,
 			                (unsigned long)modedata->start, (unsigned long)modedata->end,

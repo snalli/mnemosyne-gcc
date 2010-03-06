@@ -4,5 +4,6 @@ Import('MtmLibrary')
 
 
 myEnv = examplesEnv.Clone() 
+myEnv.Append(LIBS = [MnemosyneLibrary])
 
-myEnv.Program('main', 'main.c', LIBS=[MnemosyneLibrary])
+myEnv.Program('main', 'main.c')

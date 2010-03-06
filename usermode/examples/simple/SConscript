@@ -8,4 +8,6 @@ sources = Split("""
                 main.cxx
                 """)
 
-myEnv.Program('simple', sources, LIBS=[MnemosyneLibrary, MtmLibrary])
+myEnv.Append(LIBS = [MnemosyneLibrary])
+myEnv.Append(LIBS = [MtmLibrary])
+myEnv.Program('simple', sources)

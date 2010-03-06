@@ -329,8 +329,8 @@ extern Void_t*     sbrk _ARG_((size_t));
 };  /* end of extern "C" */
 #endif
 
-#include "mnemosyne_i.h"
-#include "segment.h"
+#include <mnemosyne.h>
+#include <stdint.h>
 
 #define TM_CALLABLE __attribute__((tm_callable))
 #define TM_PURE     __attribute__((tm_pure))
@@ -496,7 +496,6 @@ TM_CALLABLE static inline
 void
 init()
 {
-	int    i;
 	size_t av_size;
 
 	if (init_done) {
@@ -505,7 +504,7 @@ init()
 
 	if (pheap == 0x0) {
 	    TM_WAIVER {
-			mnemosyne_segment_create(0xa00000000, 1024*1024, 0, 0);
+			mnemosyne_segment_create((void *)0xa00000000, 1024*1024, 0, 0);
 		}	
 		pheap = 0xa00000000;
 		if ((void *) pheap == -1) {
@@ -1280,8 +1279,8 @@ TM_CALLABLE void mnemosyne_malloc_stats()
   malloced_mem = sbrked_mem - avail;
 
   TM_WAIVER {
-    fprintf(stderr, "total mem = %10u\n", sbrked_mem);
-    fprintf(stderr, "in use    = %10u\n", malloced_mem);
+    fprintf(stderr, "total mem = %10u\n", (unsigned int) sbrked_mem);
+    fprintf(stderr, "in use    = %10u\n", (unsigned int) malloced_mem);
   }	
 
 }

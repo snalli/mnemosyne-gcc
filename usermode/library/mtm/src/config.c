@@ -8,11 +8,14 @@ config_t     mtm_cfg;
 static void
 config_init_internal(char *config_file)
 {
+//TODO
+/*
 	int  value;
 	char *value_str;
 	config_init(&mtm_cfg);
 	config_read_file(&mtm_cfg, config_file);
 	FOREACH_RUNTIME_CONFIG_SETTING(CONFIG_SETTING_LOOKUP, mtm, &mtm_cfg, &mtm_runtime_settings);
+*/	
 }
 
 

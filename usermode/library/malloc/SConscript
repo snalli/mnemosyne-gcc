@@ -1,0 +1,32 @@
+import os
+import sys
+sys.path.append('%s/library' % (Dir('#').abspath))
+
+Import('env')
+configEnv = env.Clone()
+buildEnv = configEnv.Clone()
+
+Import('CommonObjects')
+buildEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
+buildEnv.Append(CCFLAGS = ' -Qtm_enabled ')
+buildEnv.Append(CCFLAGS = ['-fPIC'])
+buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+buildEnv.Append(CPPPATH = ['#library'])
+buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
+buildEnv.Append(CCFLAGS = ' -m64 ')
+buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
+
+if configEnv['BUILD_DEBUG'] == True:
+	buildEnv.Append(CCFLAGS = ' -g -D_MNEMOSYNE_BUILD_DEBUG')
+else:
+	buildEnv.Append(CCFLAGS = ' -O2')
+
+C_SRC = Split("""
+              src/dlmalloc/dlmalloc.c
+              """)
+
+SRC = C_SRC
+
+MnemosyneLibrary = buildEnv.StaticLibrary('malloc', SRC)
+Return('MnemosyneLibrary')

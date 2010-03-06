@@ -308,7 +308,7 @@ restart_no_load:
 					w_entry_t* initialized_entry = initialize_write_set_entry(w, addr, value, mask, version, lock);
 					
 					// Add entry to the write set
-					insert_write_set_entry_after(write_set_tail, initialized_entry, tx, last_entry_in_same_cache_block);					
+					insert_write_set_entry_after(initialized_entry, write_set_tail, tx, last_entry_in_same_cache_block);					
 					return initialized_entry;
 				}
 			}
@@ -385,8 +385,9 @@ restart_no_load:
 			*lock = LOCK_SET_ADDR((mtm_word_t)w);
 		}
 		
+		w->w_entry_nv = &modedata->w_set_nv->entries[modedata->w_set_nv->nb_entries];
 		w_entry_t* initialized_entry = 	initialize_write_set_entry(w, addr, value, mask, version, lock);
-		insert_write_set_entry_after(write_set_tail, initialized_entry, tx, NULL);
+		insert_write_set_entry_after(initialized_entry, write_set_tail, tx, NULL);					
 		return w;
 	}
 }

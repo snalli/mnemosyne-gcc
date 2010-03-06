@@ -8,7 +8,6 @@ configEnv = env.Clone()
 buildEnv = mnemosyne.Environment()
 
 Import('CommonObjects')
-buildEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
 buildEnv.Append(CCFLAGS = ' -Qtm_enabled ')
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library'])
@@ -31,7 +30,6 @@ else:
 C_SRC = Split("""
               src/address_space.c
               src/init.c
-              src/malloc-lea.c
               src/reincarnation_callback.c
               src/segment.c
               """)

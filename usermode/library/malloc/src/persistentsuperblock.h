@@ -42,7 +42,7 @@ class superblock; // forward declaration
 class persistentSuperblock {
 
 public:
-	enum { PERSISTENTSUPERBLOCK_SIZE = 8192  };
+	enum { PERSISTENTSUPERBLOCK_SIZE = SUPERBLOCK_SIZE  };
 	enum { PERSISTENTBLOCK_MIN_SIZE = 8  };
 	enum { BITMAP_SIZE = PERSISTENTSUPERBLOCK_SIZE / PERSISTENTBLOCK_MIN_SIZE  };
 	enum { BITMAP_ARRAY_ENTRY_SIZE_BITS = 8 * sizeof(uint64_t)  };
@@ -117,14 +117,12 @@ public:
 
 
 	void * getBlockRegion(int index) {
-		std::cout << "getBlockRegion: " << _pregion << std::endl;
-		std::cout << "getBlockRegion: " << index << std::endl;
 		return (void *) (_pregion + index * _blksize);
 	}
 	
 	int getNumBlocks (void)
 	{
-		  return PERSISTENTSUPERBLOCK_SIZE/_blksize;
+		return PERSISTENTSUPERBLOCK_SIZE/_blksize;
 	}
 
 	int getNumAvailable (void)

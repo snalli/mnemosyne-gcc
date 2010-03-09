@@ -24,8 +24,6 @@
 #include "persistentheap.h"
 #include "superblock.h"
 
-static const char version[] = "The Hoard memory allocator, version 2.1.0 (http://www.hoard.org). Copyright (C) 1998 - 2001 The University of Texas at Austin. $Id: hoardheap.cpp,v 1.84 2001/12/18 02:42:55 emery Exp $";
-
 size_t hoardHeap::_sizeTable[hoardHeap::SIZE_CLASSES]
 = {8UL, 16UL, 24UL, 32UL, 40UL, 48UL, 56UL, 64UL, 72UL, 80UL, 88UL, 96UL, 104UL, 112UL, 120UL, 128UL, 136UL, 144UL, 152UL, 160UL, 168UL, 176UL, 184UL, 192UL, 200UL, 208UL, 216UL, 224UL, 232UL, 240UL, 248UL, 256UL, 264UL, 272UL, 280UL, 288UL, 296UL, 304UL, 312UL, 320UL, 328UL, 336UL, 344UL, 352UL, 360UL, 368UL, 376UL, 384UL, 392UL, 400UL, 408UL, 416UL, 424UL, 432UL, 440UL, 448UL, 456UL, 464UL, 472UL, 480UL, 488UL, 496UL, 504UL, 512UL, 576UL, 640UL, 704UL, 768UL, 832UL, 896UL, 960UL, 1024UL, 1088UL, 1152UL, 1216UL, 1280UL, 1344UL, 1408UL, 1472UL, 1536UL, 1600UL, 1664UL, 1728UL, 1792UL, 1856UL, 1920UL, 1984UL, 2048UL, 2112UL, 2560UL, 3072UL, 3584UL, 4096UL, 4608UL, 5120UL, 5632UL, 6144UL, 6656UL, 7168UL, 7680UL, 8192UL, 8704UL, 9216UL, 9728UL, 10240UL, 10752UL, 12288UL, 16384UL, 20480UL, 24576UL, 28672UL, 32768UL, 36864UL, 40960UL, 65536UL, 98304UL, 131072UL, 163840UL, 262144UL, 524288UL, 1048576UL, 2097152UL, 4194304UL, 8388608UL, 16777216UL, 33554432UL, 67108864UL, 134217728UL, 268435456UL, 536870912UL, 1073741824UL, 2147483648UL};
 
@@ -85,27 +83,23 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
   // sizeclass is a conservative approximation (fixed after one
   // iteration) of the first bin that has superblocks in it, starting
   // with (surprise) the least-empty bin.
-  std::cout << "_leastEmptyBin[sizeclass]: " << _leastEmptyBin[sizeclass] << std::endl;
   for (int i = _leastEmptyBin[sizeclass]; i >= 0; i--) {
     sb = _superblocks[i][sizeclass];
 	if (sb == NULL) {
       // Check whether the persistent heap has a superblock of fullness i and 
 	  // size class sizeclass available.
       sb = persistentheap->removePartiallyFullSuperblock(i, sizeclass);
-      std::cout << "removePartiallyFullSuperblock: " << i << ", " << sizeclass << ", "<< sb << std::endl;
+      //std::cout << "removePartiallyFullSuperblock: " << i << ", " << sizeclass << ", "<< sb << std::endl;
       if (sb) {
         // Insert it into the bin list.
-        superblock *& head = _superblocks[i][sizeclass];
-        sb->insertBefore (head);
-        head = sb;
-        assert (head->isValid());
+        insertSuperblock (sizeclass, sb, persistentheap);
+        assert (sb->getOwner() == this);
+        break;
 	  }
-	}
-    if (sb == NULL) {
       if (i == _leastEmptyBin[sizeclass]) {
-	// There wasn't a superblock in this bin,
-	// so we adjust the least empty bin.
-	_leastEmptyBin[sizeclass]--;
+        // There wasn't a superblock in this bin,
+        // so we adjust the least empty bin.
+        _leastEmptyBin[sizeclass]--;
       }
     } else {
       assert (sb->getOwner() == this);
@@ -178,7 +172,6 @@ void hoardHeap::insertSuperblock (int sizeclass,
   assert (sb->getNext() == NULL);
   assert (_magic == HEAP_MAGIC);
 
-  std::cout << "insertSuperblock: " << sb << std::endl;
   // Now it's ours.
   sb->setOwner (this);
 
@@ -207,18 +200,13 @@ void hoardHeap::insertSuperblock (int sizeclass,
     
     // Reset the least-empty bin counter.
     _leastEmptyBin[sizeclass] = RESET_LEAST_EMPTY_BIN;
-	std::cout << "== " <<fullness << std::endl;
-	std::cout << "== " <<sizeclass << std::endl;
-	std::cout << "== " <<_superblocks[fullness][sizeclass] << std::endl;
-    printSuperblockList();
   }
 }
 
 void hoardHeap::printSuperblockList()
 {
-  int i;
-  superblock * sb = NULL;
-  return;
+  superblock *sb = NULL;
+
   std::cout  << "printSuperblockList" << std::endl;
   for (int i = 0; i < 9; i--) {
     sb = _superblocks[i][12];
@@ -230,8 +218,8 @@ void hoardHeap::printSuperblockList()
 }
 
 void hoardHeap::insertSuperblock (int sizeclass,
-				  superblock * sb,
-				  processHeap * pHeap)
+                                  superblock * sb,
+                                  processHeap * pHeap)
 {
   assert (sb->isValid());
   assert (sb->getBlockSizeClass() == sizeclass);
@@ -281,7 +269,6 @@ superblock * hoardHeap::removeMaxSuperblock (int sizeclass)
   // First check the reusable superblocks list.
 
   head = reuse (sizeclass);
-  std::cout << "removeMaxSuperblock: " << head << std::endl;
   if (head) {
     // We found one. Since we're removing this superblock, update the
     // stats accordingly.

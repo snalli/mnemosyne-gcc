@@ -79,8 +79,9 @@ pwb_trycommit (mtm_tx_t *tx)
 			                (unsigned long)modedata->start, (unsigned long)modedata->end,
 			                w->addr, (void *)w->value, (int)w->value, (int)w->version);
 			/* Write the value in this entry to memory (it will probably land in the cache; that's okay.) */
-			if (w->mask != 0)
+			if (w->mask != 0) {
 				pcm_wb_store(modedata->pcm_storeset, w->w_entry_nv->address, w->w_entry_nv->value);
+			}	
 			
 			/* Flush the cacheline to persistent memory if this is the last entry in this line. */
 			if (w->w_entry_nv->next_cache_neighbor == NULL) {
@@ -173,8 +174,8 @@ pwb_rollback(mtm_tx_t *tx)
 
 uint32_t
 mtm_pwb_beginTransaction_internal (mtm_tx_t *tx, 
-                                     uint32_t prop, 
-                                     _ITM_srcLocation *srcloc)
+                                   uint32_t prop, 
+                                   _ITM_srcLocation *srcloc)
 {
 	assert(tx->mode == MTM_MODE_pwb);
 	mode_data_t *modedata = (mode_data_t *) tx->modedata[tx->mode];
@@ -183,7 +184,7 @@ mtm_pwb_beginTransaction_internal (mtm_tx_t *tx,
 
 	/* Increment nesting level */
 	if (tx->nesting++ > 0) {
-		return;
+		return a_runInstrumentedCode | a_saveLiveVariables;
 	}	
 
 	tx->jb = tx->tmp_jb;
@@ -236,20 +237,18 @@ rollback_transaction (mtm_tx_t *tx)
 	pwb_rollback (tx);
 	mtm_local_rollback (tx);
 
-	//FIXME
-
-	//mtm_useraction_freeActions (&tx->commit_actions);
-	//mtm_useraction_runActions (&tx->undo_actions);
-	//mtm_alloc_commit_allocations (true);
+	mtm_useraction_freeActions (&tx->commit_actions);
+	mtm_useraction_runActions (&tx->undo_actions);
 
 /*
+	//FIXME: revert exceptions
 	mtm_revert_cpp_exceptions ();
 	if (tx->eh_in_flight)
 	{
 		_Unwind_DeleteException (tx->eh_in_flight);
 		tx->eh_in_flight = NULL;
 	}
-	*/
+*/
 }
 
 
@@ -344,12 +343,13 @@ bool
 trycommit_transaction (mtm_tx_t *tx)
 {
 	if (pwb_trycommit(tx)) {
+		if (tx->nesting > 0) {
+			return true;
+		}
 		mtm_local_commit(tx);
 
-		//FIXME
-		//mtm_useraction_freeActions (&mtm_tx()->undo_actions);
-		//mtm_useraction_runActions (&mtm_tx()->commit_actions);
-		//mtm_alloc_commit_allocations (false);
+		mtm_useraction_freeActions (&tx->undo_actions);
+		mtm_useraction_runActions (&tx->commit_actions);
 
 		/* Set status (no need for CAS or atomic op) */
 		tx->status = TX_COMMITTED;
@@ -383,4 +383,5 @@ mtm_pwb_commitTransactionToId(mtm_tx_t *tx,
                                 _ITM_srcLocation *loc)
 {
 	//TODO
+	assert(0);
 }

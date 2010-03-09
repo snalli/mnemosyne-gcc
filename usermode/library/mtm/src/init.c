@@ -283,18 +283,9 @@ mtm_init_thread(void)
 		perror("malloc");
 		exit(1);
 	}	
-	
-#if 0
-	/* Callbacks */
-	if (nb_init_cb != 0) {
-		int cb;
-		for (cb = 0; cb < nb_init_cb; cb++) {
-			init_cb[cb].f(TXARGS init_cb[cb].arg);
-		}	
-	}
-#endif	
 
-	PRINT_DEBUG("==> %p\n", tx);
+	tx->commit_actions = NULL;
+	tx->undo_actions = NULL;
 
 	TX_RETURN;
 }

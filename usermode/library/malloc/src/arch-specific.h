@@ -23,61 +23,18 @@
 
 #include "config.h"
 
-// Wrap architecture-specific functions.
-
-#if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
-
-// Windows
-
-#ifndef WIN32
-#define WIN32 1
-#endif
-
-// Set maximal inlining.
-#pragma inline_depth(255)
-#define inline __forceinline
-
-#include <windows.h>
-#include <process.h>
-//typedef CRITICAL_SECTION	hoardLockType;
-typedef long hoardLockType;
-typedef HANDLE 	hoardThreadType;
-
-#elif USE_SPROC
-
-// SGI's SPROC library
-
-#include <sys/types.h>
-#include <sys/prctl.h>
-
-#else
-
-// Generic UNIX
-
-#if defined(__SVR4) // Solaris
-#include <thread.h>
-#endif
-
 #include <pthread.h>
 #include <unistd.h>
 
-#endif
 
-
-#ifndef WIN32
 #if USER_LOCKS && (defined(i386) || defined(sparc) || defined(__sgi))
 typedef unsigned long	hoardLockType;
 #else
 typedef pthread_mutex_t	hoardLockType;
 #endif
 
-#if USE_SPROC
-typedef pid_t			hoardThreadType;
-#else
 typedef pthread_t		hoardThreadType;
-#endif
 
-#endif
 
 extern "C" {
 
@@ -96,7 +53,7 @@ extern "C" {
 
   ///// Lock-related wrappers.
 
-#if !defined(WIN32) && !USER_LOCKS
+#if !USER_LOCKS
 
   // Define the lock operations inline to save a little overhead.
 
@@ -112,10 +69,6 @@ extern "C" {
     pthread_mutex_unlock (&lock);
   }
 
-#else
-  void	hoardLockInit (hoardLockType& lock);
-  void	hoardLock (hoardLockType& lock);
-  void	hoardUnlock (hoardLockType& lock);
 #endif
 
   inline void  hoardLockDestroy (hoardLockType&) {

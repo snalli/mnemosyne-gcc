@@ -48,6 +48,23 @@ void nonvolatile_write_set_finish_commits_in_progress()
 
 nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 {
+	/* FIXME: Comment by HARIS: This implementation is buggy. The 
+	 * the_nonvolatile_write_sets array doesn't seem to be properly initialized.
+	 * This results in a infinite loop when trying to find a block with an isIdle == true
+	 * which quickly gives a SEG FAULT. For now I perform an initialization using a 
+	 * static variable but this is not completely correct since this does not take into
+	 * account persistence and crashes during this operation.
+	 */
+	static int init = 0;
+	int i;
+
+	if (init == 0) {
+		for (i=0; i < NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; i++) {
+			the_nonvolatile_write_sets[i].isIdle = true;
+		}
+		init = 1;
+	}
+
 	// Use this static pointer to iterate through the sets, clock-style.
 	static nonvolatile_write_set_block_t* the_next_block = the_nonvolatile_write_sets;
 	

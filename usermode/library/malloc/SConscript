@@ -1,5 +1,6 @@
 import os
 import sys
+import string
 sys.path.append('%s/library' % (Dir('#').abspath))
 
 Import('env')
@@ -7,26 +8,52 @@ configEnv = env.Clone()
 buildEnv = configEnv.Clone()
 
 Import('CommonObjects')
-buildEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
-buildEnv.Append(CCFLAGS = ' -Qtm_enabled ')
-buildEnv.Append(CCFLAGS = ['-fPIC'])
-buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
-buildEnv.Append(CPPPATH = ['#library'])
-buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
-buildEnv.Append(CCFLAGS = ' -m64 ')
-buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
-buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
+OPTIMIZE_FLAG = '-fno-rtti -fno-exceptions -finline-functions'
+WARNINGS = '-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
+DISABLE_WARNINGS = ['-wd981',  #remark  #981 : operands are evaluated in unspecified order
+                    '-wd2090', #warning #2090: GNU minimum/maximum operators are deprecated                    
+                    '-wd1419', #warning #1419: external declaration in primary source file
+                    '-wd444',  #remark  #444 : destructor for base class is not virtual
+                   ]
+
 
 if configEnv['BUILD_DEBUG'] == True:
-	buildEnv.Append(CCFLAGS = ' -g -D_MNEMOSYNE_BUILD_DEBUG')
+	CCFLAGS= ' -g -D_MNEMOSYNE_BUILD_DEBUG '
 else:
-	buildEnv.Append(CCFLAGS = ' -O2')
+	CCFLAGS= ' -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
+
+CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fPIC -fno-omit-frame-pointer'
+CCFLAGS = CCFLAGS + ' -m64 '
+
+buildEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
+buildEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc'
+buildEnv.Append(CCFLAGS = CCFLAGS)
+buildEnv.Append(CXXFLAGS = CCFLAGS)
+buildEnv.Append(CPPPATH = ['#library'])
+buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
+buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 
 C_SRC = Split("""
-              src/dlmalloc/dlmalloc.c
+              src/dlmalloc.c
               """)
 
-SRC = C_SRC
+CXX_SRC = Split("""
+                src/arch-specific.cpp
+                src/hoardheap.cpp
+                src/persistentheap.cpp
+                src/processheap.cpp
+                src/superblock.cpp
+                src/threadheap.cpp
+                src/wrapper.cpp
+                """)
 
-MnemosyneLibrary = buildEnv.StaticLibrary('malloc', SRC)
+#Not sure what to do with these files:
+DEPRECATED_CXX_SRC = Split("""
+                src/mallocwrap.cpp
+                """)
+
+
+SRC = C_SRC + CXX_SRC
+
+MnemosyneLibrary = buildEnv.SharedLibrary('malloc', SRC)
 Return('MnemosyneLibrary')

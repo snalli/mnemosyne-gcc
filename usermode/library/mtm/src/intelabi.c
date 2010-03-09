@@ -164,7 +164,7 @@ _ITM_addUserCommitAction(mtm_tx_t * __td,
                          _ITM_transactionId tid, 
                          void *arg)
 {
-	//MTM_useraction_addUserCommitAction(__td, fn, tid, arg);
+	mtm_useraction_addUserCommitAction(__td, fn, tid, arg);
 }
 
 
@@ -173,7 +173,7 @@ _ITM_addUserUndoAction(mtm_tx_t * __td,
                        const _ITM_userUndoFunction fn, 
                        void *arg)
 {
-	//MTM_useraction_adduserUndoAction(__td, fn, arg);
+	mtm_useraction_addUserUndoAction(__td, fn, arg);
 }
 
 

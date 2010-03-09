@@ -239,9 +239,6 @@
 
 #define MAX_PREALLOCS 5
 
-
-
-
 /* preliminaries */
 
 #ifndef __STD_C
@@ -255,6 +252,7 @@
 #endif /*__cplusplus*/
 #endif /*__STDC__*/
 #endif /*__STD_C*/
+
 
 #ifndef _BEGIN_EXTERNS_
 #if __cplusplus
@@ -293,11 +291,20 @@
 #endif
 #include <stdio.h>    /* needed for malloc_stats */
 
+#include "dlmalloc.h"
+
+#define PCM_STORE(addr, val)                               \
+        *(addr) = val; 
+
+#define PCM_BARRIER
+
+
+#define DLMALLOC_PHEAP_BASE 0xc00000000
+#define DLMALLOC_PHEAP_SIZE (1024*1024)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern Void_t*     sbrk _ARG_((size_t));
 
 /* mechanics for getpagesize; adapted from bsd/gnu getpagesize.h */
 
@@ -326,15 +333,13 @@ extern Void_t*     sbrk _ARG_((size_t));
 #endif 
 
 #ifdef __cplusplus
-};  /* end of extern "C" */
+}  /* end of extern "C" */
 #endif
 
 #include <mnemosyne.h>
 #include <stdint.h>
+#include <stdlib.h>
 
-#define TM_CALLABLE __attribute__((tm_callable))
-#define TM_PURE     __attribute__((tm_pure))
-#define TM_WAIVER   __tm_waiver
 
 /*  CHUNKS */
 
@@ -455,7 +460,7 @@ typedef struct malloc_bin* mbinptr;
 #define IAV(i)\
   {{ 0, &(av[i].dhd),  &(av[i].dhd) }, { 0, &(av[i].chd),  &(av[i].chd) }}
 
-__attribute__ ((section("PERSISTENT"))) uint64_t           pheap = 0x0;
+__attribute__ ((section("PERSISTENT"))) uint64_t           dlmalloc_pheap = 0x0;
 __attribute__ ((section("PERSISTENT"))) size_t             sbrk_limit = 0; 
 __attribute__ ((section("PERSISTENT"))) int                init_done = 0; 
 __attribute__ ((section("PERSISTENT"))) struct malloc_bin  *av;
@@ -469,12 +474,15 @@ __attribute__ ((section("PERSISTENT"))) size_t sbrked_mem = 0; /* Keep track of 
 __attribute__ ((section("PERSISTENT"))) mbinptr maxClean;
 
 
-TM_CALLABLE void *persistent_sbrk(size_t size) {
+TM_CALLABLE static 
+void *
+persistent_sbrk(size_t size) 
+{
 	sbrk_limit += size;
-	return (void *) (pheap + sbrk_limit);
+	return (void *) (dlmalloc_pheap + sbrk_limit);
 }	
 
-TM_CALLABLE static inline
+TM_PURE static inline
 size_t
 init_bin_lists(uintptr_t av_base)
 {
@@ -482,17 +490,17 @@ init_bin_lists(uintptr_t av_base)
 
 	av = (struct malloc_bin *) av_base;
 	for (i=0; i<NBINS; i++) {
-		av[i].dhd.size = 0;
-		av[i].dhd.fd = &(av[i].dhd);
-		av[i].dhd.bk = &(av[i].dhd);
-		av[i].chd.size = 0;
-		av[i].chd.fd = &(av[i].chd);
-		av[i].chd.bk = &(av[i].chd);
+		PCM_STORE(&av[i].dhd.size, 0);
+		PCM_STORE(&av[i].dhd.fd, &(av[i].dhd));
+		PCM_STORE(&av[i].dhd.bk, &(av[i].dhd));
+		PCM_STORE(&av[i].chd.size, 0);
+		PCM_STORE(&av[i].chd.fd, &(av[i].chd));
+		PCM_STORE(&av[i].chd.bk, &(av[i].chd));
 	}
 	return NBINS*sizeof(struct malloc_bin);
 }
 
-TM_CALLABLE static inline
+TM_PURE static inline
 void
 init()
 {
@@ -502,27 +510,30 @@ init()
 		return;
 	}
 
-	if (pheap == 0x0) {
+	if (dlmalloc_pheap == 0x0) {
+		// FIXME: How do you guarantee the atomicity of the mnemosyne_segment_create ? */
 	    TM_WAIVER {
-			mnemosyne_segment_create((void *)0xa00000000, 1024*1024, 0, 0);
+			mnemosyne_segment_create((void *) DLMALLOC_PHEAP_BASE, DLMALLOC_PHEAP_SIZE, 0, 0);
 		}	
-		pheap = 0xa00000000;
-		if ((void *) pheap == -1) {
+		dlmalloc_pheap = DLMALLOC_PHEAP_BASE;
+		if ((void *) dlmalloc_pheap == (void *) -1) {
 			TM_WAIVER {
 				abort();
 			}	
 		}
 	}
 
-	av_size = init_bin_lists(pheap);
+	av_size = init_bin_lists(dlmalloc_pheap);
 	maxClean = FIRSTBIN;
 
 	/* Advance the sbrk_limit by av_size + MINSIZE to ensure no memory is 
 	 * allocated over the av table.
 	 */
 	persistent_sbrk(av_size + 2*MINSIZE);
-	last_sbrk_end = (size_t *) (av_size + pheap + MINSIZE);
+	last_sbrk_end = (size_t *) (av_size + dlmalloc_pheap + MINSIZE);
 	*last_sbrk_end = SIZE_SZ | INUSE;
+	PCM_BARRIER
+	init_done = 1;
 }
 
 
@@ -884,7 +895,7 @@ TM_CALLABLE static void malloc_clean_bin(mbinptr bin)
 
 /*   Finally, the user-level functions  */
 
-TM_CALLABLE Void_t* mnemosyne_malloc(size_t bytes)
+TM_CALLABLE Void_t* PDL_MALLOC(size_t bytes)
 {
   static size_t previous_request = 0;  /* To control preallocation */
 
@@ -1061,7 +1072,7 @@ TM_CALLABLE Void_t* mnemosyne_malloc(size_t bytes)
 }
 
 
-TM_CALLABLE void mnemosyne_free(Void_t* mem)
+TM_CALLABLE void PDL_FREE(Void_t* mem)
 {
   if (mem != 0)
   {
@@ -1071,10 +1082,10 @@ TM_CALLABLE void mnemosyne_free(Void_t* mem)
 }
 
  
-TM_CALLABLE Void_t* mnemosyne_realloc(Void_t* mem, size_t bytes)
+TM_CALLABLE Void_t* PDL_REALLOC(Void_t* mem, size_t bytes)
 {
   if (mem == 0) {
-    return mnemosyne_malloc(bytes);
+    return PDL_MALLOC(bytes);
   }	
   else
   {
@@ -1121,7 +1132,7 @@ TM_CALLABLE Void_t* mnemosyne_realloc(Void_t* mem, size_t bytes)
       size_t* dst;
 
       set_inuse(p);    /* don't let malloc consolidate us yet! */
-      newmem = mnemosyne_malloc(nb);
+      newmem = PDL_MALLOC(nb);
 
       if (newmem != 0) {
         /* Copy -- we know that alignment is at least `size_t' */
@@ -1131,7 +1142,7 @@ TM_CALLABLE Void_t* mnemosyne_realloc(Void_t* mem, size_t bytes)
         while (count-- > 0) *dst++ = *src++;
       }
 
-      mnemosyne_free(mem);
+      PDL_FREE(mem);
       return newmem;
     }
   }
@@ -1141,7 +1152,7 @@ TM_CALLABLE Void_t* mnemosyne_realloc(Void_t* mem, size_t bytes)
 /* Return a pointer to space with at least the alignment requested */
 /* Alignment argument should be a power of two */
 
-TM_CALLABLE Void_t* mnemosyne_memalign(size_t alignment, size_t bytes)
+TM_CALLABLE Void_t* PDL_MEMALIGN(size_t alignment, size_t bytes)
 {
   mchunkptr p;
   size_t    nb = request2size(bytes);
@@ -1155,7 +1166,7 @@ TM_CALLABLE Void_t* mnemosyne_memalign(size_t alignment, size_t bytes)
   /* we will give back extra */
 
   size_t req = nb + align + MINSIZE;
-  Void_t*  m = mnemosyne_malloc(req);
+  Void_t*  m = PDL_MALLOC(req);
 
   if (m == 0) return 0; /* propagate failure */
 
@@ -1213,31 +1224,31 @@ TM_CALLABLE Void_t* mnemosyne_memalign(size_t alignment, size_t bytes)
 
 /* Derivatives */
 
-TM_CALLABLE Void_t* mnemosyne_valloc(size_t bytes)
+TM_CALLABLE Void_t* PDL_VALLOC(size_t bytes)
 {
   /* Cache result of getpagesize */
   static size_t malloc_pagesize = 0;
 
   if (malloc_pagesize == 0) malloc_pagesize = malloc_getpagesize;
-  return mnemosyne_memalign (malloc_pagesize, bytes);
+  return PDL_MEMALIGN (malloc_pagesize, bytes);
 }
 
 
-TM_CALLABLE Void_t* mnemosyne_calloc(size_t n, size_t elem_size)
+TM_CALLABLE Void_t* PDL_CALLOC(size_t n, size_t elem_size)
 {
   size_t sz = n * elem_size;
-  Void_t* p = mnemosyne_malloc(sz);
+  Void_t* p = PDL_MALLOC(sz);
   char* q = (char*) p;
   while (sz-- > 0) *q++ = 0;
   return p;
 }
 
-TM_CALLABLE void mnemosyne_cfree(Void_t *mem)
+TM_CALLABLE void PDL_CFREE(Void_t *mem)
 {
-  mnemosyne_free(mem);
+  PDL_FREE(mem);
 }
 
-TM_CALLABLE size_t mnemosyne_malloc_usable_size(Void_t* mem)
+TM_CALLABLE size_t PDL_GET_USABLE_SIZE(Void_t* mem)
 {
   if (mem == 0)
     return 0;
@@ -1253,7 +1264,7 @@ TM_CALLABLE size_t mnemosyne_malloc_usable_size(Void_t* mem)
   }
 }
     
-TM_CALLABLE void mnemosyne_malloc_stats()
+TM_CALLABLE void PDL_MALLOC_STATS()
 {
 
   /* Traverse through and count all sizes of all chunks */

@@ -4,7 +4,6 @@
 #include "threadheap.h"
 #include "persistentheap.h"
 #include "persistentsuperblock.h"
-//#include "hoardheap.h"
 
 MNEMOSYNE_PERSISTENT void *psegmentheader = 0;
 MNEMOSYNE_PERSISTENT void *psegment = 0;
@@ -16,7 +15,7 @@ persistentHeap::persistentHeap (void)
 	int                  i;
 	persistentSuperblock *psb;
 
-	// format persistent heap; this happens only the first time 
+	// Format persistent heap; this happens only the first time 
 	// the heap is ever incarnated
 	format();
 	scavenge();
@@ -39,16 +38,16 @@ void persistentHeap::format()
 	assert((!psegmentheader && !psegment) || (psegmentheader && psegment));
 
 	if (!psegmentheader) {
-		psegmentheader = mnemosyne_segment_create((void *) 0xa00000000, PERSISTENTSUPERBLOCK_NUM*sizeof(persistentSuperblock), 0, 0);
-		psegment = mnemosyne_segment_create((void *)0xb00000000, persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, 0, 0);
+		psegmentheader = mnemosyne_segment_create((void *) PERSISTENTHEAP_HEADER_BASE, PERSISTENTSUPERBLOCK_NUM*sizeof(persistentSuperblock), 0, 0);
+		psegment = mnemosyne_segment_create((void *)PERSISTENTHEAP_BASE, persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, 0, 0);
 		for(i=0; i<PERSISTENTSUPERBLOCK_NUM; i++) { 
 			b = (void *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 			buf = (void *) ((uintptr_t) psegment + i*persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE);
 			new(b) persistentSuperblock((char *)buf);
 		}	
 	}
-	std::cout << "persistentHeap::format: DONE\n" << std::endl;
 }
+
 
 // For every persistent superblock create a superblock that higher layers can use
 void persistentHeap::scavenge()
@@ -63,16 +62,19 @@ void persistentHeap::scavenge()
 		psb = (persistentSuperblock *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 		blksize = psb->getBlockSize();
 		sizeclass = sizeClass(blksize);
+		sb = superblock::makeSuperblock (psb);
+		insertSuperblock (sizeclass, sb, (persistentHeap *) NULL);
+#if 0
 		std::cout << "psb: " << psb << std::endl;
 		std::cout << "  ->fullness : " << psb->getFullness() << std::endl;
 		std::cout << "  ->isFree   : " << psb->isFree() << std::endl;
 		std::cout << "  ->sizeClass: " << sizeclass << std::endl;
-		sb = superblock::makeSuperblock (psb);
+		std::cout << "  ->blksize: " << blksize << std::endl;
 		std::cout << "sb: " << sb << std::endl;
-		insertSuperblock (sizeclass, sb, (persistentHeap *) NULL);
+		std::cout << "  ->numBlocks: " << sb->getNumBlocks() << std::endl;
+		std::cout << "  ->numAvailable: " << sb->getNumAvailable() << std::endl;
+#endif		
 	}	
-
-	std::cout << "persistentHeap::scavenge: DONE\n" << std::endl;
 }
 
 

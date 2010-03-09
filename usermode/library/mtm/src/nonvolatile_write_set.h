@@ -120,7 +120,7 @@ struct nonvolatile_write_set_entry_s
 	 * expressions) will be really nice to have. Screw C.
 	 * http://en.wikipedia.org/wiki/C%2B%2B0x#Generalized_constant_expressions
 	 */
-	#define NONVOLATILE_WRITE_SET_SIZE 2^14
+	#define NONVOLATILE_WRITE_SET_SIZE 4096
 #endif
 
 struct nonvolatile_write_set_block_s {

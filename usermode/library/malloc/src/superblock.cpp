@@ -81,7 +81,7 @@ superblock::superblock (int numBlocks,	// The number of blocks in the sb.
   // and insert the block pointers into the linked list.
   for (int i = 0; i < _numBlocks; i++) {
     // Make sure the block is on a double-word boundary.
-    assert (((unsigned int) b & hoardHeap::ALIGNMENT_MASK) == 0);
+    assert (((uintptr_t) b & hoardHeap::ALIGNMENT_MASK) == 0);
     new (b) block (this);
     assert (b->getSuperblock() == this);
 	b->setId (i);
@@ -93,7 +93,7 @@ superblock::superblock (int numBlocks,	// The number of blocks in the sb.
     b = (block *) ((char *) b + blksize);
   }
   computeFullness();
-  assert ((unsigned long) b <= hoardHeap::align (sizeof(superblock) + blksize * _numBlocks) + (unsigned long) this);
+  assert ((uintptr_t) b <= hoardHeap::align (sizeof(superblock) + blksize * _numBlocks) + (uintptr_t) this);
 
   hoardLockInit (_upLock);
 }
@@ -193,10 +193,8 @@ superblock * superblock::makeSuperblock (persistentSuperblock *pSuperblock)
 {
   // We need to get more memory.
 
-  char *buf;
   int  blksize = pSuperblock->getBlockSize();
   int  sizeclass = hoardHeap::sizeClass(blksize);
-  int  numBlocks = hoardHeap::numBlocks(sizeclass);
 
   return makeSuperblock(sizeclass, pSuperblock);
 }

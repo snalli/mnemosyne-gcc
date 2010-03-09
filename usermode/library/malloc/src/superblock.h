@@ -96,10 +96,10 @@ public:
   inline void insertBefore (superblock * nextSb);
 
   // Return the next pointer (to the next superblock in the list).
-  inline superblock * const getNext (void);
+  inline superblock * getNext (void);
 
   // Return the prev pointer (to the previous superblock in the list).
-  inline superblock * const getPrev (void);
+  inline superblock * getPrev (void);
 
   // Return the 'fullness' of this superblock.
   inline int getFullness (void);
@@ -245,13 +245,13 @@ int superblock::getBlockSizeClass (void)
 }
 
 
-superblock * const superblock::getNext (void)
+superblock * superblock::getNext (void)
 {
   assert (isValid());
   return _next; 
 }
 
-superblock * const superblock::getPrev (void)
+superblock * superblock::getPrev (void)
 {
   assert (isValid());
   return _prev; 

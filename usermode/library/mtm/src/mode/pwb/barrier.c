@@ -287,6 +287,9 @@ restart_no_load:
 			if (matching_entry != NULL) {
 				if (matching_entry->mask != 0) {
 					mask_new_value(matching_entry, addr, value, mask);
+					// Write out the entry to nonvolatile storage.
+					pcm_stream_store(modedata->pcm_storeset, &matching_entry->w_entry_nv->value, matching_entry->value);
+					pcm_stream_store(modedata->pcm_storeset, &matching_entry->w_entry_nv->address, matching_entry->addr);
 				}
 				return matching_entry;
 			} else {

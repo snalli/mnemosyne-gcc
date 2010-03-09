@@ -63,7 +63,7 @@ public:
 
   // Is this block valid? (i.e.,
   // does it have the right magic number?)
-  inline const int isValid (void) const;
+  inline int isValid (void) const;
 
   // Return the block's superblock pointer.
   inline superblock * getSuperblock (void);
@@ -136,7 +136,7 @@ void block::markAllocated (void)
 }
 
 
-const int block::isValid (void) const 
+int block::isValid (void) const 
 {
 #if HEAP_DEBUG
   return ((_magic == FREE_BLOCK_MAGIC)

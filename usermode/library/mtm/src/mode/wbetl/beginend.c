@@ -233,7 +233,7 @@ mtm_wbetl_beginTransaction_internal (mtm_tx_t *tx,
 
 	/* Increment nesting level */
 	if (tx->nesting++ > 0) {
-		return;
+		return a_runInstrumentedCode | a_saveLiveVariables;
 	}	
 
 	tx->jb = tx->tmp_jb;

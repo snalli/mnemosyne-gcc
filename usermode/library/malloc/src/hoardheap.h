@@ -48,10 +48,6 @@ public:
 
   hoardHeap (void);
 
-  // A superblock that holds more than one object must hold at least
-  // this many bytes.
-  enum { SUPERBLOCK_SIZE = 8192 };
-
   // A thread heap must be at least 1/EMPTY_FRACTION empty before we
   // start returning superblocks to the process heap.
   enum { EMPTY_FRACTION = SUPERBLOCK_FULLNESS_GROUP - 1 };
@@ -343,7 +339,7 @@ int hoardHeap::numBlocks (const int sizeclass) {
   assert (s > 0);
   const int blksize = align (s);
   // Compute the number of blocks that will go into this superblock.
-  int nb = MAX (1, ((SUPERBLOCK_SIZE) / blksize));
+  int nb =  MAX (1, ((SUPERBLOCK_SIZE) / blksize));
   return nb;
 }
 

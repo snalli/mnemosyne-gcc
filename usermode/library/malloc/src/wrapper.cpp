@@ -34,9 +34,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#if !defined(WIN32)
 #include <strings.h>
-#endif
 #if !defined(__SUNPRO_CC) || __SUNPRO_CC > 0x420
 #include <new>
 #endif
@@ -47,6 +45,7 @@
 #include "persistentheap.h"
 #include "arch-specific.h"
 
+#include "dlmalloc.h"
 
 //
 // Access exactly one instance of the global persistent heap
@@ -73,32 +72,58 @@ inline static processHeap * getAllocator (persistentHeap *persistentHeap) {
   return theAllocator;
 }
 
-#define HOARD_MALLOC(x) pmalloc(x)
-#define HOARD_FREE(x) pfree(x)
-#define HOARD_REALLOC(x,y) prealloc(x,y)
-#define HOARD_CALLOC(x,y) pcalloc(x,y)
-#define HOARD_MEMALIGN(x,y) pmemalign(x,y)
-#define HOARD_VALLOC(x) pvalloc(x)
-#define HOARD_GET_USABLE_SIZE(x) pmalloc_usable_size(x)
+#define HOARD_MALLOC          pmalloc
+#define HOARD_MALLOC_TXN      pmallocTxn
+#define HOARD_FREE            pfree
+#define HOARD_FREE_TXN        pfreeTxn
+#define HOARD_REALLOC         prealloc
+#define HOARD_CALLOC          pcalloc
+#define HOARD_MEMALIGN        pmemalign
+#define HOARD_VALLOC          pvalloc
+#define HOARD_GET_USABLE_SIZE pmalloc_usable_size
+
+//extern "C" __attribute__((tm_callable)) void * HOARD_MALLOC (size_t sz);
 
 extern "C" void * HOARD_MALLOC(size_t);
-extern "C" void HOARD_FREE(void *);
+extern "C" void * HOARD_MALLOC_TXN(size_t);
+extern "C" void   HOARD_FREE(void *);
+extern "C" void   HOARD_FREE_TXN(void *);
 extern "C" void * HOARD_REALLOC(void *, size_t);
 extern "C" void * HOARD_CALLOC(size_t, size_t);
 extern "C" void * HOARD_MEMALIGN(size_t, size_t);
 extern "C" void * HOARD_VALLOC(size_t);
 extern "C" size_t HOARD_GET_USABLE_SIZE(void *);
 
+__attribute__((tm_wrapping(HOARD_MALLOC))) void *HOARD_MALLOC_TXN(size_t);
+__attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
 
 extern "C" void * HOARD_MALLOC (size_t sz)
 {
-  static persistentHeap * persistentheap = getPersistentAllocator();
-  static processHeap    * pHeap = getAllocator(persistentheap);
-  if (sz == 0) {
-	  sz = 1;
-  }
-  void * addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
-  return addr;
+	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
+	abort();
+}
+
+extern "C" void * HOARD_MALLOC_TXN (size_t sz)
+{
+	void                  *addr;
+	static persistentHeap *persistentheap = getPersistentAllocator();
+	static processHeap    *pHeap = getAllocator(persistentheap);
+	if (sz == 0) {
+		sz = 1;
+	}
+	if (sz > SUPERBLOCK_SIZE) {
+		/* Fall back to the standard persistent allocator. 
+		 * Begin a new atomic block to force the compiler to fall through down the TM 
+		 * instrumented path. Actually we are already in the transactional path so
+		 * this atomic block should execute as a nested transaction.
+		 */
+		__tm_atomic {
+			addr = PDL_MALLOC(sz);
+		}
+	} else {
+		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
+	}
+	return addr;
 }
 
 extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)
@@ -117,18 +142,39 @@ extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)
 
 extern "C" void HOARD_FREE (void * ptr)
 {
+	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
+	abort();
+}
 
-  static persistentHeap * persistentheap = getPersistentAllocator();
-  persistentheap->free (ptr);
+
+extern "C" void HOARD_FREE_TXN (void * ptr)
+{
+	static persistentHeap * persistentheap = getPersistentAllocator();
+
+	/* Find out which heap this block has been allocated from. */
+	if ((uintptr_t) ptr >= PERSISTENTHEAP_BASE &&
+	    (uintptr_t) ptr < (PERSISTENTHEAP_BASE + PERSISTENTHEAP_SIZE))
+	{
+		persistentheap->free (ptr);
+	} else {
+		__tm_atomic {
+			PDL_FREE (ptr);
+		}
+	}
 }
 
 
 extern "C" void * HOARD_MEMALIGN (size_t alignment, size_t size)
 {
+  //TODO
+  assert(0);
+#if 0  
   static persistentHeap * persistentheap = getPersistentAllocator();
   static processHeap    * pHeap = getAllocator(persistentheap);
   void * addr = pHeap->getHeap(pHeap->getHeapIndex()).memalign (alignment, size);
   return addr;
+#endif 
+  return NULL;
 }
 
 

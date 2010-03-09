@@ -226,6 +226,8 @@ struct mtm_tx_s {
 	uintptr_t           stack_size;       /* Stack size */
 	mtm_local_undo_t    local_undo;       /* Data used by local.c for the local memory undo log.  */
 	mtm_word_t          *wb_table;        /* Private write-back table for use when isolation is off. */
+	struct mtm_user_action_s *commit_actions;
+	struct mtm_user_action_s *undo_actions;
 };
 
 

@@ -54,7 +54,6 @@ void * threadHeap::malloc (const size_t size)
 
   superblock * sb = findAvailableSuperblock (sizeclass, b, _persistentHeap);
 
-  std::cout << "findAvailableSuperblock: " << sb << std::endl;
   if (sb == NULL) {
     
     // We don't have memory locally.
@@ -85,7 +84,6 @@ void * threadHeap::malloc (const size_t size)
     // Get a block from the superblock.
     b = sb->acquireBlock ();
     assert (b != NULL);
-    std::cout << "-sb: " << sb << std::endl;
     // Insert the superblock into our list.
     insertSuperblock (sizeclass, sb, _persistentHeap);
   }
@@ -96,7 +94,6 @@ void * threadHeap::malloc (const size_t size)
 
   b->markAllocated();
 
-  std::cout <<  std::dec << "block_id: " << b->getId() << std::endl;
   allocRegionPtr = (void *) (b->getSuperblock()->getBlockRegion(b->getId()));
 #if HEAP_LOG
   MemoryRequest m;

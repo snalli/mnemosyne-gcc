@@ -60,6 +60,10 @@ inline void __cdecl operator delete(void *, void *) { return; }
 
 enum { SUPERBLOCK_FULLNESS_GROUP = 9 };
 
+// A superblock that holds more than one object must hold at least
+// this many bytes.
+enum { SUPERBLOCK_SIZE = 8192 };
+
 
 // DO NOT CHANGE THESE.  They require running of maketable to replace
 // the values in heap.cpp for the _numBlocks array.

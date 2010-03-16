@@ -32,7 +32,6 @@
   ========================================================================
 */
 
-#include <new.h>
 #include <string.h>
 
 #include "arch-specific.h"

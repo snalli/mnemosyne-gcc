@@ -9,6 +9,7 @@
 
 #include <ostream>
 #include <mnemosyne.h>
+#include <malloc.h>
 
 /*!
  * A simple, singly-linked list implementation. The goal here is an extremely
@@ -19,7 +20,7 @@ class SinglyLinkedList
 {
 public:
 	void *operator new(size_t  num_bytes) {
-		return mnemosyne_malloc(num_bytes);
+		return pmalloc(num_bytes);
 	}
 
 	/*!

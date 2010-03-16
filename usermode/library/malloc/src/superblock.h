@@ -37,8 +37,6 @@
 
 #include "config.h"
 
-#include <new.h>
-
 #include "arch-specific.h"
 #include "block.h"
 #include "persistentsuperblock.h"

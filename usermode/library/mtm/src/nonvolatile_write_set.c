@@ -111,7 +111,7 @@ void nonvolatile_write_set_make_persistent(nonvolatile_write_set_t* write_set)
 		   is faster than writing several more words. */
 		uintptr_t cache_block_addr;
 		for (cache_block_addr = (uintptr_t) base; cache_block_addr < (uintptr_t) max; cache_block_addr += CACHELINE_SIZE) {
-			pcm_wb_flush(NULL, cache_block_addr);
+			pcm_wb_flush(NULL, (pcm_word_t*) cache_block_addr);
 		}
 	#else
 		mtm_tx_t* cx = mtm_get_tx();

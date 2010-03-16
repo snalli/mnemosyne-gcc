@@ -1,3 +1,4 @@
+#include "address_space.h"
 #include "mnemosyne_i.h"
 #include "reincarnation_callback.h"
 #include "segment.h"

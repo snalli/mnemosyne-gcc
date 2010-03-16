@@ -28,6 +28,7 @@ else:
 
 C_SRC = Split("""
               src/address_space.c
+              src/files.c
               src/init.c
               src/reincarnation_callback.c
               src/segment.c

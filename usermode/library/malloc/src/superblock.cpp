@@ -100,7 +100,7 @@ superblock::superblock (int numBlocks,	// The number of blocks in the sb.
 
 
 superblock * superblock::makeSuperblock (int sizeclass,
-					 processHeap * pHeap, persistentHeap *persistentheap)
+					 processHeap * , persistentHeap *persistentheap)
 {
   // We need to get more memory.
 

@@ -164,7 +164,7 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
 
 void hoardHeap::insertSuperblock (int sizeclass,
 				  superblock * sb,
-				  persistentHeap * persistentheap)
+				  persistentHeap *)
 {
   assert (sb->isValid());
   assert (sb->getBlockSizeClass() == sizeclass);
@@ -219,7 +219,7 @@ void hoardHeap::printSuperblockList()
 
 void hoardHeap::insertSuperblock (int sizeclass,
                                   superblock * sb,
-                                  processHeap * pHeap)
+                                  processHeap *)
 {
   assert (sb->isValid());
   assert (sb->getBlockSizeClass() == sizeclass);

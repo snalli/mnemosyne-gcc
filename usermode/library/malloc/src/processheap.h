@@ -186,7 +186,7 @@ Log<MemoryRequest>& processHeap::getLog (int i)
 
 // Return ceil(log_2(num)).
 // num must be positive.
-static int lg (int num)
+static inline int lg (int num)
 {
   assert (num > 0);
   int power = 0;

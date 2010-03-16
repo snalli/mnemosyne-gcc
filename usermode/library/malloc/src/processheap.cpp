@@ -130,7 +130,7 @@ void processHeap::setDeallocated (int requestedSize,
 //                 updates the thread heap's statistics;
 //                 may release the superblock to the process heap.
 
-void processHeap::free (void * ptr)
+void processHeap::free (void*)
 {
 // TODO: not sure yet whether we need a processHeap for allocation/free
 // in addition to persistentHeap

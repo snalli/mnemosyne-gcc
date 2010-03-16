@@ -255,7 +255,7 @@
 
 
 #ifndef _BEGIN_EXTERNS_
-#if __cplusplus
+#ifdef __cplusplus
 #define _BEGIN_EXTERNS_	extern "C" {
 #define _END_EXTERNS_	}
 #else

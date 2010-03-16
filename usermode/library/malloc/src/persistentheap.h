@@ -215,7 +215,7 @@ superblock * persistentHeap::acquire (const int sizeclass,
 
 
 // Put a superblock back into our list of superblocks.
-void persistentHeap::release (superblock * sb)
+void persistentHeap::release (superblock *)
 {
 //FIXME
 #if 0

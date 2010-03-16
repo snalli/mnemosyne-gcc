@@ -51,7 +51,7 @@ local_allocate (mtm_tx_t *tx, int extend)
 		             (unsigned long)data->end, 
 		             data->r_set.size);
 		if ((local_undo->buf = 
-		     (char *)realloc(local_undo->buf, 
+		     (char *)realloc((void*) local_undo->buf, 
 		                     local_undo->size)) == NULL) 
 		{
 			perror("realloc");
@@ -108,7 +108,7 @@ mtm_local_rollback (mtm_tx_t *tx)
 		 * See Wang et al [CGO'07] for more information. 
 		 */
 		addr = local_undo_entry->addr;
-		if (sp+1 < addr || addr <= current_sp) {
+		if (sp+1 < (uintptr_t*) addr || ((uintptr_t*) addr) <= current_sp) {
 			memcpy (addr, local_undo_entry->saved, local_undo_entry->len);
 		}
 		/* Get next local_undo_entry */
@@ -124,7 +124,7 @@ mtm_local_rollback (mtm_tx_t *tx)
 
 static
 void _ITM_CALL_CONVENTION
-log_arbitrarily (mtm_tx_t *tx, const void *ptr, size_t len)
+log_arbitrarily (mtm_tx_t *tx, const volatile void *ptr, size_t len)
 {
 	mtm_local_undo_t       *local_undo = &tx->local_undo;
 	mtm_local_undo_entry_t *local_undo_entry;
@@ -137,11 +137,11 @@ log_arbitrarily (mtm_tx_t *tx, const void *ptr, size_t len)
 	buf = &local_undo->buf[local_undo->n];
 	local_undo_entry = (mtm_local_undo_entry_t *) &local_undo->buf[local_undo->n + len];
 	local_undo->n += (len + sizeof(mtm_local_undo_entry_t));
-	local_undo_entry->addr = ptr;
+	local_undo_entry->addr = (void*) ptr;
 	local_undo_entry->len = len;
 	local_undo_entry->saved = buf;
 
-	memcpy (local_undo_entry->saved, ptr, len);
+	memcpy (local_undo_entry->saved, (const void*) ptr, len);
 
 	local_undo->last_entry = local_undo_entry;
 }
@@ -153,5 +153,5 @@ void _ITM_CALL_CONVENTION mtm_##name##L##encoding (mtm_tx_t *tx, const type *ptr
 
 
 FOR_ALL_TYPES(DEFINE_LOG_BARRIER, local_)
-void  _ITM_CALL_CONVENTION mtm_local_LB (mtm_tx_t *tx, const void *ptr, size_t len)
+void  _ITM_CALL_CONVENTION mtm_local_LB (mtm_tx_t *tx, volatile const void *ptr, size_t len)
 { log_arbitrarily (TXARGS ptr, len); }

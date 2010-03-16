@@ -207,13 +207,13 @@ static inline unsigned long long asm_rdtscp(void)
 #endif
 
 
-static inline void asm_movnti(pcm_word_t *addr, pcm_word_t val)
+static inline void asm_movnti(volatile pcm_word_t *addr, pcm_word_t val)
 {
 	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*addr): "r" (val));
 }
 
 
-static inline void asm_clflush(pcm_word_t *addr)
+static inline void asm_clflush(volatile pcm_word_t *addr)
 {
 	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));
 }
@@ -423,7 +423,8 @@ flush_cacheline:
 	if (successfully_flushed_words_num == CACHELINE_SIZE/sizeof(pcm_word_t)) {
 		bitmask = 0x0;
 	} else {
-		bitmask = ((~(1ULL << CACHELINE_SIZE)) << (successfully_flushed_words_num * sizeof(pcm_word_t))) & (~(1ULL << CACHELINE_SIZE));
+		bitmask = ((~(1ULL << CACHELINE_SIZE - 1))
+		 << (successfully_flushed_words_num * sizeof(pcm_word_t))) & (~(1ULL << CACHELINE_SIZE - 1));
 	}	
 	cacheline->bitmask = cacheline->bitmask & bitmask;
 
@@ -613,7 +614,7 @@ pcm_wb_store(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
  * Flush the cacheline containing address addr.
  */
 void
-pcm_wb_flush(pcm_storeset_t *set, pcm_word_t *addr)
+pcm_wb_flush(pcm_storeset_t *set, volatile pcm_word_t *addr)
 {
 	uintptr_t           byte_addr;
 	uintptr_t           block_byte_addr;

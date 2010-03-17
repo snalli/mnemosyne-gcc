@@ -14,13 +14,12 @@ using std::size_t;
 AllWriteSetsAvailable::AllWriteSetsAvailable ()
 {
 	// This test shouldn't be in threads, so we're okay just ham-fisting this.
-	nonvolatile_write_set_initialize();
+	nonvolatile_write_set_force_initialize();
 }
 
 
 AllWriteSetsAreBusy::AllWriteSetsAreBusy ()
 {
-	nonvolatile_write_set_initialize();
 	for (size_t i = 0; i < NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; ++i)
 		nonvolatile_write_set_next_available();
 }

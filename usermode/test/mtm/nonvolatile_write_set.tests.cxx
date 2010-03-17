@@ -23,7 +23,7 @@ SUITE(NonvolatileWriteSet) {
 	}
 	
 	TEST(InitializationSucceeds) {
-		nonvolatile_write_set_initialize();
+		nonvolatile_write_set_force_initialize();
 	}
 	
 	TEST_FIXTURE(AllWriteSetsAreBusy, NextAvailableRespectsLimitsOnWriteSetBodySize) {

@@ -18,10 +18,29 @@
 void nonvolatile_write_set_construct () __attribute__(( constructor ));
 
 /*!
- * An initialization routine that, given persistent memory already in place, builds a 
+ * An initialization routine that, given persistent memory already in place, sets the
+ * idle (available) bit on every nonvolatile write set block in the system. This is
+ * conditional on theWriteSetBlocksAreInitialized, which should keep it
+ * from squashing write sets on recovery.
  */
 void nonvolatile_write_set_initialize ();
 
+#ifndef NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS
+	/*! Identifies the number of write-set blocks available in this static recovery mechanism. */
+	#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
+#endif
+
+/*!
+ * Available write-set blocks for use by transactions. This array shall be of size
+ * as NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS.
+ *
+ * \note Because this is a fixed-size set of blocks, that necessarily limits the
+ *  number of active transactions in the system.
+ * \note This is exposed for purposes of testing. It is not a public interface to
+ *  be used directly by any client code.
+ */
+MNEMOSYNE_PERSISTENT 
+nonvolatile_write_set_t the_nonvolatile_write_sets[NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS];
 
 /*!
  * Determines whether memory is initialized on recovery. This relies on persistent
@@ -140,7 +159,3 @@ void nonvolatile_write_set_make_persistent(nonvolatile_write_set_t* write_set)
 	
 	write_set->isFinal = true;
 }
-
-
-MNEMOSYNE_PERSISTENT 
-nonvolatile_write_set_t the_nonvolatile_write_sets[NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS];

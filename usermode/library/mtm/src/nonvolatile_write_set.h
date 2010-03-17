@@ -144,22 +144,6 @@ struct nonvolatile_write_set_block_s {
 	                        existing write-set. */
 };
 
-/*!
- * Available write-set blocks for use by transactions. This array shall be of size
- * as NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS.
- *
- * \note Because this is a fixed-size set of blocks, that necessarily limits the
- *  number of active transactions in the system.
- * \note This is exposed for purposes of testing. It is not a public interface to
- *  be used directly by any client code.
- */
-extern nonvolatile_write_set_t the_nonvolatile_write_sets[];
-
-#ifndef NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS
-	/*! Identifies the number of write-set blocks available in this static recovery mechanism. */
-	#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
-#endif
-
 #ifdef __cplusplus
 } // extern "C"
 #endif

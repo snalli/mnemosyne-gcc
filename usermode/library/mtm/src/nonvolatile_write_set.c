@@ -97,6 +97,8 @@ void nonvolatile_write_set_initialize ()
 			the_nonvolatile_write_sets[index].isIdle = true;
 		
 		theWriteSetBlocksAreInitialized = true;
+	} else {
+		nonvolatile_write_set_finish_commits_in_progress();
 	}
 }
 

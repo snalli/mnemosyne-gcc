@@ -4,6 +4,7 @@
 #include "mtm_i.h"
 #include "locks.h"
 #include "mode/wbetl/wbetl.h"
+#include "sysdeps/x86/target.h"
 
 static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
 volatile uint32_t mtm_initialized = 0;
@@ -279,22 +280,13 @@ mtm_init_thread(void)
 	mtm_local_init(tx);
 
 	/* Allocate private write-back table; entries are set to zero by calloc. */
-	if ((tx->wb_table = (mtm_tx_t *)calloc(PRIVATE_LOCK_ARRAY_SIZE, sizeof(mtm_tx_t))) == NULL) {
+	if ((tx->wb_table = (mtm_word_t *)calloc(PRIVATE_LOCK_ARRAY_SIZE, sizeof(mtm_word_t))) == NULL) {
 		perror("malloc");
 		exit(1);
 	}	
-	
-#if 0
-	/* Callbacks */
-	if (nb_init_cb != 0) {
-		int cb;
-		for (cb = 0; cb < nb_init_cb; cb++) {
-			init_cb[cb].f(TXARGS init_cb[cb].arg);
-		}	
-	}
-#endif	
 
-	PRINT_DEBUG("==> %p\n", tx);
+	tx->commit_actions = NULL;
+	tx->undo_actions = NULL;
 
 	TX_RETURN;
 }

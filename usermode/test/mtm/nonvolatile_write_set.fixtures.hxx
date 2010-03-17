@@ -16,4 +16,12 @@ struct AllWriteSetsAvailable
 	AllWriteSetsAvailable ();
 };
 
+/*!
+ * Establishes the condition that all write sets have been taken.
+ */
+struct AllWriteSetsAreBusy
+{
+	AllWriteSetsAreBusy ();
+};
+
 #endif /* end of include guard: NONVOLATILE_WRITE_SET_FIXTURES_HXX_JAC4VL8B */

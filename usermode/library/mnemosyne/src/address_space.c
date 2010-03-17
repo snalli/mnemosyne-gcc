@@ -5,12 +5,16 @@
  * \author Haris Volos <hvolos@cs.wisc.edu>
  */
 #include "address_space.h"
+#include "files.h"
 #include "segment.h"
+#include <err.h>
+#include <fcntl.h>
 #include <gelf.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -40,6 +44,44 @@ typedef struct module_list_s module_list_t;
  */
 static
 mnemosyne_result_t get_module_list(module_list_t *module_list);
+
+/*!
+ * Parses a binary header named ".persistent" in a given module (e.g. library).
+ *
+ * \param modulename is the name of the library whose header will be gathered.
+ * \param persistent_shdr Will be written with the ELF header of the module
+ *  analyzed. This must not be NULL.
+ *
+ * \return MNEMOSYNE_SUCCESS if the header was successfully parsed. MNEMOSYNE_R_FAILURE
+ *  if the persistent section was not found. MNEMOSYNE_R_INVALIDFILE if the file
+ *  does not appear to be an ELF header.
+ */
+mnemosyne_result_t get_persistent_shdr(char *modulename, GElf_Shdr *persistent_shdr);
+
+/*!
+ * Opens a file for reading and loads its contents into a memory buffer.
+ *
+ * \param file is the file containing the data.
+ * \param mem_start is the buffer into which data will be read. This must not be NULL.
+ * \param size is the number of bytes to read into mem_start.
+ *
+ * \return MNEMOSYNE_R_SUCCESS if the writing was successful. MNEMOSYNE_R_INVALIDFILE
+ *  if file is not readable.
+ */
+mnemosyne_result_t load_memory_from_file(char *file, void *mem_start, size_t size);
+
+/*!
+ * Opens a file, writes out data from a buffer, and closes the file.
+ * 
+ * \param file is the name of the file to write to. Writing will commence
+ *  at the beginning of the file.
+ * \param mem_start is the buffer which will be written out.
+ * \param size is the number of bytes in mem_start to write to the file.
+ *
+ * \return MNEMOSYNE_R_SUCCESS if the writing was successful. MNEMOSYNE_R_INVALIDFILE
+ *  if file is not writeable.
+ */
+mnemosyne_result_t save_memory_to_file(char *file, void *mem_start, size_t size);
 
 
 mnemosyne_result_t mnemosyne_segment_address_space_checkpoint()
@@ -79,9 +121,9 @@ mnemosyne_result_t mnemosyne_segment_address_space_checkpoint()
 	fsegment_table = fopen(segment_table_path, "r");
 	if (fsegment_table) {
 		while(!feof(fsegment_table)) {
-			fscanf(fsegment_table, "%p %llu %s\n", 
+			fscanf(fsegment_table, "%p %llu %128s\n", 
 			       &segment_start, &segment_length,
-			       &segment_backing_store_path);
+			       segment_backing_store_path);
 			save_memory_to_file(segment_backing_store_path,
 			                    segment_start, segment_length);
 		}
@@ -128,15 +170,17 @@ mnemosyne_result_t mnemosyne_segment_address_space_reincarnate()
 	fsegment_table = fopen(segment_table_path, "r");
 	if (fsegment_table) {
 		while(!feof(fsegment_table)) {
-			fscanf(fsegment_table, "%p %llu %s\n", 
+			fscanf(fsegment_table, "%p %llu %128s\n", 
 			       &segment_start, &segment_length,
-			       &segment_backing_store_path);
+			       segment_backing_store_path);
 			mnemosyne_segment_create(segment_start, segment_length, 0, 0);
 			load_memory_from_file(segment_backing_store_path,
 			                      segment_start, segment_length);
 		}
 		fclose(fsegment_table);
 	}
+	
+	return MNEMOSYNE_R_SUCCESS;
 }
 
 
@@ -166,7 +210,7 @@ mnemosyne_result_t get_module_list(module_list_t *module_list)
 		if(fgets(buf, sizeof(buf), f) == 0)
 			break;
 		mapname[0] = '\0';
-		sscanf(buf, "%llx-%llx %4s %llx %5s %llu %s", &begin, &end, perm,
+		sscanf(buf, "%lx-%lx %4s %lx %5s %lu %s", &begin, &end, perm,
 		       &foo, dev, &inode, mapname);
 		if (strlen(mapname) > 0 && strcmp(prev_mapname, mapname) != 0)	{
 			strcpy(module_list->path[i], mapname);
@@ -179,6 +223,100 @@ mnemosyne_result_t get_module_list(module_list_t *module_list)
 			return MNEMOSYNE_R_FAILURE;
 		}
 	}
+
+	return MNEMOSYNE_R_SUCCESS;
+}
+
+
+mnemosyne_result_t 
+get_persistent_shdr(char *modulename, GElf_Shdr *persistent_shdr)
+{
+	int       fd;
+	Elf       *e;
+	char      *name;
+    Elf_Scn   *scn;
+	GElf_Shdr shdr;
+	size_t    shstrndx;
+	GElf_Ehdr ehdr;
+
+	if (elf_version(EV_CURRENT) == EV_NONE) {
+		errx(EX_SOFTWARE, "ELF library initialization failed: %s", elf_errmsg(-1));
+	}		 
+
+	if ((fd = open(modulename, O_RDONLY, 0)) < 0) {
+		return MNEMOSYNE_R_INVALIDFILE;
+	}	
+
+	if ((e = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
+		errx(EX_SOFTWARE, "elf_begin() failed: %s.", elf_errmsg(-1));
+	}	
+
+	if (elf_kind(e) != ELF_K_ELF) {
+		return MNEMOSYNE_R_INVALIDFILE;
+	}
+
+	gelf_getehdr(e, &ehdr);
+	shstrndx = ehdr.e_shstrndx;
+
+	scn = NULL;
+	while ((scn = elf_nextscn(e, scn)) != NULL) {
+		if (gelf_getshdr(scn, &shdr) != &shdr) {
+			errx(EX_SOFTWARE, "getshdr() failed: %s.", elf_errmsg(-1));
+		}	
+
+		if ((name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL) {
+			errx(EX_SOFTWARE, "elf_strptr() failed: %s.", elf_errmsg(-1));
+		}
+
+		if (strcmp(name, ".persistent") == 0) {
+			memcpy((void *) persistent_shdr, &shdr, sizeof(GElf_Shdr)); 		
+			return MNEMOSYNE_R_SUCCESS;		
+		}			
+	}
+
+	(void) elf_end(e);
+	(void) close(fd);
+	return MNEMOSYNE_R_FAILURE;
+}
+
+
+mnemosyne_result_t
+load_memory_from_file(char *file, void *mem_start, size_t size)
+{
+	FILE     *fp;
+	uint64_t i;
+	char     byte;
+	char     *start = (char *) mem_start;
+
+	if ((fp = fopen(file, "r")) == NULL) {
+		return MNEMOSYNE_R_INVALIDFILE;
+	}
+	for (i=0; i<size; i++) {
+		byte = fgetc(fp);
+		start[i] = byte;
+	}
+	fclose(fp);
+
+	return MNEMOSYNE_R_SUCCESS;
+}
+
+
+mnemosyne_result_t
+save_memory_to_file(char *file, void *mem_start, size_t size)
+{
+	FILE     *fp;
+	uint64_t i;
+	char     byte;
+	char     *start = (char *) mem_start;
+
+	if ((fp = fopen(file, "w")) == NULL) {
+		return MNEMOSYNE_R_INVALIDFILE;
+	}
+	for (i=0; i<size; i++) {
+		byte = start[i];
+		fputc(byte, fp);
+	}
+	fclose(fp);
 
 	return MNEMOSYNE_R_SUCCESS;
 }

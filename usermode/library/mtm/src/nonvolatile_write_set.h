@@ -120,7 +120,7 @@ struct nonvolatile_write_set_entry_s
 	 * expressions) will be really nice to have. Screw C.
 	 * http://en.wikipedia.org/wiki/C%2B%2B0x#Generalized_constant_expressions
 	 */
-	#define NONVOLATILE_WRITE_SET_SIZE 2^14
+	#define NONVOLATILE_WRITE_SET_SIZE 4096
 #endif
 
 struct nonvolatile_write_set_block_s {
@@ -143,22 +143,6 @@ struct nonvolatile_write_set_block_s {
 	                        to record the write-set of a new transaction or extend an
 	                        existing write-set. */
 };
-
-/*!
- * Available write-set blocks for use by transactions. This array shall be of size
- * as NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS.
- *
- * \note Because this is a fixed-size set of blocks, that necessarily limits the
- *  number of active transactions in the system.
- * \note This is exposed for purposes of testing. It is not a public interface to
- *  be used directly by any client code.
- */
-extern nonvolatile_write_set_t the_nonvolatile_write_sets[];
-
-#ifndef NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS
-	/*! Identifies the number of write-set blocks available in this static recovery mechanism. */
-	#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
-#endif
 
 #ifdef __cplusplus
 } // extern "C"

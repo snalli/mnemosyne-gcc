@@ -8,6 +8,7 @@ configEnv = env.Clone()
 buildEnv = mnemosyne.Environment()
 
 Import('CommonObjects')
+buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library'])
 buildEnv.Append(LIBS = ['elf', CommonObjects, 'pthread'])
 buildEnv.Append(CCFLAGS = ' -m64 ')
@@ -27,8 +28,8 @@ else:
 
 C_SRC = Split("""
               src/address_space.c
+              src/files.c
               src/init.c
-              src/malloc-lea.c
               src/reincarnation_callback.c
               src/segment.c
               """)

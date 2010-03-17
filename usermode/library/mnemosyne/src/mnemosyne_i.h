@@ -1,4 +1,11 @@
-#ifndef _MNEMOSYNE_INTERNAL_H
+/*!
+ * \file
+ * Defines types and function atttributes common throughout libmnemosyne sources.
+ * 
+ * \author Haris Volos <hvolos@cs.wisc.edu>
+ */
+#ifndef MNEMOSYNE_I_H_IBT0Y37D
+#define MNEMOSYNE_I_H_IBT0Y37D
 
 #include <stdlib.h>
 #include <stddef.h>
@@ -33,4 +40,4 @@ typedef long double _Complex _ITM_TYPE_CE;
 
 #include "thrdesc.h"
 
-#endif /* _MNEMOSYNE_INTERNAL_H */
+#endif /* end of include guard: MNEMOSYNE_I_H_IBT0Y37D */

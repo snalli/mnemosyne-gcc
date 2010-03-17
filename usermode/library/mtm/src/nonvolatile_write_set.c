@@ -11,9 +11,47 @@
 #include <mnemosyne.h>
 #include <pthread.h>
 
+/*!
+ * A constructor (called automatically on library initialization) that sets a callback
+ * to initialize the write set blocks (unless they've already been initialized).
+ */
+void nonvolatile_write_set_construct () __attribute__(( constructor ));
+
+/*!
+ * An initialization routine that, given persistent memory already in place, sets the
+ * idle (available) bit on every nonvolatile write set block in the system. This is
+ * conditional on theWriteSetBlocksAreInitialized, which should keep it
+ * from squashing write sets on recovery.
+ */
+void nonvolatile_write_set_initialize ();
+
+#ifndef NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS
+	/*! Identifies the number of write-set blocks available in this static recovery mechanism. */
+	#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
+#endif
+
+/*!
+ * Available write-set blocks for use by transactions. This array shall be of size
+ * as NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS.
+ *
+ * \note Because this is a fixed-size set of blocks, that necessarily limits the
+ *  number of active transactions in the system.
+ * \note This is exposed for purposes of testing. It is not a public interface to
+ *  be used directly by any client code.
+ */
+MNEMOSYNE_PERSISTENT 
+nonvolatile_write_set_t the_nonvolatile_write_sets[NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS];
+
+/*!
+ * Determines whether memory is initialized on recovery. This relies on persistent
+ * segments being zeroed by default (giving this as false).
+ */
+MNEMOSYNE_PERSISTENT
+bool theWriteSetBlocksAreInitialized;
 
 /*! Protects on concurrent accesses to the nonvolatile write-set block array. */
 pthread_mutex_t the_write_set_blocks_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 
 void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
@@ -31,6 +69,11 @@ void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
 	}
 }
 
+void nonvolatile_write_set_construct ()
+{
+	mnemosyne_reincarnation_callback_register(nonvolatile_write_set_initialize);
+}
+
 
 void nonvolatile_write_set_finish_commits_in_progress()
 {
@@ -46,31 +89,44 @@ void nonvolatile_write_set_finish_commits_in_progress()
 }
 
 
+void nonvolatile_write_set_initialize ()
+{
+	if (!theWriteSetBlocksAreInitialized) {
+		size_t index;
+		for (index = 0; index < NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; ++index)
+			the_nonvolatile_write_sets[index].isIdle = true;
+		
+		theWriteSetBlocksAreInitialized = true;
+	}
+}
+
+
 nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 {
 	// Use this static pointer to iterate through the sets, clock-style.
-	static nonvolatile_write_set_block_t* the_next_block = the_nonvolatile_write_sets;
+	static size_t the_next_block_index = 0;
 	
 	/* Search for the next idle block. */
 	pthread_mutex_lock(&the_write_set_blocks_mutex);
-	nonvolatile_write_set_block_t* first_block   = the_next_block;  // Watch for a wrap-around.
-	nonvolatile_write_set_block_t* current_block = first_block;     // Our iterating pointer.
-	nonvolatile_write_set_block_t* found_block;                     // Used to remember an available block.
+	size_t first_block_index = the_next_block_index; // Watch for a wrap-around.
+	size_t current_block_index = first_block_index;  // Our iterating pointer.
+	nonvolatile_write_set_t* found_block = NULL;     // Used to remember an available block.
 	do {
-		nonvolatile_write_set_block_t* this_block = current_block;
-		++current_block;
+		nonvolatile_write_set_t* this_block = &the_nonvolatile_write_sets[current_block_index];
+		current_block_index = (current_block_index + 1) % NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS;
 		
 		if (this_block->isIdle) {
 			found_block = this_block;
 			break;
 		}
-	} while(current_block != first_block);
+	} while(current_block_index != first_block_index);
 	pthread_mutex_unlock(&the_write_set_blocks_mutex);
 	
 	// Did we find an available block?
 	if (found_block != NULL) {
 		nonvolatile_write_set_t* next_available_set = found_block;
 		assert(next_available_set != NULL);
+		the_next_block_index = (current_block_index + 1) % NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS;
 		
 		// Prepare the block for use.
 		next_available_set->nb_entries = 0;
@@ -95,7 +151,7 @@ void nonvolatile_write_set_make_persistent(nonvolatile_write_set_t* write_set)
 		   is faster than writing several more words. */
 		uintptr_t cache_block_addr;
 		for (cache_block_addr = (uintptr_t) base; cache_block_addr < (uintptr_t) max; cache_block_addr += CACHELINE_SIZE) {
-			pcm_wb_flush(NULL, cache_block_addr);
+			pcm_wb_flush(NULL, (pcm_word_t*) cache_block_addr);
 		}
 	#else
 		mtm_tx_t* cx = mtm_get_tx();
@@ -105,7 +161,3 @@ void nonvolatile_write_set_make_persistent(nonvolatile_write_set_t* write_set)
 	
 	write_set->isFinal = true;
 }
-
-
-MNEMOSYNE_PERSISTENT 
-nonvolatile_write_set_t the_nonvolatile_write_sets[NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS];

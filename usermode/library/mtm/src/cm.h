@@ -71,6 +71,7 @@ cm_upgrade_lock(mtm_tx_t *tx)
 		return 0;
 	}
 #endif /* CM == CM_PRIORITY */
+	return 0;
 }
 
 

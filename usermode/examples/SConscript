@@ -1,9 +1,15 @@
 import os
 
 Import('examplesEnv')
+Import('MallocLibrary')
 
-examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
-examplesEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc -Qtm_enabled';
+examplesEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
+examplesEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc'
+
+examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+examplesEnv.Append(CCFLAGS = ' -Qtm_enabled ')
+examplesEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
+examplesEnv.Append(LIBS = [MallocLibrary])
 
 if examplesEnv['BUILD_DEBUG'] == True:
 	examplesEnv.Append(CCFLAGS = ' -g')

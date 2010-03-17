@@ -13,7 +13,7 @@ template <typename DataType>
 __attribute__((tm_callable))
 void SinglyLinkedList<DataType>::append (DataType data)
 {
-	Node* new_node_area = reinterpret_cast<Node*>(mnemosyne_malloc(sizeof(Node)));
+	Node* new_node_area = reinterpret_cast<Node*>(pmalloc(sizeof(Node)));
 	if (itsTailNode != NULL) {
 		itsTailNode->itsNextNode = new(new_node_area) Node(data);
 		itsTailNode = itsTailNode->itsNextNode;
@@ -31,7 +31,8 @@ std::ostream& operator<< (std::ostream &output, SinglyLinkedList<T>& list)
 	typename SinglyLinkedList<T>::Node* current;
 	for (current = list.itsHeadNode; current != NULL; current = current->itsNextNode)
 		output << "[" << current->itsData << "] -> ";
-		
+	
 	output << "[/]";
+	
 	return output;
 }

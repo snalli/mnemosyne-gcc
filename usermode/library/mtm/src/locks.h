@@ -104,7 +104,7 @@
 #define PRIVATE_LOCK_ARRAY_SIZE         (1 << PRIVATE_LOCK_ARRAY_LOG_SIZE)
 #define PRIVATE_LOCK_MASK               (PRIVATE_LOCK_ARRAY_SIZE - 1)
 #define PRIVATE_LOCK_SHIFT              6
-#define PRIBATE_LOCK_IDX(a)             (((mtm_word_t)((a)) >> PRIVATE_LOCK_SHIFT) & PRIVATE_LOCK_MASK)
+#define PRIVATE_LOCK_IDX(a)             (((mtm_word_t)((a)) >> PRIVATE_LOCK_SHIFT) & PRIVATE_LOCK_MASK)
 #define PRIVATE_GET_LOCK(tx, a)         (tx->wb_table + PRIVATE_LOCK_IDX((a)))
 
 

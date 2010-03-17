@@ -104,27 +104,28 @@ void nonvolatile_write_set_initialize ()
 nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 {
 	// Use this static pointer to iterate through the sets, clock-style.
-	static nonvolatile_write_set_block_t* the_next_block = the_nonvolatile_write_sets;
+	static size_t the_next_block_index = 0;
 	
 	/* Search for the next idle block. */
 	pthread_mutex_lock(&the_write_set_blocks_mutex);
-	nonvolatile_write_set_block_t* first_block   = the_next_block;  // Watch for a wrap-around.
-	nonvolatile_write_set_block_t* current_block = first_block;     // Our iterating pointer.
-	nonvolatile_write_set_block_t* found_block;                     // Used to remember an available block.
+	size_t first_block_index = the_next_block_index; // Watch for a wrap-around.
+	size_t current_block_index = first_block_index;  // Our iterating pointer.
+	nonvolatile_write_set_t* found_block = NULL;     // Used to remember an available block.
 	do {
-		nonvolatile_write_set_block_t* this_block = current_block;
-		++current_block;
+		nonvolatile_write_set_t* this_block = &the_nonvolatile_write_sets[current_block_index];
+		current_block_index = (current_block_index + 1) % NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS;
 		
 		if (this_block->isIdle) {
 			found_block = this_block;
 			break;
 		}
-	} while(current_block != first_block);
+	} while(current_block_index != first_block_index);
 	pthread_mutex_unlock(&the_write_set_blocks_mutex);
 	
 	// Did we find an available block?
 	if (found_block != NULL) {
 		nonvolatile_write_set_t* next_available_set = found_block;
+		the_next_block_index = (current_block_index + 1) % NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS;
 		
 		// Prepare the block for use.
 		next_available_set->nb_entries = 0;

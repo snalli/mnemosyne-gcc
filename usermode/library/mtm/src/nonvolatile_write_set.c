@@ -53,7 +53,6 @@ bool theWriteSetBlocksAreInitialized;
 pthread_mutex_t the_write_set_blocks_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-
 void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
 {
 	int i;
@@ -68,6 +67,7 @@ void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
 			pcm_wb_flush(NULL, entry->address);
 	}
 }
+
 
 void nonvolatile_write_set_construct ()
 {

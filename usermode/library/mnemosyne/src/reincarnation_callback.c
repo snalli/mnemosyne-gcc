@@ -5,6 +5,7 @@
  * \author Andres Jaan Tack <tack@cs.wisc.edu>
  */
 #include "reincarnation_callback.h"
+#include "init.h"
 #include <list.h>
 #include <stdlib.h>
 
@@ -23,17 +24,24 @@ typedef struct reincarnation_callback reincarnation_callback_t;
 
 void mnemosyne_reincarnation_callback_register(void(*initializer)())
 {
-	reincarnation_callback_t* callback = (reincarnation_callback_t*) malloc(sizeof(struct reincarnation_callback));
-	callback->routine = initializer;
-	list_add_tail(&callback->list, &theRegisteredCallbacks);
+	if (!mnemosyne_initialized) {
+		reincarnation_callback_t* callback = (reincarnation_callback_t*) malloc(sizeof(struct reincarnation_callback));
+		callback->routine = initializer;
+		list_add_tail(&callback->list, &theRegisteredCallbacks);
+	} else {
+		initializer();  // We're already ready already!
+	}
 }
 
 
 void mnemosyne_reincarnation_callback_execute_all()
 {
 	struct list_head* callback_node;
-	list_for_each(callback_node, &theRegisteredCallbacks) {
+	struct list_head* next;
+	list_for_each_safe(callback_node, next, &theRegisteredCallbacks) {
+		list_del(callback_node);
 		reincarnation_callback_t* callback = list_entry(callback_node, reincarnation_callback_t, list);
 		callback->routine();
+		free(callback);
 	}
 }

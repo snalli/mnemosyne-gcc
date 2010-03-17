@@ -11,9 +11,28 @@
 #include <mnemosyne.h>
 #include <pthread.h>
 
+/*!
+ * A constructor (called automatically on library initialization) that sets a callback
+ * to initialize the write set blocks (unless they've already been initialized).
+ */
+void nonvolatile_write_set_construct () __attribute__(( constructor ));
+
+/*!
+ * An initialization routine that, given persistent memory already in place, builds a 
+ */
+void nonvolatile_write_set_initialize ();
+
+
+/*!
+ * Determines whether memory is initialized on recovery. This relies on persistent
+ * segments being zeroed by default (giving this as false).
+ */
+MNEMOSYNE_PERSISTENT
+bool theWriteSetBlocksAreInitialized;
 
 /*! Protects on concurrent accesses to the nonvolatile write-set block array. */
 pthread_mutex_t the_write_set_blocks_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 
 void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
@@ -31,6 +50,11 @@ void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
 	}
 }
 
+void nonvolatile_write_set_construct ()
+{
+	mnemosyne_reincarnation_callback_register(nonvolatile_write_set_initialize);
+}
+
 
 void nonvolatile_write_set_finish_commits_in_progress()
 {
@@ -46,25 +70,20 @@ void nonvolatile_write_set_finish_commits_in_progress()
 }
 
 
+void nonvolatile_write_set_initialize ()
+{
+	if (theWriteSetBlocksAreInitialized) {
+		size_t index;
+		for (index = 0; index < NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; ++index)
+			the_nonvolatile_write_sets[index].isIdle = true;
+		
+		theWriteSetBlocksAreInitialized = true;
+	}
+}
+
+
 nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 {
-	/* FIXME: Comment by HARIS: This implementation is buggy. The 
-	 * the_nonvolatile_write_sets array doesn't seem to be properly initialized.
-	 * This results in a infinite loop when trying to find a block with an isIdle == true
-	 * which quickly gives a SEG FAULT. For now I perform an initialization using a 
-	 * static variable but this is not completely correct since this does not take into
-	 * account persistence and crashes during this operation.
-	 */
-	static int init = 0;
-	int i;
-
-	if (init == 0) {
-		for (i=0; i < NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; i++) {
-			the_nonvolatile_write_sets[i].isIdle = true;
-		}
-		init = 1;
-	}
-
 	// Use this static pointer to iterate through the sets, clock-style.
 	static nonvolatile_write_set_block_t* the_next_block = the_nonvolatile_write_sets;
 	

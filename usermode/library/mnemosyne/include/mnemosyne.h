@@ -38,9 +38,9 @@ extern "C" {
  * that any persistent globals are valid, as well as any dynamic segments which are run.
  *
  * To register a callback successfully, the routine initializing the callback must run
- * in a constructor (the gcc attribute constructor) with priority higher
- * (closer to zero) than the mnemosyne initialization functions. An acceptable priority
- * is given by MNEMOSYNE_INITIALIZATION_PRIORITY - 1.
+ * in a constructor (the gcc attribute constructor). It does not matter that this 
+ * constructor run before or after mnemosyne initializes; in one case, the
+ * callback will be queued. In the other, it will be run.
  *
  * Callbacks registered through this method will be executed in order.
  *
@@ -57,10 +57,5 @@ void mnemosyne_init_global(void);
 # ifdef __cplusplus
 }
 # endif
-
-/*! The priority with which the mnemosyne initialization routines will run. */
-#ifndef MNEMOSYNE_INITIALIZATION_PRIORITY
-#define MNEMOSYNE_INITIALIZATION_PRIORITY 0xffff
-#endif
 
 #endif /* end of include guard: MNEMOSYNE_H_4EOVRWJH */

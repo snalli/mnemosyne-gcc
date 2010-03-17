@@ -32,4 +32,6 @@ std::ostream& operator<< (std::ostream &output, SinglyLinkedList<T>& list)
 		output << "[" << current->itsData << "] -> ";
 		
 	output << "[/]";
+	
+	return output;
 }

@@ -78,8 +78,8 @@ static
 void InitializeFirstTime()	{
 	if (my_objects.messages == NULL)
 		my_objects.messages = new SinglyLinkedList<Message>;   // This is automatically a persistent allocation,
-		                                             // and it's automatically recovered when we run
-		                                             // the process!
+		                                                       // and it's automatically recovered when we run
+		                                                       // the process!
 
 	if (my_objects.people == NULL)
 		my_objects.people = new SinglyLinkedList<Person>;        // As above, automatically persistent allocation.

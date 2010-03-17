@@ -19,9 +19,10 @@ template <class DataType>
 class SinglyLinkedList
 {
 public:
-	__attribute__((tm_callable))
 	void *operator new(size_t  num_bytes) {
-		return pmalloc(num_bytes);
+		void* result;
+		MNEMOSYNE_ATOMIC result = pmalloc(num_bytes);
+		return result;
 	}
 
 	/*!

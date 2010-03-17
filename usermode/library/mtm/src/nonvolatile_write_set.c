@@ -91,7 +91,7 @@ void nonvolatile_write_set_finish_commits_in_progress()
 
 void nonvolatile_write_set_initialize ()
 {
-	if (theWriteSetBlocksAreInitialized) {
+	if (!theWriteSetBlocksAreInitialized) {
 		size_t index;
 		for (index = 0; index < NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; ++index)
 			the_nonvolatile_write_sets[index].isIdle = true;

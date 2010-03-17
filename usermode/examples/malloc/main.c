@@ -44,11 +44,11 @@ main()
 					d2 = (struct dummy_s *) mnemosyne_malloc(1024);
 					d3 = (struct dummy_s *) mnemosyne_malloc(1024);
 					 printf("d1=%p\n", d1);
-					mnemosyne_free(d1); 
+					pfree(d1); 
 					printf("d2=%p\n", d2);
-					mnemosyne_free(d2); 
+					pfree(d2); 
 					printf("d3=%p\n", d3);
-					mnemosyne_free(d3);
+					pfree(d3);
 					start = asm_rdtsc();
 				}
 				dummy_ptr = dummy_ptr1 = (struct dummy_s *) mnemosyne_malloc(1024);
@@ -78,7 +78,7 @@ main()
 			printf("b: %x\n", dummy_ptr1->b);
 			printf("c: %x\n", dummy_ptr1->c);
 			printf("d: %x\n", dummy_ptr1->d);
-			mnemosyne_free(dummy_ptr1);
+			pfree(dummy_ptr1);
 			next_step = 3;
 			break;
 		case 3:
@@ -87,7 +87,7 @@ main()
 			printf("b: %x\n", dummy_ptr2->b);
 			printf("c: %x\n", dummy_ptr2->c);
 			printf("d: %x\n", dummy_ptr2->d);
-			mnemosyne_free(dummy_ptr2);
+			pfree(dummy_ptr2);
 			next_step = 0;
 
 	}

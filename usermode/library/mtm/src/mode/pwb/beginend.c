@@ -69,6 +69,7 @@ pwb_trycommit (mtm_tx_t *tx)
 # endif /* READ_LOCKED_DATA */
 
 		nonvolatile_write_set_make_persistent(modedata->w_set_nv);
+		assert(false);  // Crash!
 	
 		/* Install new versions, drop locks and set new timestamp */
 		/* In the case when isolation is off, the write set contains entries 

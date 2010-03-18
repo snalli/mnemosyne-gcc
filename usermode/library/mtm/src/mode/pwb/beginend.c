@@ -69,6 +69,7 @@ pwb_trycommit (mtm_tx_t *tx)
 # endif /* READ_LOCKED_DATA */
 
 		nonvolatile_write_set_make_persistent(modedata->w_set_nv);
+		mnemosyne_segment_address_space_checkpoint();
 		assert(false);  // Crash!
 	
 		/* Install new versions, drop locks and set new timestamp */

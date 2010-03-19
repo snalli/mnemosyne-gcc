@@ -115,7 +115,7 @@ void insert_write_set_entry_after(w_entry_t* new_entry, w_entry_t* tail, mtm_tx_
 	// Attach the new entry to others in the same cache block/line.
 	if (cache_neighbor != NULL) {
 		new_entry->w_entry_nv->next_cache_neighbor = cache_neighbor->w_entry_nv->next_cache_neighbor;
-		cache_neighbor->w_entry_nv->next_cache_neighbor = new_entry;
+		cache_neighbor->w_entry_nv->next_cache_neighbor = new_entry->w_entry_nv;
 	} else {
 		new_entry->w_entry_nv->next_cache_neighbor = NULL;
 	}

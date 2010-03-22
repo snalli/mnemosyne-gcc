@@ -55,9 +55,13 @@ pthread_mutex_t the_write_set_blocks_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
 {
-	int i;
+	// Flush the bit that marks this commit in progress.
+	write_set->isFinal = true;
+	pcm_wb_flush(NULL, (pcm_word_t*) &write_set->isFinal);
 	
+	// Write all the data in the write set to memory, flushing through as we go.
 	nonvolatile_write_set_entry_t* entry = &write_set->entries[0];
+	size_t i;
 	for (i = write_set->nb_entries; i > 0; i--, entry++) {
 		/* Write the value in this entry to memory (it will probably land in the cache; that's okay.) */
 		pcm_wb_store(NULL, entry->address, entry->value);
@@ -66,6 +70,12 @@ void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set)
 		if (entry->next_cache_neighbor == NULL)
 			pcm_wb_flush(NULL, entry->address);
 	}
+	
+	// Get ready for the next commit and also avoid double commits (which would also
+	// be a programming error).
+	write_set->nb_entries = 0;
+	write_set->isFinal = false;
+	pcm_wb_flush(NULL, (pcm_word_t*) &write_set->isFinal);
 }
 
 
@@ -152,22 +162,14 @@ nonvolatile_write_set_t* nonvolatile_write_set_next_available()
 
 void nonvolatile_write_set_make_persistent(nonvolatile_write_set_t* write_set)
 {
-	#if 1
-		nonvolatile_write_set_entry_t* base = &write_set->entries[0];
-		nonvolatile_write_set_entry_t* max  = &write_set->entries[write_set->nb_entries];
+	nonvolatile_write_set_entry_t* base = &write_set->entries[0];
+	nonvolatile_write_set_entry_t* max  = &write_set->entries[write_set->nb_entries];
 	
-		/* Systematically flush all the entries in the log to stable storage (if not already there)
-		   by iterating through the cache lines which would contain them. This
-		   is faster than writing several more words. */
-		uintptr_t cache_block_addr;
-		for (cache_block_addr = (uintptr_t) base; cache_block_addr < (uintptr_t) max; cache_block_addr += CACHELINE_SIZE) {
-			pcm_wb_flush(NULL, (pcm_word_t*) cache_block_addr);
-		}
-	#else
-		mtm_tx_t* cx = mtm_get_tx();
-		mode_data_t *modedata = (mode_data_t *) tx->modedata[tx->mode];
-		pcm_stream_flush(modedata->pcm_storeset);
-	#endif
-	
-	write_set->isFinal = true;
+	/* Systematically flush all the entries in the log to stable storage (if not already there)
+	   by iterating through the cache lines which would contain them. This
+	   is faster than writing several more words. */
+	uintptr_t cache_block_addr;
+	for (cache_block_addr = (uintptr_t) base; cache_block_addr < (uintptr_t) max; cache_block_addr += CACHELINE_SIZE) {
+		pcm_wb_flush(NULL, (pcm_word_t*) cache_block_addr);
+	}
 }

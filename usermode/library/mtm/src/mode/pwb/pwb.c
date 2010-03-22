@@ -81,6 +81,7 @@ mtm_pwb_destroy(mtm_mode_data_t *_data)
 #endif /* EPOCH_GC */
 	
 	pcm_storeset_destroy(data->pcm_storeset);
+	nonvolatile_write_set_free(data->w_set_nv);
 
 #ifdef EPOCH_GC
 	t = GET_CLOCK;

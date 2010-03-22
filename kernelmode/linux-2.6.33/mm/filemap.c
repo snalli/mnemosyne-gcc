@@ -36,6 +36,8 @@
 #include <linux/mm_inline.h> /* for page_is_file_cache() */
 #include "internal.h"
 
+#include "scm.h"
+
 /*
  * FIXME: remove all knowledge of the buffer layer from the core VM
  */
@@ -456,7 +458,7 @@ int add_to_page_cache_lru(struct page *page, struct address_space *mapping,
 	}
 	return ret;
 }
-EXPORT_SYMBOL_GPL(add_to_page_cache_lru);
+EXPORT_SYMBOL(add_to_page_cache_lru);
 
 #ifdef CONFIG_NUMA
 struct page *__page_cache_alloc(gfp_t gfp)
@@ -1515,6 +1517,10 @@ int filemap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		ret = VM_FAULT_MAJOR;
 retry_find:
 		page = find_lock_page(mapping, offset);
+		/* If page is mapped into a SCM region then inform the SCM subsystem */
+		if ((vma->vm_flags & VM_SCM) && page) {
+			scm_update_mapping(page, mapping, offset);
+		}
 		if (!page)
 			goto no_cached_page;
 	}

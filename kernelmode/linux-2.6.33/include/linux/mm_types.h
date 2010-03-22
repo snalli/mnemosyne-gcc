@@ -106,6 +106,7 @@ struct page {
 	 */
 	void *shadow;
 #endif
+	void *scmpage_mapping;
 };
 
 /*

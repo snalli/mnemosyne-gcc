@@ -217,8 +217,8 @@ mnemosyne_result_t get_module_list(module_list_t *module_list)
 			module_list->base[i] = begin;
 			module_list->num++;
 			i++;
+			strcpy(prev_mapname, mapname);
 		}
-		strcpy(prev_mapname, mapname);
 		if (i>module_list->size) {
 			return MNEMOSYNE_R_FAILURE;
 		}

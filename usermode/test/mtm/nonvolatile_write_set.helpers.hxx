@@ -31,6 +31,11 @@ extern "C" {
 	 */
 	extern bool theWriteSetBlocksAreInitialized;
 	
+	#ifndef NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS
+		/*! Identifies the number of write-set blocks available in this static recovery mechanism. */
+		#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
+	#endif
+	
 	/*!
 	 * Available write-set blocks for use by transactions. This array shall be of size
 	 * as NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS.
@@ -40,12 +45,7 @@ extern "C" {
 	 * \note This is exposed for purposes of testing. It is not a public interface to
 	 *  be used directly by any client code.
 	 */
-	extern nonvolatile_write_set_t the_nonvolatile_write_sets[];
-
-	#ifndef NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS
-		/*! Identifies the number of write-set blocks available in this static recovery mechanism. */
-		#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
-	#endif
+	extern nonvolatile_write_set_t the_nonvolatile_write_sets[NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS];
 }
 
 #endif /* end of include guard: NONVOLATILE_WRITE_SET_HELPERS_HXX_3XYS5TH */

@@ -70,6 +70,15 @@ void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set);
 void nonvolatile_write_set_finish_commits_in_progress();
 
 /*!
+ * Returns a write set to the pool of available (idle) write sets.
+ *
+ * \param set is the write set to return to the pool. This pointer will
+ *  be invalid to the calling thread following this procedure. This must
+ *  not be NULL.
+ */
+void nonvolatile_write_set_free (nonvolatile_write_set_t* set);
+
+/*!
  * Flushes the given write set to stable storage. This is not the same as flushing
  * the values in the write set to their targets in persistent storage. Rather,
  * this is a guarantee that the log, which needs to be persistent to
@@ -143,22 +152,6 @@ struct nonvolatile_write_set_block_s {
 	                        to record the write-set of a new transaction or extend an
 	                        existing write-set. */
 };
-
-/*!
- * Available write-set blocks for use by transactions. This array shall be of size
- * as NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS.
- *
- * \note Because this is a fixed-size set of blocks, that necessarily limits the
- *  number of active transactions in the system.
- * \note This is exposed for purposes of testing. It is not a public interface to
- *  be used directly by any client code.
- */
-extern nonvolatile_write_set_t the_nonvolatile_write_sets[];
-
-#ifndef NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS
-	/*! Identifies the number of write-set blocks available in this static recovery mechanism. */
-	#define NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS 128
-#endif
 
 #ifdef __cplusplus
 } // extern "C"

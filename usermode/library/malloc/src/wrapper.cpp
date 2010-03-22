@@ -97,7 +97,7 @@ extern "C" size_t HOARD_GET_USABLE_SIZE(void *);
 __attribute__((tm_wrapping(HOARD_MALLOC))) void *HOARD_MALLOC_TXN(size_t);
 __attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
 
-extern "C" void * HOARD_MALLOC (size_t sz)
+extern "C" void * HOARD_MALLOC (size_t)
 {
 	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
 	abort();
@@ -140,7 +140,7 @@ extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)
   return ptr;
 }
 
-extern "C" void HOARD_FREE (void * ptr)
+extern "C" void HOARD_FREE (void*)
 {
 	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
 	abort();
@@ -164,7 +164,7 @@ extern "C" void HOARD_FREE_TXN (void * ptr)
 }
 
 
-extern "C" void * HOARD_MEMALIGN (size_t alignment, size_t size)
+extern "C" void * HOARD_MEMALIGN (size_t, size_t)
 {
   //TODO
   assert(0);

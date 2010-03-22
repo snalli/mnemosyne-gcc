@@ -20,6 +20,7 @@
  */
 #include <iostream>
 #include <mnemosyne.h>
+#include <mtm.h>
 #include "singly_linked_list.hxx"
 
 // Imagine we have two custom classes, that we wrote as the programmer...
@@ -62,9 +63,12 @@ int main (int argc, char const *argv[])
 	std::cout << "  Messages: " << *my_objects.messages << std::endl;
 		
 	std::cerr << "Adding two new messages and a person..." << std::endl;
-	my_objects.messages->append(Message(42));
-	my_objects.messages->append(Message(89));
-	my_objects.people->append(Person(2114));
+	
+	MNEMOSYNE_ATOMIC {
+		my_objects.messages->append(Message(42));
+		my_objects.messages->append(Message(89));
+		my_objects.people->append(Person(2114));
+	}
 	
 	return 0;
 }
@@ -74,8 +78,8 @@ static
 void InitializeFirstTime()	{
 	if (my_objects.messages == NULL)
 		my_objects.messages = new SinglyLinkedList<Message>;   // This is automatically a persistent allocation,
-		                                             // and it's automatically recovered when we run
-		                                             // the process!
+		                                                       // and it's automatically recovered when we run
+		                                                       // the process!
 
 	if (my_objects.people == NULL)
 		my_objects.people = new SinglyLinkedList<Person>;        // As above, automatically persistent allocation.

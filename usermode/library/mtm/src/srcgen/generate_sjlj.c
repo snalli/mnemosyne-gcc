@@ -97,19 +97,19 @@ static void generate_setjmp (const char *prefix, const char *entry, int glock)
         printf ("\tje\t%s%s_internal\t# Irrevocable transaction has no need to save registers\n", prefix, entry);
     }
 
-    printf ("\tmov\t%d(%s),%s\n", offsetof (mtm_tx_t, tmp_jb_ptr), R_ARG1, BUFFER_REG);
+    printf ("\tmov\t%lu(%s),%s\n", offsetof (mtm_tx_t, tmp_jb_ptr), R_ARG1, BUFFER_REG);
 
 	/* Save the registers. */
 # define saveReg(regName, field) \
-    printf ("\tmov\t%s,%d(%s)\n",regName, offsetof(mtm_jmpbuf_t,field), BUFFER_REG);
+    printf ("\tmov\t%s,%lu(%s)\n",regName, offsetof(mtm_jmpbuf_t,field), BUFFER_REG);
     FOREACH_REGISTER (saveReg);
 
     /* And now the few remaining special values. */
 # if (_BUILD64)
     printf ("\tlea\t%d(%%rsp),%s\n", PTR_SIZE,R_SCRATCH);
-    printf ("\tmov\t%s,%d(%s)\n", R_SCRATCH,offsetof (mtm_jmpbuf_t, spSave), BUFFER_REG);
+    printf ("\tmov\t%s,%lu(%s)\n", R_SCRATCH,offsetof (mtm_jmpbuf_t, spSave), BUFFER_REG);
     printf ("\tmov\t(%%rsp),%s\n",R_SCRATCH);
-    printf ("\tmov\t%s,%d(%s)\n", R_SCRATCH,offsetof (mtm_jmpbuf_t, abendPCSave), BUFFER_REG);
+    printf ("\tmov\t%s,%lu(%s)\n", R_SCRATCH,offsetof (mtm_jmpbuf_t, abendPCSave), BUFFER_REG);
 # else
     printf ("\tlea\t%d(%%esp),%%ebx\n", PTR_SIZE);
     printf ("\tmov\t%%ebx,%d(%s)\n", offsetof (mtm_jmpbuf_t, spSave), BUFFER_REG);
@@ -119,8 +119,8 @@ static void generate_setjmp (const char *prefix, const char *entry, int glock)
 # endif
 
     /* SSE */
-    printf ("\tstmxcsr %d(%s)\n", offsetof (mtm_jmpbuf_t, mxcsrSave), BUFFER_REG);
-    printf ("\tfnstcw  %d(%s)\n", offsetof (mtm_jmpbuf_t, fpcsrSave), BUFFER_REG);
+    printf ("\tstmxcsr %lu(%s)\n", offsetof (mtm_jmpbuf_t, mxcsrSave), BUFFER_REG);
+    printf ("\tfnstcw  %lu(%s)\n", offsetof (mtm_jmpbuf_t, fpcsrSave), BUFFER_REG);
     printf ("\tfclex\n");
 
     //printf ("\tjmp\t%s%s%s\t# Vector to the target routine.\n\n", prefix, insert, entry_init_name);
@@ -133,14 +133,14 @@ static void generate_longjmp (const char *name)
     printf ("\t.align\t2,0x90\n" "\t.globl\t%s\n" "\t.hidden\t%s\n", name, name);
     printf ("%s:\n", name);
 # define restoreReg(regName, field) \
-    printf ("\tmov\t%d(%s),%s\n",offsetof(mtm_jmpbuf_t,field), R_ARG1,regName);
+    printf ("\tmov\t%lu(%s),%s\n",offsetof(mtm_jmpbuf_t,field), R_ARG1,regName);
     FOREACH_REGISTER (restoreReg);
-    printf ("\tmov\t%d(%s),%s\n", offsetof (mtm_jmpbuf_t, spSave), R_ARG1, R_SP);
+    printf ("\tmov\t%lu(%s),%s\n", offsetof (mtm_jmpbuf_t, spSave), R_ARG1, R_SP);
 
     /* SSE */
-    printf ("\tldmxcsr\t%d(%s)\n", offsetof (mtm_jmpbuf_t, mxcsrSave), R_ARG1);
+    printf ("\tldmxcsr\t%lu(%s)\n", offsetof (mtm_jmpbuf_t, mxcsrSave), R_ARG1);
     printf ("\tfnclex\n");
-    printf ("\tfldcw\t%d(%s)\n", offsetof (mtm_jmpbuf_t, fpcsrSave), R_ARG1);
+    printf ("\tfldcw\t%lu(%s)\n", offsetof (mtm_jmpbuf_t, fpcsrSave), R_ARG1);
     printf ("\tcld\n" "\temms\n");
 
     /* The register shuffling here is somewhat intricate, and not very amenable to parameterization,
@@ -148,7 +148,7 @@ static void generate_longjmp (const char *name)
      */
 # if (_BUILD64)
     printf ("\tmov\t%s,%s\n", R_ARG2, R_RESULT);
-    printf ("\tmov\t%d(%s),%s\n", offsetof (mtm_jmpbuf_t, abendPCSave), R_ARG1, R_ARG2);
+    printf ("\tmov\t%lu(%s),%s\n", offsetof (mtm_jmpbuf_t, abendPCSave), R_ARG1, R_ARG2);
     printf ("\tjmp\t*%s\n", R_ARG2);
 # else
     printf ("\tmov\t%d(%s),%s\n", offsetof (mtm_jmpbuf_t, abendPCSave), R_ARG1, R_ACC);

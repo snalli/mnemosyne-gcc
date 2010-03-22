@@ -1,3 +1,4 @@
+#include "address_space.h"
 #include "mnemosyne_i.h"
 #include "reincarnation_callback.h"
 #include "segment.h"
@@ -13,7 +14,7 @@ volatile uint32_t      mnemosyne_initialized = 0;
 
 __thread mnemosyne_thrdesc_t *_mnemosyne_thr;
 
-// FIXME: HARIS: Priorities do not work for GCC 4.1. I could check for GCC 
+// HARIS: Priorities do not work for GCC 4.1. I could check for GCC 
 // version using __GNUC__ and __GNUC_MINOR__ but we need a scheme that does 
 // not rely on static constructors.
 //static void do_global_init(void) __attribute__(( constructor (0xffff) ));

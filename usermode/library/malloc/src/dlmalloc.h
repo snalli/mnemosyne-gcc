@@ -17,7 +17,7 @@
 #define PDL_GET_USABLE_SIZE(x) pdl_malloc_usable_size(x)
 #define PDL_MALLOC_STATS       pdl_malloc_stats
 
-#if __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -31,7 +31,7 @@ TM_CALLABLE void*  PDL_VALLOC(size_t bytes);
 TM_CALLABLE void   PDL_MALLOC_STATS();
 TM_CALLABLE size_t PDL_GET_USABLE_SIZE(void* mem);
 
-#if __cplusplus
+#ifdef __cplusplus
 } /* end of extern "C" */
 #endif 
 #endif

@@ -9,6 +9,7 @@
 
 #include <ostream>
 #include <mnemosyne.h>
+#include <malloc.h>
 
 /*!
  * A simple, singly-linked list implementation. The goal here is an extremely
@@ -19,7 +20,9 @@ class SinglyLinkedList
 {
 public:
 	void *operator new(size_t  num_bytes) {
-		return mnemosyne_malloc(num_bytes);
+		void* result;
+		MNEMOSYNE_ATOMIC result = pmalloc(num_bytes);
+		return result;
 	}
 
 	/*!
@@ -35,7 +38,7 @@ public:
 	 * Appends an item to the list's tail.
 	 * \param data is the value which is concatenated to the end of the list.
 	 */
-	void append (DataType data);
+	__attribute__((tm_callable)) void append (DataType data);
 	
 	/*!
 	 * Returns the length of the list.
@@ -59,6 +62,7 @@ public:
 		 * Build a list node with the given data.
 		 * \param data the object to store in this list node.
 		 */
+		__attribute__((tm_callable))
 		inline
 		Node (DataType& data) :
 			itsData(data),

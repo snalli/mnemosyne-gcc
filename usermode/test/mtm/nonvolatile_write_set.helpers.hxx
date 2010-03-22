@@ -18,7 +18,19 @@ extern "C" {
 	 * from squashing write sets on recovery.
 	 */
 	void nonvolatile_write_set_initialize ();
-
+	
+	/*!
+	 * Runs initialization code without any care for whether initialization
+	 * had happened already or not.
+	 */
+	void nonvolatile_write_set_force_initialize ();
+	
+	/*!
+	 * Determines whether memory is initialized on recovery. This relies on persistent
+	 * segments being zeroed by default (giving this as false).
+	 */
+	extern bool theWriteSetBlocksAreInitialized;
+	
 	/*!
 	 * Available write-set blocks for use by transactions. This array shall be of size
 	 * as NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS.

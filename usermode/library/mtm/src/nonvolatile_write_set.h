@@ -70,6 +70,15 @@ void nonvolatile_write_set_commit(nonvolatile_write_set_t* write_set);
 void nonvolatile_write_set_finish_commits_in_progress();
 
 /*!
+ * Returns a write set to the pool of available (idle) write sets.
+ *
+ * \param set is the write set to return to the pool. This pointer will
+ *  be invalid to the calling thread following this procedure. This must
+ *  not be NULL.
+ */
+void nonvolatile_write_set_free (nonvolatile_write_set_t* set);
+
+/*!
  * Flushes the given write set to stable storage. This is not the same as flushing
  * the values in the write set to their targets in persistent storage. Rather,
  * this is a guarantee that the log, which needs to be persistent to

@@ -79,13 +79,21 @@ void nonvolatile_write_set_finish_commits_in_progress()
 {
 	size_t index = 0;
 	
-	for (index = 0; index > NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; ++index)
+	for (index = 0; index < NUMBER_OF_NONVOLATILE_WRITE_SET_BLOCKS; ++index)
 	{
 		nonvolatile_write_set_t* set = &the_nonvolatile_write_sets[index];
 		
-		if (set->isFinal && !set->isIdle)
+		if (set->isFinal && !set->isIdle) {
 			nonvolatile_write_set_commit(set);
+			nonvolatile_write_set_free(set);
+		}
 	}
+}
+
+
+void nonvolatile_write_set_free (nonvolatile_write_set_t* set)
+{
+	set->isIdle = true;
 }
 
 

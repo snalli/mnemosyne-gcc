@@ -1,0 +1,122 @@
+[% CONF dbpath "tctsearch.tct" \%]
+[% CONF replace "^/home/mikio/public_html localhost" \%]
+[% CONF url "tctsearch.cgi" \%]
+[% CONF title "A Tiny Search System by Tokyo Cabinet" \%]
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta http-equiv="Content-Script-Type" content="text/javascript" />
+<link rel="start" href="[%url%]" />
+<title>[%title ENC XML%]</title>
+<style type="text/css">
+html { margin: 0em; padding: 0em; background: #ffffff; color: #111111; }
+body { margin :0em; padding: 0.5em 1em; line-height: 120%; }
+p { margin: 5px; padding: 0px; }
+a:hover { color: #1177ff; }
+h1 { margin: 30px 0px 15px 0px; font-size: 125%; text-align: center; }
+h1 a { color: #000000; }
+div.searchformtitle { margin: 15px 0px; padding: 0px; text-align: center; }
+div.searchformresult { margin: 15px 10px; padding: 0px; text-align: left; }
+h2 { margin: 20px 5px; padding: 4px 10px; text-align: right; font-size: 85%; font-weight: normal;
+  background: #eeeeff; border-top: solid 1px #3388ff; }
+div.sidebar { float: right; margin: 0px 5px 15px 10px ; padding: 0px 10px;
+  color: #777777; font-size: 90%; border-left: solid 1px #ddeeff; width: 280px; }
+div.sidecaption { text-align: center; }
+div.doc { margin: 15px 20px; width: 600px; }
+h3 { margin: 3px 0px; padding: 0px; font-size: 100%; font-weight: normal; }
+h3 a { color: #0000dd; }
+div.snippet { margin: 0px 5px; font-size: 90%; }
+div.snippet strong { margin: 0px 2px; color: #000000; }
+div.url { margin: 0px 5px; font-size: 90%; color: #009922; }
+div.page { margin: 10px 0px; padding: 15px 0px; text-align: center; }
+a.move,span.move { margin: 1px 1px; padding: 1px 10px; }
+a.move { color: #0000dd; }
+span.move { color: #cccccc; }
+div.searchformbottom { margin: 10px 0px; padding: 15px 0px; text-align: center; clear: both;
+  background: #eeeeff; border-top: solid 1px #3388ff; border-bottom: solid 1px #3388ff; }
+div.footer { margin-top: 20px; text-align: center; color: #555555; font-size: 85%; }
+</style>
+<script type="text/javascript">
+function startup(){
+  var inputnode = document.getElementById("exprinput");
+  if(inputnode) inputnode.focus();
+}
+</script>
+</head>
+
+<body onload="startup();">
+[% IF expr NOT \%]
+<h1><a href="[%url%]">[%title ENC XML%]</a></h1>
+<form method="get" action="[%url%]">
+<div class="searchformtitle">
+<input type="text" name="expr" value="[%expr ENC XML%]" size="48" title="expression" tabindex="1" accesskey="1" id="exprinput" />
+<input type="submit" value="search" size="16" title="search" tabindex="2" accesskey="2" id="searchsubmit" />
+</div>
+</form>
+[% END \%]
+[% IF expr \%]
+<form method="get" action="[%url%]">
+<div class="searchformresult">
+<input type="text" name="expr" value="[%expr ENC XML%]" size="48" title="expression" tabindex="1" accesskey="1" id="exprinput" />
+<input type="submit" value="search" size="16" title="search" tabindex="2" accesskey="2" id="searchsubmit" />
+</div>
+</form>
+<h2>Results <strong>[%min%]</strong> - <strong>[%max%]</strong> of about <strong>[%hitnum%]</strong> for <strong>[%expr ENC XML%]</strong>. (<strong>[%etime%]</strong> seconds)</h2>
+[% IF docs \%]
+<div class="sidebar">
+<div class="sidecaption">Sponsored Links</div>
+<div class="sidelink">
+<h3 class="title"><a href="http://1978th.net/tokyocabinet/">Tokyo Cabinet</a></h3>
+<div class="snippet">Powerful, Portable, Practical key-value database.</div>
+<div class="url">1978th.net/tokyocabinet/</div>
+</div>
+<div class="sidelink">
+<h3 class="title"><a href="http://qdbm.sourceforge.net/">QDBM</a></h3>
+<div class="snippet">Do you know the predecessor?</div>
+<div class="url">qdbm.sourceforge.net/</div>
+</div>
+<div class="sidelink">
+<h3 class="title"><a href="http://code.google.com/p/bayon/">Bayon</a></h3>
+<div class="snippet">Simple and fast hard-clustering tool.</div>
+<div class="url">code.google.com/p/bayon/</div>
+</div>
+<div class="sidelink">
+<h3 class="title"><a href="http://code.google.com/p/skyload/">Skyload</a></h3>
+<div class="snippet">Load tests against Drizzle/MySQL servers.</div>
+<div class="url">code.google.com/p/skyload/</div>
+</div>
+</div>
+[% FOREACH docs doc \%]
+<div class="doc">
+<h3 class="title"><a href="http://[%doc.url ENC XML%]">[%doc.title ENC XML%]</a></h3>
+<div class="snippet">[%doc.snippet%]</div>
+<div class="url">[%doc.url%]</div>
+</div>
+[% END \%]
+<div class="page">
+[% IF prev %]<a href="[%url%]?page=[%prev%]&amp;expr=[%expr ENC URL%]" class="move">Prev</a>[% ELSE %]<span class="move">Prev</span>[% END %]
+[% IF next %]<a href="[%url%]?page=[%next%]&amp;expr=[%expr ENC URL%]" class="move">Next</a>[% ELSE %]<span class="move">Next</span>[% END %]
+</div>
+<form method="get" action="[%url%]">
+<div class="searchformbottom">
+<input type="text" name="expr" value="[%expr ENC XML%]" size="48" title="expression" tabindex="1" accesskey="1" id="exprinputbottom" />
+<input type="submit" value="search" size="16" title="search" tabindex="2" accesskey="2" id="searchsubmitbottom" />
+</div>
+</form>
+[% ELSE \%]
+<p>No pages containing all your search terms were found.</p>
+[% END \%]
+[% END \%]
+<div class="footer">
+<div><a href="http://1978th.net/tokyocabinet/">Tokyo Cabinet Home</a> - <a href="http://1978th.net/tokyocabinet/spex-en.html">Specification</a> - <a href="http://1978th.net/">Author's Page</a> - <a href="http://1978th.net/tech-en/promenade.cgi">Blog</a></div>
+<div>Copyright &copy; 2006-2009 Mikio Hirabayashi</div>
+</div>
+</body>
+
+</html>

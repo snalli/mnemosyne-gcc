@@ -9,7 +9,8 @@ use constant {
 };
 
 my @commands = (
-                "experiment/mmap"
+                "experiment/mmap",
+                "experiment/mmap-nosync"
                 );
 
 my @table;

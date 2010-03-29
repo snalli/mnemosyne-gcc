@@ -1,8 +1,8 @@
-#include "address_space.h"
-#include "mnemosyne_i.h"
+#include <pthread.h>
 #include "reincarnation_callback.h"
 #include "segment.h"
-#include <pthread.h>
+#include "thrdesc.h"
+#include "debug.h"
 
 
 static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -31,7 +31,7 @@ do_global_init(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (!mnemosyne_initialized) {
-		mnemosyne_segment_address_space_reincarnate();
+		m_segment_reincarnate_segments();
 		mnemosyne_initialized = 1;
 		mnemosyne_reincarnation_callback_execute_all();
 		M_WARNING("Initialize\n");
@@ -49,7 +49,7 @@ do_global_fini(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (mnemosyne_initialized) {
-		mnemosyne_segment_address_space_checkpoint();
+		/* m_segment_checkpoint();  Not necessary */ 
 		mnemosyne_initialized = 1;
 		M_WARNING("Shutdown\n");
 	}	

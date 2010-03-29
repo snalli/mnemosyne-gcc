@@ -1,156 +1,836 @@
-#include <string.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <sysexits.h>
-#include <unistd.h>
+/* System header files */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sysexits.h>
 #include <assert.h>
+#include <dirent.h> 
+/* Mnemosyne common header files */
+#include <debug.h>
+#include <result.h>
+/* Private local header files */
 #include "mnemosyne_i.h"
 #include "files.h"
 #include "segment.h"
+#include "module.h"
 
-#define SEGMENTS_DIR ".segments"
+/**
+ * The directory where persistent segment backing stores are kept.
+ */
+#define SEGMENTS_DIR "/tmp/segments"
+//#define SEGMENTS_DIR ".segments"
 
-mnemosyne_segment_list_t segment_list;
 
-typedef struct mnemosyne_segment_file_header_s mnemosyne_segment_file_header_t;
-typedef struct mnemosyne_segment_s mnemosyne_segment_t;
-typedef struct mnemosyne_segment_list_node_s mnemosyne_segment_list_node_t;
+/* 
+ * We reserve a large hole in the 47-bit virtual space for mapping 
+ * persistent memory segments.
+ * FIXME: Even if we ensure persistent segments fall into the reserved space,
+ * the kernel has to aware about this reservation to make sure that no other 
+ * memory is allocated there. Indead, when mmap is passed 0 as starting
+ * address, it searches for an empty region starting from the end of the last
+ * allocated region. So it could be very easily map a non-persistent region 
+ * into the reserved space.
+ */
 
-struct mnemosyne_segment_file_header_s {
-	uint32_t num_segments;
-};
+#define PSEGMENT_RESERVED_REGION_SIZE    0x0000010000000000 /* 1 TB */
+#define PSEGMENT_RESERVED_REGION_START   0x0000100000000000
+#define PSEGMENT_RESERVED_REGION_END     (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)
 
-struct mnemosyne_segment_s {
-	void   *start;
-	size_t length;
-	char   *backing_store_path;
-};
+#define SEGMENT_TABLE_NUM_ENTRIES        1024
+#define SEGMENT_TABLE_SIZE               (sizeof(m_segtbl_entry_t) * SEGMENT_TABLE_NUM_ENTRIES)
 
-struct mnemosyne_segment_list_node_s {
-	struct list_head    node;
-	mnemosyne_segment_t segment;
-};
+#define SEGMENT_TABLE_START              PSEGMENT_RESERVED_REGION_START
+#define SEGMENT_TABLE_HOLE               0x10000
+#define SEGMENT_MAP_START                (PSEGMENT_RESERVED_REGION_START + SEGMENT_TABLE_HOLE + SEGMENT_TABLE_SIZE)
 
-char                     segment_table_path[256];
+
+#define M_DEBUG_SEGMENT 1
+
+/* TODO: Properly define these MACROs to redirect to PCM layer */
+#define PCM_STORE(addr, val) \
+do {                         \
+   *addr = val;              \
+} while(0);
+
+#define PCM_BARRIER          \
+do {                         \
+} while (0);
+
+m_segtbl_t m_segtbl;
+
+
+/* Check whether there is a hole where we can allocate memory from. */
+#undef TRY_ALLOC_IN_HOLES
+
+
+static inline void *segment_map(void *addr, size_t size, int prot, int flags, int segment_fd);
+static m_result_t segidx_find_entry_using_index(m_segidx_t *segidx, uint32_t index, m_segidx_entry_t **entryp);
+
+
+/**
+ * \brief Verify backing stores 
+ *
+ * Cleanup any backing stores which do not have a valid entry in the 
+ * segment table. 
+ * 
+ * For .persistent section backing stores, update the segment table index 
+ * entry with the module id the .persistent section belongs to.
+ *
+ * Segment table must already have an index attached to it. 
+ */
+static
+void
+verify_backing_stores(m_segtbl_t *segtbl)
+{
+	int              n;
+	DIR              *d;
+    struct dirent    *dir;
+	uint32_t         index;
+	uint32_t         segment_id; 
+	uint64_t         segment_module_id; /* This is valid for the .persistent backing stores */
+	m_segidx_entry_t *ientry;
+	char             complete_path[256];
+
+	d = opendir(SEGMENTS_DIR);
+	if (d) {
+		while ((dir = readdir(d)) != NULL) {
+			n = sscanf(dir->d_name, "%u.%lu\n", &segment_id, &segment_module_id);
+			if (n == 2) {
+				index = segment_id;
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "Verifying backing store: %u.%lu\n", segment_id, segment_module_id);
+				/* Backing store has a valid entry in the segment table? */
+				if (!(segtbl->entries[index].flags & SGTB_VALID_ENTRY)) {
+					/* No valid entry; erase backing store */
+					sprintf(complete_path, "%s/%s", SEGMENTS_DIR, dir->d_name);
+					M_DEBUG_PRINT(M_DEBUG_SEGMENT, "Remove backing store: %s\n", complete_path);
+					unlink(complete_path);
+				}	
+				/* If this is .persistent backing store then update the index */
+				if (segment_module_id != (uint64_t) (-1LLU)) {
+					if (segidx_find_entry_using_index(segtbl->idx, index, &ientry)
+						!= M_R_SUCCESS) 
+					{
+						M_INTERNALERROR("Cannot find index entry for valid table entry.");
+					}
+					ientry->module_id = segment_module_id;
+				}
+			}	
+		}
+		closedir(d);
+	}
+}
 
 
 static
-mnemosyne_result_t
-sync_segment_table()
+int 
+create_backing_store(char *file, ssize_t size)
 {
-	char                          segment_table_path[256];
-	char                          segment_table_path_tildes[256];
-	mnemosyne_segment_list_node_t *iter;
-	int                           i;
-	int                           fd_segment_table;
-	char                          buf[256];
+	int      fd;
+	ssize_t  roundup_size;
+	char     buf[1]; 
+	
+	fd = open(file, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR | S_IWUSR);
+	if (fd < 0) {
+		return fd;
+	}
+	/* TRICK: We could create an empty file by seeking to the end of the file 
+	 * and writing a single zero byte there. However this would cause a page 
+	 * fault at the last page of the file and bring the page into the OS page 
+	 * cache. This would prevent us from observing the virtual to 
+	 * physical persistent frame mapping later after the file is mmaped to a persistent
+	 * memory region. This is an artifact of our implementation of the persistent 
+	 * mapping subsystem in the kernel. To avoid this problem we round up the file
+	 * of the size to N * PAGE_SIZE, where N=NUM_PAGES(size), and write a single 
+	 * byte at location N*PAGE_SIZE+1. 
+	 *
+	 * Another way would be to bypass the file cache and use DIRECT I/O.
+	 */
+	roundup_size = SIZEOF_PAGES(size);
+	lseek(fd, roundup_size, SEEK_SET);
+	write(fd, buf, 1);
+	fsync(fd); /* make sure the file metadata is synced */
+	/* FIXME: sync directory as well to reflect the new file entry. */
 
-	sprintf(segment_table_path, "%s/segment_table", SEGMENTS_DIR);
-	sprintf(segment_table_path_tildes, "%s/segment_table~", SEGMENTS_DIR);
-	mkdir_r(SEGMENTS_DIR, S_IRWXU);
-	fd_segment_table = open(segment_table_path_tildes, 
-	                        O_CREAT | O_TRUNC| O_WRONLY, 
-	                        S_IRWXU);
-	if (fd_segment_table<0) {
-		return MNEMOSYNE_R_FAILURE;
+	return fd;
+}
+
+m_result_t
+m_check_backing_store(char *path, ssize_t size)
+{
+	m_result_t  rv = M_R_FAILURE;
+	struct stat stat_buf;
+	ssize_t     roundup_size;
+
+	if (stat(path, &stat_buf)==0) {
+		roundup_size = SIZEOF_PAGES(size);
+		if (stat_buf.st_size > roundup_size) {
+			rv = M_R_SUCCESS;
+		} else {
+			rv = M_R_FAILURE; 
+		}
 	}
-	i = 0;
-	list_for_each_entry(iter, &segment_list.list, node) {
-		sprintf(buf, "%p %llu %s/segment_file_%d\n",
-		        iter->segment.start, 
-		        (unsigned long long) iter->segment.length, 
-		        SEGMENTS_DIR,
-		        i);
-		write(fd_segment_table, buf, strlen(buf));		
-		i++;		
+	return rv;
+}
+
+static 
+m_result_t
+segidx_insert_entry_ordered(m_segidx_t *segidx, m_segidx_entry_t *new_entry, int lock)
+{
+	m_segidx_entry_t *ientry;
+
+	if (lock) {
+		pthread_mutex_lock(&(segidx->mutex));
 	}
-	fsync(fd_segment_table);
-	close(fd_segment_table);
-	rename(segment_table_path_tildes, segment_table_path);
-	//FIXME: do we need another sync to ensure directory 
-	// metadata are synced? if yes, then what do you sync? the directory file?
-	return MNEMOSYNE_R_SUCCESS;
+	/* 
+	 * Find the right location of the entry so that the list is ordered
+	 * incrementally by start address. 
+	 */
+	list_for_each_entry(ientry, &(segidx->mapped_entries.list), list) {
+		if (ientry->segtbl_entry->start > new_entry->segtbl_entry->start) {
+			list_add_tail(&(new_entry->list), &(ientry->list));
+			goto out;
+		}
+	}
+	list_add_tail(&(new_entry->list), &(segidx->mapped_entries.list));
+
+out:
+	if (lock) {
+		pthread_mutex_unlock(&(segidx->mutex));
+	}
+	return M_R_SUCCESS;
 }
 
 
-/* FIXME: Currently atomicity is broken. 
- * If you have successfully acquired a persistent segment but then crash before 
- * noting it into your segment_table then the segment is lost. We could deal
- * with this by logging our intention but this should be something to consider
- * in the design of transactions. Moreover we might need to drop the usermode
- * approach of keeping the segments in a file because the kernel can't really 
- * trust this file. Since it will have to account of how much memory is given to each
- * program/process we might just implement the functionality in the kernel
- * and avoid duplication.
- */
-void *
-mnemosyne_segment_create(void *start, size_t length, int prot, int flags)
+m_result_t
+segidx_create(m_segtbl_t *_segtbl, m_segidx_t **_segidxp)
 {
-	mnemosyne_segment_list_node_t *iter;
-	mnemosyne_segment_list_node_t *segment_node;
-	void                          *ptr;
+	m_result_t       rv;
+	m_segidx_t       *_segidx;
+	m_segidx_entry_t *entries;
+	m_segtbl_entry_t *segtbl_entry;
+	int              i;
 
-	/* Ensure segment does not already exist. */
-	list_for_each_entry(iter, &segment_list.list, node) {
-		if ((uint64_t) iter->segment.start <= (uint64_t) start &&
-		    (uint64_t) iter->segment.start + (uint64_t) iter->segment.length > (uint64_t) start) 
-		{
-			return NULL;
+	if (!(_segidx = (m_segidx_t *) malloc(sizeof(m_segidx_t)))) {
+		rv = M_R_NOMEMORY;
+		goto out;
+	}
+	
+	if (!(entries = (m_segidx_entry_t *) calloc(SEGMENT_TABLE_NUM_ENTRIES,
+	                                            sizeof(m_segidx_entry_t))))
+	{
+		rv = M_R_NOMEMORY;
+		goto err_calloc;
+	}
+	pthread_mutex_init(&(_segidx->mutex), NULL);
+	_segidx->all_entries = entries;
+	INIT_LIST_HEAD(&(_segidx->mapped_entries.list));
+	INIT_LIST_HEAD(&(_segidx->free_entries.list));
+	for (i=0; i < SEGMENT_TABLE_NUM_ENTRIES; i++) {
+		segtbl_entry = entries[i].segtbl_entry = &_segtbl->entries[i];
+		entries[i].index = i;
+		entries[i].module_id = (uint64_t) (-1ULL);
+		if (segtbl_entry->flags & SGTB_VALID_ENTRY) {
+			segidx_insert_entry_ordered(_segidx, &(entries[i]), 0);
+		} else {
+			list_add_tail(&(entries[i].list), &(_segidx->free_entries.list));
 		}
 	}
+	*_segidxp = _segidx;
+	rv = M_R_SUCCESS;
+	goto out;
+err_calloc:
+	free(_segidx);
+out:
+	return rv;
+}
 
-	segment_node = (mnemosyne_segment_list_node_t *) 
-	               malloc(sizeof(mnemosyne_segment_list_node_t));
-	if (!segment_node) {
-		return NULL;
+
+static
+m_result_t
+segidx_destroy(m_segidx_t *segidx)
+{
+	M_INTERNALERROR("Unimplemented functionality: segidx_destroy\n");
+	return M_R_SUCCESS;
+}	
+
+
+static
+m_result_t 
+segidx_alloc_entry(m_segidx_t *segidx, m_segidx_entry_t **entryp)
+{
+	m_result_t       rv = M_R_FAILURE;
+	m_segidx_entry_t *entry;
+	struct list_head *free_head;
+	
+
+	pthread_mutex_lock(&(segidx->mutex));
+	if ((free_head = segidx->free_entries.list.next)) {
+		entry = list_entry(free_head, m_segidx_entry_t, list);
+		list_del_init(&(entry->list));
+	} else {
+		rv = M_R_NOMEMORY;
+		goto out;
 	}
-	pthread_mutex_lock(&segment_list.mutex);
-	segment_node->segment.start = start;
-	segment_node->segment.length = length;
+	*entryp = entry;
+	rv = M_R_SUCCESS;
+	goto out;
+
+out:
+	pthread_mutex_unlock(&(segidx->mutex));
+	return rv;
+}
+
+
+static
+m_result_t 
+segidx_free_entry(m_segidx_t *segidx, m_segidx_entry_t *entry)
+{
+	m_result_t       rv = M_R_FAILURE;
+
+	if (!entry) {
+		rv = M_R_INVALIDARG;
+		return rv;
+	}	
+
+	pthread_mutex_lock(&(segidx->mutex));
+	list_del_init(&(entry->list));
+	list_add(&(entry->list), &(segidx->free_entries.list));
+	rv = M_R_SUCCESS;
+	goto unlock;
+
+unlock:
+	pthread_mutex_unlock(&(segidx->mutex));
+	return rv;
+}
+
+
+/* Not thread safe */
+static
+m_result_t 
+segidx_find_entry_using_addr(m_segidx_t *segidx, void *addr, m_segidx_entry_t **entryp)
+{
+	m_segidx_entry_t *ientry;
+	m_segtbl_entry_t *tentry;
+	uintptr_t        start;
+	uint32_t         size;
+
+	list_for_each_entry(ientry, &segidx->mapped_entries.list, list) {
+		tentry = ientry->segtbl_entry;
+		start = tentry->start;
+		size = tentry->size;
+		if ((uintptr_t) addr >= start && (uintptr_t) addr < start+size) {
+			*entryp = ientry;
+			return M_R_SUCCESS;
+		}
+	}
+	return M_R_FAILURE;
+}
+
+
+/* Not thread safe */
+static
+m_result_t 
+segidx_find_entry_using_index(m_segidx_t *segidx, uint32_t index, m_segidx_entry_t **entryp)
+{
+	if (index >= SEGMENT_TABLE_NUM_ENTRIES) {
+		return M_R_INVALIDARG;
+	}
+	*entryp = &segidx->all_entries[index];
+	return M_R_SUCCESS;
+}
+
+
+/* Not thread safe */
+static
+m_result_t 
+segidx_find_entry_using_module_id(m_segidx_t *segidx, uint64_t module_id, m_segidx_entry_t **entryp)
+{
+	m_segidx_entry_t *ientry;
+
+	list_for_each_entry(ientry, &segidx->mapped_entries.list, list) {
+		if (ientry->module_id == module_id) {
+			*entryp = ientry;
+			return M_R_SUCCESS;
+		}
+	}
+	return M_R_FAILURE;
+}
+
+static
+uintptr_t
+segidx_find_free_region(m_segidx_t *segidx, uintptr_t start_addr, size_t length)
+{
+	struct list_head *tmp_list;
+	m_segidx_entry_t *max_ientry;
+
+	pthread_mutex_lock(&segidx->mutex); 
+	if ((tmp_list = segidx->mapped_entries.list.prev) !=  &segidx->mapped_entries.list) {
+		max_ientry = list_entry(tmp_list, m_segidx_entry_t, list);
+		if (start_addr < (max_ientry->segtbl_entry->start +	max_ientry->segtbl_entry->size)) {
+			start_addr = 0x0;
+#ifdef TRY_ALLOC_IN_HOLES
+			/* Check whether there is a hole where we can allocate memory */
+			prev_end_addr = SEGMENT_MAP_START;
+			list_for_each_entry(ientry, &(segidx->mapped_entries.list), list) {
+				if (ientry->segtbl_entry->start - prev_end_addr > length) {
+					start_addr = prev_end_addr;
+					break;
+				}
+				prev_end_addr = ientry->segtbl_entry->start + ientry->segtbl_entry->size;
+			}
+#endif			
+			/* If not found a hole then start from the maximum allocated address so far */
+			if (!start_addr) {
+				start_addr = max_ientry->segtbl_entry->start +	max_ientry->segtbl_entry->size;
+			}	
+		}
+	}
+	pthread_mutex_unlock(&segidx->mutex);
+	return start_addr;
+}
+
+
+static inline
+m_result_t
+segment_table_map(m_segtbl_t *segtbl)
+{
+	char              segtbl_path[256];
+	int               segtbl_fd;
+
+	sprintf(segtbl_path, "%s/segment_table", SEGMENTS_DIR);
+	if (m_check_backing_store(segtbl_path, SEGMENT_TABLE_SIZE) != M_R_SUCCESS) {
+		mkdir_r(SEGMENTS_DIR, S_IRWXU);
+		segtbl_fd = create_backing_store(segtbl_path, SEGMENT_TABLE_SIZE);
+	} else {
+		segtbl_fd = open(segtbl_path, O_RDWR);
+	}
+	segtbl->entries = segment_map((void *) SEGMENT_TABLE_START, 
+	                              SEGMENT_TABLE_SIZE, 
+	                              PROT_READ|PROT_WRITE,
+	                              MAP_PERSISTENT | MAP_SHARED,
+		                          segtbl_fd);
+	if (segtbl->entries == MAP_FAILED) {
+		assert(0 && "Going crazy...couldn't map the segment table\n");
+		return M_R_FAILURE;
+	}
+	return M_R_SUCCESS;
+}
+
+
+/**
+ * \brief (Re)incarnates the segment table.
+ *
+ * It maps the persistent segment table, fleshes out an index on top of it
+ * and verifies existing backing stores.
+ *
+ * It does not map any other segments.
+ */
+static 
+m_result_t
+segment_table_incarnate()
+{
+	m_result_t rv;
+
+	if ((rv = segment_table_map(&m_segtbl)) != M_R_SUCCESS) {
+		return rv;
+	}
+	if ((rv = segidx_create(&m_segtbl, &(m_segtbl.idx))) != M_R_SUCCESS) {
+
+	}
+	verify_backing_stores(&m_segtbl);
+
+	return M_R_SUCCESS;
+}
+
+
+static inline
+void
+segment_table_print(m_segtbl_t *segtbl)
+{
+	m_segidx_entry_t *ientry;
+	m_segtbl_entry_t *tentry;
+	uintptr_t        start;
+	uintptr_t        end;
+
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "PERSISTENT SEGMENT TABLE\n");
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "========================\n");
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "%16s   %16s %17s %10s\n", "start", "end", "size", "flags");
+	list_for_each_entry(ientry, &segtbl->idx->mapped_entries.list, list) {
+		tentry = ientry->segtbl_entry;
+		start = (uintptr_t) tentry->start;
+		end   = (uintptr_t) tentry->start + (uintptr_t) tentry->size;
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "0x%016lx - 0x%016lx %16luK", start, end, (long unsigned int) tentry->size/1024);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, " %7c%c%c%c\n", ' ',
+		              (tentry->flags & SGTB_VALID_ENTRY)? 'V': '-',
+		              (tentry->flags & SGTB_VALID_DATA)? 'D': '-',
+		              (tentry->flags & SGTB_TYPE_SECTION)? 'S': '-'
+			         );
+	}
+}
+
+
+void 
+m_segment_table_print()
+{
+	segment_table_print(&m_segtbl);
+}
+
+
+m_result_t
+m_segment_table_alloc_entry(m_segtbl_t *segtbl, m_segtbl_entry_t **entryp)
+{
+	m_result_t       rv;
+	m_segidx_entry_t *ientry;
+
+	rv = segidx_alloc_entry(segtbl->idx, &ientry);
+	if (rv != M_R_SUCCESS) {
+		goto out;
+	}
+	*entryp = ientry->segtbl_entry;
+
+out:
+	return rv;
+}
+	
+
+/**
+ * Assumes segment_fd points to a valid segment backing store. 
+ */
+static inline
+void *
+segment_map(void *addr, size_t size, int prot, int flags, int segment_fd)
+{
+	void      *segmentp;
+	uintptr_t start;
+	uintptr_t end;
+
+
+	if (segment_fd < 0) {
+		return ((void *) -1);
+	}
+	segmentp = mmap(addr, size, prot, 
+	                flags | MAP_PERSISTENT| MAP_SHARED, 
+		            segment_fd,
+		            0);
+				   
+	if (segmentp == MAP_FAILED) {
+		return segmentp;
+	}
+	/* 
+	 * Ensure mapped segment falls into the address space region reserved 
+	 * for persistent segments.
+	 */
+	start = (uintptr_t) segmentp;
+	end = start + size;
+	if (start < PSEGMENT_RESERVED_REGION_START || 
+	    start > PSEGMENT_RESERVED_REGION_END ||
+	    end > PSEGMENT_RESERVED_REGION_END) 
+	{
+		/* FIXME: unmap the segment */
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "   limits : %016lx - %016lx\n", PSEGMENT_RESERVED_REGION_START, PSEGMENT_RESERVED_REGION_END);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "asked for : %016lx - %016lx\n", (uintptr_t) addr, (uintptr_t) addr + size);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "      got : %016lx - %016lx\n", start, end);
+		M_INTERNALERROR("Persistent segment not in the reserved address space region.\n");
+		return MAP_FAILED;
+	}
+
+	/* we don't want page prefetching on the persistent segment */
+	if (madvise(segmentp, size, MADV_RANDOM) < 0) {
+		return MAP_FAILED;
+	}
+	return segmentp;
+}
+
+
+/**
+ * Assumes segment_path points to a valid segment backing store. 
+ */
+static 
+void *
+segment_map2(void *addr, size_t size, int prot, int flags, char *segment_path)
+{
+	int  segment_fd;
+	void *segmentp;
+
+	segment_fd = open(segment_path, O_RDWR);
+	if (segment_fd < 0) {
+		return ((void *) -1);
+	}
+
+	segmentp = segment_map(addr, size, prot, flags, segment_fd);
+				   
+	if (segmentp == MAP_FAILED) {
+		close (segment_fd);
+		return segmentp;
+	}
+	return segmentp;
+}
+
+
+/**
+ * \brief Reincarnates valid segments
+ *
+ * Assumes segment table already has an index attached to it.
+ */
+void
+segment_reincarnate_segments(m_segtbl_t *segtbl)
+{
+	m_segidx_entry_t *ientry;
+	m_segtbl_entry_t *tentry;
+	uintptr_t        start;
+	uintptr_t        end;
+	char             path[256];
+	void             *map_addr;
+
+	list_for_each_entry(ientry, &segtbl->idx->mapped_entries.list, list) {
+		tentry = ientry->segtbl_entry;
+		if (tentry->flags & SGTB_TYPE_PMAP) {
+			sprintf(path, "%s/%d.0", SEGMENTS_DIR, ientry->index);
+		} else if (tentry->flags & SGTB_TYPE_SECTION) {
+			sprintf(path, "%s/%d.%lu", SEGMENTS_DIR, ientry->index, (long unsigned int) ientry->module_id);
+		} else {
+			M_INTERNALERROR("Unknown persistent segment type.\n");
+		}
+		start = (uintptr_t) tentry->start;
+		end   = (uintptr_t) tentry->start + (uintptr_t) tentry->size;
+		/* 
+		 * We pass MAP_FIXED to force the segment be mapped in its previous 
+		 * address space region.
+		 */
+		/* FIXME: protection flags should be stored in the segment table */
+		map_addr = segment_map2((void *) start, (size_t) tentry->size, 
+								PROT_READ|PROT_WRITE,
+								MAP_FIXED,
+								path);
+		if (map_addr == MAP_FAILED) {
+			M_INTERNALERROR("Cannot reincarnate persistent segment.\n");
+		}
+	}
+}
+
+
+static
+void *
+pmap_internal(void *start, size_t length, int prot, int flags, 
+              m_segidx_entry_t **entryp, uint32_t segtbl_entry_flags, uint64_t module_id)
+{
+	char             path[256];
+	uintptr_t        start_addr = SEGMENT_MAP_START + (uintptr_t) start;
+	void             *map_addr;
+	int              fd;
+	void             *rv = MAP_FAILED;
+	m_segidx_entry_t *new_ientry;
+	m_segtbl_entry_t *tentry;
+	uint32_t         flags_val;
+	
+
+	if ((segidx_alloc_entry(m_segtbl.idx, &new_ientry)) != M_R_SUCCESS) {
+		rv = MAP_FAILED;
+		goto out;
+	}	
+	sprintf(path, "%s/%d.%lu", SEGMENTS_DIR, new_ientry->index, module_id);
 
 	/* 
-	 * FIXME: backing_store_path is currently assigned when syncing 
-	 * the table but this should really be assigned by the OS when segments 
-	 * are implemented by the the VM subsystem 
+	 * Round-up the size of the segment to be an integer multiple of 4K pages.
+	 * This doesn't add any extra memory overhead because the kernel already 
+	 * round-ups and makes segment management simpler.
 	 */
-	/* segment_node->segment.backing_store_path = ...; */
-	list_add(&segment_node->node, &segment_list.list);
-	sync_segment_table();
-	ptr = mmap(start, length, PROT_READ|PROT_WRITE,  MAP_SHARED|MAP_ANONYMOUS, 0, 0);
-	assert(ptr == start); /* FIXME: mmap uses start as a hint -- our interface does not */
-	pthread_mutex_unlock(&segment_list.mutex);
+	length = SIZEOF_PAGES(length);
+
+	if ((fd = create_backing_store(path, length)) < 0) {
+		rv = MAP_FAILED;
+		goto err_create_backing_store;
+	}
 	
-	return segment_node->segment.start;
+	/* 
+	 * Passing a start_addr that overlaps with a region will cause segment_map 
+	 * (which in turn calls mmap) to return an address that is not always the 
+	 * first address starting from start_addr to be found free. 
+	 * I don't understand why so I make sure that I pass an address that 
+	 * is guaranteed not to overlap with any other persistent segment.
+	 */
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "start_addr = %p\n", start_addr);
+	start_addr = segidx_find_free_region(m_segtbl.idx, start_addr, length);
+
+	map_addr = segment_map((void *)start_addr, length, prot, flags, fd);
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "new_start_addr = %p\n", start_addr);
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "map_addr = %p\n", map_addr);
+	if (map_addr == MAP_FAILED) {
+		rv = MAP_FAILED;
+		goto err_segment_map;
+	}
+
+	/* Now update the segment table with the necessary segment information. */
+	tentry = new_ientry->segtbl_entry;
+	PCM_STORE(&(tentry->start), map_addr);
+	PCM_STORE(&(tentry->size), length);
+	PCM_BARRIER;
+	flags_val = segtbl_entry_flags;
+	PCM_STORE(&(tentry->flags), flags_val);
+	PCM_BARRIER;
+
+	/* Insert the entry into the ordered index */
+	segidx_insert_entry_ordered(m_segtbl.idx, new_ientry, 1);
+
+	*entryp = new_ientry;
+	rv = map_addr;
+	goto out;
+
+err_segment_map:
+err_create_backing_store:
+	segidx_free_entry(m_segtbl.idx, new_ientry);
+out:
+	return rv;
 }
 
 
-/* TODO: destroy just the requested region and not the whole segment */
-/* assumes no segment overlapping */
-int
-mnemosyne_segment_destroy(void *start, size_t length)
+
+/**
+ * \brief Checks if there are any new .persistent sections and creates them
+ *
+ */
+static
+m_result_t 
+segment_create_sections(m_segtbl_t *segtbl)
 {
-	mnemosyne_segment_list_node_t *iter;
-	mnemosyne_segment_list_node_t *node_to_delete = NULL;
+	void             *mapped_addr;
+	size_t           length;
+	uintptr_t        persistent_section_absolute_addr;
+	uintptr_t        GOT_section_absolute_addr;
+	m_result_t       rv;
+	module_dsr_t     *module_dsr;
+	m_segtbl_entry_t *tentry;
+	m_segidx_entry_t *ientry;
+	uint32_t         flags_val;
+	Elf_Data         *elfdata;
 
-	pthread_mutex_lock(&segment_list.mutex);
-	list_for_each_entry(iter, &segment_list.list, node) {
-		if ((uint64_t) iter->segment.start <= (uint64_t) start &&
-		    (uint64_t) iter->segment.start + (uint64_t) iter->segment.length > (uint64_t) start) 
+	rv = m_module_create_module_dsr_list(&module_dsr_list);
+
+	list_for_each_entry(module_dsr, &module_dsr_list, list) {
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "module_path = %s\n", module_dsr->module_path);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "module_id   = %lu\n", module_dsr->module_inode);
+
+		/* 
+		 * If there is no valid entry for the persistent section of this module 
+		 * then create it and map the segment.
+		 */
+		if (segidx_find_entry_using_module_id(segtbl->idx, module_dsr->module_inode, &ientry) 
+		    != M_R_SUCCESS)
 		{
-			node_to_delete = iter;
-			break;
+			length = module_dsr->persistent_shdr.sh_size;
+			mapped_addr = pmap_internal(0, length, PROT_READ|PROT_WRITE, 0, &ientry, 
+	                                    SGTB_TYPE_SECTION | SGTB_VALID_ENTRY, module_dsr->module_inode);
+			if (mapped_addr == MAP_FAILED) {
+				M_INTERNALERROR("Cannot map .persistent section's segment.\n");
+			}
+		} else {
+			mapped_addr = (void *) ientry->segtbl_entry->start;
+			length = ientry->segtbl_entry->size;
 		}
-	}
 
-	if (node_to_delete != NULL) {
-		list_del(&node_to_delete->node);
-		free(node_to_delete);
-		sync_segment_table();
-	}	
-	pthread_mutex_unlock(&segment_list.mutex);
-	
+		/* 
+		 * Our linker script ensures that relocation for modules that have 
+		 * a .persistent section will always happen at offset 0x400000.
+		 */
+
+		persistent_section_absolute_addr = (uintptr_t) (module_dsr->persistent_shdr.sh_addr+module_dsr->module_start-0x400000);
+		GOT_section_absolute_addr = (uintptr_t) (module_dsr->GOT_shdr.sh_addr+module_dsr->module_start-0x400000);
+
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.start         = %p\n", 
+		              persistent_section_absolute_addr);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.end           = %p\n", 
+		              persistent_section_absolute_addr + 
+		              module_dsr->persistent_shdr.sh_size);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.sh_size       = %d\n", 
+		              module_dsr->persistent_shdr.sh_size);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.sh_size_pages = %d\n", 
+		              SIZEOF_PAGES(module_dsr->persistent_shdr.sh_size));
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "GOT_section.start                = %p\n", 
+		              GOT_section_absolute_addr);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "GOT_section.end                  = %p\n", 
+		              GOT_section_absolute_addr+module_dsr->GOT_shdr.sh_size);
+		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "GOT_section.sh_size              = %d\n", 
+		              module_dsr->GOT_shdr.sh_size);
+
+
+		m_module_relocate_symbols(GOT_section_absolute_addr,
+		                          GOT_section_absolute_addr + module_dsr->GOT_shdr.sh_size,
+		                          persistent_section_absolute_addr, 
+		                          persistent_section_absolute_addr + module_dsr->persistent_shdr.sh_size, 
+		                          (uintptr_t) mapped_addr,
+		                          (uintptr_t) mapped_addr+length
+		                         );
+
+		/* If data not valid then load them using the data found in the .persistent section */
+		if (!(ientry->segtbl_entry->flags & SGTB_VALID_DATA))
+		{
+			elfdata = NULL;
+			while ((elfdata = elf_getdata(module_dsr->persistent_scn, elfdata)))
+			{
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "data.d_size = %d\n", elfdata->d_size);	
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "data.d_buf = %p\n", elfdata->d_buf);	
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "start_addr = %lx\n", (uintptr_t) mapped_addr);	
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "end_addr = %lx\n", (uintptr_t) mapped_addr + length);	
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "length     = %u\n", length);	
+				memcpy(mapped_addr, elfdata->d_buf, elfdata->d_size);
+			}
+
+			tentry = ientry->segtbl_entry;
+			flags_val = tentry->flags | SGTB_VALID_DATA;
+			PCM_STORE(&(tentry->flags), flags_val);
+			PCM_BARRIER;
+		}
+
+	} /* end of list_for_each_entry */
+
+	return M_R_SUCCESS;
+}
+
+
+
+/**
+ * \brief Reincarnates the persistent segments
+ */
+m_result_t 
+m_segment_reincarnate_segments()
+{
+	segment_table_incarnate();
+	segment_reincarnate_segments(&m_segtbl);
+	segment_create_sections(&m_segtbl);
+
+	segment_table_print(&m_segtbl);
+
+	return M_R_SUCCESS;
+}
+
+m_result_t 
+m_segment_checkpoint()
+{
+	M_WARNING("Obsolete API function: m_segment_checkpoint\n");
+	return M_R_SUCCESS;
+}
+
+
+void *
+m_pmap(void *start, size_t length, int prot, int flags)
+{
+	m_segidx_entry_t *ientry;
+	void             *rv;
+
+	rv = pmap_internal(start, length, prot, flags, &ientry, 
+	                   SGTB_TYPE_PMAP | SGTB_VALID_ENTRY | SGTB_VALID_DATA, 0);
+	return rv;
+}
+
+
+int 
+m_punmap(void *start, size_t length)
+{
+	M_INTERNALERROR("Unimplemented functionality: m_punmap\n");
 	return 0;
 }

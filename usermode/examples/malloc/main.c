@@ -24,7 +24,7 @@ static inline unsigned long long asm_rdtsc(void)
     __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
     return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
-//__attribute__((tm_callable)) void* mnemosyne_malloc(size_t bytes);
+//__attribute__((tm_callable)) void* pmalloc(size_t bytes);
 
 main()
 {
@@ -40,9 +40,9 @@ main()
 			//__tm_atomic 
 			{
 				__tm_waiver {
-					d1 = (struct dummy_s *) mnemosyne_malloc(1024);
-					d2 = (struct dummy_s *) mnemosyne_malloc(1024);
-					d3 = (struct dummy_s *) mnemosyne_malloc(1024);
+					d1 = (struct dummy_s *) pmalloc(1024);
+					d2 = (struct dummy_s *) pmalloc(1024);
+					d3 = (struct dummy_s *) pmalloc(1024);
 					 printf("d1=%p\n", d1);
 					pfree(d1); 
 					printf("d2=%p\n", d2);
@@ -51,7 +51,7 @@ main()
 					pfree(d3);
 					start = asm_rdtsc();
 				}
-				dummy_ptr = dummy_ptr1 = (struct dummy_s *) mnemosyne_malloc(1024);
+				dummy_ptr = dummy_ptr1 = (struct dummy_s *) pmalloc(1024);
 				__tm_waiver {
 					asm_cpuid();
 					stop = asm_rdtsc();
@@ -65,7 +65,7 @@ main()
 			dummy_ptr->d = 0xDEAD0003;
 			break;
 		case 1:
-			dummy_ptr = dummy_ptr2 = (struct dummy_s *) mnemosyne_malloc(1024);
+			dummy_ptr = dummy_ptr2 = (struct dummy_s *) pmalloc(1024);
 			next_step = 2;
 			dummy_ptr->a = 0xDEAD1000;
 			dummy_ptr->b = 0xDEAD1001;

@@ -38,6 +38,7 @@ typedef struct	{
 // This is our always-persistent data. As the programmer, I don't care how this works.
 MNEMOSYNE_PERSISTENT my_objects_t my_objects;
 MNEMOSYNE_PERSISTENT unsigned int my_counter = 0xDEAD0000;
+MNEMOSYNE_PERSISTENT unsigned int my_counter2 = 0xDEADBEEF;
 
 /*!
  * Initializes our persistent structures on the _first_ run of the program.
@@ -53,6 +54,7 @@ int main (int argc, char const *argv[])
 {
 	InitializeFirstTime();
 	my_counter += 1;
+	my_counter = 0xBEEF;
 
 	std::cout << "my_counter : " << std::hex << my_counter << std::dec << std::endl;
 	

@@ -1,3 +1,4 @@
+#include <sys/mman.h>
 #include <iostream>
 #include <mnemosyne.h>
 
@@ -8,14 +9,18 @@ int main (int argc, char const *argv[])
 {
 	int *segment_cnt;  //FIXME use persistent type to aid static analysis?
 
+	std::cout << "&my_counter : " << std::hex << &my_counter << std::dec << std::endl;
+	std::cout << "&my_segment : " << std::hex << &my_segment << std::dec << std::endl;
+
 	if (!my_segment) {
-		mnemosyne_segment_create((void *) 0xa0000000, 1024, 0, 0);
-		my_segment = (void *) 0xa0000000;
+		my_segment = m_pmap((void *) 0xb0000000, 1024, PROT_READ|PROT_WRITE, 0);
+		my_segment = m_pmap((void *) 0xa000000, 1024, PROT_READ|PROT_WRITE, 0);
+		my_segment = m_pmap((void *) 0xc0000000, 1024, PROT_READ|PROT_WRITE, 0);
 	}	
 
 	my_counter += 1;
 
-	segment_cnt = (int *) 0xa0000000;
+	segment_cnt = (int *) my_segment;
 	(*segment_cnt)++;
 
 	std::cout << "my_counter : " << std::hex << my_counter << std::dec << std::endl;

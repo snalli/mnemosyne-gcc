@@ -13,8 +13,9 @@ Dependencies
 ------------
 The following _must_ be installed to successfully compile the libraries. Compilation has been tested with GCC 4.1 and up.
 
-- [`libatomic_ops`](http://www.hpl.hp.com/research/linux/atomic_ops/) library (e.g. `libatomic_ops-devel-1.2-2.el5.x86_64.rpm`)
-- [`libconfig`](www.hyperrealm.com/libconfig/)
+- DEPRECATED: [`libatomic_ops`](http://www.hpl.hp.com/research/linux/atomic_ops/) library (e.g. `libatomic_ops-devel-1.2-2.el5.x86_64.rpm`)
+  There has been a report of a bug in the CAS implementation which was only fixed quite recently (as of February 2010). We now use a light version of the atomic-ops library which is integrated into our source tree.
+- [`libconfig`](www.hyperrealm.com/libconfig/) (yum install libconfig libconfig-devel)
 - [UnitTest++](unittest-cpp.sourceforge.net) (`libunittest++-dev` in most RPM systems)
 
 Testing

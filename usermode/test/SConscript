@@ -9,5 +9,6 @@ testEnv.Append(LINKFLAGS = ' -T '+ 'util/linker_script_persistent_segment_m64')
 # LibMTM Unit Tests
 Import('MtmLibrary', 'MnemosyneLibrary')
 testEnv.Append(CPPPATH = ['#library/mtm/src/sysdeps/linux', '#library/mtm/src'])
+testEnv.Append(CPPPATH = ['#library/atomic_ops'])
 mtm_tests = testEnv.Program('mtm_tests', source = [Glob('mtm/*.tests.cxx'), Glob('mtm/*.fixtures.cxx'), Glob('mtm/*.helpers.cxx'), 'main.cxx'], LIBS=['UnitTest++', MnemosyneLibrary, MtmLibrary])
 Return('mtm_tests')

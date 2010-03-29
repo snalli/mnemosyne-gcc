@@ -1,43 +1,84 @@
-#ifndef _MNEMOSYNE_SPRING_H
-#define _MNEMOSYNE_SPRING_H
+/*!
+ * \file
+ * Routines concerning the checkpointing and restoration of persistent segments.
+ *
+ * \author Haris Volos <hvolos@cs.wisc.edu>
+ */
 
+#ifndef _MNEMOSYNE_SEGMENT_H
+#define _MNEMOSYNE_SEGMENT_H
+
+/* System header files */
 #include <pthread.h>
 #include <stdio.h>
+#include <stdint.h>
+/* Mnemosyne common header files */
 #include <list.h>
-#include "result.h"
+#include <result.h>
 
-struct mnemosyne_segment_list_s {
-	pthread_mutex_t  mutex;
+
+#ifndef MAP_SCM
+#define MAP_SCM 0x80000
+#endif
+//#define MAP_PERSISTENT MAP_SCM
+#define MAP_PERSISTENT 0
+
+#define PAGE_SIZE 4096
+
+/* Returns the number of pages */
+#define NUM_PAGES(size) (((size % PAGE_SIZE) == 0? 0 : 1) + size/PAGE_SIZE)
+
+/* Returns the size at page granularity */
+#define SIZEOF_PAGES(size) (NUM_PAGES(size) * PAGE_SIZE)
+
+/** Persistent segment table entry flags */
+#define SGTB_TYPE_PMAP                0x1    /* a segment allocated via pmap family of functions */
+#define SGTB_TYPE_SECTION             0x2    /* a segment of a .persistent section */
+#define SGTB_VALID_ENTRY              0x4
+#define SGTB_VALID_DATA               0x8
+
+typedef struct m_segtbl_entry_s m_segtbl_entry_t;
+typedef struct m_segidx_entry_s m_segidx_entry_t;
+typedef struct m_segidx_s       m_segidx_t;
+typedef struct m_segtbl_s       m_segtbl_t;
+
+/** Persistent segment table index entry. */
+struct m_segidx_entry_s {
+	m_segtbl_entry_t *segtbl_entry; /**< the segment table entry */
+	uint32_t         index;         /**< the index of the entry in the segment table */ 
+	uint64_t         module_id;     /**< valid for .persistent sections only. Identifies the module the .persistent section belongs to */
 	struct list_head list;
 };
-typedef struct mnemosyne_segment_list_s mnemosyne_segment_list_t;
 
 
-/*!
- * The active list of segments mapped into this process.
- */
-extern mnemosyne_segment_list_t segment_list;
+/* Persistent segment table index. */
+struct m_segidx_s {
+	pthread_mutex_t  mutex;          /**< synchronizes access to the index */
+	m_segidx_entry_t *all_entries;   /**< all the segment index entries */
+	m_segidx_entry_t mapped_entries; /**< the head of the mapped segments list; we keep this list ordered by start address; no overlaps allowed */
+	m_segidx_entry_t free_entries;   /**< the head of the free segments list */
+};
 
-/*!
- * The path under the segments directory identifying the primary segments table.
- * This table lists the layout of persistent segments in the process's address
- * space.
- */
-extern char segment_table_path[256];
 
-/*!
- * The directory relative to the user's home directory where persistent
- * segment mappings are kept between instances of the program.
- *
- * \todo Will this work for daemons running as users who don't have a home?
- */
-#define SEGMENTS_DIR ".segments"
+/** Persistent segment table entry. */
+struct m_segtbl_entry_s {
+	uint32_t  flags;
+	uintptr_t start;
+	uint32_t  size;
+};
 
-/*!
- * Reserves a block of the process's virtual address space for persistent data.
- * This data will be backed by some stable storage (ideally, storage-class
- * memory like PCM).
- */
-void *mnemosyne_segment_create(void *start, size_t length, int prot, int flags);
 
-#endif /* _MNEMOSYNE_SPRING_H */
+/** Persistent segment table. */
+struct m_segtbl_s {
+	m_segtbl_entry_t *entries;  /**< pointer to the persistent segment table entries */
+	m_segidx_t       *idx;      /**< the fast index providing access to the persistent segment table. */
+};
+
+
+extern m_segtbl_t m_segtbl;
+
+
+m_result_t m_segment_reincarnate_segments();
+
+
+#endif /* _MNEMOSYNE_SEGMENT_H */

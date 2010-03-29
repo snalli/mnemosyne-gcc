@@ -32,7 +32,7 @@ void mkdir_r(const char *dir, mode_t mode);
  * \param file is an output parameter, set to point to the beginning of the filename
  *  component of path. This must not be NULL.
  *
- * \return MNEMOSYNE_R_SUCCESS if the routine found a slash and set file. MNEMOSYNE_R_FAILURE
+ * \return M_R_SUCCESS if the routine found a slash and set file. M_R_FAILURE
  *  if there was no slash in path; file was not set.
  */
 mnemosyne_result_t path2file(char *path, char **file);

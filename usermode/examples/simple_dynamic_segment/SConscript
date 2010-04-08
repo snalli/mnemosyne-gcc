@@ -1,5 +1,9 @@
 Import('examplesEnv')
+Import('MnemosyneLibrary')
+Import('MtmLibrary')
 
 myEnv = examplesEnv.Clone() 
 
+myEnv.Append(LIBS = [MnemosyneLibrary])
+myEnv.Append(LIBS = [MtmLibrary])
 myEnv.Program('main.cxx')

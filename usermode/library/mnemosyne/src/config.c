@@ -255,7 +255,7 @@ option_set(option_t *option, char *value)
 
 
 static 
-mnemosyne_result_t
+m_result_t
 config_init_use_env()
 {
 	int i, j;
@@ -280,12 +280,12 @@ config_init_use_env()
 		}
 	}
 
-	return MNEMOSYNE_R_SUCCESS;
+	return M_R_SUCCESS;
 }
 
 
 static 
-mnemosyne_result_t
+m_result_t
 config_init_use_file(char *filename)
 {
 	int i;
@@ -301,7 +301,7 @@ config_init_use_file(char *filename)
 
 
 	if ((fin = fopen(filename, "r")) == NULL) {
-		return MNEMOSYNE_R_INVALIDFILE;
+		return M_R_INVALIDFILE;
 	} 
 	done = 0;
 
@@ -330,10 +330,10 @@ config_init_use_file(char *filename)
 		} 
 	}
 
-	return MNEMOSYNE_R_SUCCESS;
+	return M_R_SUCCESS;
 }	
 
-mnemosyne_result_t
+m_result_t
 mnemosyne_config_init ()
 {
 	config_init_use_file(mnemosyne_init_filename);
@@ -343,11 +343,11 @@ mnemosyne_config_init ()
 		config_print();
 	}	
 		
-	return MNEMOSYNE_R_SUCCESS; 	
+	return M_R_SUCCESS; 	
 }
 
 
-mnemosyne_result_t 
+m_result_t 
 mnemosyne_config_set_option(char *option, char *value)
 {
 	int i;
@@ -369,5 +369,5 @@ mnemosyne_config_set_option(char *option, char *value)
 		M_WARNING("Ignoring unknown parameter '%s'.", option);
 	} 
 
-	return MNEMOSYNE_R_SUCCESS;
+	return M_R_SUCCESS;
 }

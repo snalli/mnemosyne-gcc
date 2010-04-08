@@ -1,5 +1,6 @@
 #include <mnemosyne.h>
 #include <stdint.h>
+#include <sys/mman.h>
 #include "config.h"
 #include "threadheap.h"
 #include "persistentheap.h"
@@ -38,8 +39,8 @@ void persistentHeap::format()
 	assert((!psegmentheader && !psegment) || (psegmentheader && psegment));
 
 	if (!psegmentheader) {
-		psegmentheader = mnemosyne_segment_create((void *) PERSISTENTHEAP_HEADER_BASE, PERSISTENTSUPERBLOCK_NUM*sizeof(persistentSuperblock), 0, 0);
-		psegment = mnemosyne_segment_create((void *)PERSISTENTHEAP_BASE, persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, 0, 0);
+		psegmentheader = m_pmap((void *) PERSISTENTHEAP_HEADER_BASE, PERSISTENTSUPERBLOCK_NUM*sizeof(persistentSuperblock), PROT_READ|PROT_WRITE, 0);
+		psegment = m_pmap((void *)PERSISTENTHEAP_BASE, persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, PROT_READ|PROT_WRITE, 0);
 		for(i=0; i<PERSISTENTSUPERBLOCK_NUM; i++) { 
 			b = (void *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 			buf = (void *) ((uintptr_t) psegment + i*persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE);

@@ -27,7 +27,7 @@ else:
 	buildEnv.Append(CCFLAGS = ' -O2')
 
 C_SRC = Split("""
-              src/address_space.c
+              src/module.c
               src/files.c
               src/init.c
               src/reincarnation_callback.c

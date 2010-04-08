@@ -7,7 +7,7 @@ examplesEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
 examplesEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc'
 
 examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
-examplesEnv.Append(CCFLAGS = ' -Qtm_enabled ')
+examplesEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
 examplesEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
 examplesEnv.Append(LIBS = [MallocLibrary])
 

@@ -22,7 +22,8 @@ if configEnv['BUILD_DEBUG'] == True:
 else:
 	CCFLAGS= ' -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
 
-CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fPIC -fno-omit-frame-pointer'
+#CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fPIC -fno-omit-frame-pointer'
+CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fpic -fno-omit-frame-pointer'
 CCFLAGS = CCFLAGS + ' -m64 '
 
 buildEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'

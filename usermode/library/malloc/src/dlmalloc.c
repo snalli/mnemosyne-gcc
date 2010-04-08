@@ -339,6 +339,7 @@ extern "C" {
 #include <mnemosyne.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 
 
 /*  CHUNKS */
@@ -513,7 +514,7 @@ init()
 	if (dlmalloc_pheap == 0x0) {
 		// FIXME: How do you guarantee the atomicity of the mnemosyne_segment_create ? */
 	    TM_WAIVER {
-			mnemosyne_segment_create((void *) DLMALLOC_PHEAP_BASE, DLMALLOC_PHEAP_SIZE, 0, 0);
+			m_pmap((void *) DLMALLOC_PHEAP_BASE, DLMALLOC_PHEAP_SIZE, PROT_READ|PROT_WRITE, 0);
 		}	
 		dlmalloc_pheap = DLMALLOC_PHEAP_BASE;
 		if ((void *) dlmalloc_pheap == (void *) -1) {

@@ -35,10 +35,11 @@ class Environment(mnemosyne.Environment):
 			osinclude = []
 		self.Append(
 			CPPDEFINES = self._PreprocessorDefinitions(),
-			CPPPATH = ['include'] + osinclude + ['/s/libatomic_ops-7.2a4/include'],
-			ENV = os.environ,
-			LIBS = ['atomic_ops'],
-			LIBPATH = ['/s/libatomic_ops-7.2a4/lib'])
+			CPPPATH = ['include'] + osinclude,
+			#CPPPATH = ['include'] + osinclude + ['/s/libatomic_ops-7.2a4/include'],
+			ENV = os.environ)
+			#LIBS = ['atomic_ops'],
+			#LIBPATH = ['/s/libatomic_ops-7.2a4/lib'])
 	
 	def _GetConfigurationVariables(self, configuration_name):
 		"""

@@ -49,8 +49,8 @@ extern "C" {
  */
 void mnemosyne_reincarnation_callback_register(void(*initializer)());
 
-void *mnemosyne_segment_create(void *start, size_t length, int prot, int flags);
-int mnemosyne_segment_destroy(void *start, size_t length);
+void *m_pmap(void *start, size_t length, int prot, int flags);
+int m_punmap(void *start, size_t length);
 
 void mnemosyne_init_global(void);
 

@@ -31,7 +31,7 @@ mkdir_r(const char *dir, mode_t mode)
 }
 
 
-mnemosyne_result_t
+m_result_t
 path2file(char *path, char **file)
 {
 	int i;
@@ -39,8 +39,8 @@ path2file(char *path, char **file)
 	for (i=strlen(path); i>=0; i--) {
 		if (path[i] == '/') {
 			*file = &path[i+1];
-			return MNEMOSYNE_R_SUCCESS;
+			return M_R_SUCCESS;
 		}
 	}
-	return MNEMOSYNE_R_FAILURE;
+	return M_R_FAILURE;
 }

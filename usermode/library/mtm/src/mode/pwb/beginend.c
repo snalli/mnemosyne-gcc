@@ -226,6 +226,8 @@ start:
 		        ? a_runUninstrumentedCode : a_runInstrumentedCode);
 	}
 
+	// FIXME: Don't need to acquire the serial lock if isolation
+	// not enabled 
 	mtm_rwlock_read_lock (&mtm_serial_lock);
 
 	return a_runInstrumentedCode | a_saveLiveVariables;

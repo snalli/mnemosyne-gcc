@@ -1,6 +1,8 @@
 #include <pthread.h>
+#include <stdlib.h>
 #include "reincarnation_callback.h"
 #include "segment.h"
+#include "log/log.h"
 #include "thrdesc.h"
 #include "debug.h"
 
@@ -14,11 +16,6 @@ volatile uint32_t      mnemosyne_initialized = 0;
 
 __thread mnemosyne_thrdesc_t *_mnemosyne_thr;
 
-// HARIS: Priorities do not work for GCC 4.1. I could check for GCC 
-// version using __GNUC__ and __GNUC_MINOR__ but we need a scheme that does 
-// not rely on static constructors.
-//static void do_global_init(void) __attribute__(( constructor (0xffff) ));
-//static void do_global_fini(void) __attribute__(( destructor  (0xffff) ));
 static void do_global_init(void) __attribute__(( constructor ));
 static void do_global_fini(void) __attribute__(( destructor ));
 
@@ -31,9 +28,10 @@ do_global_init(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (!mnemosyne_initialized) {
-		m_segment_reincarnate_segments();
+		m_segmentmgr_init();
 		mnemosyne_initialized = 1;
 		mnemosyne_reincarnation_callback_execute_all();
+		m_logmgr_init();
 		M_WARNING("Initialize\n");
 	}	
 	pthread_mutex_unlock(&global_init_lock);
@@ -49,7 +47,8 @@ do_global_fini(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (mnemosyne_initialized) {
-		/* m_segment_checkpoint();  Not necessary */ 
+		m_logmgr_fini();
+		m_segmentmgr_fini();
 		mnemosyne_initialized = 1;
 		M_WARNING("Shutdown\n");
 	}	

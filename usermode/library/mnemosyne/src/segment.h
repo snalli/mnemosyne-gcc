@@ -26,10 +26,13 @@
 #define PAGE_SIZE 4096
 
 /* Returns the number of pages */
-#define NUM_PAGES(size) (((size % PAGE_SIZE) == 0? 0 : 1) + size/PAGE_SIZE)
+#define NUM_PAGES(size) ((((size) % PAGE_SIZE) == 0? 0 : 1) + (size)/PAGE_SIZE)
 
 /* Returns the size at page granularity */
-#define SIZEOF_PAGES(size) (NUM_PAGES(size) * PAGE_SIZE)
+#define SIZEOF_PAGES(size) (NUM_PAGES((size)) * PAGE_SIZE)
+
+/* Returns the size at page granularity */
+#define PAGE_ALIGN(addr) (NUM_PAGES((addr)) * PAGE_SIZE)
 
 /** Persistent segment table entry flags */
 #define SGTB_TYPE_PMAP                0x1    /* a segment allocated via pmap family of functions */
@@ -78,7 +81,10 @@ struct m_segtbl_s {
 extern m_segtbl_t m_segtbl;
 
 
-m_result_t m_segment_reincarnate_segments();
+m_result_t m_segmentmgr_init();
+m_result_t m_segmentmgr_fini();
 
+void *m_pmap2(void *start, size_t length, int prot, int flags);
+m_result_t m_segment_find_using_addr(void *addr, m_segidx_entry_t **entryp);
 
 #endif /* _MNEMOSYNE_SEGMENT_H */

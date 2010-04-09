@@ -59,4 +59,5 @@ if env['EXAMPLE'] != None:
 #Testing Environment
 Export('MnemosyneLibrary', 'MallocLibrary', 'MtmLibrary')
 unit_tests = SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))
-AddPostAction(unit_tests, unit_tests[0].path)
+for unit_test in unit_tests:
+	AddPostAction(unit_test, unit_test[0].path)

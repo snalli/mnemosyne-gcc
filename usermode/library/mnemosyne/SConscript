@@ -34,7 +34,14 @@ C_SRC = Split("""
               src/segment.c
               """)
 
-SRC = C_SRC
+LOG_C_SRC = Split("""
+                  src/log/mgr.c
+                  src/log/phlog_tornbit.c
+                  src/log/logtrunc.c
+              """)
+
+
+SRC = C_SRC + LOG_C_SRC
 
 if configEnv['LINKAGE'] == 'dynamic':
 	MnemosyneLibrary = buildEnv.SharedLibrary('mnemosyne', SRC)

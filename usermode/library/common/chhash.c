@@ -213,7 +213,7 @@ m_chhash_remove(m_chhash_t* h,
                 m_chhash_key_t key, 
                 m_chhash_value_t *value)
 {
-	m_result_t                 result;
+	m_result_t             result;
 	m_chhash_bucket_t      *bucket;
 	m_chhash_bucket_list_t *bucket_list;
 

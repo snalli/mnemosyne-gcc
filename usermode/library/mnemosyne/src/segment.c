@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <dirent.h> 
 /* Mnemosyne common header files */
+#define _M_DEBUG_BUILD
 #include <debug.h>
 #include <result.h>
 /* Private local header files */
@@ -18,35 +19,13 @@
 #include "files.h"
 #include "segment.h"
 #include "module.h"
+#include "pregionlayout.h"
 
 /**
  * The directory where persistent segment backing stores are kept.
  */
 #define SEGMENTS_DIR "/tmp/segments"
 //#define SEGMENTS_DIR ".segments"
-
-
-/* 
- * We reserve a large hole in the 47-bit virtual space for mapping 
- * persistent memory segments.
- * FIXME: Even if we ensure persistent segments fall into the reserved space,
- * the kernel has to aware about this reservation to make sure that no other 
- * memory is allocated there. Indead, when mmap is passed 0 as starting
- * address, it searches for an empty region starting from the end of the last
- * allocated region. So it could be very easily map a non-persistent region 
- * into the reserved space.
- */
-
-#define PSEGMENT_RESERVED_REGION_SIZE    0x0000010000000000 /* 1 TB */
-#define PSEGMENT_RESERVED_REGION_START   0x0000100000000000
-#define PSEGMENT_RESERVED_REGION_END     (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)
-
-#define SEGMENT_TABLE_NUM_ENTRIES        1024
-#define SEGMENT_TABLE_SIZE               (sizeof(m_segtbl_entry_t) * SEGMENT_TABLE_NUM_ENTRIES)
-
-#define SEGMENT_TABLE_START              PSEGMENT_RESERVED_REGION_START
-#define SEGMENT_TABLE_HOLE               0x10000
-#define SEGMENT_MAP_START                (PSEGMENT_RESERVED_REGION_START + SEGMENT_TABLE_HOLE + SEGMENT_TABLE_SIZE)
 
 
 #define M_DEBUG_SEGMENT 1
@@ -330,6 +309,7 @@ segidx_find_entry_using_addr(m_segidx_t *segidx, void *addr, m_segidx_entry_t **
 	}
 	return M_R_FAILURE;
 }
+
 
 
 /* Not thread safe */
@@ -616,11 +596,11 @@ segment_reincarnate_segments(m_segtbl_t *segtbl)
 
 static
 void *
-pmap_internal(void *start, size_t length, int prot, int flags, 
-              m_segidx_entry_t **entryp, uint32_t segtbl_entry_flags, uint64_t module_id)
+pmap_internal_abs(void *start, size_t length, int prot, int flags, 
+                  m_segidx_entry_t **entryp, uint32_t segtbl_entry_flags, uint64_t module_id)
 {
 	char             path[256];
-	uintptr_t        start_addr = SEGMENT_MAP_START + (uintptr_t) start;
+	uintptr_t        start_addr = (uintptr_t) start;
 	void             *map_addr;
 	int              fd;
 	void             *rv = MAP_FAILED;
@@ -654,11 +634,13 @@ pmap_internal(void *start, size_t length, int prot, int flags,
 	 * I don't understand why so I make sure that I pass an address that 
 	 * is guaranteed not to overlap with any other persistent segment.
 	 */
-	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "start_addr = %p\n", start_addr);
-	start_addr = segidx_find_free_region(m_segtbl.idx, start_addr, length);
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "start_addr = %p\n", (void *) start_addr);
 
+	if ((flags & MAP_FIXED) != MAP_FIXED) {
+		start_addr = segidx_find_free_region(m_segtbl.idx, start_addr, length);
+	}	
 	map_addr = segment_map((void *)start_addr, length, prot, flags, fd);
-	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "new_start_addr = %p\n", start_addr);
+	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "new_start_addr = %p\n", (void *) start_addr);
 	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "map_addr = %p\n", map_addr);
 	if (map_addr == MAP_FAILED) {
 		rv = MAP_FAILED;
@@ -686,6 +668,19 @@ err_create_backing_store:
 	segidx_free_entry(m_segtbl.idx, new_ientry);
 out:
 	return rv;
+}
+
+
+static
+void *
+pmap_internal(void *start, size_t length, int prot, int flags, 
+              m_segidx_entry_t **entryp, uint32_t segtbl_entry_flags, uint64_t module_id)
+{
+	uintptr_t        start_addr = SEGMENT_MAP_START + (uintptr_t) start;
+
+	segment_table_print(&m_segtbl);
+	return pmap_internal_abs((void *) start_addr, length, prot, flags, 
+	                         entryp, segtbl_entry_flags, module_id);
 }
 
 
@@ -742,20 +737,20 @@ segment_create_sections(m_segtbl_t *segtbl)
 		GOT_section_absolute_addr = (uintptr_t) (module_dsr->GOT_shdr.sh_addr+module_dsr->module_start-0x400000);
 
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.start         = %p\n", 
-		              persistent_section_absolute_addr);
+		              (void *) persistent_section_absolute_addr);
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.end           = %p\n", 
-		              persistent_section_absolute_addr + 
-		              module_dsr->persistent_shdr.sh_size);
+		              (void *) (persistent_section_absolute_addr + 
+		              module_dsr->persistent_shdr.sh_size));
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.sh_size       = %d\n", 
-		              module_dsr->persistent_shdr.sh_size);
+		              (int) module_dsr->persistent_shdr.sh_size);
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "persistent_section.sh_size_pages = %d\n", 
-		              SIZEOF_PAGES(module_dsr->persistent_shdr.sh_size));
+		              (int) SIZEOF_PAGES(module_dsr->persistent_shdr.sh_size));
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "GOT_section.start                = %p\n", 
-		              GOT_section_absolute_addr);
+		              (void *) GOT_section_absolute_addr);
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "GOT_section.end                  = %p\n", 
-		              GOT_section_absolute_addr+module_dsr->GOT_shdr.sh_size);
+		              (void *) GOT_section_absolute_addr+module_dsr->GOT_shdr.sh_size);
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "GOT_section.sh_size              = %d\n", 
-		              module_dsr->GOT_shdr.sh_size);
+		              (int) module_dsr->GOT_shdr.sh_size);
 
 
 		m_module_relocate_symbols(GOT_section_absolute_addr,
@@ -772,11 +767,11 @@ segment_create_sections(m_segtbl_t *segtbl)
 			elfdata = NULL;
 			while ((elfdata = elf_getdata(module_dsr->persistent_scn, elfdata)))
 			{
-				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "data.d_size = %d\n", elfdata->d_size);	
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "data.d_size = %d\n", (int) elfdata->d_size);	
 				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "data.d_buf = %p\n", elfdata->d_buf);	
 				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "start_addr = %lx\n", (uintptr_t) mapped_addr);	
 				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "end_addr = %lx\n", (uintptr_t) mapped_addr + length);	
-				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "length     = %u\n", length);	
+				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "length     = %u\n", (unsigned int) length);	
 				memcpy(mapped_addr, elfdata->d_buf, elfdata->d_size);
 			}
 
@@ -794,10 +789,11 @@ segment_create_sections(m_segtbl_t *segtbl)
 
 
 /**
- * \brief Reincarnates the persistent segments
+ * \brief Creates the segment manager and reincarnates any previous life
+ * persistent segments.
  */
 m_result_t 
-m_segment_reincarnate_segments()
+m_segmentmgr_init()
 {
 	segment_table_incarnate();
 	segment_reincarnate_segments(&m_segtbl);
@@ -808,24 +804,58 @@ m_segment_reincarnate_segments()
 	return M_R_SUCCESS;
 }
 
+
+/**
+ * \brief Shutdowns the segment manager.
+ */
 m_result_t 
-m_segment_checkpoint()
+m_segmentmgr_fini()
 {
-	M_WARNING("Obsolete API function: m_segment_checkpoint\n");
+	/* Nothing really to do here. */
 	return M_R_SUCCESS;
 }
 
 
+/* Not thread safe */
+m_result_t 
+m_segment_find_using_addr(void *addr, m_segidx_entry_t **entryp)
+{
+	return segidx_find_entry_using_addr(m_segtbl.idx, addr, entryp);
+}
+
+
+
+/**
+ * \brief Maps an address space region into persistent memory.
+ *
+ * Start address is offset by SEGMENT_MAP_START.
+ */
 void *
 m_pmap(void *start, size_t length, int prot, int flags)
 {
 	m_segidx_entry_t *ientry;
 	void             *rv;
-
 	rv = pmap_internal(start, length, prot, flags, &ientry, 
 	                   SGTB_TYPE_PMAP | SGTB_VALID_ENTRY | SGTB_VALID_DATA, 0);
 	return rv;
 }
+
+
+/**
+ * \brief Maps an address space region into persistent memory.
+ *
+ */
+void *
+m_pmap2(void *start, size_t length, int prot, int flags)
+{
+	m_segidx_entry_t *ientry;
+	void             *rv;
+
+	rv = pmap_internal_abs(start, length, prot, flags, &ientry, 
+	                       SGTB_TYPE_PMAP | SGTB_VALID_ENTRY | SGTB_VALID_DATA, 0);
+	return rv;
+}
+
 
 
 int 

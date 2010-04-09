@@ -50,14 +50,14 @@ static inline BASEKIT_API void PointerHash_show(PointerHash *self);
 static inline BASEKIT_API void PointerHash_updateMask(PointerHash *self); 
 
 #undef IOINLINE
-#define static inline
+#define IOINLINE static inline
 
 // -----------------------------------
 
 #define PointerHashRecords_recordAt_(records, pos) (PointerHashRecord *)(records + (pos * sizeof(PointerHashRecord)))
 
 
-PointerHashRecord *PointerHash_record1_(PointerHash *self, void *k)
+IOINLINE PointerHashRecord *PointerHash_record1_(PointerHash *self, void *k)
 {
 	// the ~| 0x1 before the mask ensures an odd pos
 	intptr_t kk = (intptr_t)k;
@@ -65,7 +65,7 @@ PointerHashRecord *PointerHash_record1_(PointerHash *self, void *k)
 	return PointerHashRecords_recordAt_(self->records, pos);
 }
 
-PointerHashRecord *PointerHash_record2_(PointerHash *self, void *k)
+IOINLINE PointerHashRecord *PointerHash_record2_(PointerHash *self, void *k)
 {
 	// the | 0x1 before the mask ensures an even pos
 	intptr_t kk = (intptr_t)k;
@@ -74,7 +74,7 @@ PointerHashRecord *PointerHash_record2_(PointerHash *self, void *k)
 	return PointerHashRecords_recordAt_(self->records, pos);
 }
 
-void *PointerHash_at_(PointerHash *self, void *k)
+IOINLINE void *PointerHash_at_(PointerHash *self, void *k)
 {
 	PointerHashRecord *r;
 	
@@ -87,17 +87,17 @@ void *PointerHash_at_(PointerHash *self, void *k)
 	return 0x0;
 }
 
-size_t PointerHash_count(PointerHash *self)
+IOINLINE size_t PointerHash_count(PointerHash *self)
 {
 	return self->keyCount;
 }
 
-int PointerHashKey_hasKey_(PointerHash *self, void *key)
+IOINLINE int PointerHashKey_hasKey_(PointerHash *self, void *key)
 {
 	return PointerHash_at_(self, key) != NULL;
 }
 
-void PointerHash_at_put_(PointerHash *self, void *k, void *v)
+IOINLINE void PointerHash_at_put_(PointerHash *self, void *k, void *v)
 {
 	PointerHashRecord *r;
 	
@@ -141,7 +141,7 @@ void PointerHash_at_put_(PointerHash *self, void *k, void *v)
 	}
 }
 
-void PointerHash_shrinkIfNeeded(PointerHash *self)
+IOINLINE void PointerHash_shrinkIfNeeded(PointerHash *self)
 {
 	if(self->keyCount < self->size/8)
 	{
@@ -149,45 +149,45 @@ void PointerHash_shrinkIfNeeded(PointerHash *self)
 	}
 }
 
-void PointerHashRecord_swapWith_(PointerHashRecord *self, PointerHashRecord *other)
+IOINLINE void PointerHashRecord_swapWith_(PointerHashRecord *self, PointerHashRecord *other)
 {
 	PointerHashRecord tmp = *self;
 	*self = *other;
 	*other = tmp;
 }
 
-void PointerHash_clean(PointerHash *self)
+IOINLINE void PointerHash_clean(PointerHash *self)
 {
 	memset(self->records, 0, sizeof(PointerHashRecord) * self->size);
 	self->keyCount = 0;
 }
 
 
-PointerHash *PointerHash_new(void)
+IOINLINE PointerHash *PointerHash_new(void)
 {
 	PointerHash *self = (PointerHash *)io_calloc(1, sizeof(PointerHash));
 	PointerHash_setSize_(self, 8);
 	return self;
 }
 
-void PointerHash_copy_(PointerHash *self, const PointerHash *other)
+IOINLINE void PointerHash_copy_(PointerHash *self, const PointerHash *other)
 {
 	io_free(self->records);
 	memcpy(self, other, sizeof(PointerHash));
-	self->records = malloc(self->size * sizeof(PointerHashRecord));
+	self->records = (unsigned char *) malloc(self->size * sizeof(PointerHashRecord));
 	memcpy(self->records, other->records, self->size * sizeof(PointerHashRecord));
 }
 
-PointerHash *PointerHash_clone(PointerHash *self)
+IOINLINE PointerHash *PointerHash_clone(PointerHash *self)
 {
 	PointerHash *other = PointerHash_new();
 	PointerHash_copy_(other, self);
 	return other;
 }
 
-void PointerHash_setSize_(PointerHash *self, size_t size)
+IOINLINE void PointerHash_setSize_(PointerHash *self, size_t size)
 {
-	self->records = realloc(self->records, size * sizeof(PointerHashRecord));
+	self->records = (unsigned char *) realloc(self->records, size * sizeof(PointerHashRecord));
 	
 	if(size > self->size)
 	{		
@@ -200,12 +200,12 @@ void PointerHash_setSize_(PointerHash *self, size_t size)
 	PointerHash_updateMask(self);
 }
 
-void PointerHash_updateMask(PointerHash *self)
+IOINLINE void PointerHash_updateMask(PointerHash *self)
 {
 	self->mask = (intptr_t)(self->size - 1);
 }
 
-void PointerHash_show(PointerHash *self)
+IOINLINE void PointerHash_show(PointerHash *self)
 {
 	size_t i;
 	
@@ -217,13 +217,13 @@ void PointerHash_show(PointerHash *self)
 	}
 }
 
-void PointerHash_free(PointerHash *self)
+IOINLINE void PointerHash_free(PointerHash *self)
 {
 	io_free(self->records);
 	io_free(self);
 }
 
-void PointerHash_insert_(PointerHash *self, PointerHashRecord *x)
+IOINLINE void PointerHash_insert_(PointerHash *self, PointerHashRecord *x)
 {	
 	int n;
 	
@@ -244,7 +244,7 @@ void PointerHash_insert_(PointerHash *self, PointerHashRecord *x)
 	PointerHash_at_put_(self, x->k, x->v);
 }
 
-void PointerHash_insertRecords(PointerHash *self, unsigned char *oldRecords, size_t oldSize)
+IOINLINE void PointerHash_insertRecords(PointerHash *self, unsigned char *oldRecords, size_t oldSize)
 {
 	size_t i;
 	
@@ -259,29 +259,29 @@ void PointerHash_insertRecords(PointerHash *self, unsigned char *oldRecords, siz
 	}
 }
 
-void PointerHash_resizeTo_(PointerHash *self, size_t newSize)
+IOINLINE void PointerHash_resizeTo_(PointerHash *self, size_t newSize)
 {
 	unsigned char *oldRecords = self->records;
 	size_t oldSize = self->size;
 	self->size = newSize;
-	self->records = io_calloc(1, sizeof(PointerHashRecord) * self->size);
+	self->records = (unsigned char *) io_calloc(1, sizeof(PointerHashRecord) * self->size);
 	self->keyCount = 0;
 	PointerHash_updateMask(self);
 	PointerHash_insertRecords(self, oldRecords, oldSize);
 	io_free(oldRecords);
 }
 
-void PointerHash_grow(PointerHash *self)
+IOINLINE void PointerHash_grow(PointerHash *self)
 {
 	PointerHash_resizeTo_(self, self->size * 2);
 }
 
-void PointerHash_shrink(PointerHash *self)
+IOINLINE void PointerHash_shrink(PointerHash *self)
 {
 	PointerHash_resizeTo_(self, self->size / 2);
 }
 
-void PointerHash_removeKey_(PointerHash *self, void *k)
+IOINLINE void PointerHash_removeKey_(PointerHash *self, void *k)
 {
 	PointerHashRecord *r;
 	
@@ -306,14 +306,14 @@ void PointerHash_removeKey_(PointerHash *self, void *k)
 	}
 }
 
-size_t PointerHash_size(PointerHash *self) // actually the keyCount
+IOINLINE size_t PointerHash_size(PointerHash *self) // actually the keyCount
 {
 	return self->keyCount;
 }
 
 // ----------------------------
 
-size_t PointerHash_memorySize(PointerHash *self)
+IOINLINE size_t PointerHash_memorySize(PointerHash *self)
 {
 	return sizeof(PointerHash) + self->size * sizeof(PointerHashRecord);
 }

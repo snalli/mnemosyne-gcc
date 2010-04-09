@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <assert.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /* Debugging levels per module */
 
 #define M_DEBUG_MODULEX     m_runtime_settings.debug_moduleX
@@ -66,5 +71,9 @@
 
 void m_debug_print(char *file, int line, int fatal, const char *prefix, const char *strformat, ...); 
 void m_debug_print_L(int debug_level, const char *strformat, ...); 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _M_DEBUG_H */

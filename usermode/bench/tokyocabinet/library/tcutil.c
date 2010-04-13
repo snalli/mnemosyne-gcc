@@ -400,6 +400,7 @@ static int tclistelemcmpci(const void *a, const void *b);
 
 
 /* Create a list object. */
+TM_CALLABLE
 TCLIST *tclistnew(void){
   TCLIST *list;
   TCMALLOC(list, sizeof(*list));
@@ -412,6 +413,7 @@ TCLIST *tclistnew(void){
 
 
 /* Create a list object. */
+TM_CALLABLE
 TCLIST *tclistnew2(int anum){
   TCLIST *list;
   TCMALLOC(list, sizeof(*list));
@@ -466,6 +468,7 @@ TCLIST *tclistdup(const TCLIST *list){
 
 
 /* Delete a list object. */
+TM_CALLABLE
 void tclistdel(TCLIST *list){
   assert(list);
   TCLISTDATUM *array = list->array;
@@ -560,6 +563,7 @@ char *tclistpop2(TCLIST *list){
 
 
 /* Add an element at the top of a list object. */
+TM_CALLABLE
 void tclistunshift(TCLIST *list, const void *ptr, int size){
   assert(list && ptr && size >= 0);
   if(list->start < 1){
@@ -602,6 +606,7 @@ void tclistunshift2(TCLIST *list, const char *str){
 
 
 /* Remove an element of the top of a list object. */
+TM_CALLABLE
 void *tclistshift(TCLIST *list, int *sp){
   assert(list && sp);
   if(list->num < 1) return NULL;
@@ -674,6 +679,7 @@ void tclistinsert2(TCLIST *list, int index, const char *str){
 
 
 /* Remove an element at the specified location of a list object. */
+TM_CALLABLE
 void *tclistremove(TCLIST *list, int index, int *sp){
   assert(list && index >= 0 && sp);
   if(index >= list->num) return NULL;
@@ -4700,6 +4706,7 @@ static time_t tcmkgmtime(struct tm *tm);
 
 
 /* Get the larger value of two integers. */
+TM_WAIVER
 long tclmax(long a, long b){
   return (a > b) ? a : b;
 }
@@ -9329,6 +9336,7 @@ static const char *tctmpldumpevalvar(const TCMAP **stack, int depth, const char 
 
 
 /* Create a pointer list object. */
+TM_CALLABLE
 TCPTRLIST *tcptrlistnew(void){
   TCPTRLIST *ptrlist;
   TCMALLOC(ptrlist, sizeof(*ptrlist));
@@ -9341,6 +9349,7 @@ TCPTRLIST *tcptrlistnew(void){
 
 
 /* Create a pointer list object with expecting the number of elements. */
+TM_CALLABLE
 TCPTRLIST *tcptrlistnew2(int anum){
   TCPTRLIST *ptrlist;
   TCMALLOC(ptrlist, sizeof(*ptrlist));
@@ -9409,6 +9418,7 @@ void tcptrlistpush(TCPTRLIST *ptrlist, void *ptr){
 
 
 /* Remove an element of the end of a pointer list object. */
+TM_CALLABLE
 void *tcptrlistpop(TCPTRLIST *ptrlist){
   assert(ptrlist);
   if(ptrlist->num < 1) return NULL;
@@ -9437,6 +9447,7 @@ void tcptrlistunshift(TCPTRLIST *ptrlist, void *ptr){
 
 
 /* Remove an element of the top of a pointer list object. */
+TM_CALLABLE
 void *tcptrlistshift(TCPTRLIST *ptrlist){
   assert(ptrlist);
   if(ptrlist->num < 1) return NULL;
@@ -9470,6 +9481,7 @@ void tcptrlistinsert(TCPTRLIST *ptrlist, int index, void *ptr){
 
 
 /* Remove an element at the specified location of a pointer list object. */
+TM_CALLABLE
 void *tcptrlistremove(TCPTRLIST *ptrlist, int index){
   assert(ptrlist && index >= 0);
   if(index >= ptrlist->num) return NULL;
@@ -9483,6 +9495,7 @@ void *tcptrlistremove(TCPTRLIST *ptrlist, int index){
 
 
 /* Overwrite an element at the specified location of a pointer list object. */
+TM_CALLABLE
 void tcptrlistover(TCPTRLIST *ptrlist, int index, void *ptr){
   assert(ptrlist && index >= 0 && ptr);
   if(index >= ptrlist->num) return;
@@ -9566,6 +9579,7 @@ const char *tcerrmsg(int ecode){
 
 
 /* Show error message on the standard error output and exit. */
+TM_WAIVER
 void *tcmyfatal(const char *message){
   assert(message);
   if(tcfatalfunc){

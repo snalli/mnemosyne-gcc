@@ -45,13 +45,14 @@ PCDIR = @libdir@/pkgconfig
 DESTDIR =
 
 # Building configuration
-CC = @CC@
+CC = icc -Qtm_enabled
 CPPFLAGS = @MYCPPFLAGS@ \
   -D_TC_PREFIX="\"$(prefix)\"" -D_TC_INCLUDEDIR="\"$(INCLUDEDIR)\"" \
   -D_TC_LIBDIR="\"$(LIBDIR)\"" -D_TC_BINDIR="\"$(BINDIR)\"" -D_TC_LIBEXECDIR="\"$(LIBEXECDIR)\"" \
-  -D_TC_APPINC="\"-I$(INCLUDEDIR)\"" -D_TC_APPLIBS="\"-L$(LIBDIR) -ltokyocabinet @LIBS@\""
-CFLAGS = @MYCFLAGS@
-LDFLAGS = @MYLDFLAGS@
+  -D_TC_APPINC="\"-I$(INCLUDEDIR)\"" -D_TC_APPLIBS="\"-L$(LIBDIR) -ltokyocabinet @LIBS@\"" \
+  -I$(shell pwd)/../../../library/mtm/include
+CFLAGS = @MYCFLAGS@ -I$(shell pwd)/../../../library/mtm/include -fPIC
+LDFLAGS = @MYLDFLAGS@ -fPIC
 CMDLDFLAGS = @MYCMDLDFLAGS@
 LIBS = @LIBS@
 LDENV = LD_RUN_PATH=/lib:/usr/lib:$(LIBDIR):$(HOME)/lib:/usr/local/lib:@MYRUNPATH@:.
@@ -677,41 +678,6 @@ wordtable :
 
 libtokyocabinet.a : $(LIBOBJFILES)
 	$(AR) $(ARFLAGS) $@ $(LIBOBJFILES)
-
-
-libtokyocabinet.so.$(LIBVER).$(LIBREV).0 : $(LIBOBJFILES)
-	if uname -a | egrep -i 'SunOS' > /dev/null ; \
-	  then \
-	    $(CC) $(CFLAGS) -shared -Wl,-G,-h,libtokyocabinet.so.$(LIBVER) -o $@ \
-	      $(LIBOBJFILES) $(LDFLAGS) $(LIBS) ; \
-	  else \
-	    $(CC) $(CFLAGS) -shared -Wl,-soname,libtokyocabinet.so.$(LIBVER) -o $@ \
-	      $(LIBOBJFILES) $(LDFLAGS) $(LIBS) ; \
-	  fi
-
-
-libtokyocabinet.so.$(LIBVER) : libtokyocabinet.so.$(LIBVER).$(LIBREV).0
-	ln -f -s libtokyocabinet.so.$(LIBVER).$(LIBREV).0 $@
-
-
-libtokyocabinet.so : libtokyocabinet.so.$(LIBVER).$(LIBREV).0
-	ln -f -s libtokyocabinet.so.$(LIBVER).$(LIBREV).0 $@
-
-
-libtokyocabinet.$(LIBVER).$(LIBREV).0.dylib : $(LIBOBJFILES)
-	$(CC) $(CFLAGS) -dynamiclib -o $@ \
-	  -install_name $(LIBDIR)/libtokyocabinet.$(LIBVER).dylib \
-	  -current_version $(LIBVER).$(LIBREV).0 -compatibility_version $(LIBVER) \
-	  $(LIBOBJFILES) $(LDFLAGS) $(LIBS)
-
-
-libtokyocabinet.$(LIBVER).dylib : libtokyocabinet.$(LIBVER).$(LIBREV).0.dylib
-	ln -f -s libtokyocabinet.$(LIBVER).$(LIBREV).0.dylib $@
-
-
-libtokyocabinet.dylib : libtokyocabinet.$(LIBVER).$(LIBREV).0.dylib
-	ln -f -s libtokyocabinet.$(LIBVER).$(LIBREV).0.dylib $@
-
 
 tcutest : tcutest.o $(LIBRARYFILES)
 	$(LDENV) $(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(CMDLDFLAGS) -ltokyocabinet $(LIBS)

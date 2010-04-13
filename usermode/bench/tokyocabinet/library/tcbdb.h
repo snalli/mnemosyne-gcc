@@ -258,6 +258,7 @@ bool tcbdbclose(TCBDB *bdb);
    If successful, the return value is true, else, it is false.
    If a record with the same key exists in the database, it is overwritten. */
 bool tcbdbput(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
+bool tcbdbput_mnemosyne(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
 
 
 /* Store a string record into a B+ tree database object.
@@ -644,11 +645,13 @@ uint64_t tcbdbfsiz(TCBDB *bdb);
    Note that the cursor is available only after initialization with the `tcbdbcurfirst' or the
    `tcbdbcurjump' functions and so on.  Moreover, the position of the cursor will be indefinite
    when the database is updated after the initialization of the cursor. */
+TM_CALLABLE
 BDBCUR *tcbdbcurnew(TCBDB *bdb);
 
 
 /* Delete a cursor object.
    `cur' specifies the cursor object. */
+TM_CALLABLE
 void tcbdbcurdel(BDBCUR *cur);
 
 
@@ -827,6 +830,7 @@ bool tcbdbcurrec(BDBCUR *cur, TCXSTR *kxstr, TCXSTR *vxstr);
    `file' specifies the file name of the code.
    `line' specifies the line number of the code.
    `func' specifies the function name of the code. */
+TM_WAIVER
 void tcbdbsetecode(TCBDB *bdb, int ecode, const char *filename, int line, const char *func);
 
 

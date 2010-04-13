@@ -10,7 +10,8 @@ use constant {
 
 my @commands = (
                 "experiment/mmap",
-                "experiment/mmap-nosync"
+                "experiment/mmap-nosync",
+                "experiment/mnemosyne"
                 );
 
 my @table;

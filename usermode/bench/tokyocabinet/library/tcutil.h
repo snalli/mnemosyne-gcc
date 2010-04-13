@@ -35,6 +35,7 @@ __TCUTIL_CLINKAGEBEGIN
 #include <time.h>
 #include <limits.h>
 #include <math.h>
+#include <transactions.h>
 
 
 
@@ -300,12 +301,14 @@ typedef struct {                         /* type of structure for an array list 
 
 /* Create a list object.
    The return value is the new list object. */
+TM_CALLABLE
 TCLIST *tclistnew(void);
 
 
 /* Create a list object with expecting the number of elements.
    `anum' specifies the number of elements expected to be stored in the list.
    The return value is the new list object. */
+TM_CALLABLE
 TCLIST *tclistnew2(int anum);
 
 
@@ -325,6 +328,7 @@ TCLIST *tclistdup(const TCLIST *list);
 /* Delete a list object.
    `list' specifies the list object.
    Note that the deleted object and its derivatives can not be used anymore. */
+TM_CALLABLE
 void tclistdel(TCLIST *list);
 
 
@@ -392,6 +396,7 @@ char *tclistpop2(TCLIST *list);
    `list' specifies the list object.
    `ptr' specifies the pointer to the region of the new element.
    `size' specifies the size of the region. */
+TM_CALLABLE
 void tclistunshift(TCLIST *list, const void *ptr, int size);
 
 
@@ -410,6 +415,7 @@ void tclistunshift2(TCLIST *list, const char *str);
    the return value can be treated as a character string.  Because the region of the return
    value is allocated with the `malloc' call, it should be released with the `free' call when it
    is no longer in use.  If the list is empty, the return value is `NULL'. */
+TM_CALLABLE
 void *tclistshift(TCLIST *list, int *sp);
 
 
@@ -450,6 +456,7 @@ void tclistinsert2(TCLIST *list, int index, const char *str);
    value is allocated with the `malloc' call, it should be released with the `free' call when it
    is no longer in use.  If `index' is equal to or more than the number of elements, no element
    is removed and the return value is `NULL'. */
+TM_CALLABLE
 void *tclistremove(TCLIST *list, int index, int *sp);
 
 
@@ -2291,6 +2298,7 @@ TCMPOOL *tcmpoolglobal(void);
    `a' specifies an integer.
    `b' specifies the other integer.
    The return value is the larger value of the two. */
+TM_WAIVER
 long tclmax(long a, long b);
 
 
@@ -3470,12 +3478,14 @@ typedef struct {                         /* type of structure for a pointer list
 
 /* Create a pointer list object.
    The return value is the new pointer list object. */
+TM_CALLABLE
 TCPTRLIST *tcptrlistnew(void);
 
 
 /* Create a pointer list object with expecting the number of elements.
    `anum' specifies the number of elements expected to be stored in the list.
    The return value is the new pointer list object. */
+TM_CALLABLE
 TCPTRLIST *tcptrlistnew2(int anum);
 
 
@@ -3515,6 +3525,7 @@ void tcptrlistpush(TCPTRLIST *ptrlist, void *ptr);
    `ptrlist' specifies the pointer list object.
    The return value is the pointer to the region of the removed element.
    If the list is empty, the return value is `NULL'. */
+TM_CALLABLE
 void *tcptrlistpop(TCPTRLIST *ptrlist);
 
 
@@ -3528,6 +3539,7 @@ void tcptrlistunshift(TCPTRLIST *ptrlist, void *ptr);
    `ptrlist' specifies the pointer list object.
    The return value is the pointer to the region of the removed element.
    If the list is empty, the return value is `NULL'. */
+TM_CALLABLE
 void *tcptrlistshift(TCPTRLIST *ptrlist);
 
 
@@ -3545,6 +3557,7 @@ void tcptrlistinsert(TCPTRLIST *ptrlist, int index, void *ptr);
    The return value is the pointer to the region of the removed element.
    If `index' is equal to or more than the number of elements, no element is removed and the
    return value is `NULL'. */
+TM_CALLABLE
 void *tcptrlistremove(TCPTRLIST *ptrlist, int index);
 
 
@@ -3553,6 +3566,7 @@ void *tcptrlistremove(TCPTRLIST *ptrlist, int index);
    `index' specifies the index of the element to be overwritten.
    `ptr' specifies the pointer to the region of the new content.
    If `index' is equal to or more than the number of elements, this function has no effect. */
+TM_CALLABLE
 void tcptrlistover(TCPTRLIST *ptrlist, int index, void *ptr);
 
 
@@ -3733,7 +3747,7 @@ const char *tcerrmsg(int ecode);
 /* Show error message on the standard error output and exit.
    `message' specifies an error message.
    This function does not return. */
-void *tcmyfatal(const char *message);
+TM_WAIVER void *tcmyfatal(const char *message);
 
 
 /* Allocate a large nullified region.

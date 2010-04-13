@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 	}
 	
 	/* store records */
-	for(i = 0; i < 100; ++i)
+	for(i = 0; i < 1000; ++i)
 	{
 		if (!tcbdbput(bdb, &i, sizeof(size_t), &i, sizeof(size_t)))
 		{

@@ -5,11 +5,11 @@ all-experiments: library/libtokyocabinet.a experiment/mmap experiment/mmap-nosyn
 
 experiment/mmap: experiment/mmap.c
 	@echo "(COMPILE) $@"
-	@$(CXX) -o $@ $< -Ilibrary -lpthread library/libtokyocabinet.a -lbz2 -lz
+	@icc -Qtm_enabled -o $@ $< -Ilibrary -I../../library/mtm/include -lpthread library/libtokyocabinet.a -lbz2 -lz
 
 experiment/mmap-nosync: experiment/mmap-nosync.c
 	@echo "(COMPILE) $@"
-	@$(CXX) -o $@ $< -Ilibrary -lpthread library/libtokyocabinet.a -lbz2 -lz
+	@icc -Qtm_enabled -o $@ $< -Ilibrary -I../../library/mtm/include -lpthread library/libtokyocabinet.a -lbz2 -lz
 
 experiment/mnemosyne: experiment/mnemosyne.c
 	@echo "(COMPILE) $@"

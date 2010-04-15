@@ -1,3 +1,6 @@
+#include <mnemosyne.h>
+#include <pcm.h>
+
 // These two must come before all other includes; they define things like w_entry_t.
 #include "mtm_i.h"
 #include "mode/pwb/pwb_i.h"
@@ -6,7 +9,6 @@
 #include "mode/common/mask.h"
 #include "mode/pwb/barrier.h"
 #include "mode/pwb/rwset.c"
-#include "hal/pcm.h"
 
 
 
@@ -73,7 +75,8 @@ w_entry_t* initialize_write_set_entry(w_entry_t* entry,
                                       mtm_word_t value,
                                       mtm_word_t mask,
                                       volatile mtm_word_t version,
-                                      volatile mtm_word_t* lock)
+                                      volatile mtm_word_t* lock,
+                                      int is_nonvolatile)
 {	
 	/* Add address to write set */
 	entry->addr = address;
@@ -81,7 +84,8 @@ w_entry_t* initialize_write_set_entry(w_entry_t* entry,
 	mask_new_value(entry, address, value, mask);
 	entry->version = version;
 	entry->next = NULL;
-	entry->w_entry_nv->next_cache_neighbor = NULL;
+	entry->next_cache_neighbor = NULL;
+	entry->is_nonvolatile = is_nonvolatile;
 	
 	return entry;
 }
@@ -102,9 +106,12 @@ w_entry_t* initialize_write_set_entry(w_entry_t* entry,
  *  as new_entry. The new cacheline will be appended after 
  */
 static
-void insert_write_set_entry_after(w_entry_t* new_entry, w_entry_t* tail, mtm_tx_t* transaction, w_entry_t* cache_neighbor)
+void insert_write_set_entry_after(w_entry_t* new_entry, 
+                                  w_entry_t* tail, 
+                                  mtm_tx_t* transaction, 
+                                  w_entry_t* cache_neighbor)
 {
-	// Append the entry to the list.
+	/* Append the entry to the list. */
 	if (tail != NULL) {
 		new_entry->next = tail->next;
 		tail->next = new_entry;
@@ -112,23 +119,22 @@ void insert_write_set_entry_after(w_entry_t* new_entry, w_entry_t* tail, mtm_tx_
 		new_entry->next = NULL;
 	}
 	
-	// Attach the new entry to others in the same cache block/line.
+	/* Attach the new entry to others in the same cache block/line. */
 	if (cache_neighbor != NULL) {
-		new_entry->w_entry_nv->next_cache_neighbor = cache_neighbor->w_entry_nv->next_cache_neighbor;
-		cache_neighbor->w_entry_nv->next_cache_neighbor = new_entry->w_entry_nv;
+		new_entry->next_cache_neighbor = cache_neighbor->next_cache_neighbor;
+		cache_neighbor->next_cache_neighbor = new_entry;
 	} else {
-		new_entry->w_entry_nv->next_cache_neighbor = NULL;
+		new_entry->next_cache_neighbor = NULL;
 	}
 	
+	/* Update the total number of entries. */
 	mode_data_t* modedata = (mode_data_t *) transaction->modedata[transaction->mode];
-	
-	// Write out the entry to nonvolatile storage.
-	pcm_stream_store(modedata->pcm_storeset, &new_entry->w_entry_nv->value, new_entry->value);
-	pcm_stream_store(modedata->pcm_storeset, &new_entry->w_entry_nv->address, new_entry->addr);
-	
-	// Update the total number of entries.
 	modedata->w_set.nb_entries++;
-	modedata->w_set_nv->nb_entries++;
+
+	/* Write the new entry to the persistent TM log as well? */
+	if (new_entry->is_nonvolatile) {
+		M_TMLOG_WRITE(transaction->pcm_storeset, modedata->ptmlog, (uintptr_t) new_entry->addr, new_entry->value, new_entry->mask);
+	}
 }
 
 
@@ -221,6 +227,7 @@ pwb_write_internal(mtm_tx_t *tx,
 	w_entry_t           *w;
 	w_entry_t           *write_set_tail = NULL;
 	int                 ret;
+	int                 access_is_nonvolatile;
 
 	MTM_DEBUG_PRINT("==> pwb_write(t=%p[%lu-%lu],a=%p,d=%p-%lu,m=0x%lx)\n", tx,
 	                (unsigned long)modedata->start,
@@ -249,6 +256,15 @@ pwb_write_internal(mtm_tx_t *tx,
 		mtm_local_LB(tx, addr, sizeof(mtm_word_t));
 		ATOMIC_STORE(addr, value);
 		return NULL;
+	}
+
+	/* Check whether access is to volatile or non-volatile memory */
+	if ((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
+	    (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE))
+	{
+		access_is_nonvolatile = 1;
+	} else {
+		access_is_nonvolatile = 0;
 	}
 
 	/* Get reference to lock */
@@ -287,9 +303,10 @@ restart_no_load:
 			if (matching_entry != NULL) {
 				if (matching_entry->mask != 0) {
 					mask_new_value(matching_entry, addr, value, mask);
-					// Write out the entry to nonvolatile storage.
-					pcm_stream_store(modedata->pcm_storeset, &matching_entry->w_entry_nv->value, matching_entry->value);
-					pcm_stream_store(modedata->pcm_storeset, &matching_entry->w_entry_nv->address, matching_entry->addr);
+					/* Write out the entry to the persistent TM log? */
+					if (access_is_nonvolatile) {
+						M_TMLOG_WRITE(tx->pcm_storeset, modedata->ptmlog, (uintptr_t) matching_entry->addr, matching_entry->value, matching_entry->mask);
+					}	
 				}
 				return matching_entry;
 			} else {
@@ -305,10 +322,9 @@ restart_no_load:
 				} else {
 					// Build a new write set entry
 					w = &modedata->w_set.entries[modedata->w_set.nb_entries];
-					w->w_entry_nv = &modedata->w_set_nv->entries[modedata->w_set_nv->nb_entries];
 					version = write_set_tail->version;  // Get version from previous write set entry (all
 					                                    // entries in linked list have same version)
-					w_entry_t* initialized_entry = initialize_write_set_entry(w, addr, value, mask, version, lock);
+					w_entry_t* initialized_entry = initialize_write_set_entry(w, addr, value, mask, version, lock, access_is_nonvolatile);
 					
 					// Add entry to the write set
 					insert_write_set_entry_after(initialized_entry, write_set_tail, tx, last_entry_in_same_cache_block);					
@@ -388,8 +404,7 @@ restart_no_load:
 			*lock = LOCK_SET_ADDR((mtm_word_t)w);
 		}
 		
-		w->w_entry_nv = &modedata->w_set_nv->entries[modedata->w_set_nv->nb_entries];
-		w_entry_t* initialized_entry = 	initialize_write_set_entry(w, addr, value, mask, version, lock);
+		w_entry_t* initialized_entry = 	initialize_write_set_entry(w, addr, value, mask, version, lock, access_is_nonvolatile);
 		insert_write_set_entry_after(initialized_entry, write_set_tail, tx, NULL);					
 		return w;
 	}

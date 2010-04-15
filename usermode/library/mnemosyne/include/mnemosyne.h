@@ -28,6 +28,13 @@
  */
 #define MNEMOSYNE_PERSISTENT __attribute__ ((section("PERSISTENT")))
 
+#ifndef PSEGMENT_RESERVED_REGION_START
+# define PSEGMENT_RESERVED_REGION_START   0x0000100000000000
+#endif
+#ifndef PSEGMENT_RESERVED_REGION_SIZE
+# define PSEGMENT_RESERVED_REGION_SIZE    0x0000010000000000 /* 1 TB */
+#endif
+
 # ifdef __cplusplus
 extern "C" {
 # endif

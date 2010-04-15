@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef _WBETL_H
-#define _WBETL_H
+#ifndef _PWB_H
+#define _PWB_H
 
 m_result_t mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **descp);
 m_result_t mtm_pwb_destroy(mtm_mode_data_t *desc);

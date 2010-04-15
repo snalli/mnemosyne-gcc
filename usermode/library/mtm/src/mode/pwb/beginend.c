@@ -68,8 +68,8 @@ pwb_trycommit (mtm_tx_t *tx)
 		ATOMIC_STORE_REL(&tx->id, id + 1);
 # endif /* READ_LOCKED_DATA */
 
-		nonvolatile_write_set_make_persistent(modedata->w_set_nv);
-		nonvolatile_write_set_commit(modedata->w_set_nv);
+		/* Make sure the persistent tm log is made stable */
+		M_TMLOG_COMMIT(tx->pcm_storeset, modedata->ptmlog, t);
 	
 		/* Install new versions, drop locks and set new timestamp */
 		/* In the case when isolation is off, the write set contains entries 
@@ -81,13 +81,14 @@ pwb_trycommit (mtm_tx_t *tx)
 			                w->addr, (void *)w->value, (int)w->value, (int)w->version);
 			/* Write the value in this entry to memory (it will probably land in the cache; that's okay.) */
 			if (w->mask != 0) {
-				pcm_wb_store(modedata->pcm_storeset, w->w_entry_nv->address, w->w_entry_nv->value);
+				PCM_WB_STORE_ALIGNED_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
 			}	
-			
-			/* Flush the cacheline to persistent memory if this is the last entry in this line. */
-			if (w->w_entry_nv->next_cache_neighbor == NULL) {
-				pcm_wb_flush(modedata->pcm_storeset, w->addr);
-			}
+			if (SYNCHRONOUS_FLUSH) {
+				/* Flush the cacheline to persistent memory if this is the last entry in this line. */
+				if (w->next_cache_neighbor == NULL) {
+					PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
+				}
+			}	
 			/* Only drop lock for last covered address in write set */
 			if (w->next == NULL) {
 				ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
@@ -97,6 +98,10 @@ pwb_trycommit (mtm_tx_t *tx)
 		/* Update instance number (becomes even) */
 		ATOMIC_STORE_REL(&tx->id, id + 2);
 # endif /* READ_LOCKED_DATA */
+
+		if (SYNCHRONOUS_FLUSH) {
+			M_TMLOG_TRUNCATE_SYNC(tx->pcm_storeset, modedata->ptmlog);
+		}
 	}
 	cm_reset(tx);
 	return true;
@@ -123,6 +128,9 @@ pwb_rollback(mtm_tx_t *tx)
 
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
+
+	/* Mark the transaction in the persistent log as aborted. */
+	M_TMLOG_ABORT(tx->pcm_storeset, modedata->ptmlog, 0);
 
 	/* Drop locks */
 	i = modedata->w_set.nb_entries;
@@ -208,11 +216,13 @@ start:
 	/* Because of the current state of the recoverable write-set block, reallocation is not
 	   possible. This program cannot be run until the recoverable blocks are
 	   somehow extendable. */
+	   //FIXME: What does the above comment mean?
 	assert(modedata->w_set.reallocate == 0);
 	
 	modedata->w_set.nb_entries = 0;
-	modedata->w_set_nv->nb_entries = 0;
 	modedata->r_set.nb_entries = 0;
+
+	M_TMLOG_BEGIN(modedata->ptmlog);
 
 #ifdef EPOCH_GC
 	gc_set_epoch(modedata->start);

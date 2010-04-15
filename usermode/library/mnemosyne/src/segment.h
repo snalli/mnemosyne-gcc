@@ -23,16 +23,6 @@
 //#define MAP_PERSISTENT MAP_SCM
 #define MAP_PERSISTENT 0
 
-#define PAGE_SIZE 4096
-
-/* Returns the number of pages */
-#define NUM_PAGES(size) ((((size) % PAGE_SIZE) == 0? 0 : 1) + (size)/PAGE_SIZE)
-
-/* Returns the size at page granularity */
-#define SIZEOF_PAGES(size) (NUM_PAGES((size)) * PAGE_SIZE)
-
-/* Returns the size at page granularity */
-#define PAGE_ALIGN(addr) (NUM_PAGES((addr)) * PAGE_SIZE)
 
 /** Persistent segment table entry flags */
 #define SGTB_TYPE_PMAP                0x1    /* a segment allocated via pmap family of functions */

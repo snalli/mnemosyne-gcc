@@ -1,7 +1,7 @@
 /*!
  * \file 
  *
- * Implements log truncation.
+ * Implements asynchronous log truncation.
  */
 
 #include <pthread.h>
@@ -9,8 +9,9 @@
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
-#include "log.h"
+#include "log_i.h"
 #include "logtrunc.h"
+#include "hal/pcm_i.h"
 
 static m_logmgr_t *logmgr;
 
@@ -28,7 +29,7 @@ m_logtrunc_init(m_logmgr_t *mgr)
 
 static 
 m_result_t
-truncate_logs (int lock)
+truncate_logs (pcm_storeset_t *set, int lock)
 {
 	m_log_dsc_t       *log_dsc;
 	m_log_dsc_t       *log_dsc_to_truncate;
@@ -45,7 +46,7 @@ truncate_logs (int lock)
 	list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
 		assert(log_dsc->ops);
 		assert(log_dsc->ops->truncation_init);
-		log_dsc->ops->truncation_init(log_dsc);
+		log_dsc->ops->truncation_init(set, log_dsc);
 	}
 	/* 
 	 * Find the next log to truncate, truncate it, update its truncation 
@@ -57,8 +58,6 @@ truncate_logs (int lock)
 	do {
 		log_dsc_to_truncate = NULL; 
 		list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
-			printf("log_dsc                 = %p\n", log_dsc);
-			printf("log_dsc->logorder = 0x%lX\n", log_dsc->logorder);
 			if (log_dsc->logorder == INV_LOG_ORDER) {
 				continue;
 			}
@@ -74,8 +73,8 @@ truncate_logs (int lock)
 			assert(log_dsc_to_truncate->ops);
 			assert(log_dsc_to_truncate->ops->truncation_do);
 			assert(log_dsc_to_truncate->ops->truncation_prepare_next);
-			log_dsc_to_truncate->ops->truncation_do(log_dsc_to_truncate);
-			log_dsc_to_truncate->ops->truncation_prepare_next(log_dsc_to_truncate);
+			log_dsc_to_truncate->ops->truncation_do(set, log_dsc_to_truncate);
+			log_dsc_to_truncate->ops->truncation_prepare_next(set, log_dsc_to_truncate);
 		}	
 	} while(log_dsc_to_truncate);
 
@@ -98,6 +97,9 @@ log_truncation_main (void *arg)
 	struct timeval    tp;
 	struct timespec   ts;
 	int               rc;
+	pcm_storeset_t    *set;
+
+	set = pcm_storeset_get();
 
 	pthread_mutex_lock(&(logmgr->mutex));
 
@@ -108,7 +110,7 @@ log_truncation_main (void *arg)
 		ts.tv_sec += 1;
 		pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
 
-		truncate_logs(0);
+		truncate_logs(set, 0);
 	}	
 
 	pthread_mutex_unlock(&(logmgr->mutex));
@@ -119,7 +121,7 @@ log_truncation_main (void *arg)
  * \brief Force log truncation
  */
 m_result_t
-m_logtrunc_truncate()
+m_logtrunc_truncate(pcm_storeset_t *set)
 {
-	return truncate_logs(1);
+	return truncate_logs(set, 1);
 }

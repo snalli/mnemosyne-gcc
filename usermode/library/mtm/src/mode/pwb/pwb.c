@@ -1,7 +1,10 @@
+#include <pcm.h>
+#include <log.h>
 #include <mtm_i.h>
 #include <mode/vtable.h>
 #include <mode/vtable_macros.h>
 #include <local.h>
+#include "mode/pwb/tmlog.h"
 #include "mode/pwb/barrier.h"
 #include "mode/pwb/beginend.h"
 #include "mode/pwb/memcpy.h"
@@ -11,7 +14,6 @@
 #include "mode/common/memcpy.h"
 #include "mode/common/memset.h"
 #include "mode/common/rwset.h"
-#include "hal/pcm.h"
 
 #ifndef RW_SET_SIZE
 #define RW_SET_SIZE 16384
@@ -49,8 +51,6 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 		return M_R_FAILURE;
 	}
 
-	pcm_storeset_create(&data->pcm_storeset);
-
 	/* Read set */
 	data->r_set.nb_entries = 0;
 	data->r_set.size = RW_SET_SIZE;
@@ -62,8 +62,9 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 	data->w_set.reallocate = 0;
 	mtm_allocate_ws_entries(tx, data, 0);
 
-	/* Non-volatile write set */
-	mtm_allocate_ws_entries_nv(tx, data, 0);
+	/* Non-volatile log */
+	m_logmgr_alloc_log(tx->pcm_storeset, M_TMLOG_LF_TYPE, &data->ptmlog_dsc);
+	data->ptmlog = (M_TMLOG_T *) data->ptmlog_dsc->log;
 
 
 	*datap = (mtm_mode_data_t *) data;
@@ -80,17 +81,14 @@ mtm_pwb_destroy(mtm_mode_data_t *_data)
 	mtm_word_t t;
 #endif /* EPOCH_GC */
 	
-	pcm_storeset_destroy(data->pcm_storeset);
-	nonvolatile_write_set_free(data->w_set_nv);
+	m_logmgr_free_log(data->ptmlog_dsc);
 
 #ifdef EPOCH_GC
 	t = GET_CLOCK;
 	gc_free(data->r_set.entries, t);
 	gc_free(data->w_set.entries, t);
-	data->w_set_nv->isIdle = true;
 #else /* ! EPOCH_GC */
 	free(data->r_set.entries);
 	free(data->w_set.entries);
-	data->w_set_nv->isIdle = true;
 #endif /* ! EPOCH_GC */
 }

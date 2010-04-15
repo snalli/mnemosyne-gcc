@@ -1,0 +1,16 @@
+Import('examplesEnv')
+Import('MnemosyneLibrary')
+Import('MtmLibrary')
+
+myEnv = examplesEnv.Clone() 
+myEnv.Append(CPPPATH = ['#library/common'])
+
+sources = Split("""
+                main.cxx
+                ../../library/mtm/src/mode/pwb/tmlog_tornbit.c
+                """)
+
+
+myEnv.Append(LIBS = [MnemosyneLibrary])
+myEnv.Append(LIBS = [MtmLibrary])
+myEnv.Program('log', sources)

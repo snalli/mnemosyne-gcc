@@ -7,7 +7,6 @@ buildEnv.Append(CCFLAGS = ['-fPIC'])
 
 SRC = Split("""
             debug.c
-            hal/pcm.c
             """)
 
 CommonObjects = buildEnv.StaticLibrary('mnemosyne_common', SRC)

@@ -9,7 +9,7 @@ buildEnv = mnemosyne.Environment()
 
 Import('CommonObjects')
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
-buildEnv.Append(CPPPATH = ['#library'])
+buildEnv.Append(CPPPATH = ['#library/mnemosyne/src'])
 buildEnv.Append(LIBS = ['elf', CommonObjects, 'pthread'])
 buildEnv.Append(CCFLAGS = ' -m64 ')
 buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
@@ -32,10 +32,12 @@ C_SRC = Split("""
               src/init.c
               src/reincarnation_callback.c
               src/segment.c
+              src/hal/pcm.c
               """)
 
 LOG_C_SRC = Split("""
                   src/log/mgr.c
+                  src/log/phlog_base.c
                   src/log/phlog_tornbit.c
                   src/log/logtrunc.c
               """)

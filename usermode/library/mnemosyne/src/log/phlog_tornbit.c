@@ -13,6 +13,7 @@
 /* Mnemosyne common header files */
 #include <result.h>
 #include "phlog_tornbit.h"
+#include "hal/pcm_i.h"
 
 
 /**
@@ -21,7 +22,7 @@
  */
 m_result_t
 m_phlog_tornbit_check_consistency(m_phlog_tornbit_nvmd_t *nvmd, 
-                                  scm_word_t *nvphlog,
+                                  pcm_word_t *nvphlog,
                                   uint64_t *stable_tail)
 {
 	uint64_t          head_index;
@@ -34,8 +35,6 @@ m_phlog_tornbit_check_consistency(m_phlog_tornbit_nvmd_t *nvmd,
 	i = head_index = nvmd->flags & LF_HEAD_MASK;
 	while(1) {
 		tornbit = (TORN_MASK & nvphlog[i]);
-		printf("index = %d, valid_tornbit = %lx, tornbit = %lx\n", i, valid_tornbit, tornbit);
-
 		if (tornbit != valid_tornbit) {
 			*stable_tail = i;
 			break;
@@ -43,6 +42,7 @@ m_phlog_tornbit_check_consistency(m_phlog_tornbit_nvmd_t *nvmd,
 		i = (i + 1) & (PHYSICAL_LOG_NUM_ENTRIES - 1);
 		if (i==0) {
 			flip_tornbit = 1;
+			valid_tornbit = TORN_MASK & ~valid_tornbit;
 		}
 		if (i==head_index) {
 			break;
@@ -55,26 +55,27 @@ m_phlog_tornbit_check_consistency(m_phlog_tornbit_nvmd_t *nvmd,
 
 static
 m_result_t
-tornbit_format_nvlog (uint32_t head_index, 
+tornbit_format_nvlog (pcm_storeset_t *set,
+                      uint32_t head_index, 
                       uint64_t tornbit, 
                       m_phlog_tornbit_nvmd_t *nvmd, 
-                      scm_word_t *nvphlog)
+                      pcm_word_t *nvphlog)
 {
 	int i;
 
-	PCM_STORE(&nvmd->flags, head_index | tornbit);
+	PCM_NT_STORE(set, (volatile pcm_word_t *) &nvmd->flags, head_index | tornbit);
 	for (i=0; i<PHYSICAL_LOG_NUM_ENTRIES; i++) {
 		if (i<head_index) {
 			if ((nvphlog[i] & TORN_MASK) != tornbit) {
-				PCM_STORE(&nvphlog[i], tornbit);
+				PCM_NT_STORE(set, (volatile pcm_word_t *) &nvphlog[i], tornbit);
 			}	
 		} else {
 			if ((nvphlog[i] & TORN_MASK) == tornbit) {
-				PCM_STORE(&nvphlog[i], ~tornbit & TORN_MASK);
+				PCM_NT_STORE(set, (volatile pcm_word_t *) &nvphlog[i], ~tornbit & TORN_MASK);
 			}	
 		}
 	}
-	PCM_BARRIER
+	PCM_NT_FLUSH(set);
 	
 	return M_R_SUCCESS;
 }
@@ -84,19 +85,24 @@ tornbit_format_nvlog (uint32_t head_index,
  * \brief Formats the non-volatile physical log for reuse.
  */
 m_result_t
-m_phlog_tornbit_format (m_phlog_tornbit_nvmd_t *nvmd, scm_word_t *nvphlog, int type)
+m_phlog_tornbit_format (pcm_storeset_t *set, 
+                        m_phlog_tornbit_nvmd_t *nvmd, 
+                        pcm_word_t *nvphlog, 
+                        int type)
 {
 	m_result_t             rv = M_R_FAILURE;
 	
 	if ((nvmd->generic_flags & LF_TYPE_MASK) == type) {
-		//FIXME: should check consistency and perform a quick format instead
-		//tornbit_check_nvlog(log_dsc);
-		rv = tornbit_format_nvlog (0, TORNBIT_ONE, nvmd, nvphlog);
+		/* 
+		 * TODO: Optimization: check consistency and perform a quick format 
+		 * instead.
+		 */
+		rv = tornbit_format_nvlog (set, 0, TORNBIT_ONE, nvmd, nvphlog);
 		if (rv != M_R_SUCCESS) {
 			goto out;
 		}
 	} else {
-		rv = tornbit_format_nvlog (0, TORNBIT_ONE, nvmd, nvphlog);
+		rv = tornbit_format_nvlog (set, 0, TORNBIT_ONE, nvmd, nvphlog);
 		if (rv != M_R_SUCCESS) {
 			goto out;
 		}
@@ -114,8 +120,8 @@ m_result_t
 m_phlog_tornbit_alloc (m_phlog_tornbit_t **phlog_tornbitp)
 {
 	m_phlog_tornbit_t      *phlog_tornbit;
-	
-	if (posix_memalign(&phlog_tornbit, sizeof(uint64_t),sizeof(m_phlog_tornbit_t)) != 0) 
+
+	if (posix_memalign((void **) &phlog_tornbit, sizeof(uint64_t),sizeof(m_phlog_tornbit_t)) != 0) 
 	{
 		return M_R_FAILURE;
 	}
@@ -132,14 +138,13 @@ m_phlog_tornbit_alloc (m_phlog_tornbit_t **phlog_tornbitp)
 m_result_t
 m_phlog_tornbit_init (m_phlog_tornbit_t *phlog, 
                       m_phlog_tornbit_nvmd_t *nvmd,
-                      scm_word_t *nvphlog)					  
+                      pcm_word_t *nvphlog)					  
 {
-	scm_word_t             tornbit;
+	pcm_word_t             tornbit;
 
 	phlog->nvmd = nvmd;
 	phlog->nvphlog = nvphlog;
 	tornbit = LF_TORNBIT & phlog->nvmd->flags;
-	printf("phlog_tornbit_init: %lx\n", tornbit);
 	phlog->tornbit = tornbit;
 	phlog->buffer_count = 0;
 	phlog->write_remainder = 0x0;
@@ -152,15 +157,19 @@ m_phlog_tornbit_init (m_phlog_tornbit_t *phlog,
 }
 
 
+/**
+ * \brief Truncates the log up to the read_index point.
+ */
 m_result_t
-m_phlog_tornbit_truncate(m_phlog_tornbit_t *phlog) 
+m_phlog_tornbit_truncate_async(pcm_storeset_t *set, m_phlog_tornbit_t *phlog) 
 {
-	scm_word_t        tornbit;
+	pcm_word_t        tornbit;
 
 	tornbit = LF_TORNBIT & phlog->nvmd->flags;
 	/*
-	 * If head wraps around, the torn bit stored in the non-volatile 
-	 * metadata is flipped.
+	 * If head is larger than the current read_index point, then the assignment
+	 * of read_index to the head will cause head to wrap around, thus the 
+	 * torn bit stored in the non-volatile metadata is flipped.
 	 */
 	if (phlog->head > phlog->read_index) {
 		tornbit = ~tornbit & TORN_MASK;
@@ -168,11 +177,12 @@ m_phlog_tornbit_truncate(m_phlog_tornbit_t *phlog)
 
 	phlog->head = phlog->read_index;
 
-	PCM_STORE(&phlog->nvmd->flags, phlog->head | tornbit);
+	//FIXME: do we need a flush? PCM_NT_FLUSH(set);
+	PCM_NT_STORE(set, (volatile pcm_word_t *) &phlog->nvmd->flags, (pcm_word_t) (phlog->head | tornbit));
+	PCM_NT_FLUSH(set);
 	
 	return M_R_SUCCESS;
 }
-
 
 
 void m_phlog_print_buffer(m_phlog_tornbit_t *log)

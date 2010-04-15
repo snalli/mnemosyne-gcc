@@ -19,7 +19,9 @@
 #include "files.h"
 #include "segment.h"
 #include "module.h"
+#include "hal/pcm_i.h"
 #include "pregionlayout.h"
+
 
 /**
  * The directory where persistent segment backing stores are kept.

@@ -12,12 +12,13 @@
 #include <result.h>
 #include <debug.h>
 #include <list.h>
-#include "log.h"
+#include "log_i.h"
+#include "logtrunc.h"
 #include "staticlogs.h"
 #include "../segment.h"
 #include "../pregionlayout.h"
 
-__attribute__ ((section("PERSISTENT"))) uintptr_t   log_pool = 0x0;
+__attribute__ ((section("PERSISTENT"))) pcm_word_t log_pool = 0x0;
 
 #define LOG_NUM 32
 
@@ -49,7 +50,7 @@ static m_log_ops_t static_log_ops[LF_TYPE_VALIDVALUES] =
 
 
 static m_result_t register_static_logtypes(m_logmgr_t *mgr);
-static m_result_t do_recovery(m_logmgr_t *mgr);
+static m_result_t do_recovery(pcm_storeset_t *set, m_logmgr_t *mgr);
 
 
 /**
@@ -62,7 +63,7 @@ static m_result_t do_recovery(m_logmgr_t *mgr);
  */
 static
 m_result_t
-create_log_pool(m_logmgr_t *mgr)
+create_log_pool(pcm_storeset_t *set, m_logmgr_t *mgr)
 {
 	uintptr_t        metadata_start_addr;
 	uintptr_t        logs_start_addr;
@@ -88,8 +89,8 @@ create_log_pool(m_logmgr_t *mgr)
 				M_INTERNALERROR("Could not allocate logs pool segment.\n");
 			}
 		}
-		PCM_STORE(&log_pool, (uintptr_t) addr);
-		PCM_BARRIER
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &log_pool, (pcm_word_t) addr);
+		PCM_NT_FLUSH(set);
 	}
 	
 	/* 
@@ -108,7 +109,7 @@ create_log_pool(m_logmgr_t *mgr)
 	for (i=0; i<LOG_NUM; i++) {
 		log_dscs[i].nvmd = (m_log_nvmd_t *) (metadata_start_addr + 
 		                                        sizeof(m_log_nvmd_t)*i);
-		log_dscs[i].nvphlog = (scm_word_t *) (logs_start_addr + 
+		log_dscs[i].nvphlog = (pcm_word_t *) (logs_start_addr + 
 		                                         physical_log_size*i);
 		log_dscs[i].log = NULL;
 		log_dscs[i].ops = NULL;
@@ -122,6 +123,7 @@ create_log_pool(m_logmgr_t *mgr)
 		}
 	}
 
+	return M_R_SUCCESS;
 }
 
 
@@ -131,7 +133,7 @@ create_log_pool(m_logmgr_t *mgr)
  */
 static
 m_result_t
-logmgr_init()
+logmgr_init(pcm_storeset_t *set)
 {
 	m_result_t rv = M_R_FAILURE;
 	m_logmgr_t *mgr;
@@ -151,9 +153,9 @@ logmgr_init()
 	INIT_LIST_HEAD(&(mgr->free_logs_list));
 	INIT_LIST_HEAD(&(mgr->active_logs_list));
 	INIT_LIST_HEAD(&(mgr->pending_logs_list));
-	create_log_pool(mgr);
+	create_log_pool(set, mgr);
 	register_static_logtypes(mgr);
-	do_recovery(mgr); /* will recover any known log types so far. */
+	do_recovery(set, mgr); /* will recover any known log types so far. */
 
 	/* 
 	 * Be careful, order matters. 
@@ -174,9 +176,9 @@ out:
 
 
 m_result_t
-m_logmgr_init()
+m_logmgr_init(pcm_storeset_t *set)
 {
-	return logmgr_init();
+	return logmgr_init(set);
 }
 
 
@@ -187,9 +189,10 @@ m_logmgr_init()
  * It flushes any dirty logs.
  */
 m_result_t
-m_logmgr_fini()
+m_logmgr_fini(void)
 {
 	//TODO
+	return M_R_SUCCESS;
 }
 
 
@@ -253,10 +256,10 @@ register_static_logtypes(m_logmgr_t *mgr)
 
 
 m_result_t
-m_logmgr_register_logtype(int type, m_log_ops_t *ops)
+m_logmgr_register_logtype(pcm_storeset_t *set, int type, m_log_ops_t *ops)
 {
 	if (!logmgr) {
-		logmgr_init();
+		logmgr_init(set);
 	}
 	return register_logtype((m_logmgr_t *)logmgr, type, ops, 1);
 }
@@ -268,7 +271,7 @@ m_logmgr_register_logtype(int type, m_log_ops_t *ops)
  */
 static
 m_result_t
-do_recovery(m_logmgr_t *mgr)
+do_recovery(pcm_storeset_t *set, m_logmgr_t *mgr)
 {
 	m_log_dsc_t       *log_dsc;
 	m_log_dsc_t       *log_dsc_tmp;
@@ -285,7 +288,7 @@ do_recovery(m_logmgr_t *mgr)
 	INIT_LIST_HEAD(&recovery_list);
 	list_for_each_entry_safe(log_dsc, log_dsc_tmp, &(mgr->pending_logs_list), list) {
 		if (log_dsc->ops && log_dsc->ops->recovery_init) {
-			log_dsc->ops->recovery_init(log_dsc);
+			log_dsc->ops->recovery_init(set, log_dsc);
 			list_del_init(&(log_dsc->list));
 			list_add(&(log_dsc->list), &recovery_list);
 		}
@@ -298,8 +301,6 @@ do_recovery(m_logmgr_t *mgr)
 	do {
 		log_dsc_to_recover = NULL; 
 		list_for_each_entry(log_dsc, &recovery_list, list) {
-			printf("log_dsc           = %p\n", log_dsc);
-			printf("log_dsc->logorder = 0x%lX\n", log_dsc->logorder);
 			if (log_dsc->logorder == INV_LOG_ORDER) {
 				continue;
 			}
@@ -315,8 +316,8 @@ do_recovery(m_logmgr_t *mgr)
 			assert(log_dsc_to_recover->ops);
 			assert(log_dsc_to_recover->ops->recovery_do);
 			assert(log_dsc_to_recover->ops->recovery_prepare_next);
-			log_dsc_to_recover->ops->recovery_do(log_dsc_to_recover);
-			log_dsc_to_recover->ops->recovery_prepare_next(log_dsc_to_recover);
+			log_dsc_to_recover->ops->recovery_do(set, log_dsc_to_recover);
+			log_dsc_to_recover->ops->recovery_prepare_next(set, log_dsc_to_recover);
 		}	
 	} while(log_dsc_to_recover);
 
@@ -328,9 +329,9 @@ do_recovery(m_logmgr_t *mgr)
 
 
 m_result_t 
-m_logmgr_do_recovery()
+m_logmgr_do_recovery(pcm_storeset_t *set)
 {
-	return do_recovery(logmgr);
+	return do_recovery(set, logmgr);
 }
 
 
@@ -338,7 +339,7 @@ m_logmgr_do_recovery()
  * \brief Allocates a new log and places it in the active logs list.
  */
 m_result_t
-m_logmgr_alloc_log(int type, m_log_dsc_t **log_dscp)
+m_logmgr_alloc_log(pcm_storeset_t *set, int type, m_log_dsc_t **log_dscp)
 {
 	m_result_t        rv = M_R_FAILURE;
 	m_log_dsc_t       *log_dsc;
@@ -391,14 +392,25 @@ m_logmgr_alloc_log(int type, m_log_dsc_t **log_dscp)
 
 	/* Finally, initialize the log */
 	assert(log_dsc->ops && log_dsc->ops->init);
-	assert(log_dsc->ops->init(log_dsc->log, log_dsc) == M_R_SUCCESS);
-	PCM_STORE(&(log_dsc->nvmd->generic_flags), (log_dsc->nvmd->generic_flags & ~LF_TYPE_MASK) | type);
-	PCM_BARRIER
-
+	assert(log_dsc->ops->init(set, log_dsc->log, log_dsc) == M_R_SUCCESS);
+	PCM_NT_STORE(set, (volatile pcm_word_t *) &(log_dsc->nvmd->generic_flags), 
+	             (pcm_word_t) ((log_dsc->nvmd->generic_flags & ~LF_TYPE_MASK) | type));
+	PCM_NT_FLUSH(set);
 
 	*log_dscp = log_dsc;
 	rv = M_R_SUCCESS;
 out:
 	pthread_mutex_unlock(&logmgr_init_lock);
 	return rv;
+}
+
+
+/**
+ * \brief Releases a log.
+ */
+m_result_t 
+m_logmgr_free_log(m_log_dsc_t *log_dsc)
+{
+	//TODO
+	return M_R_SUCCESS;
 }

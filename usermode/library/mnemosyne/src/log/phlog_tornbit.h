@@ -48,8 +48,12 @@
 /* Mnemosyne common header files */
 #include <result.h>
 #include <list.h>
-#include "log.h"
+#include "../hal/pcm_i.h"
+#include "log_i.h"
 
+
+//#define _DEBUG_THIS 1
+#undef _DEBUG_THIS 
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,10 +77,10 @@ typedef struct m_phlog_tornbit_s      m_phlog_tornbit_t;
 typedef struct m_phlog_tornbit_nvmd_s m_phlog_tornbit_nvmd_t;
 
 struct m_phlog_tornbit_nvmd_s {
-	scm_word_t generic_flags;
-	scm_word_t flags;                         /**< the MSB part is reserved for flags while the LSB part stores the head index */
-	scm_word_t reserved3;                     /**< reserved for future use */
-	scm_word_t reserved4;                     /**< reserved for future use */
+	pcm_word_t generic_flags;
+	pcm_word_t flags;                         /**< the MSB part is reserved for flags while the LSB part stores the head index */
+	pcm_word_t reserved3;                     /**< reserved for future use */
+	pcm_word_t reserved4;                     /**< reserved for future use */
 };
 
 
@@ -123,49 +127,6 @@ print_binary64(uint64_t val)
 	}
 }
 
-#if 0
-/**
- * This version pays some extra overhead in arithmetic operations to avoid using a branch
- */
-static inline
-void
-write_buffer2log(m_phlog_tornbit_t *log)
-{
-	/* 
-	 * Modulo arithmetic is implemented using the most efficient equivalent:
-	 * (log->tail + k) % PHYSICAL_LOG_NUM_ENTRIES == (log->tail + k) & (PHYSICAL_LOG_NUM_ENTRIES-1)
-	 */
-	printf("write_buffer2log: BEFORE_WRITE: log->tail = %d, tornbit = %lx\n", log->tail, log->tornbit[0]);
-	PCM_STORE(&log->nvphlog[(log->tail+0) & (PHYSICAL_LOG_NUM_ENTRIES-1)], 
-			  log->buffer[0] | log->tornbit[((log->tail+0) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-	PCM_STORE(&log->nvphlog[(log->tail+1) & (PHYSICAL_LOG_NUM_ENTRIES-1)],
-			  log->buffer[1] | log->tornbit[((log->tail+1) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-	PCM_STORE(&log->nvphlog[(log->tail+2) & (PHYSICAL_LOG_NUM_ENTRIES-1)],
-			  log->buffer[2] | log->tornbit[((log->tail+2) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-	PCM_STORE(&log->nvphlog[(log->tail+3) & (PHYSICAL_LOG_NUM_ENTRIES-1)],
-			  log->buffer[3] | log->tornbit[((log->tail+3) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-	PCM_STORE(&log->nvphlog[(log->tail+4) & (PHYSICAL_LOG_NUM_ENTRIES-1)],
-			  log->buffer[4] | log->tornbit[((log->tail+4) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-	PCM_STORE(&log->nvphlog[(log->tail+5) & (PHYSICAL_LOG_NUM_ENTRIES-1)],
-			  log->buffer[5] | log->tornbit[((log->tail+5) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-	PCM_STORE(&log->nvphlog[(log->tail+6) & (PHYSICAL_LOG_NUM_ENTRIES-1)],
-			  log->buffer[6] | log->tornbit[((log->tail+6) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-	PCM_STORE(&log->nvphlog[(log->tail+7) & (PHYSICAL_LOG_NUM_ENTRIES-1)],
-			  log->buffer[7] | log->tornbit[((log->tail+7) & ~(PHYSICAL_LOG_NUM_ENTRIES-1)) >> PHYSICAL_LOG_NUM_ENTRIES_LOG2]);
-
-	log->buffer_count=0;
-	log->tail = (log->tail+8) & (PHYSICAL_LOG_NUM_ENTRIES-1);
-	if (log->tail == 0x0) {
-		/* flip tornbits */
-		int i;
-		for (i=0; i<CHUNK_SIZE/sizeof(scm_word_t); i++) {
-			log->tornbit[i] = (log->tornbit[i] == TORNBIT_ONE) ? TORNBIT_ZERO : TORNBIT_ONE;
-		}
-	}
-	printf("write_buffer2log: AFTER_WRITE : log->tail = %d\n", log->tail);
-}
-#endif
-
 
 /**
  * \brief Writes the contents of the log buffer to the actual log.
@@ -175,21 +136,29 @@ write_buffer2log(m_phlog_tornbit_t *log)
  */
 static inline
 void
-write_buffer2log(m_phlog_tornbit_t *log)
+tornbit_write_buffer2log(pcm_storeset_t *set, m_phlog_tornbit_t *log)
 {
 	/* 
 	 * Modulo arithmetic is implemented using the most efficient equivalent:
 	 * (log->tail + k) % PHYSICAL_LOG_NUM_ENTRIES == (log->tail + k) & (PHYSICAL_LOG_NUM_ENTRIES-1)
 	 */
-	printf("write_buffer2log: BEFORE_WRITE: log->tail = %lu, tornbit = %lx\n", log->tail, log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+0)], log->buffer[0] | log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+1)], log->buffer[1] | log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+2)], log->buffer[2] | log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+3)], log->buffer[3] | log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+4)], log->buffer[4] | log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+5)], log->buffer[5] | log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+6)], log->buffer[6] | log->tornbit);
-	PCM_STORE(&log->nvphlog[(log->tail+7)], log->buffer[7] | log->tornbit);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+0)], 
+	                    (pcm_word_t) log->buffer[0]);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+1)], 
+	                    (pcm_word_t) log->buffer[1]);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+2)], 
+	                    (pcm_word_t) log->buffer[2]);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+3)], 
+	                    (pcm_word_t) log->buffer[3]);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+4)], 
+	                    (pcm_word_t) log->buffer[4]);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+5)], 
+	                    (pcm_word_t) log->buffer[5]);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+6)], 
+	                    (pcm_word_t) log->buffer[6]);
+	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+7)], 
+	                    (pcm_word_t) log->buffer[7]);
+
 
 	log->buffer_count=0;
 	log->tail = (log->tail+8) & (PHYSICAL_LOG_NUM_ENTRIES-1);
@@ -198,7 +167,6 @@ write_buffer2log(m_phlog_tornbit_t *log)
 	if (log->tail == 0x0) {
 		log->tornbit = ~(log->tornbit) & TORN_MASK;
 	}
-	printf("write_buffer2log: AFTER_WRITE : log->tail = %lu\n", log->tail);
 }
 
 
@@ -211,12 +179,8 @@ write_buffer2log(m_phlog_tornbit_t *log)
  */
 static inline
 m_result_t
-m_phlog_tornbit_write(m_phlog_tornbit_t *log, scm_word_t value)
+m_phlog_tornbit_write(pcm_storeset_t *set, m_phlog_tornbit_t *log, pcm_word_t value)
 {
-	printf("log_write:  0x%016lX (", value);
-	//print_binary64(value);
-	printf(")\n");
-
 	/* 
 	 * Check there is space in the buffer and in the log before writing the
 	 * new value. This duplicates some code but doesn't require unrolling state
@@ -225,17 +189,26 @@ m_phlog_tornbit_write(m_phlog_tornbit_t *log, scm_word_t value)
 	 * path.
 	 */
 
+#ifdef _DEBUG_THIS
+	printf("buffer_count = %lu, write_remainder_nbits = %lu\n", log->buffer_count, log->write_remainder_nbits);
+#endif
 	/* Will new write flush buffer out to log? */
-	if (log->buffer_count+1 > CHUNK_SIZE/sizeof(scm_word_t)-1) {
+	if (log->buffer_count+1 > CHUNK_SIZE/sizeof(pcm_word_t)-1) {
+		/* UNCOMMON PATH */
 		/* Will log overflow? */
-		if (((log->tail + CHUNK_SIZE/sizeof(scm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1))
+		if (((log->tail + CHUNK_SIZE/sizeof(pcm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1))
 		    == log->head)
 		{
+#ifdef _DEBUG_THIS
 			printf("LOG OVERFLOW!!!\n");
 			printf("tail: %lu\n", log->tail);
 			printf("head: %lu\n", log->head);
+#endif			
 			return M_R_FAILURE;
 		} else {
+#ifdef _DEBUG_THIS		
+			printf("FLUSH BUFFER OUT\n");
+#endif			
 			log->buffer[log->buffer_count] = ~TORN_MASK & 
 											 (log->write_remainder | 
 											  (value << log->write_remainder_nbits));
@@ -247,9 +220,32 @@ m_phlog_tornbit_write(m_phlog_tornbit_t *log, scm_word_t value)
 			log->write_remainder = value >> (64 - log->write_remainder_nbits);
 			log->buffer_count++;
 
-			write_buffer2log(log);
+			tornbit_write_buffer2log(set, log);
+			/* 
+			 * If write_remainder_nbits wrapped around then we are actually left 
+			 * with an overflow remainder of 64 bits, not zero. Write a complete 
+			 * buffer entry using 63 of the 64 bits. 
+			 */
+			if (log->write_remainder_nbits == 0) {
+				log->buffer[0] = ~TORN_MASK & 
+				                 (log->write_remainder);
+				log->buffer_count++;
+				log->write_remainder = value >> 63;
+				log->write_remainder_nbits = 1;
+			}
 		}
 	} else {
+		/* COMMON PATH */
+		/* 
+		 * Store the remainder bits in the lowest part of the buffer word
+		 * and fill the highest part of the buffer word with a fragment of
+		 * the value.
+		 *
+		 * +-+--------------------------------+------------------------+
+		 * |T| value << write_remainder_nbits | write_remainder        |
+		 * +-+--------------------------------+------------------------+
+		 *
+		 */
 		log->buffer[log->buffer_count] = ~TORN_MASK & 
 										 (log->write_remainder | 
 										  (value << log->write_remainder_nbits));
@@ -257,9 +253,15 @@ m_phlog_tornbit_write(m_phlog_tornbit_t *log, scm_word_t value)
 		 * Invariant: Remainder bits cannot be more than 63. So one buffer 
 		 * slot should suffice. 
 		 */
-		log->write_remainder_nbits = (log->write_remainder_nbits + 1) & (64 - 1); /* efficient form of (log->write_remainder_nbits + 1) % 64 */
+		log->write_remainder_nbits = (log->write_remainder_nbits + 1) & (64 - 1); 
 		log->write_remainder = value >> (64 - log->write_remainder_nbits);
 		log->buffer_count++;
+		/* 
+		 * Note: It would be easier to check whether there are 63 remaining
+		 * bits and write them to the buffer. However this would add an 
+		 * extra branch in the common path. We avoid this by doing the check
+		 * in the uncommon path above. 
+		 */
 	}
 
 	return M_R_SUCCESS;
@@ -275,18 +277,22 @@ m_phlog_tornbit_write(m_phlog_tornbit_t *log, scm_word_t value)
  */
 static inline
 m_result_t
-m_phlog_tornbit_flush(m_phlog_tornbit_t *log)
+m_phlog_tornbit_flush(pcm_storeset_t *set, m_phlog_tornbit_t *log)
 {
+#ifdef _DEBUG_THIS		
 	printf("m_phlog_flush\n");
+#endif	
 	if (log->write_remainder_nbits > 0) {
 		/* Will log overflow? */
-		if (((log->tail + CHUNK_SIZE/sizeof(scm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1))
+		if (((log->tail + CHUNK_SIZE/sizeof(pcm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1))
 		    == log->head) 
 		{
+#ifdef _DEBUG_THIS		
 			printf("FLUSH: LOG OVERFLOW!!!\n");
 			printf("tail: %lu\n", log->tail);
 			printf("head: %lu\n", log->head);
 			printf("stable_tail: %lu\n", log->stable_tail);
+#endif			
 			return M_R_FAILURE;
 		} else {
 			/* 
@@ -306,11 +312,12 @@ m_phlog_tornbit_flush(m_phlog_tornbit_t *log)
 			 * Simplifies and makes bound checking faster: no extra branches, 
 			 * no memory-fences.
 			 */
-
-			write_buffer2log(log);
+			tornbit_write_buffer2log(set, log);
 		}	
 	}
 	log->stable_tail = log->tail;
+	PCM_SEQSTREAM_FLUSH(set);
+
 	return M_R_SUCCESS;
 }
 
@@ -327,17 +334,36 @@ m_phlog_tornbit_read(m_phlog_tornbit_t *log, uint64_t *valuep)
 {
 	uint64_t value;
 
-	printf("log_read: %lu %lu\n", log->read_index, log->stable_tail);
+#ifdef _DEBUG_THIS		
+	printf("log_read: %lu %lu %lu\n", log->read_index, (uint64_t) log->read_remainder_nbits, log->stable_tail);
+#endif
 	/* Are there any stable data to read? */
-	if (log->read_index != log->stable_tail) {
+	if (log->read_index != log->stable_tail && 
+	    log->read_index + 1 != log->stable_tail) 
+	{
+#ifdef _DEBUG_THIS		
+		printf("[%04lu]: 0x%016llX\n", log->read_index, ~TORN_MASK & log->nvphlog[log->read_index]);
+#endif		
 		value = (~TORN_MASK & log->nvphlog[log->read_index]) >> log->read_remainder_nbits;
 		log->read_index = (log->read_index + 1) & (PHYSICAL_LOG_NUM_ENTRIES - 1);
-		value |= log->nvphlog[log->read_index] << (63 - log->read_remainder_nbits);		 
-		log->read_remainder_nbits++;						  
+#ifdef _DEBUG_THIS		
+		printf("[%04lu]: 0x%016llX\n", log->read_index, ~TORN_MASK & log->nvphlog[log->read_index]);
+#endif		
+		value |= log->nvphlog[log->read_index] << (63 - log->read_remainder_nbits);
+		log->read_remainder_nbits = (log->read_remainder_nbits + 1) & (64 - 1);
+		if (log->read_remainder_nbits == 63) {
+			log->read_index = (log->read_index + 1) & (PHYSICAL_LOG_NUM_ENTRIES - 1);
+			log->read_remainder_nbits = 0;
+		}
 		*valuep = value;
+#ifdef _DEBUG_THIS		
+		printf("\t read value: 0x%016lX\n", value);
+#endif		
 		return M_R_SUCCESS;
 	}
+#ifdef _DEBUG_THIS		
 	printf("NO DATA\n");
+#endif		
 	return M_R_FAILURE;
 }
 
@@ -369,12 +395,17 @@ static inline
 void
 m_phlog_tornbit_next_chunk(m_phlog_tornbit_t *log)
 {
-	log->read_remainder_nbits = 0;						  
-	printf("m_phlog_next_chunk:       %lu\n", log->read_index);
-	log->read_index = log->read_index & ~(CHUNK_SIZE/sizeof(scm_word_t) -1);
-	printf("m_phlog_next_chunk: next: %lu\n", log->read_index);
-	log->read_index = (log->read_index + CHUNK_SIZE/sizeof(scm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1); ;
-	printf("m_phlog_next_chunk: next: %lu\n", log->read_index);
+	uint64_t read_index; 
+
+	log->read_remainder_nbits = 0;
+	read_index = log->read_index & ~(CHUNK_SIZE/sizeof(pcm_word_t) - 1);
+	/* 
+	 * If current log->read_index points to the beginning of a chunk
+	 * then we are already in the next chunk so we don't need to advance.
+	 */
+	if (read_index != log->read_index) {
+		log->read_index = (read_index + CHUNK_SIZE/sizeof(pcm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1); 
+	}
 }
 
 
@@ -412,12 +443,25 @@ m_phlog_tornbit_restore_readindex(m_phlog_tornbit_t *log, uint64_t readindex)
 }
 
 
-m_result_t m_phlog_tornbit_format (m_phlog_tornbit_nvmd_t *nvmd, scm_word_t *nvphlog, int type);
+static inline
+m_result_t
+m_phlog_tornbit_truncate_sync(pcm_storeset_t *set, m_phlog_tornbit_t *phlog) 
+{
+	phlog->head = phlog->tail;
+
+	//FIXME: do we need a flush? PCM_NT_FLUSH(set);
+	PCM_NT_STORE(set, (volatile pcm_word_t *) &phlog->nvmd->flags, (pcm_word_t) (phlog->head | phlog->tornbit));
+	PCM_NT_FLUSH(set);
+	
+	return M_R_SUCCESS;
+}
+
+m_result_t m_phlog_tornbit_format (pcm_storeset_t *set, m_phlog_tornbit_nvmd_t *nvmd, pcm_word_t *nvphlog, int type);
 m_result_t m_phlog_tornbit_alloc (m_phlog_tornbit_t **phlog_tornbitp);
-m_result_t m_phlog_tornbit_init (m_phlog_tornbit_t *phlog, m_phlog_tornbit_nvmd_t *nvmd, scm_word_t *nvphlog);
-m_result_t m_phlog_tornbit_check_consistency(m_phlog_tornbit_nvmd_t *nvmd, scm_word_t *nvphlog, uint64_t *stable_tail);
+m_result_t m_phlog_tornbit_init (m_phlog_tornbit_t *phlog, m_phlog_tornbit_nvmd_t *nvmd, pcm_word_t *nvphlog);
+m_result_t m_phlog_tornbit_check_consistency(m_phlog_tornbit_nvmd_t *nvmd, pcm_word_t *nvphlog, uint64_t *stable_tail);
 m_result_t m_phlog_tornbit_prepare_truncate(m_log_dsc_t *log_dsc);
-m_result_t m_phlog_tornbit_truncate(m_phlog_tornbit_t *phlog);
+m_result_t m_phlog_tornbit_truncate_async(pcm_storeset_t *set, m_phlog_tornbit_t *phlog);
 
 
 #ifdef __cplusplus

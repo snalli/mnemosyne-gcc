@@ -2,77 +2,12 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <mmintrin.h>
+#include <list.h>
 #include "cuckoo_hash/PointerHashInline.h"
-#include "pcm.h"
-
-/* Static configuration */
-
-/* Emulate crashes */
-//#define EMULATE_CRASH 0x1
-#undef EMULATE_CRASH
-
-/* Emulate latency */
-//#define EMULATE_LATENCY 0x1
-#undef EMULATE_LATENCY
-
-/* CPU frequency */
-#define CPUFREQ 2000LLU /* GHz */
-
-/* PCM write latency*/
-#define LATENCY_PCM_WRITE 0 /* ns */
-
-/* 
- * Stores may block wait to find space in the cache (write buffer is full and 
- * must wait to evict other cacheline from the cache) or to find an empty 
- * write-combining buffer.
- * 
- * For write-back, we emulate by using some probability to block-wait.
- * For write-combining, we keep track of the number of WC buffers being 
- * used. We conservatively assume that no implicit evictions happen.
- */
-#define EMULATE_LATENCY_BLOCKING_STORES 0x1
+#include "pcm_i.h"
 
 
-/* Machine has the RDTSCP instruction. 
- * 
- * RDTSCP can be handy when measuring short intervals because it doesn't need
- * to serialize the processor first. Thus, it can be used to measure the actual 
- * latency of instructions such as CLFLUSH. This allows us to add an extra latency
- * to meet the desirable emulated latency instead of adding a fixed latency.
- */
-//#define HAS_RDTSCP
-#undef HAS_RDTSCP
-
-/* The number of available write-combining buffers. */
-#define WRITE_COMBINING_BUFFERS_NUM 8
-
-/* The size of the WC-buffer hash table. Must be a power of 2. */
-#define WCBUF_HASHTBL_SIZE WRITE_COMBINING_BUFFERS_NUM*4
-
-/* 
- * Probabilities are derived using total number of outcomes equal to 
- * TOTAL_OUTCOMES_NUM
- */
-#define TOTAL_OUTCOMES_NUM 1000000
-
-#if (RAND_MAX < TOTAL_OUTCOMES_NUM)
-# error "RAND_MAX must be at least equal to PROB_TOTAL_OUTCOMES_NUM."
-#endif
-
-
-
-
-/* Definitions */
-
-#define NS2CYCLE(__ns) ((__ns) * CPUFREQ / 1000)
-#define CYCLE2NS(__cycles) ((__cycles) * 1000 / CPUFREQ)
-
-
-#define likely(x)	__builtin_expect(!!(x), 1)
-#define unlikely(x)	__builtin_expect(!!(x), 0)
-
-
-/* Types */
+/* Private types */
 
 typedef uint64_t cacheline_bitmask_t;
 
@@ -80,7 +15,7 @@ typedef struct pcm_storeset_list_s pcm_storeset_list_t;
 
 struct pcm_storeset_list_s {
 	uint32_t          count;
-	pcm_storeset_t    *head;
+	struct list_head  list;
 	volatile uint8_t  outstanding_crash;
 	pthread_mutex_t   lock;
 	pthread_cond_t    cond_halt;
@@ -116,31 +51,17 @@ struct cacheline_s {
 };
 
 
-typedef struct cacheline_tbl_s cacheline_tbl_t;
-
 struct cacheline_tbl_s {
 	cacheline_t   *cachelines;
 	unsigned int  cachelines_count;
 	unsigned int  cachelines_size;
 };
 
-struct pcm_storeset_s {
-	uint32_t              id;
-	uint32_t              state;
-	unsigned int          rand_seed;
-	PointerHash           *hashtbl;
-	uint16_t              wcbuf_hashtbl[WCBUF_HASHTBL_SIZE];
-	uint16_t              wcbuf_hashtbl_count;
-	cacheline_tbl_t       *cacheline_tbl;
-	pcm_storeset_t        *next;
-	volatile unsigned int in_crash_emulation_code;
-};
-
 
 /* Dynamic configuration */
 
 pcm_storeset_list_t pcm_storeset_list = { 0, 
-                                          NULL, 
+                                          LIST_HEAD_INIT(pcm_storeset_list.list), 
                                           0, 
                                           PTHREAD_MUTEX_INITIALIZER, 
                                           PTHREAD_COND_INITIALIZER, 
@@ -156,87 +77,13 @@ cacheline_crash_cdf_t cacheline_crash_cdf = NO_PARTIAL_CRASH;
 
 
 /* Likelihood a store will block wait. */
-
-unsigned int likelihood_store_blockwaits = 1000;  
+unsigned int pcm_likelihood_store_blockwaits = 1000;  
 
 /* Likelihood a cacheline has been evicted. */
+unsigned int pcm_likelihood_evicted_cacheline = 10000;  
 
-unsigned int likelihood_evicted_cacheline = 10000;  
+__thread pcm_storeset_t* _thread_pcm_storeset;
 
-
-typedef uint64_t hrtime_t;
-
-static inline void asm_cpuid() {
-	asm volatile( "cpuid" :::"rax", "rbx", "rcx", "rdx");
-}
-
-
-#if defined(__i386__)
-
-static inline unsigned long long asm_rdtsc(void)
-{
-	unsigned long long int x;
-	__asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-	return x;
-}
-
-static inline unsigned long long asm_rdtscp(void)
-{
-		unsigned hi, lo;
-	__asm__ __volatile__ ("rdtscp" : "=a"(lo), "=d"(hi)::"ecx");
-    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-
-}
-#elif defined(__x86_64__)
-
-static inline unsigned long long asm_rdtsc(void)
-{
-	unsigned hi, lo;
-	__asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-}
-
-static inline unsigned long long asm_rdtscp(void)
-{
-	unsigned hi, lo;
-	__asm__ __volatile__ ("rdtscp" : "=a"(lo), "=d"(hi)::"rcx");
-    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-}
-#else
-#error "What architecture is this???"
-#endif
-
-
-static inline void asm_movnti(volatile pcm_word_t *addr, pcm_word_t val)
-{
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*addr): "r" (val));
-}
-
-
-static inline void asm_clflush(volatile pcm_word_t *addr)
-{
-	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));
-}
-
-
-static inline void asm_mfence(void)
-{
-	__asm__ __volatile__ ("mfence");
-}
-
-
-static inline void asm_sfence(void)
-{
-	__asm__ __volatile__ ("sfence");
-}
-
-
-static inline
-int rand_int(unsigned int *seed)
-{
-    *seed=*seed*196314165+907633515;
-    return *seed;
-}
 
 static inline
 cacheline_t *
@@ -265,12 +112,12 @@ pcm_storeset_create(pcm_storeset_t **setp)
 	set = (pcm_storeset_t *) malloc(sizeof(pcm_storeset_t));
 	pthread_mutex_lock(&pcm_storeset_list.lock);
 	pcm_storeset_list.count++;
-	set->next = pcm_storeset_list.head;
-	pcm_storeset_list.head = set;
+	list_add(&set->list, &pcm_storeset_list.list);
 	pthread_mutex_unlock(&pcm_storeset_list.lock);
 	set->hashtbl = PointerHash_new();
 	memset(set->wcbuf_hashtbl, 0, WCBUF_HASHTBL_SIZE);
 	set->wcbuf_hashtbl_count = 0;
+	set->seqstream_len = 0;
 	set->in_crash_emulation_code = 0;
 	/* Initialize reentrant random generator */
 	set->rand_seed = pthread_self();
@@ -283,8 +130,42 @@ pcm_storeset_create(pcm_storeset_t **setp)
 void
 pcm_storeset_destroy(pcm_storeset_t *set)
 {
-	assert(0 && "Not yet implemented");
+	pthread_mutex_lock(&pcm_storeset_list.lock);
+	pcm_storeset_list.count--;
+	list_del(&set->list);
+	pthread_mutex_unlock(&pcm_storeset_list.lock);
+	PointerHash_free(set->hashtbl);
+	free(set);
 }
+
+
+pcm_storeset_t*
+pcm_storeset_get(void)
+{
+	pcm_storeset_t *set = _thread_pcm_storeset;
+
+	if (set) {
+		return set;
+	}
+
+	pcm_storeset_create(&set);
+	_thread_pcm_storeset = set;
+
+	return set;
+}
+
+
+void
+pcm_storeset_put(void)
+{
+	pcm_storeset_t *set = _thread_pcm_storeset;
+
+	if (set) {
+		pcm_storeset_destroy(set);
+		_thread_pcm_storeset = NULL;
+	}
+}
+
 
 
 void 
@@ -311,7 +192,7 @@ pcm_check_crash(pcm_storeset_t *set)
 
 static inline
 void
-crash_save_oldvalue(pcm_storeset_t *set, pcm_word_t *addr)
+crash_save_oldvalue(pcm_storeset_t *set, volatile pcm_word_t *addr)
 {
 	uintptr_t           byte_addr;
 	uintptr_t           block_byte_addr;
@@ -349,18 +230,16 @@ crash_restore_unflushed_values(pcm_storeset_t *set)
 {
 	uintptr_t           byte_addr;
 	uintptr_t           block_byte_addr;
-	uintptr_t           index_byte_addr;
 	int                 i;
 	int                 j;
 	cacheline_t         *cacheline;
 	cacheline_bitmask_t bitmask;
-	uint8_t             byte_oldvalue;
 
 	assert(set->in_crash_emulation_code);
 
 	for(i = 0; i < set->hashtbl->size; i++) {
 		PointerHashRecord *r = PointerHashRecords_recordAt_(set->hashtbl->records, i);
-		if (block_byte_addr = (uintptr_t) r->k) {
+		if ((block_byte_addr = (uintptr_t) r->k)) {
 			cacheline = (cacheline_t *) r->v;
 			for (j=0; j<CACHELINE_SIZE; j++) {
 				byte_addr = block_byte_addr + j;
@@ -378,11 +257,10 @@ crash_restore_unflushed_values(pcm_storeset_t *set)
  * Flush a cacheline by removing the line from the list of outstanding stores.
  */
 void
-crash_flush_cacheline(pcm_storeset_t *set, pcm_word_t *addr, int allow_partial_crash)
+crash_flush_cacheline(pcm_storeset_t *set, volatile pcm_word_t *addr, int allow_partial_crash)
 {
 	uintptr_t           byte_addr;
 	uintptr_t           block_byte_addr;
-	uintptr_t           index_byte_addr;
 	int                 random_number;
 	int                 i;
 	int                 sum;
@@ -423,8 +301,11 @@ flush_cacheline:
 	if (successfully_flushed_words_num == CACHELINE_SIZE/sizeof(pcm_word_t)) {
 		bitmask = 0x0;
 	} else {
-		bitmask = ((~(1ULL << CACHELINE_SIZE - 1))
-		 << (successfully_flushed_words_num * sizeof(pcm_word_t))) & (~(1ULL << CACHELINE_SIZE - 1));
+		//FIXME: what is the correct bitmask here?
+		//bitmask = ((~(1ULL << CACHELINE_SIZE - 1))
+		//           << (successfully_flushed_words_num * sizeof(pcm_word_t))) & (~(1ULL << CACHELINE_SIZE - 1));
+		bitmask = (((uint64_t) -1)
+		           << (successfully_flushed_words_num * sizeof(pcm_word_t))) & ((uint64_t) -1);
 	}	
 	cacheline->bitmask = cacheline->bitmask & bitmask;
 
@@ -485,8 +366,6 @@ crash_flush_cachelines(pcm_storeset_t *set, int all, int likelihood_flush_cachel
 void 
 pcm_trigger_crash(pcm_storeset_t *set, int wait_storesets_halt)
 {
-	pcm_word_t      *addr;
-	int             i;
 	int             waiters;
 	pcm_storeset_t  *set_iter;
 
@@ -516,9 +395,7 @@ pcm_trigger_crash(pcm_storeset_t *set, int wait_storesets_halt)
 		/* If I don't wait for store sets to halt, at least make sure
 		 * that there is no concurrent action on a store set.
 		 */
-		for (set_iter = pcm_storeset_list.head;
-		     set_iter != NULL;
-		     set_iter = set_iter->next)
+		list_for_each_entry(set_iter, &pcm_storeset_list.list, list)		 
 		{
 			while (set_iter->in_crash_emulation_code);
 		}
@@ -531,11 +408,9 @@ pcm_trigger_crash(pcm_storeset_t *set, int wait_storesets_halt)
 	 * cache lines based on a probability distribution, and then restore
 	 * old values of any outstanding stores.
 	 */
-	for (set_iter = pcm_storeset_list.head;
-	     set_iter != NULL;
-	     set_iter = set_iter->next)
+	list_for_each_entry(set_iter, &pcm_storeset_list.list, list)		 
 	{
-		crash_flush_cachelines(set, 0, likelihood_evicted_cacheline);
+		crash_flush_cachelines(set, 0, pcm_likelihood_evicted_cacheline);
 		crash_restore_unflushed_values(set_iter);
 	}
 	
@@ -546,141 +421,13 @@ pcm_trigger_crash(pcm_storeset_t *set, int wait_storesets_halt)
 }
 
 
-/*
- * WRITE BACK CACHE MODE
- */
-
-static inline
-void
-emulate_latency_ns(int ns)
-{
-	hrtime_t cycles;
-	hrtime_t start;
-	hrtime_t stop;
-	
-	start = asm_rdtsc();
-	cycles = NS2CYCLE(ns);
-
-	do { 
-		/* RDTSC doesn't necessarily wait for previous instructions to complete 
-		 * so a serializing instruction is usually used to ensure previous 
-		 * instructions have completed. However, in our case this is a desirable
-		 * property since we want to overlap the latency we emulate with the
-		 * actual latency of the emulated instruction. 
-		 */
-		stop = asm_rdtsc();
-	} while (stop - start < cycles);
-}
-
-
-/*!
- * Emulates the latency of a write to PCM. In reality, this method simply stores to an address and
- * spins to emulate a nonzero latency.
- *
- * \param is something that Haris needs to explain.
- * \param addr is the address being written.
- * \param val is the word written at address.
- */
-void
-pcm_wb_store(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
-{
-
-#ifdef EMULATE_CRASH
-	pcm_check_crash(set);
-	set->in_crash_emulation_code = 1;
-	crash_save_oldvalue(set, addr);
-	set->in_crash_emulation_code = 0;
-#endif	
-
-	// This is a fake store to PCM. For now, we just store the data at the given address in DRAM.
-	// This will change when we have a real 
-	*addr = val;
-	//printf("STORE: (0x%lx, %lx)\n", addr, val);
-
-#ifdef EMULATE_LATENCY
-# ifdef EMULATE_LATENCY_BLOCKING_STORES
-	if (likelihood_store_blockwaits > 0) {
-		int random_number = rand_int(&set->rand_seed) % TOTAL_OUTCOMES_NUM;
-		if (random_number < likelihood_store_blockwaits) {
-			emulate_latency_ns(LATENCY_PCM_WRITE);
-		}
-	}
-# endif
-#endif
-}
-
-
-/*
- * Flush the cacheline containing address addr.
- */
-void
-pcm_wb_flush(pcm_storeset_t *set, volatile pcm_word_t *addr)
-{
-	uintptr_t           byte_addr;
-	uintptr_t           block_byte_addr;
-	uintptr_t           index_byte_addr;
-	int                 random_number;
-	int                 i;
-	int                 sum;
-	int                 successfully_flushed_words_num;
-	cacheline_t         *cacheline;
-	cacheline_bitmask_t bitmask;
-
-#ifdef EMULATE_CRASH
-	set->in_crash_emulation_code = 1;
-	crash_flush_cacheline(set, addr, 1);
-	set->in_crash_emulation_code = 0;
-	pcm_check_crash(set);
-#endif
-
-	//printf("FLUSH: (0x%lx)\n", addr);
-#ifdef EMULATE_LATENCY
-	{
-		/* FIXME: We don't model bandwidth.
-		 * Delaying each flush by a fixed latency is very conservative.
-		 * What if we have a series of cacheline flushes that fall to different
-		 * banks? In this case you can have multiple outstanding flushes which
-		 * are limited by the available bandwidth. */
-
-		/* Measure the latency of a clflush and add an additional delay to
-		 * meet the latency to write to PCM */
-		hrtime_t cycles;
-		hrtime_t start;
-		hrtime_t stop;
-
-#ifdef HAS_RDTSCP
-		start = asm_rdtscp();
-		asm_clflush(addr); 	
-		stop = asm_rdtscp();
-		emulate_latency_ns(LATENCY_PCM_WRITE - CYCLE2NS(stop-start));
-#else
-		asm_clflush(addr); 	
-		emulate_latency_ns(LATENCY_PCM_WRITE);
-#endif		
-		asm_mfence();
-	}	
-
-#else /* !EMULATE_LATENCY */ 
-	asm_clflush(addr); 	
-	asm_mfence();
-#endif /* !EMULATE_LATENCY */ 
-
-}
-
-
-/*
- * NON-TEMPORAL STREAM MODE
- *
- */
-
 /* 
  * We emulate the write-combining buffers using a hash table that never contains 
  * more than WRITE_COMBINING_BUFFERS_NUM keys.
  */
-
 static inline
 void
-stream_flush_buffers(pcm_storeset_t *set)
+nt_flush_buffers(pcm_storeset_t *set)
 {
 	int                 i;
 	int                 count;
@@ -703,17 +450,35 @@ stream_flush_buffers(pcm_storeset_t *set)
 
 
 void
-pcm_stream_store(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
+pcm_wb_store_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
+{
+	pcm_check_crash(set);
+	set->in_crash_emulation_code = 1;
+	crash_save_oldvalue(set, addr);
+	set->in_crash_emulation_code = 0;
+}
+
+
+void
+pcm_wb_flush_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr)
+{
+	set->in_crash_emulation_code = 1;
+	crash_flush_cacheline(set, addr, 1);
+	set->in_crash_emulation_code = 0;
+	pcm_check_crash(set);
+}
+
+
+void
+pcm_nt_store_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 {
 	unsigned int active_buffers_count;
 	uintptr_t    byte_addr;
-	uintptr_t    block_byte_addr;
 	uintptr_t    block_byte_addr1;
 	uintptr_t    block_byte_addr2;
 	cacheline_t  *cacheline;
 	int          buffers_needed = 0;
 
-#ifdef EMULATE_CRASH
 	pcm_check_crash(set);
 	set->in_crash_emulation_code = 1;
 	byte_addr = (uintptr_t) addr;
@@ -735,62 +500,18 @@ pcm_stream_store(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 	/* Check if there is space. If not then flush buffers */
 	active_buffers_count = PointerHash_count(set->hashtbl);
 	if (active_buffers_count + buffers_needed > WRITE_COMBINING_BUFFERS_NUM) {
-		stream_flush_buffers(set);
+		nt_flush_buffers(set);
 	}
 	crash_save_oldvalue(set, addr);
 	set->in_crash_emulation_code = 0;
-#endif	
-
-	asm_movnti(addr, val);
-
-#ifdef EMULATE_LATENCY
-	uint16_t i;
-	uint16_t index_addr;
-	uint16_t index;
-	uint16_t index_i;
-	
-	byte_addr = (uintptr_t) addr;
-	block_byte_addr = (uintptr_t) BLOCK_ADDR(byte_addr);
-	index_addr = (uint16_t) ((block_byte_addr >> CACHELINE_SIZE_LOG)  & ((uint16_t) (-1)));
-
-retry:
-	if (set->wcbuf_hashtbl_count < WRITE_COMBINING_BUFFERS_NUM) {
-		for (i=0; i<WCBUF_HASHTBL_SIZE; i++) {
-			index_i = (index_addr + i) &  (WCBUF_HASHTBL_SIZE-1);
-			if (set->wcbuf_hashtbl[index_i] == index_addr) {
-				/* hit -- do nothing */
-				break;
-			} else if (set->wcbuf_hashtbl[index_i] == 0) {
-				set->wcbuf_hashtbl[index_i] = index_addr;
-				set->wcbuf_hashtbl_count++;
-				break;
-			}	
-		}
-	} else {
-		memset(set->wcbuf_hashtbl, 0, WCBUF_HASHTBL_SIZE);
-		emulate_latency_ns(LATENCY_PCM_WRITE * set->wcbuf_hashtbl_count);
-		set->wcbuf_hashtbl_count = 0;
-		goto retry;
-	}
-
-#endif
 }
 
 
 void
-pcm_stream_flush(pcm_storeset_t *set)
+pcm_nt_flush_emulate_crash(pcm_storeset_t *set)
 {
-#ifdef EMULATE_CRASH
 	pcm_check_crash(set);
 	set->in_crash_emulation_code = 1;
-	stream_flush_buffers(set);
+	nt_flush_buffers(set);
 	set->in_crash_emulation_code = 0;
-#endif	
-
-	asm_sfence();
-#ifdef EMULATE_LATENCY
-	emulate_latency_ns(LATENCY_PCM_WRITE * set->wcbuf_hashtbl_count);
-	memset(set->wcbuf_hashtbl, 0, WCBUF_HASHTBL_SIZE);
-	set->wcbuf_hashtbl_count = 0;
-#endif
 }

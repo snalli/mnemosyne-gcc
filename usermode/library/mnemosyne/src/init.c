@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "reincarnation_callback.h"
 #include "segment.h"
-#include "log/log.h"
+#include "log/log_i.h"
 #include "thrdesc.h"
 #include "debug.h"
 
@@ -22,16 +22,20 @@ static void do_global_fini(void) __attribute__(( destructor ));
 void
 do_global_init(void)
 {
+	pcm_storeset_t* pcm_storeset;
+
 	if (mnemosyne_initialized) {
 		return;
 	}
+
+	pcm_storeset = pcm_storeset_get ();
 
 	pthread_mutex_lock(&global_init_lock);
 	if (!mnemosyne_initialized) {
 		m_segmentmgr_init();
 		mnemosyne_initialized = 1;
 		mnemosyne_reincarnation_callback_execute_all();
-		m_logmgr_init();
+		m_logmgr_init(pcm_storeset);
 		M_WARNING("Initialize\n");
 	}	
 	pthread_mutex_unlock(&global_init_lock);

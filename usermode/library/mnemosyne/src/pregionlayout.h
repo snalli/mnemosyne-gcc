@@ -6,7 +6,7 @@
  * We reserve a large hole in the 47-bit virtual space for mapping 
  * persistent memory segments.
  * FIXME: Even if we ensure persistent segments fall into the reserved space,
- * the kernel has to aware about this reservation to make sure that no other 
+ * the kernel has to be aware about this reservation to make sure that no other 
  * memory is allocated there. Indead, when mmap is passed 0 as starting
  * address, it searches for an empty region starting from the end of the last
  * allocated region. So it could be very easily map a non-persistent region 

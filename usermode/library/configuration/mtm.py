@@ -12,16 +12,16 @@ class Environment(mnemosyne.Environment):
 		munging of the build variables needed in the source files.
 	"""
 	
-	def __init__(self, configuration_name = 'default'):
+	def __init__(self, mainEnv, configuration_name = 'default'):
 		"""
 			Applies the definitions in configuration_name to generate a correct
 			environment (specificall the set of compilation flags() for the
 			TinySTM library. That environment is returned
 		"""
-		mnemosyne.Environment.__init__(self)
+		mnemosyne.Environment.__init__(self, mainEnv, configuration_name)
 		
-		# Apply the configuration variables specific to MTM.
-		directives = helper.Directives(configuration_name, ARGUMENTS, self._boolean_options, self._enumerable_options, self._numerical_options)
+		# Generate build directives 
+		directives = helper.Directives(configuration_name, 'mtm', ARGUMENTS, self._boolean_directive_vars, self._enumerable_directive_vars, self._numerical_directive_vars)
 
 
 		# Bring in appropriate environment variables and preprocessor definitions.
@@ -39,8 +39,10 @@ class Environment(mnemosyne.Environment):
 			ENV = os.environ)
 
 
-	#: Build options which are either on or off.
-	_boolean_options = [
+	#: BUILD DIRECTIVES
+
+	#: Build directives which are either on or off.
+	_boolean_directive_vars = [
 		('ROLLOVER_CLOCK',           'Roll over clock when it reaches its maximum value.  Clock rollover can be safely disabled on 64 bits to save a few cycles, but it is necessary on 32 bits if the application executes more than 2^28 (write-through) or 2^31 (write-back) transactions.',
 			True),
 		('CLOCK_IN_CACHE_LINE',      'Ensure that the global clock does not share the same cache line than some other variable of the program.  This should be normally enabled.',
@@ -65,8 +67,8 @@ class Environment(mnemosyne.Environment):
 			True),
 	]
 	
-	#: Build options which have enumerated values.
-	_enumerable_options = [
+	#: Build directives which have enumerated values.
+	_enumerable_directive_vars = [
 		('CM',
 		                 'Determines the conflict_management policy for the STM.',
 		                 'CM_SUICIDE',
@@ -77,8 +79,8 @@ class Environment(mnemosyne.Environment):
 		                 ['TMLOG_TYPE_BASE', 'TMLOG_TYPE_TORNBIT'])
 	]
 	
-	#: Build options which have numerical values
-	_numerical_options = [
+	#: Build directives which have numerical values
+	_numerical_directive_vars = [
 		('RW_SET_SIZE',
 		 'Initial size of the read and write sets. These sets will grow dynamically when they become full.',
 		 16384 # Default

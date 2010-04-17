@@ -1,19 +1,24 @@
 import os
 import sys
 sys.path.append('%s/library' % (Dir('#').abspath))
-from configuration import mnemosyne
+import configuration.mcore
 
-Import('env')
-configEnv = env.Clone()
-buildEnv = mnemosyne.Environment()
+Import('mainEnv')
+buildEnv = configuration.mcore.Environment(mainEnv)
 
 Import('CommonObjects')
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library/mnemosyne/src'])
 buildEnv.Append(LIBS = ['elf', CommonObjects, 'pthread'])
 buildEnv.Append(CCFLAGS = ' -m64 ')
-buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
+
+
+if buildEnv['BUILD_DEBUG'] == True:
+	buildEnv.Append(CCFLAGS = ' -g -O0 -D_MNEMOSYNE_BUILD_DEBUG')
+else:
+	buildEnv.Append(CCFLAGS = ' -O2')
 
 # I would love to use SCons's automatic linking with this, but it appears that 
 # the whole-archive option (necessary to build static libraries into dynamic ones)
@@ -21,10 +26,6 @@ buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
 Import('CommonObjects')
 buildEnv.Append(LINKFLAGS = '-Wl,--whole-archive build/library/common/libmnemosyne_common.a -Wl,--no-whole-archive')
 
-if configEnv['BUILD_DEBUG'] == True:
-	buildEnv.Append(CCFLAGS = ' -g -O0 -D_MNEMOSYNE_BUILD_DEBUG')
-else:
-	buildEnv.Append(CCFLAGS = ' -O2')
 
 C_SRC = Split("""
               src/module.c
@@ -45,8 +46,8 @@ LOG_C_SRC = Split("""
 
 SRC = C_SRC + LOG_C_SRC
 
-if configEnv['LINKAGE'] == 'dynamic':
-	MnemosyneLibrary = buildEnv.SharedLibrary('mnemosyne', SRC)
+if mainEnv['BUILD_LINKAGE'] == 'dynamic':
+	mcoreLibrary = buildEnv.SharedLibrary('mnemosyne', SRC)
 else:
-	MnemosyneLibrary = buildEnv.StaticLibrary('mnemosyne', SRC)
-Return('MnemosyneLibrary')
+	mcoreLibrary = buildEnv.StaticLibrary('mnemosyne', SRC)
+Return('mcoreLibrary')

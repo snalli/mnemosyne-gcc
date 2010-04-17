@@ -2,7 +2,9 @@ import sys
 sys.path.append('%s/library' % (Dir('#').abspath))
 from configuration import mnemosyne
 
-buildEnv = mnemosyne.Environment()
+Import('mainEnv')  # read only -- clone if need to modify
+
+buildEnv = mnemosyne.Environment(mainEnv)
 buildEnv.Append(CCFLAGS = ['-fPIC'])
 
 SRC = Split("""

@@ -1,8 +1,12 @@
+# This is the main configuration class. All others inherit this.
+#
+
 import os
 import string
 import SCons.Environment
 from SCons.Script import ARGUMENTS
 from SCons.Variables import Variables, EnumVariable, BoolVariable
+import helper
 
 
 class Environment(SCons.Environment.Environment):
@@ -11,18 +15,22 @@ class Environment(SCons.Environment.Environment):
 		munging of the build variables needed in the source files.
 	"""
 	
-	def __init__(self):
+	def __init__(self, mainEnv, configuration_name = 'default'):
 		"""
 			Applies the definitions in configuration_name to generate a correct
 			environment (specificall the set of compilation flags() for the
 			TinySTM library. That environment is returned
 		"""
 		SCons.Environment.Environment.__init__(self)
-		
+
+		# Generate build directives 
+		mnemosyneDirectives = helper.Directives(configuration_name, 'mnemosyne', ARGUMENTS, self._mnemosyne_boolean_directive_vars, self._mnemosyne_enumerable_directive_vars, self._mnemosyne_numerical_directive_vars)
+
 		configuration_variables = Environment._GetConfigurationVariables(self)
 		configuration_variables.Update(self)
 		self.Append(CPPPATH = '#library/common')
-		
+
+
 		# Make output pretty.
 		if not self['VERBOSE']:
 			self.Replace(
@@ -36,25 +44,69 @@ class Environment(SCons.Environment.Environment):
 			               LINKCOMSTR = '(LINK)     $TARGET',
 			             SHLINKCOMSTR = '(LINK)     $TARGET')
 	
+		self.Append(CPPDEFINES = mnemosyneDirectives.getPreprocessorDefinitions())
+
+		# Inherit some command line options from the main environment
+		if mainEnv is not None:
+			self['BUILD_DEBUG'] = mainEnv['BUILD_DEBUG'] 
+			self['MY_ROOT_DIR'] = mainEnv['MY_ROOT_DIR'] 
+			self['MY_UTIL_DIR'] = mainEnv['MY_UTIL_DIR'] 
+	
 	def _GetConfigurationVariables(self):
 		"""
-			Retrieve and define help options for configuration variables of
-			TinySTM.
+			Retrieve and define help variables for configuration variables.
 		"""
 
-		command_line_arguments = ARGUMENTS
-		configuration = Variables(None, command_line_arguments)
-		for boolean_name in Environment._boolean_options:
-			name = boolean_name
-			definition, default = Environment._boolean_options[name]
-			variable = BoolVariable(name, definition, default)
-			configuration.Add(variable)
+		cmd_line_args = ARGUMENTS
+		cfgVars = Variables(None, cmd_line_args)
+		[cfgVars.Add(BoolVariable(name, helptext, default)) for name, helptext, default in self._boolean_variables]
+		[cfgVars.Add(EnumVariable(name, helptext, default, valid)) for name, helptext, default, valid in self._enumerable_variables]
+		[cfgVars.Add(option) for option in self._numerical_variables]
 
-		return configuration
-	
-	#: Build options which are either on or off.
-	_boolean_options = {
+		return cfgVars
+
+
+	# BUILD VARIABLES
+
+	#: Build variables which are either on or off.
+	_boolean_variables = [
 		# These are more to do with build behavior and output
-		'VERBOSE': ('If set, displays the actual commands used and their flags instead of the default "neat" output.',
+		('VERBOSE', 'If set, displays the actual commands used and their flags instead of the default "neat" output.',
 			False)
-	}
+	]
+
+	#: Build variables which have enumerated values.
+	_enumerable_variables = [
+		('LINKAGE',
+		                 'Library linkage',
+		                 'dynamic',
+		                 ['dynamic', 'static'])
+
+	]
+	
+	#: Build variables which have numerical values
+	_numerical_variables = [
+	]
+
+
+	#: BUILD DIRECTIVES
+
+	#: Build variables which are either on or off.
+	_mnemosyne_boolean_directive_vars = [
+		('M_PCM_EMULATE_CRASH',      'PCM emulation layer emulates system crashes.',
+			False),
+		('M_PCM_EMULATE_LATENCY',    'PCM emulation layer emulates latency.',
+			False),
+	]
+
+	#: Build variables which have enumerated values.
+	_mnemosyne_enumerable_directive_vars = [
+	]
+	
+	#: Build variables which have numerical values
+	_mnemosyne_numerical_directive_vars = [
+		('M_PCM_CPUFREQ',            'CPU frequency in GHz used by the PCM emulation layer to calculate latencies', 
+			2500), 
+		('M_PCM_LATENCY_WRITE',      'Latency of a PCM write in nanoseconds. This latency is in addition to the DRAM latency.', 
+			2000), 
+	]

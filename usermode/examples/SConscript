@@ -20,6 +20,6 @@ examplesEnv.Append(CCFLAGS = ' -m64 ')
 examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 Export('examplesEnv')
 
-example = examplesEnv['EXAMPLE']
+example = examplesEnv['BUILD_EXAMPLE']
 sconscript_path = example + '/SConscript'
 SConscript(sconscript_path)

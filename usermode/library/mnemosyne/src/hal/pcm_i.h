@@ -12,19 +12,6 @@
 #include <list.h>
 #include "cuckoo_hash/PointerHashInline.h"
 
-/** Emulate crashes */
-#undef EMULATE_CRASH
-//#define EMULATE_CRASH 0x1
-
-/* Emulate latency */
-#undef EMULATE_LATENCY
-#define EMULATE_LATENCY 0x1
-
-/** CPU frequency */
-#define CPUFREQ 2500LLU /* GHz */
-
-/** PCM write latency*/
-#define LATENCY_PCM_WRITE 2000 /* ns */
 
 /** 
  * Stores may block wait to find space in the cache (write buffer is full and 
@@ -35,8 +22,8 @@
  * For write-combining, we keep track of the number of WC buffers being 
  * used. We conservatively assume that no implicit evictions happen.
  */
-//#define EMULATE_LATENCY_BLOCKING_STORES 0x1
-#undef EMULATE_LATENCY_BLOCKING_STORES
+//#define M_PCM_EMULATE_LATENCY_BLOCKING_STORES 0x1
+#undef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
 
 
 /** 
@@ -62,7 +49,7 @@
 
 /* 
  * Probabilities are derived using total number of outcomes equal to 
- * TOTAL_OUTCOMES_NUM
+ * TOTAL_OUTCOMES_NUMTENCY_PCM_WRITE
  */
 #define TOTAL_OUTCOMES_NUM 1000000
 
@@ -71,8 +58,8 @@
 #endif
 
 
-#define NS2CYCLE(__ns) ((__ns) * CPUFREQ / 1000)
-#define CYCLE2NS(__cycles) ((__cycles) * 1000 / CPUFREQ)
+#define NS2CYCLE(__ns) ((__ns) * M_PCM_CPUFREQ / 1000)
+#define CYCLE2NS(__cycles) ((__cycles) * 1000 / M_PCM_CPUFREQ)
 
 
 #define likely(x)	__builtin_expect(!!(x), 1)
@@ -317,18 +304,18 @@ void
 PCM_WB_STORE(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 {
 	//printf("STORE: (0x%lx, %lx)\n", addr, val);
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 	pcm_wb_store_emulate_crash(set, addr, val);
 #endif	
 
 	*addr = val;
 
-#ifdef EMULATE_LATENCY
-# ifdef EMULATE_LATENCY_BLOCKING_STORES
+#ifdef M_PCM_EMULATE_LATENCY
+# ifdef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
 	if (pcm_likelihood_store_blockwaits > 0) {
 		int random_number = rand_int(&set->rand_seed) % TOTAL_OUTCOMES_NUM;
 		if (random_number < pcm_likelihood_store_blockwaits) {
-			emulate_latency_ns(LATENCY_PCM_WRITE);
+			emulate_latency_ns(M_PCM_LATENCY_WRITE);
 		}
 	}
 # endif
@@ -344,18 +331,18 @@ PCM_WB_STORE_ALIGNED_MASKED(pcm_storeset_t *set,
                             pcm_word_t mask)
 {
 	//printf("WB_STORE_ALIGNED_MASKED: (0x%lx, %lx, %lx)\n", addr, val, mask);
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 	pcm_wb_store_emulate_crash(set, addr, val);
 #endif	
 
 	write_aligned_masked((pcm_word_t *) addr, val, mask);
 
-#ifdef EMULATE_LATENCY
-# ifdef EMULATE_LATENCY_BLOCKING_STORES
+#ifdef M_PCM_EMULATE_LATENCY
+# ifdef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
 	if (pcm_likelihood_store_blockwaits > 0) {
 		int random_number = rand_int(&set->rand_seed) % TOTAL_OUTCOMES_NUM;
 		if (random_number < pcm_likelihood_store_blockwaits) {
-			emulate_latency_ns(LATENCY_PCM_WRITE);
+			emulate_latency_ns(M_PCM_LATENCY_WRITE);
 		}
 	}
 # endif
@@ -372,11 +359,11 @@ void
 PCM_WB_FLUSH(pcm_storeset_t *set, volatile pcm_word_t *addr)
 {
 	//printf("FLUSH: (0x%lx)\n", addr);
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 	pcm_wb_flush_emulate_crash(set, addr);
 #endif
 
-#ifdef EMULATE_LATENCY
+#ifdef M_PCM_EMULATE_LATENCY
 	{
 #ifdef HAS_RDTSCP
 		/* Measure the latency of a clflush and add an additional delay to
@@ -387,18 +374,18 @@ PCM_WB_FLUSH(pcm_storeset_t *set, volatile pcm_word_t *addr)
 		start = asm_rdtscp();
 		asm_clflush(addr); 	
 		stop = asm_rdtscp();
-		emulate_latency_ns(LATENCY_PCM_WRITE - CYCLE2NS(stop-start));
+		emulate_latency_ns(M_PCM_LATENCY_WRITE - CYCLE2NS(stop-start));
 #else
 		asm_clflush(addr); 	
-		emulate_latency_ns(LATENCY_PCM_WRITE);
+		emulate_latency_ns(M_PCM_LATENCY_WRITE);
 #endif		
 		asm_mfence();
 	}	
 
-#else /* !EMULATE_LATENCY */ 
+#else /* !M_PCM_EMULATE_LATENCY */ 
 	asm_clflush(addr); 	
 	asm_mfence();
-#endif /* !EMULATE_LATENCY */ 
+#endif /* !M_PCM_EMULATE_LATENCY */ 
 
 }
 
@@ -413,13 +400,13 @@ static inline
 void
 PCM_NT_STORE(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 {
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 	pcm_nt_store_emulate_crash(set, addr, val);
 #endif	
 
 	asm_movnti(addr, val);
 
-#ifdef EMULATE_LATENCY
+#ifdef M_PCM_EMULATE_LATENCY
 	uint16_t  i;
 	uint16_t  index_addr;
 	uint16_t  index_i;
@@ -445,7 +432,7 @@ retry:
 		}
 	} else {
 		memset(set->wcbuf_hashtbl, 0, WCBUF_HASHTBL_SIZE);
-		emulate_latency_ns(LATENCY_PCM_WRITE * set->wcbuf_hashtbl_count);
+		emulate_latency_ns(M_PCM_LATENCY_WRITE * set->wcbuf_hashtbl_count);
 		set->wcbuf_hashtbl_count = 0;
 		goto retry;
 	}
@@ -458,13 +445,13 @@ static inline
 void
 PCM_NT_FLUSH(pcm_storeset_t *set)
 {
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 	pcm_nt_flush_emulate_crash(set);
 #endif	
 
 	asm_sfence();
-#ifdef EMULATE_LATENCY
-	emulate_latency_ns(LATENCY_PCM_WRITE * set->wcbuf_hashtbl_count);
+#ifdef M_PCM_EMULATE_LATENCY
+	emulate_latency_ns(M_PCM_LATENCY_WRITE * set->wcbuf_hashtbl_count);
 	memset(set->wcbuf_hashtbl, 0, WCBUF_HASHTBL_SIZE);
 	set->wcbuf_hashtbl_count = 0;
 #endif
@@ -485,11 +472,11 @@ static inline
 void
 PCM_SEQSTREAM_INIT(pcm_storeset_t *set)
 {
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 
 #endif	
 
-#ifdef EMULATE_LATENCY
+#ifdef M_PCM_EMULATE_LATENCY
 	set->seqstream_len = 0;
 #endif
 }
@@ -500,16 +487,16 @@ void
 PCM_SEQSTREAM_STORE(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 {
 	//printf("PCM_SEQSTREAM_STORE: set=%p, addr=%p, val=%llX\n", set, addr, val);
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 #endif	
 
 	asm_movnti(addr, val);
 
-#ifdef EMULATE_LATENCY
+#ifdef M_PCM_EMULATE_LATENCY
 	set->seqstream_len = set->seqstream_len & (MEMORY_BANKING_FACTOR * 
 	                                           CACHELINE_SIZE / sizeof(pcm_word_t) - 1);
 	if (set->seqstream_len == 0) {
-		emulate_latency_ns(LATENCY_PCM_WRITE);
+		emulate_latency_ns(M_PCM_LATENCY_WRITE);
 	}
 #endif
 }
@@ -519,15 +506,15 @@ static inline
 void
 PCM_SEQSTREAM_FLUSH(pcm_storeset_t *set)
 {
-#ifdef EMULATE_CRASH
+#ifdef M_PCM_EMULATE_CRASH
 
 #endif	
 
 	asm_sfence();
-#ifdef EMULATE_LATENCY
+#ifdef M_PCM_EMULATE_LATENCY
 	/* If we have pending stores then add latency */
 	if (set->seqstream_len > 0) {
-		emulate_latency_ns(LATENCY_PCM_WRITE);
+		emulate_latency_ns(M_PCM_LATENCY_WRITE);
 		set->seqstream_len = 0;
 	}
 

@@ -1,6 +1,6 @@
 Import('examplesEnv')
-Import('MnemosyneLibrary')
-Import('MtmLibrary')
+Import('mcoreLibrary')
+Import('mtmLibrary')
 
 myEnv = examplesEnv.Clone()
 
@@ -8,6 +8,6 @@ sources = Split("""
                 main.cxx
                 """)
 
-myEnv.Append(LIBS = [MnemosyneLibrary])
-myEnv.Append(LIBS = [MtmLibrary])
+myEnv.Append(LIBS = [mcoreLibrary])
+myEnv.Append(LIBS = [mtmLibrary])
 myEnv.Program('simple', sources)

@@ -2,10 +2,9 @@ import sys
 sys.path.append('%s/library' % (Dir('#').abspath))
 import configuration.mtm
 
-Import('env')
-configEnv = env.Clone()
+Import('mainEnv')  # read only -- clone if need to modify
 
-buildEnv = configuration.mtm.Environment()
+buildEnv = configuration.mtm.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
 buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
@@ -19,11 +18,11 @@ buildEnv.Append(CPPPATH = 'src/common')
 buildEnv.Append(LINKFLAGS = ['-g', '-fPIC'])
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
 
-
-if configEnv['BUILD_DEBUG'] == True:
+if buildEnv['BUILD_DEBUG'] == True:
 	buildEnv.Append(CCFLAGS = ' -g -D_MTM_BUILD_DEBUG')
 else:
 	buildEnv.Append(CCFLAGS = ' -O2')
+
 
 
 # Programs to generate VTable mappings to the Intel ABI. Ask Haris.
@@ -71,6 +70,9 @@ S_SRC = Split("""src/sysdeps/x86/sjlj.S""")
 
 SRC = CC_SRC + S_SRC + CC_LINUX_SRC + COMMON_OBJS
 
-MtmLibrary = buildEnv.SharedLibrary('mtm', SRC)
-#MtmLibrary = buildEnv.StaticLibrary('mtm', SRC)
-Return('MtmLibrary')
+if mainEnv['BUILD_LINKAGE'] == 'dynamic':
+	mtmLibrary = buildEnv.SharedLibrary('mtm', SRC)
+else:
+	mtmLibrary = buildEnv.StaticLibrary('mtm', SRC)
+
+Return('mtmLibrary')

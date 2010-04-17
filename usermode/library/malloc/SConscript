@@ -3,8 +3,8 @@ import sys
 import string
 sys.path.append('%s/library' % (Dir('#').abspath))
 
-Import('env')
-configEnv = env.Clone()
+Import('mainEnv')
+configEnv = mainEnv.Clone()
 buildEnv = configEnv.Clone()
 
 Import('CommonObjects')
@@ -56,5 +56,10 @@ DEPRECATED_CXX_SRC = Split("""
 
 SRC = C_SRC + CXX_SRC
 
-MnemosyneLibrary = buildEnv.SharedLibrary('malloc', SRC)
-Return('MnemosyneLibrary')
+
+if mainEnv['BUILD_LINKAGE'] == 'dynamic':
+	mallocLibrary = buildEnv.SharedLibrary('malloc', SRC)
+else:
+	mallocLibrary = buildEnv.StaticLibrary('malloc', SRC)
+
+Return('mallocLibrary')

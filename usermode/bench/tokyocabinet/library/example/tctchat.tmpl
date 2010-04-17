@@ -1,0 +1,141 @@
+[% CONF dbpath "tctchat.tct" \%]
+[% CONF url "tctchat.cgi" \%]
+[% CONF title "A Tiny Chat System by Tokyo Cabinet" \%]
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta http-equiv="Content-Script-Type" content="text/javascript" />
+<link rel="start" href="[%url%]" />
+<title>[%title ENC XML%]</title>
+<style type="text/css">
+html { margin: 0em; padding: 0em; background: #eeeeee; color: #222222; }
+body { margin :0em; padding: 0.5em 1em; }
+hr { margin: 0px 0px; height: 1px; border: none; background: #aaaaaa; color: #aaaaaa; }
+h1 { margin: 8px 5px; padding: 0px; font-size: 125%; }
+h1 a { color: #000000; }
+p { margin: 5px; padding: 0px; }
+a { color: #2288ff; text-decoration: none; }
+a:hover { color: #2288ff; text-decoration: underline; }
+div.searchform { margin: 5px; font-size: 80%; float: right; }
+div.page { margin: 10px 10px 3px 10px ; text-align: right; font-size: 80%; color: #999999; }
+a.move,span.move { margin: 1px 1px; padding: 1px 8px;
+  background: #ffffff; border: 1pt solid #dddddd; -moz-border-radius: 5px; }
+div.msg { margin: 5px; padding: 5px 10px; background: #ddeeff; }
+div.chatlogs { margin: 5px 8px 8px 8px; padding: 5px;
+  background: #ffffff; border: 1pt solid #dddddd; -moz-border-radius: 8px; }
+div.chatlog { margin: 3px 1px; padding: 5px;
+  border-bottom: 1pt dashed #ddeeee; overflow: hidden; }
+span.date { font-size: 80%; color: #889999; float: right; }
+span.author { color: #555555; }
+span.author:after { content: " : "; color: #888888; }
+span.c01 { color: #aa1111; }
+span.c02 { color: #11aa11; }
+span.c03 { color: #1111aa; }
+span.c04 { color: #aa5500; }
+span.c05 { color: #00aa55; }
+span.c06 { color: #5500aa; }
+span.c07 { color: #55aa00; }
+span.c08 { color: #0055aa; }
+span.c09 { color: #aa0055; }
+span.c10 { color: #aaaa00; }
+span.c11 { color: #00aaaa; }
+span.c12 { color: #aa00aa; }
+span.text { color: #111111; }
+div.writeform { margin: 5px; padding: 5px; }
+#writesubmit { padding-left: 20px; padding-right: 20px; }
+</style>
+<script type="text/javascript">
+var interval = 1000;
+function refresh(){
+  if(!XMLHttpRequest) return;
+  var req = new XMLHttpRequest();
+  req.open("GET", "[%url%]?type=xml", true);
+  req.onreadystatechange = function(){
+    if(req.readyState != 4) return;
+    var newdom = req.responseXML;
+    if(!newdom || !newdom.getElementById) return;
+    var newnode = newdom.getElementById("chatlogs");
+    var oldnode = document.getElementById("chatlogs");
+    if(!newnode || !oldnode) return;
+    oldnode.parentNode.replaceChild(newnode, oldnode);
+    setTimeout(refresh, interval);
+  }
+  req.send(null);
+}
+function autoupdate(){
+  var author = "[%author ENC URL%]";
+  if(author.length != 0){
+    var date = new Date();
+    date.setTime(date.getTime() + 1000 * 3600 * 24 * 30);
+    document.cookie = "author=" + author + ";expires=" + date.toGMTString() + ";"
+  } else {
+    var cookie = document.cookie;
+    if(cookie){
+      var idx = cookie.indexOf("author=");
+      if(idx != -1){
+        var author = cookie.substring(idx + 7, cookie.length);
+        idx = author.indexOf(";");
+        if(idx != -1) author = author.substring(author, idx);
+        var inputnode = document.getElementById("authorinput");
+        if(inputnode) inputnode.setAttribute("value", decodeURI(author));
+      }
+    }
+  }
+  if("[%search ENC URL%]".length != 0 || "[%prev%]".length != 0) return;
+  var inputnode = document.getElementById("authorinput");
+  if(inputnode){
+    if(inputnode.getAttribute("value").length == 0){
+      if(inputnode) inputnode.focus();
+    } else {
+      inputnode = document.getElementById("textinput");
+      if(inputnode) inputnode.focus();
+    }
+  }
+  setTimeout(refresh, interval);
+}
+</script>
+</head>
+
+<body onload="autoupdate();">
+<form method="get" action="[%url%]">
+<div class="searchform">
+<input type="text" name="search" value="[%search ENC XML%]" size="16" title="search" tabindex="4" accesskey="4" id="searchinput" />
+<input type="submit" value="search" size="16" title="go" tabindex="5" accesskey="5" id="searchsubmit" />
+</div>
+</form>
+<h1><a href="[%url%]">[%title ENC XML%]</a></h1>
+[% FOREACH msgs msg \%]
+<div class="msg">[%msg ENC XML%]</div>
+[% END \%]
+<hr />
+<div class="page">
+[% IF prev %]<a href="[%url%]?page=[%prev%]&amp;search=[%search ENC URL%]" class="move">PREV</a>[% ELSE %]<span class="move">PREV</span>[% END %]
+[% IF next %]<a href="[%url%]?page=[%next%]&amp;search=[%search ENC URL%]" class="move">NEXT</a>[% ELSE %]<span class="move">NEXT</span>[% END %]
+</div>
+<div class="chatlogs" id="chatlogs">
+[% FOREACH logs log \%]
+<div class="chatlog" id="CL[%log.pk%]">
+<span class="date">[%log.d ENC XML%]</span>
+<span class="author [%log.c%]">[%log.a ENC XML%]</span>
+<span class="text">[%log.t ENC XML%]</span>
+</div>
+[% END \%]
+</div>
+<hr />
+<form method="post" action="[%url%]">
+<div class="writeform" id="writeform">
+<input type="text" name="author" value="[%author ENC XML%]" size="12" title="author" tabindex="1" accesskey="1" id="authorinput" />
+<input type="text" name="text" value="" size="64" title="text" tabindex="2" accesskey="2" id="textinput" />
+<input type="submit" value="post" title="post" tabindex="3" accesskey="3" id="writesubmit" />
+</div>
+</form>
+<hr />
+</body>
+
+</html>

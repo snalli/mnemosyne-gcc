@@ -4,6 +4,8 @@
 build
 *.pyc
 csope.out
+.DS_Store
+.segments
 bench
 src/mtm/mode/wbwt/
 examples/atomic/

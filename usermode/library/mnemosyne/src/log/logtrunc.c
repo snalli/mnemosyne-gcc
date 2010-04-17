@@ -44,20 +44,26 @@ truncate_logs (pcm_storeset_t *set, int lock)
 	 * the order the truncation is performed with respect to other logs.
 	 */
 	list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
-		assert(log_dsc->ops);
-		assert(log_dsc->ops->truncation_init);
-		log_dsc->ops->truncation_init(set, log_dsc);
+		if (log_dsc->flags & LF_ASYNC_TRUNCATION) {
+			assert(log_dsc->ops);
+			assert(log_dsc->ops->truncation_init);
+			log_dsc->ops->truncation_init(set, log_dsc);
+		}
 	}
 	/* 
 	 * Find the next log to truncate, truncate it, update its truncation 
 	 * order, and repeat until there are no more logs to truncate.
 	 *
 	 * TODO: This process can be made more efficient.
-	 * TODO: This process should be performed per log type.
+	 * TODO: This process should be performed per log type to allow coexistence 
+	 *       of logs of different types
 	 */
 	do {
 		log_dsc_to_truncate = NULL; 
 		list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
+			if (!(log_dsc->flags & LF_ASYNC_TRUNCATION)) {
+				continue;
+			}
 			if (log_dsc->logorder == INV_LOG_ORDER) {
 				continue;
 			}

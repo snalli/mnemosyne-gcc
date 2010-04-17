@@ -27,17 +27,19 @@ extern "C" {
 #define PHYSICAL_LOG_SIZE             (PHYSICAL_LOG_NUM_ENTRIES * sizeof(pcm_word_t)) /* in bytes */
 
 
-/* Masks for the 64-bit generic_flags field. */
+/* Masks for the 64-bit non-volatile generic_flags field. */
 
 #define LF_FLAGS_MASK     0xFFFFFFFFFFFF0000LLU      /* generic flags mask */
 #define LF_TYPE_MASK      0x000000000000FFFFLLU      /* log type mask */
 
-/* Generic flags */
+/* Generic non-volatile flags */
 #define LF_DIRTY          0x8000000000000000
-
 
 /* Log truncation and recovery */
 #define INV_LOG_ORDER     0xFFFFFFFFFFFFFFFF
+
+/* Volatile flags */
+#define LF_ASYNC_TRUNCATION 0x0000000000000001
 
 /* Hardwired log types known at compilation time (static) */
 enum {
@@ -78,9 +80,10 @@ struct m_log_nvmd_s {
 
 struct m_log_dsc_s {
 	m_log_ops_t      *ops;             /**< log operations */
-	m_log_t          *log;             /**< descriptor structure specfic to log type */
+	m_log_t          *log;             /**< descriptor structure specific to log type */
 	m_log_nvmd_t     *nvmd;            /**< non-volatile log metadata */
 	pcm_word_t       *nvphlog;         /**< non-volatile physical log */
+	uint64_t         flags;            /**< array of flags */
 	uint64_t         logorder;         /**< log order number */
 	struct list_head list;
 };
@@ -102,7 +105,7 @@ struct m_logmgr_s {
 m_result_t m_logmgr_init(pcm_storeset_t *set);
 m_result_t m_logmgr_fini(void);
 m_result_t m_logmgr_register_logtype(pcm_storeset_t *set, int type, m_log_ops_t *ops);
-m_result_t m_logmgr_alloc_log(pcm_storeset_t *set, int type, m_log_dsc_t **log_dscp);
+m_result_t m_logmgr_alloc_log(pcm_storeset_t *set, int type, uint64_t flags, m_log_dsc_t **log_dscp);
 m_result_t m_logmgr_free_log(m_log_dsc_t *log_dsc);
 m_result_t m_logmgr_do_recovery(pcm_storeset_t *set);
 m_result_t m_logtrunc_truncate(pcm_storeset_t *set);

@@ -1,12 +1,62 @@
 ########################################################################
-# Turns on or off the isolation features of the transactions
-# implemented here. Disabling isolation means that transactions are
-# never aborted; they in fact are atomicity-only transactions. Once
-# they commit, the result is guaranteed to write out to any
-# persistent memory (or at least be redo-logged so the commit can
-# finish on the next system or application restart).
+#                                                                    
+#                 PERSISTENT MEMORY TRANSACTIONS FLAGS               
+#                                                                    
 ########################################################################
+
+
+########################################################################
+# ENABLE_ISOLATION: Turns on or off the isolation features of the 
+#   transactions implemented here. Disabling isolation means that 
+#   transactions are never aborted; they in fact are atomicity-only 
+#   transactions. Once they commit, the result is guaranteed to write
+#   out to any persistent memory (or at least be redo-logged so the 
+#   commit can finish on the next system or application restart).
+########################################################################
+
 ENABLE_ISOLATION = False
+
+########################################################################
+# ENABLE_USER_ABORTS: Allows user initiated aborts. When disabled and 
+# combined with no-isolation, the TM system does not need to perform 
+# version management for volatile data.
+########################################################################
+
+ENABLE_USER_ABORTS = False
+
+########################################################################
+# SYNC_TRUNCATION: Synchronously flushes the write set out of the HW
+#   cache and truncates the persistent log. 
+########################################################################
+
+SYNC_TRUNCATION = True
+
+########################################################################
+# TMLOG_TYPE: Determines the type of the persistent log used. 
+# 
+# TMLOG_TYPE_BASE: a simple log that synchronously updates the tail on
+#   each transaction commit/abort to properly keep track of the log 
+#   limits.
+#   
+# TMLOG_TYPE_TORNBIT: a log that reserves a torn bit per 64-bit word to 
+#   detect writes that did not make it to persistent storage. Does not
+#   require updating the tail on each transaction commit/abort.
+########################################################################
+
+TMLOG_TYPE = 'TMLOG_TYPE_BASE'
+
+########################################################################
+########################################################################
+########################################################################
+
+
+
+########################################################################
+#                                                                    
+#                           GENERIC FLAGS                           
+#                                                                    
+########################################################################
+
 
 ########################################################################
 # Maintain detailed internal statistics.  Statistics are stored in
@@ -55,7 +105,7 @@ WAIT_YIELD = True
 # enabling this feature.
 ########################################################################
 
-EPOCH_GC = True
+EPOCH_GC = False
 
 ########################################################################
 # Keep track of conflicts between transactions and notifies the
@@ -148,11 +198,11 @@ LOCK_IDX_SWAP = True
 #   configurable number of retries.  Until then, CM_SUICIDE is used.
 ########################################################################
 
-CONFLICT_MANAGER = 'CM_SUICIDE'
+CM = 'CM_SUICIDE'
 
 ########################################################################
-# RW_SET_SIZE (default=4096): initial size of the read and write
-#   sets.  These sets will grow dynamically when they become full.
+# RW_SET_SIZE: initial size of the read and write sets. These sets will
+#   grow dynamically when they become full.
 ########################################################################
 
 RW_SET_SIZE = 16384
@@ -207,11 +257,11 @@ MAX_BACKOFF = 0x80000000
 VR_THRESHOLD_DEFAULT = 3
 
 ########################################################################
-# CM_THRESHOLD_DEFAULT (default=0): number of executions of the
-#   transaction with a CM_SUICIDE contention management strategy before
-#   switching to CM_PRIORITY.  This parameter is only used with the
-#   CM_PRIORITY contention manager.  It can also be set using an
-#   environment variable of the same name.
+# CM_THRESHOLD_DEFAUL: number of executions of the transaction with a 
+#   CM_SUICIDE contention management strategy before switching to 
+#   CM_PRIORITY.  This parameter is only used with the CM_PRIORITY 
+#   contention manager.  It can also be set using an environment 
+#   variable of the same name.
 ########################################################################
 
 CM_THRESHOLD_DEFAULT = 0

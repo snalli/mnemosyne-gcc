@@ -17,8 +17,7 @@
 #undef  DESIGN
 #define DESIGN WRITE_BACK_ETL
 
-#define SYNCHRONOUS_FLUSH 1   //FIXME: mode or global variable
-//#define SYNCHRONOUS_FLUSH 0   //FIXME: mode or global variable
+#define SYNC_TRUNCATION 1   
 
 typedef struct mtm_pwb_r_entry_s      mtm_pwb_r_entry_t;
 typedef struct mtm_pwb_r_set_s        mtm_pwb_r_set_t;

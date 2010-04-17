@@ -189,7 +189,7 @@ matching_write_set_entry(w_entry_t* const list_head,
  * \brief Store a masked value of size less than or equal to a word, creating or
  * updating a write-set entry as necessary.
  * 
- * If isolation is disabled (!ENABLE_ISOLATION) then instead of keeping new 
+ * If isolation is disabled (!enable_isolation) then instead of keeping new 
  * values in the global lock table, we keep them in a private hash table. 
  * The structure of the private table is the same as the global one's to 
  * keep code changes minimal; its size may be different.
@@ -217,7 +217,7 @@ pwb_write_internal(mtm_tx_t *tx,
                    volatile mtm_word_t *addr, 
                    mtm_word_t value,
                    mtm_word_t mask,
-		           int ENABLE_ISOLATION)
+		           int enable_isolation)
 {
 	assert(tx->mode == MTM_MODE_pwb);
 	mode_data_t         *modedata = (mode_data_t *) tx->modedata[tx->mode];
@@ -268,7 +268,7 @@ pwb_write_internal(mtm_tx_t *tx,
 	}
 
 	/* Get reference to lock */
-	if (ENABLE_ISOLATION) {
+	if (enable_isolation) {
 		lock = GET_LOCK(addr);
 	} else {
 		/* Since isolation is off, go through the private pseudo-lock hash table 
@@ -334,7 +334,7 @@ restart_no_load:
 		}
 		/* If isolation is off and the pseudo-lock was set then we should have already 
 		 * found a written-back value entry and never reach here. */
-		assert(ENABLE_ISOLATION);
+		assert(enable_isolation);
 
 		/* Conflict: CM kicks in */
 		ret = cm_conflict(tx, lock, &l);
@@ -354,7 +354,7 @@ restart_no_load:
 		assert(0);
 	} else {
 		/* This region has not been locked by this thread. */
-		if (ENABLE_ISOLATION) {
+		if (enable_isolation) {
 			/* Handle write after reads (before CAS) */
 			version = LOCK_GET_TIMESTAMP(l);
 
@@ -384,7 +384,7 @@ restart_no_load:
 			mtm_pwb_restart_transaction (tx, RESTART_REALLOCATE);
 		}
 	    w = &modedata->w_set.entries[modedata->w_set.nb_entries];
-		if (ENABLE_ISOLATION) {
+		if (enable_isolation) {
 # ifdef READ_LOCKED_DATA
 			w->version = version;
 # endif /* READ_LOCKED_DATA */
@@ -413,7 +413,7 @@ restart_no_load:
 
 static inline
 mtm_word_t 
-pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int ENABLE_ISOLATION)
+pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 {
 	assert(tx->mode == MTM_MODE_pwb);
 	mode_data_t         *modedata = (mode_data_t *) tx->modedata[tx->mode];
@@ -443,10 +443,10 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int ENABLE_ISOLATION)
 		return value;
 	}
 
-	if (ENABLE_ISOLATION) {
+	if (enable_isolation) {
 		/* Check with contention manager whether to upgrade to write lock. */
 		if (cm_upgrade_lock(tx)) {
-			w = pwb_write_internal(tx, addr, 0, 0, ENABLE_ISOLATION);
+			w = pwb_write_internal(tx, addr, 0, 0, enable_isolation);
 			/* Make sure we did not abort */
 			if(tx->status != TX_ACTIVE) {
 				return 0;
@@ -458,7 +458,7 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int ENABLE_ISOLATION)
 	}
 
 	/* Get reference to lock */
-	if (ENABLE_ISOLATION) {
+	if (enable_isolation) {
 		lock = GET_LOCK(addr);
 	} else {
 		/* See comments under pwb_write. */
@@ -509,7 +509,7 @@ restart_no_load:
 		}
 		/* If isolation is off and the pseudo-lock was set then we should have already 
 		 * found a written-back value entry and never reach here. */
-		assert(ENABLE_ISOLATION);
+		assert(enable_isolation);
 
 		/* Conflict: CM kicks in */
 		/* TODO: we could check for duplicate reads and get value from read set (should be rare) */
@@ -531,7 +531,7 @@ restart_no_load:
 	} else {
 		/* Not locked */
 		value = ATOMIC_LOAD_ACQ(addr);
-		if (ENABLE_ISOLATION) {
+		if (enable_isolation) {
 			l2 = ATOMIC_LOAD_ACQ(lock);
 			if (l != l2) {
 				l = l2;
@@ -565,7 +565,7 @@ restart_no_load:
 	}
 
 	/* We have a good version: add to read set (update transactions) and return value */
-	if (ENABLE_ISOLATION) {
+	if (enable_isolation) {
 		/* Add address and version to read set */
 		if (modedata->r_set.nb_entries == modedata->r_set.size) {
 			mtm_allocate_rs_entries(tx, modedata, 1);
@@ -595,7 +595,11 @@ restart_no_load:
 void 
 mtm_pwb_store(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value)
 {
+#ifdef ENABLE_ISOLATION
 	pwb_write_internal(tx, addr, value, ~(mtm_word_t)0, 1);
+#else
+	pwb_write_internal(tx, addr, value, ~(mtm_word_t)0, 0);
+#endif
 }
 
 
@@ -605,7 +609,11 @@ mtm_pwb_store(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value)
 void 
 mtm_pwb_store2(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value, mtm_word_t mask)
 {
+#ifdef ENABLE_ISOLATION
 	pwb_write_internal(tx, addr, value, mask, 1);
+#else	
+	pwb_write_internal(tx, addr, value, mask, 0);
+#endif
 }
 
 /*

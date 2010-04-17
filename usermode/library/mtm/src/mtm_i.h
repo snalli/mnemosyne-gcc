@@ -31,6 +31,33 @@ typedef struct mtm_tx_s mtm_tx_t;
 
 #include <result.h>
 
+
+/* Persistent log type */
+#define TMLOG_TYPE_BASE    0
+#define TMLOG_TYPE_TORNBIT 1
+
+#if TMLOG_TYPE == TMLOG_TYPE_BASE
+# define M_TMLOG_WRITE          m_tmlog_base_write
+# define M_TMLOG_TRUNCATE_SYNC  m_tmlog_base_truncate_sync
+# define M_TMLOG_BEGIN          m_tmlog_base_begin
+# define M_TMLOG_COMMIT         m_tmlog_base_commit
+# define M_TMLOG_ABORT          m_tmlog_base_abort
+# define M_TMLOG_T              m_tmlog_base_t
+# define M_TMLOG_LF_TYPE        LF_TYPE_TM_BASE
+# define M_TMLOG_OPS            tmlog_base_ops
+#elif TMLOG_TYPE == TMLOG_TYPE_TORNBIT
+# define M_TMLOG_WRITE          m_tmlog_tornbit_write
+# define M_TMLOG_TRUNCATE_SYNC  m_tmlog_tornbit_truncate_sync
+# define M_TMLOG_BEGIN          m_tmlog_tornbit_begin
+# define M_TMLOG_COMMIT         m_tmlog_tornbit_commit
+# define M_TMLOG_ABORT          m_tmlog_tornbit_abort
+# define M_TMLOG_T              m_tmlog_tornbit_t
+# define M_TMLOG_LF_TYPE        LF_TYPE_TM_TORNBIT
+# define M_TMLOG_OPS            tmlog_tornbit_ops
+#else
+# error "Unknown persistent log type."
+#endif
+
 /*
  * The library does not require to pass the current transaction as a
  * parameter to the functions (the current transaction is stored in a
@@ -83,6 +110,8 @@ struct mtm_tx *mtm_current_tx();
 #include <pthread.h>
 
 #include <atomic.h>
+
+#include <pcm.h>
 
 #include "mode/vtable.h"
 
@@ -226,6 +255,7 @@ struct mtm_tx_s {
 	uintptr_t           stack_size;       /* Stack size */
 	mtm_local_undo_t    local_undo;       /* Data used by local.c for the local memory undo log.  */
 	mtm_word_t          *wb_table;        /* Private write-back table for use when isolation is off. */
+	pcm_storeset_t      *pcm_storeset;    /* PCM emulation bookkeeping structure */
 	struct mtm_user_action_s *commit_actions;
 	struct mtm_user_action_s *undo_actions;
 };

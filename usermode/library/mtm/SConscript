@@ -1,11 +1,11 @@
 import sys
 sys.path.append('%s/library' % (Dir('#').abspath))
-from configuration import mtm
+import configuration.mtm
 
 Import('env')
 configEnv = env.Clone()
 
-buildEnv = mtm.Environment()
+buildEnv = configuration.mtm.Environment()
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
 buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
@@ -19,13 +19,6 @@ buildEnv.Append(CPPPATH = 'src/common')
 buildEnv.Append(LINKFLAGS = ['-g', '-fPIC'])
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
 
-# I would love to use SCons's automatic linking with this, but it appears that 
-# the whole-archive option (necessary to build static libraries into dynamic ones)
-# cannot be built except by hand.
-Import('CommonObjects')
-buildEnv.Append(LIBS = [CommonObjects])
-buildEnv.Append(LINKFLAGS = '-Wl,--whole-archive build/library/common/libmnemosyne_common.a -Wl,--no-whole-archive')
-buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 
 if configEnv['BUILD_DEBUG'] == True:
 	buildEnv.Append(CCFLAGS = ' -g -D_MTM_BUILD_DEBUG')
@@ -36,6 +29,13 @@ else:
 # Programs to generate VTable mappings to the Intel ABI. Ask Haris.
 srcgen_sjlj = buildEnv.Program('generate_sjlj', 'src/srcgen/generate_sjlj.c')
 srcgen_vtable = buildEnv.Program('generate_vtable', 'src/srcgen/generate_vtable.c')
+
+# For common source files we need to manually specify the object creation rules 
+# to avoid getting the following error:
+#   scons: warning: Two different environments were specified for target ... 
+#   but they appear to have the same actions: ...
+
+COMMON_OBJS = buildEnv.SharedObject('src/debug', '../common/debug.c')
 
 CC_SRC = Split("""
                src/config.c
@@ -49,6 +49,8 @@ CC_SRC = Split("""
                src/mode/pwb/memset.c
                src/mode/pwb/pwb.c
                src/mode/pwb/barrier.c
+	       src/mode/pwb/tmlog_base.c
+	       src/mode/pwb/tmlog_tornbit.c
                src/mode/wbetl/barrier.c
                src/mode/wbetl/beginend.c
                src/mode/wbetl/memcpy.c
@@ -56,18 +58,19 @@ CC_SRC = Split("""
                src/mode/wbetl/wbetl.c
                src/mode/serial/serial.c
                src/mtm.c
-               src/nonvolatile_write_set.c
                src/retry.c
                src/useraction.c
                """)
 
-CC_LINUX_SRC = Split("""src/sysdeps/linux/rwlock.c
-						src/sysdeps/linux/futex.c""")
+CC_LINUX_SRC = Split("""
+                     src/sysdeps/linux/rwlock.c
+                     src/sysdeps/linux/futex.c
+                     """)
 
 S_SRC = Split("""src/sysdeps/x86/sjlj.S""")
 
-SRC = CC_SRC + S_SRC + CC_LINUX_SRC
+SRC = CC_SRC + S_SRC + CC_LINUX_SRC + COMMON_OBJS
 
-#MtmLibrary = buildEnv.SharedLibrary('mtm', SRC)
-MtmLibrary = buildEnv.StaticLibrary('mtm', SRC)
+MtmLibrary = buildEnv.SharedLibrary('mtm', SRC)
+#MtmLibrary = buildEnv.StaticLibrary('mtm', SRC)
 Return('MtmLibrary')

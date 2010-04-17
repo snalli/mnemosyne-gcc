@@ -70,7 +70,7 @@ create_log_pool(pcm_storeset_t *set, m_logmgr_t *mgr)
 	int              metadata_section_size;
 	int              physical_log_size;
 	void             *addr;
-	m_log_dsc_t    *log_dscs;
+	m_log_dsc_t      *log_dscs;
 	m_segidx_entry_t *segidx_entry;
 	int              i;
 
@@ -339,7 +339,7 @@ m_logmgr_do_recovery(pcm_storeset_t *set)
  * \brief Allocates a new log and places it in the active logs list.
  */
 m_result_t
-m_logmgr_alloc_log(pcm_storeset_t *set, int type, m_log_dsc_t **log_dscp)
+m_logmgr_alloc_log(pcm_storeset_t *set, int type, uint64_t flags, m_log_dsc_t **log_dscp)
 {
 	m_result_t        rv = M_R_FAILURE;
 	m_log_dsc_t       *log_dsc;
@@ -364,6 +364,7 @@ m_logmgr_alloc_log(pcm_storeset_t *set, int type, m_log_dsc_t **log_dscp)
 	if (free_log_dsc) {
 		log_dsc = free_log_dsc;
 	} else if (free_log_dsc_notype) {
+		/* assign the operations specific for this log type */
 		log_dsc = free_log_dsc_notype;
 		list_for_each_entry(logtype_entry, &(logmgr->known_logtypes_list), list) {
 			if (logtype_entry->type == type) {
@@ -391,6 +392,7 @@ m_logmgr_alloc_log(pcm_storeset_t *set, int type, m_log_dsc_t **log_dscp)
 	list_add_tail(&(log_dsc->list), &(logmgr->active_logs_list));
 
 	/* Finally, initialize the log */
+	log_dsc->flags = flags;
 	assert(log_dsc->ops && log_dsc->ops->init);
 	assert(log_dsc->ops->init(set, log_dsc->log, log_dsc) == M_R_SUCCESS);
 	PCM_NT_STORE(set, (volatile pcm_word_t *) &(log_dsc->nvmd->generic_flags), 

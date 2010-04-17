@@ -4,11 +4,10 @@
 #include "mode/common/rwset.h"
 #include "cm.h" 
 
-int ENABLE_ISOLATION = 1; /* TODO: make this a runtime configuration parameter */
 
 static inline 
 bool
-pwb_trycommit (mtm_tx_t *tx)
+pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 {
 	assert(tx->mode == MTM_MODE_pwb);
 	mode_data_t *modedata = (mode_data_t *) tx->modedata[tx->mode];
@@ -49,7 +48,7 @@ pwb_trycommit (mtm_tx_t *tx)
 		}
 
 		/* Try to validate (only if a concurrent transaction has committed since tx->start) */
-		if (ENABLE_ISOLATION) {
+		if (enable_isolation) {
 			if (modedata->start != t - 1 && !mtm_validate(tx, modedata)) {
 				/* Cannot commit */
 				/* Abort caused by invisible reads. */
@@ -83,7 +82,7 @@ pwb_trycommit (mtm_tx_t *tx)
 			if (w->mask != 0) {
 				PCM_WB_STORE_ALIGNED_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
 			}	
-			if (SYNCHRONOUS_FLUSH) {
+			if (SYNC_TRUNCATION) {
 				/* Flush the cacheline to persistent memory if this is the last entry in this line. */
 				if (w->next_cache_neighbor == NULL) {
 					PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
@@ -99,7 +98,7 @@ pwb_trycommit (mtm_tx_t *tx)
 		ATOMIC_STORE_REL(&tx->id, id + 2);
 # endif /* READ_LOCKED_DATA */
 
-		if (SYNCHRONOUS_FLUSH) {
+		if (SYNC_TRUNCATION) {
 			M_TMLOG_TRUNCATE_SYNC(tx->pcm_storeset, modedata->ptmlog);
 		}
 	}
@@ -355,7 +354,13 @@ static
 bool
 trycommit_transaction (mtm_tx_t *tx)
 {
-	if (pwb_trycommit(tx)) {
+#ifdef ENABLE_ISOLATION
+#error "ENABLE_ISOLATION"
+	if (pwb_trycommit(tx, 1)) {
+#else 
+#error "!ENABLE_ISOLATION"
+	if (pwb_trycommit(tx, 0)) {
+#endif
 		if (tx->nesting > 0) {
 			return true;
 		}

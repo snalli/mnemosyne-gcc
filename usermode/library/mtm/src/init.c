@@ -4,6 +4,7 @@
 #include "mtm_i.h"
 #include "locks.h"
 #include "mode/wbetl/wbetl.h"
+#include "mode/pwb/tmlog.h"
 #include "sysdeps/x86/target.h"
 
 static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -45,9 +46,10 @@ void
 init_global()
 {
 #if CM == CM_PRIORITY
-	char *s;
+	char             *s;
 #endif /* CM == CM_PRIORITY */
 	struct sigaction act;
+	pcm_storeset_t   *pcm_storeset;
 
 	PRINT_DEBUG("==> mtm_init()\n");
 	PRINT_DEBUG("\tsizeof(word)=%d\n", (int)sizeof(mtm_word_t));
@@ -103,6 +105,12 @@ init_global()
 		exit(1);
 	}
 #endif /* ! TLS */
+
+	pcm_storeset = pcm_storeset_get ();
+
+	/* Register persistent logical log type with the log manager */
+	m_logmgr_register_logtype(pcm_storeset, M_TMLOG_LF_TYPE, &M_TMLOG_OPS);
+	m_logmgr_do_recovery(pcm_storeset);
 
 	/* Catch signals for non-faulting load */
 	act.sa_handler = signal_catcher;
@@ -197,6 +205,8 @@ mtm_init_thread(void)
 	}
 #endif
 
+	/* Get current thread's PCM emulation bookkeeping structure */
+	tx->pcm_storeset = pcm_storeset_get();
 
 	/* Set status (no need for CAS or atomic op) */
 	tx->status = TX_IDLE;
@@ -326,6 +336,7 @@ mtm_fini_thread(void)
 	FOREACH_MODE(ACTION)
 #undef ACTION  
 
+	pcm_storeset_put();
 #ifdef EPOCH_GC
 	t = GET_CLOCK;
 	gc_free(tx, t);

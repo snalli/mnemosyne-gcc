@@ -1,0 +1,23 @@
+PCMDISK is a block device driver based on ramdisk (drivers/block/brd.c) to
+emulate a block device on top of PCM memory.
+
+FILES
+=====
+brd.c, pcm.c    : The pcmdisk kernel-module.
+user_control.c  : User-mode application to control the pcmdisk kernel module. 
+fs.sh           : Script to load and create a filesystem on top of pcmdisk, 
+                  and to unload pcmdisk.
+
+
+BUILDING PCMDISK
+================
+Makefile may be used to build the kernel-module. Please make sure the 
+makefile variable $KERNEL_SOURCE points to the right kernel source tree.
+
+Several parameters may be changed to configure PCMDISK as needed:
+- pcm.h: PCM_EMULATE_CRASH   : To emulate crashes
+         PCM_EMULATE_LATENCY : To emulate latency
+         PCM_CPUFREQ         : To set the CPU frequency
+         PCM_LATENCY_WRITE   : To set the latency writing to PCM
+
+- brd.c: CONFIG_BLK_DEV_PCM_SIZE : To set the size of the PCMDISK

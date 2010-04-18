@@ -355,10 +355,8 @@ bool
 trycommit_transaction (mtm_tx_t *tx)
 {
 #ifdef ENABLE_ISOLATION
-#error "ENABLE_ISOLATION"
 	if (pwb_trycommit(tx, 1)) {
 #else 
-#error "!ENABLE_ISOLATION"
 	if (pwb_trycommit(tx, 0)) {
 #endif
 		if (tx->nesting > 0) {

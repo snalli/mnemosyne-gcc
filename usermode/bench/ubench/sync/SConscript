@@ -1,0 +1,13 @@
+Import('ubenchEnv')
+
+myEnv = ubenchEnv.Clone() 
+myEnv.Append(CPPPATH = ['#library/common'])
+
+
+sources = Split("""
+                main.c
+		file.c
+                """)
+
+
+myEnv.Program('sync', sources)

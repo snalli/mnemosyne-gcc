@@ -247,8 +247,10 @@ static void
 rollback_transaction (mtm_tx_t *tx)
 {
 	pwb_rollback (tx);
+#if defined(ENABLE_ISOLATION) ||                                              \
+    (!defined(ENABLE_ISOLATION) && defined(ENABLE_USER_ABORTS))
 	mtm_local_rollback (tx);
-
+#endif
 	mtm_useraction_freeActions (&tx->commit_actions);
 	mtm_useraction_runActions (&tx->undo_actions);
 
@@ -362,8 +364,10 @@ trycommit_transaction (mtm_tx_t *tx)
 		if (tx->nesting > 0) {
 			return true;
 		}
+#if defined(ENABLE_ISOLATION) ||                                              \
+    (!defined(ENABLE_ISOLATION) && defined(ENABLE_USER_ABORTS))
 		mtm_local_commit(tx);
-
+#endif
 		mtm_useraction_freeActions (&tx->undo_actions);
 		mtm_useraction_runActions (&tx->commit_actions);
 

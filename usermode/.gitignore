@@ -6,6 +6,6 @@ build
 csope.out
 .DS_Store
 .segments
-bench
+bench/paxos
 src/mtm/mode/wbwt/
 examples/atomic/

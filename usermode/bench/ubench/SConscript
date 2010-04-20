@@ -1,0 +1,31 @@
+import os
+
+Import('mallocLibrary')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('ubenchEnv')
+
+ubenchEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
+ubenchEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc'
+
+ubenchEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+ubenchEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
+ubenchEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
+
+if ubenchEnv['BUILD_DEBUG'] == True:
+	ubenchEnv.Append(CCFLAGS = ' -g')
+else:	
+	ubenchEnv.Append(CCFLAGS = ' -O2')
+
+ubenchEnv.Append(CCFLAGS = ' -m64 ')
+ubenchEnv.Append(LINKFLAGS = ' -T '+ ubenchEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+Export('ubenchEnv')
+
+ubench_list = Split("""
+                sync
+                tmlog
+                """)
+
+for ubench in ubench_list:
+	sconscript_path = ubench + '/SConscript'
+	SConscript(sconscript_path)

@@ -7,15 +7,15 @@ testEnv.Append(CCFLAGS = ' -m64 -g')
 testEnv.Append(LINKFLAGS = ' -T '+ 'util/linker_script_persistent_segment_m64')
 
 # LibMTM Unit Tests
-Import('MtmLibrary', 'MnemosyneLibrary')
+Import('mtmLibrary', 'mcoreLibrary')
 mtmTestEnv = testEnv.Clone()
 mtmTestEnv.Append(CPPPATH = ['#library/mtm/src/sysdeps/linux', '#library/mtm/src'])
 mtmTestEnv.Append(CPPPATH = ['#library/atomic_ops'])
-mtm_tests = mtmTestEnv.Program('mtm_tests', source = [Glob('mtm/*.tests.cxx'), Glob('mtm/*.fixtures.cxx'), Glob('mtm/*.helpers.cxx'), 'main.cxx'], LIBS=['UnitTest++', MnemosyneLibrary, MtmLibrary])
+mtm_tests = mtmTestEnv.Program('mtm_tests', source = [Glob('mtm/*.tests.cxx'), Glob('mtm/*.fixtures.cxx'), Glob('mtm/*.helpers.cxx'), 'main.cxx'], LIBS=['UnitTest++', mcoreLibrary, mtmLibrary])
 
 # Physical Log Unit Tests
 physicalLogTestEnv = testEnv.Clone()
-#physical_log_tests = physicalLogTestEnv.Program('physical_log_tests', source = ['../library/common/phlog.c', Glob('log/*.tests.cxx'), Glob('log/*.fixtures.cxx'), Glob('log/*.helpers.cxx'), 'log/main.cxx'], LIBS=['UnitTest++', MnemosyneLibrary])
+#physical_log_tests = physicalLogTestEnv.Program('physical_log_tests', source = ['../library/common/phlog.c', Glob('log/*.tests.cxx'), Glob('log/*.fixtures.cxx'), Glob('log/*.helpers.cxx'), 'log/main.cxx'], LIBS=['UnitTest++', mcoreLibrary])
 
 #Return(['mtm_tests', 'physical_log_tests'])
 Return(['mtm_tests', 'mtm_tests'])

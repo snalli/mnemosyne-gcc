@@ -325,12 +325,12 @@ PCM_WB_STORE(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 
 static inline
 void
-PCM_WB_STORE_ALIGNED_MASKED(pcm_storeset_t *set, 
-                            volatile pcm_word_t *addr, 
-                            pcm_word_t val, 
-                            pcm_word_t mask)
+PCM_WB_STORE_MASKED(pcm_storeset_t *set, 
+                    volatile pcm_word_t *addr, 
+                    pcm_word_t val, 
+                    pcm_word_t mask)
 {
-	//printf("WB_STORE_ALIGNED_MASKED: (0x%lx, %lx, %lx)\n", addr, val, mask);
+	//printf("WB_STORE_MASKED: (0x%lx, %lx, %lx)\n", addr, val, mask);
 #ifdef M_PCM_EMULATE_CRASH
 	pcm_wb_store_emulate_crash(set, addr, val);
 #endif	
@@ -349,6 +349,16 @@ PCM_WB_STORE_ALIGNED_MASKED(pcm_storeset_t *set,
 #endif
 }
 
+
+static inline
+void
+PCM_WB_STORE_ALIGNED_MASKED(pcm_storeset_t *set, 
+                            volatile pcm_word_t *addr, 
+                            pcm_word_t val, 
+                            pcm_word_t mask)
+{
+	PCM_WB_STORE_MASKED(set, addr, val, mask);
+}
 
 
 /*

@@ -65,7 +65,7 @@ mainEnv['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 Export('mainEnv')
 
 CommonObjects = SConscript('library/common/SConscript', variant_dir = 'build/library/common')
-MallocLibrary = SConscript('library/malloc/SConscript', 'CommonObjects', variant_dir = 'build/library/malloc')
+mallocLibrary = SConscript('library/malloc/SConscript', 'CommonObjects', variant_dir = 'build/library/malloc')
 mcoreLibrary = SConscript('library/mnemosyne/SConscript', 'CommonObjects', variant_dir = 'build/library/mnemosyne')
 mtmLibrary = SConscript('library/mtm/SConscript', variant_dir = 'build/library/mtm')
 
@@ -74,7 +74,7 @@ if mainEnv['BUILD_EXAMPLE'] != None:
 	examplesEnv = mainEnv.Clone()
 	examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
 	Export('examplesEnv')
-	Export('mcoreLibrary', 'MallocLibrary', 'mtmLibrary')
+	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'examples'))
 
 
@@ -82,12 +82,12 @@ if mainEnv['BUILD_UBENCH'] == True:
 	ubenchEnv = mainEnv.Clone()
 	ubenchEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
 	Export('ubenchEnv')
-	Export('mcoreLibrary', 'MallocLibrary', 'mtmLibrary')
+	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 	SConscript('bench/ubench/SConscript', variant_dir = os.path.join('build', 'bench', 'ubench'))
 
 
 #Testing Environment
-#Export('mcoreLibrary', 'MallocLibrary', 'mtmLibrary')
+#Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 #unit_tests = SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))
 #for unit_test in unit_tests:
 #	AddPostAction(unit_test, unit_test[0].path)

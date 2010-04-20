@@ -239,25 +239,7 @@ pwb_write_internal(mtm_tx_t *tx,
 
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
-
-	/* Filter out stack accesses */
-	if ((uintptr_t) addr <= tx->stack_base && 
-	    (uintptr_t) addr > tx->stack_base - tx->stack_size)
-	{
-		mtm_word_t prev_value;
-		prev_value = ATOMIC_LOAD(addr);
-		if (mask == 0) {
-			return NULL;
-		}
-		if (mask != ~(mtm_word_t)0) {
-			value = (prev_value & ~mask) | (value & mask);
-		}	
-
-		mtm_local_LB(tx, addr, sizeof(mtm_word_t));
-		ATOMIC_STORE(addr, value);
-		return NULL;
-	}
-
+	
 	/* Check whether access is to volatile or non-volatile memory */
 	if ((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
 	    (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE))
@@ -265,7 +247,56 @@ pwb_write_internal(mtm_tx_t *tx,
 		access_is_nonvolatile = 1;
 	} else {
 		access_is_nonvolatile = 0;
+
+		/* Is it a stack access? */
+		if ((uintptr_t) addr <= tx->stack_base && 
+			(uintptr_t) addr > tx->stack_base - tx->stack_size)
+		{
+			mtm_word_t prev_value;
+			prev_value = ATOMIC_LOAD(addr);
+			if (mask == 0) {
+				return NULL;
+			}
+			if (mask != ~(mtm_word_t)0) {
+				value = (prev_value & ~mask) | (value & mask);
+			}	
+
+			/* 
+			 * Do eager version management for stack data because ICC does not
+			 * like lazy version management for stack.
+			 *
+			 * But if there could not be user initiated or concurrency control 
+			 * aborts then don't need to perform version management.
+			 */
+			if (enable_isolation) {
+				mtm_local_LB(tx, addr, sizeof(mtm_word_t));
+			} else {
+#ifdef ENABLE_USER_ABORTS
+				mtm_local_LB(tx, addr, sizeof(mtm_word_t));
+#endif
+			}
+			ATOMIC_STORE(addr, value);
+			return NULL;
+		}
+
+		/* 
+		 * Normal volatile access
+		 * 
+		 * If there could not be user initiated or concurrency control aborts. 
+ 		 * then don't need to perform version management. However this path
+		 * cannot be merged into the stack non-version management path because
+		 * we must write only the bytes covered by the mask. We could use the
+		 * the same function for writing the stack but writing using a mask
+		 * is a slower operation that's why we optimized the stack path.
+		 */
+		if (!enable_isolation) {
+#if !defined(ENABLE_USER_ABORTS)
+			PCM_WB_STORE_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
+			return NULL;
+#endif
+		}
 	}
+
 
 	/* Get reference to lock */
 	if (enable_isolation) {
@@ -435,13 +466,37 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
 
-	/* Filter out stack accesses */
-	if ((uintptr_t) addr <= tx->stack_base && 
-	    (uintptr_t) addr > tx->stack_base - tx->stack_size)
+
+	/* Check whether access is to volatile or non-volatile memory */
+	if ((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
+	    (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE))
 	{
-		value = ATOMIC_LOAD(addr);
-		return value;
+		/* Access is non-volatile */
+		/* Fall through */
+	} else {
+		/* Is it a stack access? */
+		if ((uintptr_t) addr <= tx->stack_base && 
+			(uintptr_t) addr > tx->stack_base - tx->stack_size)
+		{
+			value = ATOMIC_LOAD(addr);
+			return value;
+		}
+
+		/* 
+		 * Normal volatile access
+		 *
+		 * If there could not be user initiated or concurrency control aborts. 
+ 		 * then we don't perform version management for volatile data, so we 
+		 * just read the value directly from memory. 
+		 */
+		if (!enable_isolation) {
+#if !defined(ENABLE_USER_ABORTS)
+			value = ATOMIC_LOAD(addr);
+			return value;
+#endif
+		}
 	}
+
 
 	if (enable_isolation) {
 		/* Check with contention manager whether to upgrade to write lock. */

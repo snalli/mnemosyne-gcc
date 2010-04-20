@@ -1,0 +1,45 @@
+ROOTDIR       = '/home/hvolos/workspace/mnemosyne_build'
+BENCH_ROOTDIR = ROOTDIR + '/sync'
+TIMEOUT       = 120
+ITERATIONS    = 3
+MPSTAT        = False
+RESULTDIR     = ROOTDIR + '/results'
+LOG           = RESULTDIR + '/log'
+WORKDIR       = ROOTDIR
+RUN           = True
+
+exp1 = {'NAME'       : 'sync',
+	'CMD'        : BENCH_ROOTDIR + '/sync', 
+	'CONFIG_ARGS': ['--system=harddisk --ubench=msync --runtime=30 --nwrites=1 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=2 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=4 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=8 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=16 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=64 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=128 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=256 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=512 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=1024 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=2048 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=4096 --wsize=8']
+}
+
+
+exp2 = {'NAME'       : 'sync',
+	'CMD'        : BENCH_ROOTDIR + '/sync', 
+	'CONFIG_ARGS': ['--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=8',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=16',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=32',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=64',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=128',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=256',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=512',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=1024',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=2048',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=4096',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=8192',
+	                '--system=harddisk --ubench=msync --runtime=30 --nwrites=32 --wsize=16384']
+}
+
+EXPERIMENTS=[exp1, exp2]

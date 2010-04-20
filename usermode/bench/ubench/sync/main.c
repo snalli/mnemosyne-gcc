@@ -57,6 +57,9 @@ ut_barrier_t          start_ubench_barrier;
 volatile unsigned int short_circuit_terminate;
 unsigned long long    thread_total_iterations[MAX_NUM_THREADS];
 unsigned long long    thread_actual_runtime[MAX_NUM_THREADS];
+unsigned int          iterations_per_chunk;
+unsigned int          warmup;
+uint64_t              regsize;
 
 typedef struct {
 	unsigned int tid;
@@ -126,6 +129,7 @@ void usage(char *name)
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--threads=NUMBER_OF_THREADS");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--nwrites=NUMBER_OF_WRITE_OPERATIONS");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--wsize=SEQBYTES_WRITTEN_PER_OPERATION (multiple of 8)");
+	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--regsize=REGION_SIZE");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--factor=LOCALITY_FACTOR");
 	printf("\nValid arguments:\n");
 	printf("  --ubench     [msync|fsync]\n");
@@ -152,6 +156,9 @@ main(int argc, char *argv[])
 	/* Default values */
 	system_to_use = SYSTEM_HARDDISK;
 	ubench_to_run = UBENCH_MSYNC;
+	warmup = 1;
+	regsize = PRIVATE_REGION_SIZE;
+	iterations_per_chunk = 32;
 	runtime = 30 * 1000 * 1000;
 	num_threads = 1;
 	num_writes = 16;
@@ -167,6 +174,7 @@ main(int argc, char *argv[])
 			{"nwrites", required_argument, 0, 'n'},
 			{"wsize", required_argument, 0, 'z'},
 			{"factor", required_argument, 0, 'f'},
+			{"regsize", required_argument, 0, 'g'},
 			{0, 0, 0, 0}
 		};
 		int option_index = 0;
@@ -219,6 +227,10 @@ main(int argc, char *argv[])
 
 			case 'z':
 				wsize = atoi(optarg);
+				break;
+
+			case 'g':
+				regsize = atol(optarg);
 				break;
 
 			case '?':
@@ -278,7 +290,7 @@ void run(void* arg)
 	unsigned long long n;
 
 	args.tid = tid;
-	args.iterations_per_chunk = 1024;
+	args.iterations_per_chunk = iterations_per_chunk;
 
 	ubenchf = ubenchf_array[ubench_to_run][system_to_use];
 
@@ -337,7 +349,10 @@ void fixture_ubench_msync(void *arg, system_t system)
  	unsigned int                   tid = args->tid;
 	fixture_state_ubench_msync_t*  fixture_state;
 	char                           filename[128];
-
+	uint64_t                       *page_addr;
+	uint64_t                       index;
+    volatile uint64_t              local; /* disable any optimizations around local by making it volatile */
+		
 	fixture_state = (fixture_state_ubench_msync_t*) malloc(sizeof(fixture_state_ubench_msync_t));
 	fixture_state->seed = 0;
 
@@ -356,6 +371,15 @@ void fixture_ubench_msync(void *arg, system_t system)
 	assert(fixture_state->fd>0);
 	fixture_state->segment = (word_t *) mmap(NULL, PRIVATE_REGION_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fixture_state->fd, 0);
 	assert(fixture_state->segment != (void *) -1);
+
+	/* bring all pages in the file-cache to avoid cold misses? */
+	if (warmup) {
+		for (index=0; index < PRIVATE_REGION_SIZE; index+=PAGE_SIZE) {
+			page_addr = (uint64_t *) ((uint64_t) fixture_state->segment + index);
+			local = *page_addr;
+		}
+	}
+
 
 	args->fixture_state = (void *) fixture_state;
 }
@@ -398,7 +422,7 @@ void ubench_msync(void *arg)
 		for (j=0; j<num_writes; j++) {
 			block_addr = (private_region_base + 
 			              block_size * (rand_r(seedp) % 
-			                            (PRIVATE_REGION_SIZE/block_size)));
+			                            (regsize/block_size)));
 			for (k=0; k<wsize; k+=sizeof(word_t)) {
 				word_addr = (uint64_t *) (block_addr+k); 
 				*word_addr = (uint64_t) word_addr;

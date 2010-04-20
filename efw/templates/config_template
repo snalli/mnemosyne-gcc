@@ -1,0 +1,19 @@
+ROOTDIR       = 'fillme'
+BENCH_ROOTDIR = ROOTDIR + '/fillme'
+TIMEOUT       = 120
+ITERATIONS    = 3
+MPSTAT        = False
+RESULTDIR     = ROOTDIR + '/results'
+LOG           = RESULTDIR + '/log'
+WORKDIR       = ROOTDIR
+RUN           = True
+
+exp1 = {'NAME'       : 'fillme',
+	'CMD'        : BENCH_ROOTDIR + '/fillme', 
+	'CONFIG_ARGS': ['fillme',
+	                '']
+}
+
+}
+
+EXPERIMENTS=[exp1]

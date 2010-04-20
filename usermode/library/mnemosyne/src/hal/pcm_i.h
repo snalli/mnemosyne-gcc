@@ -493,8 +493,8 @@ PCM_SEQSTREAM_STORE(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t v
 	asm_movnti(addr, val);
 
 #ifdef M_PCM_EMULATE_LATENCY
-	set->seqstream_len = set->seqstream_len & (MEMORY_BANKING_FACTOR * 
-	                                           CACHELINE_SIZE / sizeof(pcm_word_t) - 1);
+	set->seqstream_len = (set->seqstream_len + 1) & ((MEMORY_BANKING_FACTOR * 
+	                                                  CACHELINE_SIZE / sizeof(pcm_word_t)) - 1);
 	if (set->seqstream_len == 0) {
 		emulate_latency_ns(M_PCM_LATENCY_WRITE);
 	}

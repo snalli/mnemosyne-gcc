@@ -23,7 +23,7 @@ function rmfs {
 	/sbin/rmmod pcmdisk.ko
 }
 
-if [ "$1" = "-m" ]
+if [ "$1" = "-c" ]
 then
 mkfs
 fi

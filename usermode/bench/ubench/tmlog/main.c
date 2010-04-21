@@ -110,8 +110,8 @@ static inline unsigned long long asm_rdtsc(void)
 static
 void usage(char *name) 
 {
-	printf("Usage: %s   %s\n", name                    , "--ubench=MICROBENCHMARK_TO_RUN");
-	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--system=SYSTEM_TO_USE");
+	printf("usage: %s   %s\n", name                    , "--system=SYSTEM_TO_USE");
+	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--ubench=MICROBENCHMARK_TO_RUN");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--runtime=RUNTIME_OF_EXPERIMENT_IN_SECONDS");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--threads=NUMBER_OF_THREADS");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--nwrites=NUMBER_OF_WRITES_PER_TRANSACTION");
@@ -150,9 +150,9 @@ main(int argc, char *argv[])
 
 	while (1) {
 		static struct option long_options[] = {
+			{"system",  required_argument, 0, 's'},
 			{"ubench",  required_argument, 0, 'b'},
 			{"runtime",  required_argument, 0, 'r'},
-			{"system",  required_argument, 0, 's'},
 			{"threads", required_argument, 0, 't'},
 			{"nwrites", required_argument, 0, 'n'},
 			{"wsize", required_argument, 0, 'z'},
@@ -355,19 +355,19 @@ void ubench_mtm_atomic(void *arg)
 	int                                 k;
 	int                                 n;
 	uint64_t                            block_size = MAX(wsize, PAGE_SIZE);
+	int                                 local_num_writes = num_writes;
 
 	for (i=0; i<iterations_per_chunk; i++) {
-		//MNEMOSYNE_ATOMIC {		
-		{
+		MNEMOSYNE_ATOMIC {		
 			for (j=0; j<num_writes; j++) {
 				__tm_waiver {
 					block_addr = (private_region_base + 
 					              block_size * (rand_r(seedp) % 
 			                            (PRIVATE_REGION_SIZE/block_size)));
-					for (k=0; k<wsize; k+=sizeof(word_t)) {
-						word_addr = (uint64_t *) (block_addr+k); 
-						*word_addr = (uint64_t) word_addr;
-					}
+				}
+				for (k=0; k<wsize; k+=sizeof(word_t)) {
+					word_addr = (uint64_t *) (block_addr+k); 
+					*word_addr = (uint64_t) word_addr;
 				}
 			}
 		}	

@@ -30,6 +30,8 @@ m_log_ops_t tmlog_tornbit_ops = {
 //#define _DEBUG_THIS
 
 #define _DEBUG_PRINT_TMLOG(tmlog)                                 \
+  printf("nvmd       : %p\n", tmlog->phlog_tornbit.nvmd);         \
+  printf("nvphlog    : %p\n", tmlog->phlog_tornbit.nvphlog);      \
   printf("stable_tail: %lu\n", tmlog->phlog_tornbit.stable_tail); \
   printf("tail       : %lu\n", tmlog->phlog_tornbit.tail);        \
   printf("head       : %lu\n", tmlog->phlog_tornbit.head);        \
@@ -291,6 +293,9 @@ m_tmlog_tornbit_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	 */
 	assert (m_phlog_tornbit_stable_exists(&(tmlog->phlog_tornbit))); 
 
+	printf("tmlog->phlog_tornbit.head = %llu\n", tmlog->phlog_tornbit.head);
+	printf("tmlog->phlog_tornbit.stable_tail = %llu\n", tmlog->phlog_tornbit.stable_tail);
+	printf("tmlog->phlog_tornbit.read_index = %llu\n", tmlog->phlog_tornbit.read_index);
 	while(1) {
 		if (m_phlog_tornbit_read(&(tmlog->phlog_tornbit), &addr) == M_R_SUCCESS) {
 			if (addr == XACT_COMMIT_MARKER) {
@@ -309,6 +314,7 @@ m_tmlog_tornbit_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 				assert(m_phlog_tornbit_read(&(tmlog->phlog_tornbit), &value) == M_R_SUCCESS);
 				assert(m_phlog_tornbit_read(&(tmlog->phlog_tornbit), &mask) == M_R_SUCCESS);
 				if (mask!=0) {
+					printf("%p\n", addr);
 					PCM_WB_STORE_ALIGNED_MASKED(set, (volatile pcm_word_t *) addr, value, mask);
 					PCM_WB_FLUSH(set, (volatile pcm_word_t *) addr);
 				}	

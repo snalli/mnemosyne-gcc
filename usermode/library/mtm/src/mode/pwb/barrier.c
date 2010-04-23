@@ -291,7 +291,7 @@ pwb_write_internal(mtm_tx_t *tx,
 		 */
 		if (!enable_isolation) {
 #if !defined(ENABLE_USER_ABORTS)
-			PCM_WB_STORE_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
+			PCM_WB_STORE_MASKED(tx->pcm_storeset, addr, value, mask);
 			return NULL;
 #endif
 		}

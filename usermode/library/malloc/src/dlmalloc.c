@@ -907,9 +907,7 @@ TM_CALLABLE Void_t* PDL_MALLOC(size_t bytes)
   mbinptr   bin;                       /* corresponding bin */
   mchunkptr victim;                    /* will hold selected chunk */
 
-  __tm_waiver { printf("PDL_MALLOC[0]\n"); }
   init();
-  __tm_waiver { printf("PDL_MALLOC[1]\n"); }
   /* ----------- Peek at returned_list; hope for luck */
 
   if ((victim = returned_list) != 0 && 
@@ -921,7 +919,6 @@ TM_CALLABLE Void_t* PDL_MALLOC(size_t bytes)
   
   findbin(nb, bin);  /*  Need to know bin for other traversals */
 
-  __tm_waiver { printf("PDL_MALLOC[3]\n"); }
   /* ---------- Scan dirty list of own bin */
 
      /* Code for small bins special-cased out since */
@@ -961,7 +958,6 @@ TM_CALLABLE Void_t* PDL_MALLOC(size_t bytes)
     }
   }
     
-  __tm_waiver { printf("PDL_MALLOC[5]\n"); }
   /* ------------ Search free list */
 
   if ( (victim = returned_list) != 0)

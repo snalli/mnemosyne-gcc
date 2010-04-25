@@ -17,12 +17,12 @@
 ENABLE_ISOLATION = False
 
 ########################################################################
-# ENABLE_USER_ABORTS: Allows user initiated aborts. When disabled and 
+# ALLOW_ABORTS: Allows transaction aborts. When disabled and 
 # combined with no-isolation, the TM system does not need to perform 
 # version management for volatile data.
 ########################################################################
 
-ENABLE_USER_ABORTS = False
+ALLOW_ABORTS = False
 
 ########################################################################
 # SYNC_TRUNCATION: Synchronously flushes the write set out of the HW

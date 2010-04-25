@@ -97,13 +97,7 @@ extern "C" size_t HOARD_GET_USABLE_SIZE(void *);
 __attribute__((tm_wrapping(HOARD_MALLOC))) void *HOARD_MALLOC_TXN(size_t);
 __attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
 
-extern "C" void * HOARD_MALLOC (size_t)
-{
-	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
-	abort();
-}
-
-extern "C" void * HOARD_MALLOC_TXN (size_t sz)
+static void * malloc_internal (size_t sz)
 {
 	void                  *addr;
 	static persistentHeap *persistentheap = getPersistentAllocator();
@@ -111,36 +105,74 @@ extern "C" void * HOARD_MALLOC_TXN (size_t sz)
 	if (sz == 0) {
 		sz = 1;
 	}
-	if (sz > SUPERBLOCK_SIZE) {
+	//printf("pmalloc[START]: size = %d\n",  sz);
+	if (sz >= SUPERBLOCK_SIZE) {
 		/* Fall back to the standard persistent allocator. 
 		 * Begin a new atomic block to force the compiler to fall through down the TM 
 		 * instrumented path. Actually we are already in the transactional path so
 		 * this atomic block should execute as a nested transaction.
 		 */
-		__tm_atomic {
+		__tm_atomic 
+		{
 			addr = PDL_MALLOC(sz);
 		}
 	} else {
 		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
 	}
+	//printf("pmalloc[DONE]: addr=%p,  size = %d\n",  addr, sz);
 	return addr;
+}
+
+extern "C" void * HOARD_MALLOC (size_t sz)
+{
+	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
+	abort();
+}
+
+extern "C" void * HOARD_MALLOC_TXN (size_t sz)
+{
+	return malloc_internal(sz);
 }
 
 extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)
 {
-  static persistentHeap * persistentheap = getPersistentAllocator();
-  static processHeap    * pHeap = getAllocator(persistentheap);
-  size_t sz = nelem * elsize;
-  if (sz == 0) {
-	  sz = 1;
-  }
-  void * ptr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
-  // Zero out the malloc'd block.
-  memset (ptr, 0, sz);
-  return ptr;
+	static persistentHeap * persistentheap = getPersistentAllocator();
+	static processHeap    * pHeap = getAllocator(persistentheap);
+	size_t                  sz = nelem * elsize;
+
+	if (sz == 0) {
+		sz = 1;
+	}
+	void * ptr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
+	// Zero out the malloc'd block.
+	memset (ptr, 0, sz);
+	return ptr;
 }
 
-extern "C" void HOARD_FREE (void*)
+static void free_internal (void * ptr)
+{
+	static persistentHeap * persistentheap = getPersistentAllocator();
+
+	//printf("free: %p [%p - %p)\n",
+	//        ptr,
+	//        ((uintptr_t) persistentheap->getPersistentSegmentBase()),
+	//		((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE));
+
+	/* Find out which heap this block has been allocated from. */
+	if ((uintptr_t) ptr >= ((uintptr_t) persistentheap->getPersistentSegmentBase()) &&
+	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
+	{
+		persistentheap->free (ptr);
+	} else {
+		__tm_atomic 
+		{
+			PDL_FREE (ptr);
+		}
+	}
+}
+
+
+extern "C" void HOARD_FREE (void* ptr)
 {
 	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
 	abort();
@@ -149,32 +181,21 @@ extern "C" void HOARD_FREE (void*)
 
 extern "C" void HOARD_FREE_TXN (void * ptr)
 {
-	static persistentHeap * persistentheap = getPersistentAllocator();
-
-	/* Find out which heap this block has been allocated from. */
-	if ((uintptr_t) ptr >= PERSISTENTHEAP_BASE &&
-	    (uintptr_t) ptr < (PERSISTENTHEAP_BASE + PERSISTENTHEAP_SIZE))
-	{
-		persistentheap->free (ptr);
-	} else {
-		__tm_atomic {
-			PDL_FREE (ptr);
-		}
-	}
+	free_internal(ptr);
 }
 
 
 extern "C" void * HOARD_MEMALIGN (size_t, size_t)
 {
-  //TODO
-  assert(0);
+	//TODO: Implement memalign
+	assert(0);
 #if 0  
-  static persistentHeap * persistentheap = getPersistentAllocator();
-  static processHeap    * pHeap = getAllocator(persistentheap);
-  void * addr = pHeap->getHeap(pHeap->getHeapIndex()).memalign (alignment, size);
-  return addr;
+	static persistentHeap * persistentheap = getPersistentAllocator();
+	static processHeap    * pHeap = getAllocator(persistentheap);
+	void * addr = pHeap->getHeap(pHeap->getHeapIndex()).memalign (alignment, size);
+	return addr;
 #endif 
-  return NULL;
+	return NULL;
 }
 
 

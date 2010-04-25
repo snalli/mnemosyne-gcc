@@ -293,14 +293,8 @@
 
 #include "dlmalloc.h"
 
-#define PCM_STORE(addr, val)                               \
-        *(addr) = val; 
-
-#define PCM_BARRIER
-
-
 #define DLMALLOC_PHEAP_BASE 0xc00000000
-#define DLMALLOC_PHEAP_SIZE (1024*1024)
+#define DLMALLOC_PHEAP_SIZE (512*1024*1024)
 
 #ifdef __cplusplus
 extern "C" {
@@ -340,6 +334,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <pcm.h>
 
 
 /*  CHUNKS */
@@ -347,11 +342,9 @@ extern "C" {
 
 struct malloc_chunk
 {
-  size_t size;               /* Size in bytes, including overhead. */
-                             /* Or'ed with INUSE if in use. */
-
-  struct malloc_chunk* fd;   /* double links -- used only if free. */
-  struct malloc_chunk* bk;
+	uint64_t             size; /* Size in bytes, including overhead. Or'ed with INUSE if in use. */
+	struct malloc_chunk* fd;   /* double links -- used only if free. */
+	struct malloc_chunk* bk;
 
 };
 
@@ -485,38 +478,48 @@ persistent_sbrk(size_t size)
 
 TM_PURE static inline
 size_t
-init_bin_lists(uintptr_t av_base)
+init_bin_lists(pcm_storeset_t *set, uintptr_t av_base)
 {
 	int i;
 
 	av = (struct malloc_bin *) av_base;
 	for (i=0; i<NBINS; i++) {
-		PCM_STORE(&av[i].dhd.size, 0);
-		PCM_STORE(&av[i].dhd.fd, &(av[i].dhd));
-		PCM_STORE(&av[i].dhd.bk, &(av[i].dhd));
-		PCM_STORE(&av[i].chd.size, 0);
-		PCM_STORE(&av[i].chd.fd, &(av[i].chd));
-		PCM_STORE(&av[i].chd.bk, &(av[i].chd));
+#if 1	
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &av[i].dhd.size, (pcm_word_t) 0);
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &av[i].dhd.fd, (pcm_word_t) &(av[i].dhd));
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &av[i].dhd.bk, (pcm_word_t) &(av[i].dhd));
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &av[i].chd.size, (pcm_word_t) 0);
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &av[i].chd.fd, (pcm_word_t) &(av[i].chd));
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &av[i].chd.bk, (pcm_word_t) &(av[i].chd));
+#else
+		av[i].dhd.size = 0;
+		av[i].dhd.fd = &(av[i].dhd);
+		av[i].dhd.bk = &(av[i].dhd);
+		av[i].chd.size = 0;
+		av[i].chd.fd = &(av[i].chd);
+		av[i].chd.bk = &(av[i].chd);
+#endif
 	}
 	return NBINS*sizeof(struct malloc_bin);
 }
 
 TM_PURE static inline
 void
-init()
+init(void)
 {
-	size_t av_size;
+	size_t         av_size;
+	pcm_storeset_t *set;
 
 	if (init_done) {
 		return;
 	}
 
+	set = pcm_storeset_get ();
+
 	if (dlmalloc_pheap == 0x0) {
-		// FIXME: How do you guarantee the atomicity of the mnemosyne_segment_create ? */
 	    TM_WAIVER {
-			m_pmap((void *) DLMALLOC_PHEAP_BASE, DLMALLOC_PHEAP_SIZE, PROT_READ|PROT_WRITE, 0);
+			dlmalloc_pheap = (uint64_t) m_pmap((void *) DLMALLOC_PHEAP_BASE, DLMALLOC_PHEAP_SIZE, PROT_READ|PROT_WRITE, 0);
 		}	
-		dlmalloc_pheap = DLMALLOC_PHEAP_BASE;
 		if ((void *) dlmalloc_pheap == (void *) -1) {
 			TM_WAIVER {
 				abort();
@@ -524,7 +527,7 @@ init()
 		}
 	}
 
-	av_size = init_bin_lists(dlmalloc_pheap);
+	av_size = init_bin_lists(set, dlmalloc_pheap);
 	maxClean = FIRSTBIN;
 
 	/* Advance the sbrk_limit by av_size + MINSIZE to ensure no memory is 
@@ -533,7 +536,7 @@ init()
 	persistent_sbrk(av_size + 2*MINSIZE);
 	last_sbrk_end = (size_t *) (av_size + dlmalloc_pheap + MINSIZE);
 	*last_sbrk_end = SIZE_SZ | INUSE;
-	PCM_BARRIER
+	PCM_NT_FLUSH(set);
 	init_done = 1;
 }
 
@@ -904,7 +907,9 @@ TM_CALLABLE Void_t* PDL_MALLOC(size_t bytes)
   mbinptr   bin;                       /* corresponding bin */
   mchunkptr victim;                    /* will hold selected chunk */
 
+  __tm_waiver { printf("PDL_MALLOC[0]\n"); }
   init();
+  __tm_waiver { printf("PDL_MALLOC[1]\n"); }
   /* ----------- Peek at returned_list; hope for luck */
 
   if ((victim = returned_list) != 0 && 
@@ -916,6 +921,7 @@ TM_CALLABLE Void_t* PDL_MALLOC(size_t bytes)
   
   findbin(nb, bin);  /*  Need to know bin for other traversals */
 
+  __tm_waiver { printf("PDL_MALLOC[3]\n"); }
   /* ---------- Scan dirty list of own bin */
 
      /* Code for small bins special-cased out since */
@@ -955,6 +961,7 @@ TM_CALLABLE Void_t* PDL_MALLOC(size_t bytes)
     }
   }
     
+  __tm_waiver { printf("PDL_MALLOC[5]\n"); }
   /* ------------ Search free list */
 
   if ( (victim = returned_list) != 0)

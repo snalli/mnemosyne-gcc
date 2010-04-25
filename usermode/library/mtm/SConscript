@@ -21,7 +21,7 @@ buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
 if buildEnv['BUILD_DEBUG'] == True:
 	buildEnv.Append(CCFLAGS = ' -g -D_MTM_BUILD_DEBUG')
 else:
-	buildEnv.Append(CCFLAGS = ' -O2')
+	buildEnv.Append(CCFLAGS = ' -O1 -g')
 
 
 

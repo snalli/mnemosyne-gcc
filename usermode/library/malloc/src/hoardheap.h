@@ -46,160 +46,152 @@ class persistentHeap; // forward declaration
 class hoardHeap {
 public:
 
-  hoardHeap (void);
+	hoardHeap (void);
 
-  // A thread heap must be at least 1/EMPTY_FRACTION empty before we
-  // start returning superblocks to the process heap.
-  enum { EMPTY_FRACTION = SUPERBLOCK_FULLNESS_GROUP - 1 };
+	// A thread heap must be at least 1/EMPTY_FRACTION empty before we
+	// start returning superblocks to the process heap.
+	enum { EMPTY_FRACTION = SUPERBLOCK_FULLNESS_GROUP - 1 };
 
-  // Reset value for the least-empty bin.  The last bin
-  // (SUPERBLOCK_FULLNESS_GROUP-1) is for completely full superblocks,
-  // so we use the next-to-last bin.
-  enum { RESET_LEAST_EMPTY_BIN = SUPERBLOCK_FULLNESS_GROUP - 2 };
+	// Reset value for the least-empty bin.  The last bin
+	// (SUPERBLOCK_FULLNESS_GROUP-1) is for completely full superblocks,
+	// so we use the next-to-last bin.
+	enum { RESET_LEAST_EMPTY_BIN = SUPERBLOCK_FULLNESS_GROUP - 2 };
 
-  // The number of empty superblocks that we allow any thread heap to
-  // hold once the thread heap has fallen below 1/EMPTY_FRACTION
-  // empty.
-  enum { MAX_EMPTY_SUPERBLOCKS = 1 } ; // EMPTY_FRACTION / 2 };
+	// The number of empty superblocks that we allow any thread heap to
+	// hold once the thread heap has fallen below 1/EMPTY_FRACTION
+	// empty.
+	enum { MAX_EMPTY_SUPERBLOCKS = 1 } ; // EMPTY_FRACTION / 2 };
 
-  // The maximum number of thread heaps we allow.  (NOT the maximum
-  // number of threads -- Hoard imposes no such limit.)  This must be
-  // a power of two! NB: This number is twice the maximum number of
-  // PROCESSORS supported by Hoard.
-  enum { MAX_HEAPS = 64 };
+	// The maximum number of thread heaps we allow.  (NOT the maximum
+	// number of threads -- Hoard imposes no such limit.)  This must be
+	// a power of two! NB: This number is twice the maximum number of
+	// PROCESSORS supported by Hoard.
+	enum { MAX_HEAPS = 1 };
 
-  // ANDing with this rounds to MAX_HEAPS.
-  enum { MAX_HEAPS_MASK = MAX_HEAPS - 1 };
+	// ANDing with this rounds to MAX_HEAPS.
+	enum { MAX_HEAPS_MASK = MAX_HEAPS - 1 };
 
-  //
-  // The number of size classes.
-  //
+	//
+	// The number of size classes.
+	//
 
-  enum { SIZE_CLASSES = 132 };
+	enum { SIZE_CLASSES = 132 };
 
-  // Every object is aligned so that it can always hold a double.
-  enum { ALIGNMENT = sizeof(double) };
+	// Every object is aligned so that it can always hold a double.
+	enum { ALIGNMENT = sizeof(double) };
 
-  // ANDing with this rounds to ALIGNMENT.
-  enum { ALIGNMENT_MASK = ALIGNMENT - 1};
+	// ANDing with this rounds to ALIGNMENT.
+	enum { ALIGNMENT_MASK = ALIGNMENT - 1};
 
-  // Used for sanity checking.
-  enum { HEAP_MAGIC = 0x0badcafe };
+	// Used for sanity checking.
+	enum { HEAP_MAGIC = 0x0badcafe };
 
-  // Get the usage and allocated statistics.
-  inline void getStats (int sizeclass, int& U, int& A);
+	// Get the usage and allocated statistics.
+	inline void getStats (int sizeclass, int& U, int& A);
 
 
 #if HEAP_STATS
-  // How much is the maximum ever in use for this size class?
-  inline int maxInUse (int sizeclass);
+	// How much is the maximum ever in use for this size class?
+	inline int maxInUse (int sizeclass);
 
-  // How much is the maximum memory allocated for this size class?
-  inline int maxAllocated (int sizeclass);
+	// How much is the maximum memory allocated for this size class?
+	inline int maxAllocated (int sizeclass);
 #endif
 
-  //FIXME: Move findAvailableSuperblock under processHeap and persistentHeap?
+	// Insert a superblock into our list.
+	void insertSuperblock (int sizeclass,
+	                       superblock * sb,
+	                       persistentHeap * persistentheap);
 
-  // Insert a superblock into our list.
-  void insertSuperblock (int sizeclass,
-			 superblock * sb,
-			 persistentHeap * persistentheap);
+	// Remove the superblock with the most free space.
+	superblock * removeMaxSuperblock (int sizeclass);
 
-  // Insert a superblock into our list.
-  void insertSuperblock (int sizeclass,
-			 superblock * sb,
-			 processHeap * pHeap);
+	// Remove a superblock of some given fullness.
+	superblock * removePartiallyFullSuperblock (int fullness, int sizeclass);
 
+	// Find an available superblock (i.e., with some space in it).
+	superblock * findAvailableSuperblock (int sizeclass,
+	                                      block *& b,
+	                                      persistentHeap * persistentheap);
 
-  // Remove the superblock with the most free space.
-  superblock * removeMaxSuperblock (int sizeclass);
+	// Lock this heap.
+	inline void lock (void);
 
-  // Remove a superblock of some given fullness.
-  superblock * removePartiallyFullSuperblock (int fullness, int sizeclass);
+	// Unlock this heap.
+	inline void unlock (void);
 
-  // Find an available superblock (i.e., with some space in it).
-  superblock * findAvailableSuperblock (int sizeclass,
-                                        block *& b,
-                                        persistentHeap * persistentheap);
+	// Set our index number (which heap we are).
+	inline void setIndex (int i);
 
-  // Lock this heap.
-  inline void lock (void);
+	// Get our index number (which heap we are).
+	inline int getIndex (void);
 
-  // Unlock this heap.
-  inline void unlock (void);
+	// Free a block into a superblock.
+	// This is used by processHeap::free().
+	// Returns 1 iff the superblock was munmapped.
+	int freeBlock (block *& b,
+	               superblock *& sb,
+	               int sizeclass,
+	               persistentHeap * persistentheap);
 
-  // Set our index number (which heap we are).
-  inline void setIndex (int i);
+	//// Utility functions ////
 
-  // Get our index number (which heap we are).
-  inline int getIndex (void);
+	// Return the size class for a given size.
+	inline static int sizeClass (const size_t sz);
 
-  // Free a block into a superblock.
-  // This is used by processHeap::free().
-  // Returns 1 iff the superblock was munmapped.
-  int freeBlock (block *& b,
-		 superblock *& sb,
-		 int sizeclass,
-		 persistentHeap * persistentheap);
+	// Return the size corresponding to a given size class.
+	inline static size_t sizeFromClass (const int sizeclass);
 
-  //// Utility functions ////
+	// Return the release threshold corresponding to a given size class.
+	inline static int getReleaseThreshold (const int sizeclass);
 
-  // Return the size class for a given size.
-  inline static int sizeClass (const size_t sz);
+	// Return how many blocks of a given size class fit into a superblock.
+	inline static int numBlocks (const int sizeclass);
 
-  // Return the size corresponding to a given size class.
-  inline static size_t sizeFromClass (const int sizeclass);
+	// Align a value.
+	inline static size_t align (const size_t sz);
 
-  // Return the release threshold corresponding to a given size class.
-  inline static int getReleaseThreshold (const int sizeclass);
-
-  // Return how many blocks of a given size class fit into a superblock.
-  inline static int numBlocks (const int sizeclass);
-
-  // Align a value.
-  inline static size_t align (const size_t sz);
-
-  void printSuperblockList();
+	void printSuperblockList();
 private:
 
-  // Disable copying and assignment.
+	// Disable copying and assignment.
 
-  hoardHeap (const hoardHeap&);
-  const hoardHeap& operator= (const hoardHeap&);
+	hoardHeap (const hoardHeap&);
+	const hoardHeap& operator= (const hoardHeap&);
 
-  // Recycle a superblock.
-  inline void recycle (superblock *);
+	// Recycle a superblock.
+	inline void recycle (superblock *);
 
-  // Reuse a superblock (if one is available).
-  inline superblock * reuse (int sizeclass);
+	// Reuse a superblock (if one is available).
+	inline superblock * reuse (int sizeclass);
 
-  // Remove a particular superblock.
-  inline void removeSuperblock (superblock *, int sizeclass);
+	// Remove a particular superblock.
+	inline void removeSuperblock (superblock *, int sizeclass);
 
 public:
 	// Move a particular superblock from one bin to another.
-  void moveSuperblock (superblock *,
-		       int sizeclass,
-		       int fromBin,
-		       int toBin);
+	void moveSuperblock (superblock *,
+	                     int sizeclass,
+	                     int fromBin,
+	                     int toBin);
 private:
 
-  // Update memory in-use and allocated statistics.
-  // (*UStats = just update U.)
-  inline void incStats (int sizeclass, int updateU, int updateA);
+	// Update memory in-use and allocated statistics.
+	// (*UStats = just update U.)
+	inline void incStats (int sizeclass, int updateU, int updateA);
 
 public:
-  inline void incUStats (int sizeclass);
+	inline void incUStats (int sizeclass);
 private:
 
-  inline void decStats (int sizeclass, int updateU, int updateA);
-  inline void decUStats (int sizeclass);
+	inline void decStats (int sizeclass, int updateU, int updateA);
+	inline void decUStats (int sizeclass);
 
-  //// Members ////
+	//// Members ////
 
 #if HEAP_DEBUG
-  // For sanity checking.
-  const unsigned long _magic;
+	// For sanity checking.
+	const unsigned long _magic;
 #else
   #define _magic HEAP_MAGIC
 #endif
@@ -382,16 +374,16 @@ int hoardHeap::getIndex (void)
 
 void hoardHeap::recycle (superblock * sb)
 {
-  assert (sb != NULL);
-  assert (sb->getOwner() == this);
-  assert (sb->getNumBlocks() > 1);
-  assert (sb->getNext() == NULL);
-  assert (sb->getPrev() == NULL);
-  assert (hoardHeap::numBlocks(sb->getBlockSizeClass()) > 1);
-  sb->insertBefore (_reusableSuperblocks);
-  _reusableSuperblocks = sb;
-  ++_reusableSuperblocksCount;
-  // printf ("count: %d => %d\n", getIndex(), _reusableSuperblocksCount);
+	assert (sb != NULL);
+	assert (sb->getOwner() == this);
+	assert (sb->getNumBlocks() > 1);
+	assert (sb->getNext() == NULL);
+	assert (sb->getPrev() == NULL);
+	assert (hoardHeap::numBlocks(sb->getBlockSizeClass()) > 1);
+	sb->insertBefore (_reusableSuperblocks);
+	_reusableSuperblocks = sb;
+	++_reusableSuperblocksCount;
+	//printf ("hoardHeap::recycle: heap = %d, count = %d, sb = %p\n", getIndex(), _reusableSuperblocksCount, sb);
 }
 
 

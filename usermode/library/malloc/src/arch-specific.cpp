@@ -18,7 +18,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-
+#include <assert.h>
 #include "arch-specific.h"
 
 // How many iterations we spin waiting for a lock.
@@ -205,33 +205,38 @@ int hoardGetPageSize (void)
 
 int hoardGetNumProcessors (void)
 {
-  static int numProcessors = 0;
+	static int numProcessors = 0;
 
-  if (numProcessors == 0) {
-    // Ugly workaround.  Linux's sysconf indirectly calls malloc() (at
-    // least on multiprocessors).  So we just read the info from the
-    // proc file ourselves and count the occurrences of the word
-    // "processor".
-    
-    // We only parse the first 32K of the CPU file.  By my estimates,
-    // that should be more than enough for at least 64 processors.
-    enum { MAX_PROCFILE_SIZE = 32768 };
-    char line[MAX_PROCFILE_SIZE];
-    int fd = open ("/proc/cpuinfo", O_RDONLY);
-    //    assert (fd);
-    read(fd, line, MAX_PROCFILE_SIZE);
-    char * str = line;
-    while (str) {
-      str = strstr(str, "processor");
-      if (str) {
-	numProcessors++;
-	str++;
-      }
-    }
-    close (fd);
-    //    assert (numProcessors > 0);
-  }
-  return numProcessors;
+	if (numProcessors == 0) {
+		// Ugly workaround.  Linux's sysconf indirectly calls malloc() (at
+		// least on multiprocessors).  So we just read the info from the
+		// proc file ourselves and count the occurrences of the word
+		// "processor".
+		
+		// We only parse the first 32K of the CPU file.  By my estimates,
+		// that should be more than enough for at least 64 processors.
+		enum { MAX_PROCFILE_SIZE = 32768 };
+		char line[MAX_PROCFILE_SIZE];
+		int fd = open ("/proc/cpuinfo", O_RDONLY);
+		assert (fd);
+		read(fd, line, MAX_PROCFILE_SIZE);
+		char * str = line;
+		while (str) {
+			str = strstr(str, "processor");
+			if (str) {
+				numProcessors++;
+				str++;
+			}
+		}
+		close (fd);
+		//FIXME: Currently the uniprocessos control path is broken, so force 
+		//the multiprocessor one even in the case of a single processor
+		if (numProcessors == 1) {
+			numProcessors = 2;
+		}
+		assert (numProcessors > 0);
+	}
+	return numProcessors;
 }
 
 } /* extern "C" */

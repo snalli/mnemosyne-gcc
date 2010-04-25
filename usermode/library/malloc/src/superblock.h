@@ -62,7 +62,6 @@ public:
   }
 
   // Make (allocate or re-use) a superblock for a given size class.
-  static superblock * makeSuperblock (int sizeclass, processHeap * pHeap, persistentHeap *persistentHeap);
   static superblock * makeSuperblock (int sizeclass, persistentSuperblock *pSuperblock);
   static superblock * makeSuperblock (persistentSuperblock *pSuperblock);
 
@@ -166,41 +165,41 @@ private:
 
 hoardHeap * superblock::getOwner (void)
 {
-  assert (isValid());
-  hoardHeap * o = _owner;
-  return o;
+	assert (isValid());
+	hoardHeap * o = _owner;
+	return o;
 }
 
 
 void superblock::setOwner (hoardHeap * o) 
 {
-  assert (isValid());
-  _owner = o;
+	assert (isValid());
+	_owner = o;
 }
 
 
 block * superblock::acquireBlock (void)
 {
-  assert (isValid());
-  // Pop off a block from this superblock's freelist,
-  // if there is one available.
-  if (_freeList == NULL) {
-    // The freelist is empty.
-    assert (getNumAvailable() == 0);
-    return NULL;
-  }
-  assert (getNumAvailable() > 0);
-  block * b = _freeList;
-  _freeList = _freeList->getNext();
-  _numAvailable--;
-  _psb->allocBlock(b->getId());
+	assert (isValid());
+	// Pop off a block from this superblock's freelist,
+	// if there is one available.
+	if (_freeList == NULL) {
+		// The freelist is empty.
+		assert (getNumAvailable() == 0);
+		return NULL;
+	}
+	assert (getNumAvailable() > 0);
+	block * b = _freeList;
+	_freeList = _freeList->getNext();
+	_numAvailable--;
+	_psb->allocBlock(b->getId());
 
-  b->setNext(NULL);
+	b->setNext(NULL);
 
-  dirtyFullness = true;
-  //  computeFullness();
+	dirtyFullness = true;
+	//  computeFullness();
 
-  return b;
+	return b;
 }
 
 
@@ -292,19 +291,19 @@ int superblock::isValid (void)
 
 void superblock::computeFullness (void)
 {
-  assert (isValid());
-  _fullness = (((SUPERBLOCK_FULLNESS_GROUP - 1)
-		* (getNumBlocks() - getNumAvailable())) / getNumBlocks());
+	assert (isValid());
+	_fullness = (((SUPERBLOCK_FULLNESS_GROUP - 1)
+	              * (getNumBlocks() - getNumAvailable())) / getNumBlocks());
 }
 
 int superblock::getFullness (void)
 {
-  assert (isValid());
-  if (dirtyFullness) {
-    computeFullness();
-    dirtyFullness = false;
-  }
-  return _fullness;
+	assert (isValid());
+	if (dirtyFullness) {
+		computeFullness();
+		dirtyFullness = false;
+	}
+	return _fullness;
 }
 
 persistentSuperblock *superblock::getPersistentSuperblock(void)

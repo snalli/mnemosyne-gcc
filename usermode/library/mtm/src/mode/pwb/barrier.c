@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <mnemosyne.h>
 #include <pcm.h>
 
@@ -236,13 +237,16 @@ pwb_write_internal(mtm_tx_t *tx,
 	                (void *)value, 
 	                (unsigned long)value,
 	                (unsigned long)mask);
-
+					
 	/* Check status */
-	assert(tx->status == TX_ACTIVE);
+	//assert(tx->status == TX_ACTIVE);
+	if (tx->status != TX_ACTIVE) {
+		assert(0);
+	}
 	
 	/* Check whether access is to volatile or non-volatile memory */
-	if ((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
-	    (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE))
+	if (((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
+	     (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))
 	{
 		access_is_nonvolatile = 1;
 	} else {
@@ -271,7 +275,7 @@ pwb_write_internal(mtm_tx_t *tx,
 			if (enable_isolation) {
 				mtm_local_LB(tx, addr, sizeof(mtm_word_t));
 			} else {
-#ifdef ENABLE_USER_ABORTS
+#ifdef ALLOW_ABORTS
 				mtm_local_LB(tx, addr, sizeof(mtm_word_t));
 #endif
 			}
@@ -290,7 +294,7 @@ pwb_write_internal(mtm_tx_t *tx,
 		 * is a slower operation that's why we optimized the stack path.
 		 */
 		if (!enable_isolation) {
-#if !defined(ENABLE_USER_ABORTS)
+#if !defined(ALLOW_ABORTS)
 			PCM_WB_STORE_MASKED(tx->pcm_storeset, addr, value, mask);
 			return NULL;
 #endif
@@ -467,8 +471,8 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 	assert(tx->status == TX_ACTIVE);
 	
 	/* Check whether access is to volatile or non-volatile memory */
-	if ((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
-	    (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE))
+	if (((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
+	     (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))
 	{
 		/* Access is non-volatile */
 		/* Fall through */
@@ -489,7 +493,7 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 		 * just read the value directly from memory. 
 		 */
 		if (!enable_isolation) {
-#if !defined(ENABLE_USER_ABORTS)
+#if !defined(ALLOW_ABORTS)
 			value = ATOMIC_LOAD(addr);
 			return value;
 #endif
@@ -677,9 +681,9 @@ mtm_word_t
 mtm_pwb_load(mtm_tx_t *tx, volatile mtm_word_t *addr)
 {
 #ifdef ENABLE_ISOLATION
-	pwb_load_internal(tx, addr, 1);
+	return pwb_load_internal(tx, addr, 1);
 #else	
-	pwb_load_internal(tx, addr, 0);
+	return pwb_load_internal(tx, addr, 0);
 #endif
 }
 

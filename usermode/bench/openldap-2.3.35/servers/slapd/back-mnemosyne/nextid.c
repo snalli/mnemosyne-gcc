@@ -1,8 +1,8 @@
-/* init.c - initialize bdb backend */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-bdb/nextid.c,v 1.23.2.4 2007/01/02 21:44:00 kurt Exp $ */
+/* nextid.c - keep track of the next id to be given out */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/nextid.c,v 1.36.2.4 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2007 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,64 +17,119 @@
 #include "portable.h"
 
 #include <stdio.h>
+
 #include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/param.h>
 
-#include "back-bdb.h"
+#include "slap.h"
+#include "back-ldbm.h"
 
-int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
+static int
+next_id_read( Backend *be, ID *idp )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	Datum key, data;
+	DBCache *db;
 
-	ldap_pvt_thread_mutex_lock( &bdb->bi_lastid_mutex );
-	*out = ++bdb->bi_lastid;
-	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
+	*idp = NOID;
 
-	return 0;
+	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
+	    == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" LDBM_SUFFIX "\n",
+			0, 0, 0 );
+
+		return( -1 );
+	}
+
+	ldbm_datum_init( key );
+	key.dptr = (char *) idp;
+	key.dsize = sizeof(ID);
+
+	data = ldbm_cache_fetch( db, key );
+
+	if( data.dptr != NULL ) {
+		AC_MEMCPY( idp, data.dptr, sizeof( ID ) );
+		ldbm_datum_free( db->dbc_db, data );
+
+	} else {
+		*idp = 1;
+	}
+
+	ldbm_cache_close( be, db );
+	return( 0 );
 }
 
-int bdb_last_id( BackendDB *be, DB_TXN *tid )
+int
+next_id_write( Backend *be, ID id )
 {
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int rc;
-	ID id = 0;
-	unsigned char idbuf[sizeof(ID)];
-	DBT key, data;
-	DBC *cursor;
+	Datum key, data;
+	DBCache *db;
+	ID noid = NOID;
+	int flags, rc = 0;
 
-	DBTzero( &key );
-	key.flags = DB_DBT_USERMEM;
-	key.data = (char *) idbuf;
-	key.ulen = sizeof( idbuf );
+	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
+	    == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" LDBM_SUFFIX "\n",
+		    0, 0, 0 );
 
-	DBTzero( &data );
-	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
-
-	/* Get a read cursor */
-	rc = bdb->bi_id2entry->bdi_db->cursor( bdb->bi_id2entry->bdi_db,
-		tid, &cursor, 0 );
-
-	if (rc == 0) {
-		rc = cursor->c_get(cursor, &key, &data, DB_LAST);
-		cursor->c_close(cursor);
+		return( -1 );
 	}
 
-	switch(rc) {
-	case DB_NOTFOUND:
-		rc = 0;
-		break;
-	case 0:
-		BDB_DISK2ID( idbuf, &id );
-		break;
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
-	default:
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_last_id: get failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		goto done;
+	key.dptr = (char *) &noid;
+	key.dsize = sizeof(ID);
+
+	data.dptr = (char *) &id;
+	data.dsize = sizeof(ID);
+
+	flags = LDBM_REPLACE;
+	if ( ldbm_cache_store( db, key, data, flags ) != 0 ) {
+		rc = -1;
 	}
 
-	bdb->bi_lastid = id;
+	ldbm_cache_close( be, db );
+	return( rc );
+}
 
-done:
-	return rc;
+int
+next_id_get( Backend *be, ID *idp )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	int rc = 0;
+
+	*idp = NOID;
+
+	if ( li->li_nextid == NOID ) {
+		if ( ( rc = next_id_read( be, idp ) ) ) {
+			return( rc );
+		}
+		li->li_nextid = *idp;
+	}
+
+	*idp = li->li_nextid;
+
+	return( rc );
+}
+
+int
+next_id( Backend *be, ID *idp )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	int rc = 0;
+
+	if ( li->li_nextid == NOID ) {
+		if ( ( rc = next_id_read( be, idp ) ) ) {
+			return( rc );
+		}
+		li->li_nextid = *idp;
+	}
+
+	*idp = li->li_nextid++;
+	if ( next_id_write( be, li->li_nextid ) ) {
+		rc = -1;
+	}
+
+	return( rc );
 }

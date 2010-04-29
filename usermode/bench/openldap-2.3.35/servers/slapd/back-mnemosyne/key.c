@@ -1,8 +1,8 @@
 /* index.c - routines for dealing with attribute indexes */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-bdb/key.c,v 1.16.2.4 2007/01/02 21:44:00 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/key.c,v 1.9.2.3 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2007 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,83 +22,74 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-bdb.h"
-#include "idl.h"
+#include "back-ldbm.h"
 
 /* read a key */
 int
-bdb_key_read(
-	Backend	*be,
-	DB *db,
-	DB_TXN *txn,
-	struct berval *k,
-	ID *ids,
-	DBC **saved_cursor,
-	int get_flag
+key_read(
+    Backend	*be,
+	DBCache *db,
+    struct berval *k,
+	ID_BLOCK **idout
 )
 {
-	int rc;
-	DBT key;
+	Datum		key;
+	ID_BLOCK		*idl;
 
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
 
-	DBTzero( &key );
-	bv2DBT(k,&key);
-	key.ulen = key.size;
-	key.flags = DB_DBT_USERMEM;
 
-	rc = bdb_idl_fetch_key( be, db, txn, &key, ids, saved_cursor, get_flag );
+	ldbm_datum_init( key );
+	key.dptr = k->bv_val;
+	key.dsize = k->bv_len;
 
-	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read: failed (%d)\n",
-			rc, 0, 0 );
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
-			(long) BDB_IDL_N(ids), 0, 0 );
-	}
+	idl = idl_fetch( be, db, key );
 
-	return rc;
+	Debug( LDAP_DEBUG_TRACE, "<= index_read %ld candidates\n",
+	       idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
+
+
+	*idout = idl;
+	return LDAP_SUCCESS;
 }
 
 /* Add or remove stuff from index files */
 int
-bdb_key_change(
-	Backend *be,
-	DB *db,
-	DB_TXN *txn,
-	struct berval *k,
-	ID id,
-	int op
+key_change(
+    Backend		*be,
+    DBCache	*db,
+    struct berval *k,
+    ID			id,
+    int			op
 )
 {
 	int	rc;
-	DBT	key;
+	Datum	key;
 
 	Debug( LDAP_DEBUG_TRACE, "=> key_change(%s,%lx)\n",
 		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id, 0 );
 
-	DBTzero( &key );
-	bv2DBT(k,&key);
-	key.ulen = key.size;
-	key.flags = DB_DBT_USERMEM;
 
+	ldbm_datum_init( key );
+	key.dptr = k->bv_val;
+	key.dsize = k->bv_len;
+
+	ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
 	if (op == SLAP_INDEX_ADD_OP) {
-		/* Add values */
+	    /* Add values */
+	    rc = idl_insert_key( be, db, key, id );
 
-#ifdef BDB_TOOL_IDL_CACHING
-		if ( slapMode & SLAP_TOOL_QUICK )
-			rc = bdb_tool_idl_add( be, db, txn, &key, id );
-		else
-#endif
-			rc = bdb_idl_insert_key( be, db, txn, &key, id );
-		if ( rc == DB_KEYEXIST ) rc = 0;
 	} else {
-		/* Delete values */
-		rc = bdb_idl_delete_key( be, db, txn, &key, id );
-		if ( rc == DB_NOTFOUND ) rc = 0;
+	    /* Delete values */
+	    rc = idl_delete_key( be, db, key, id );
 	}
+	ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
+
 
 	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc, 0, 0 );
+
+
+	ldap_pvt_thread_yield();
 
 	return rc;
 }

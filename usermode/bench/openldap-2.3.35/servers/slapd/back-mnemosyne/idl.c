@@ -1,8 +1,8 @@
 /* idl.c - ldap id list handling routines */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-bdb/idl.c,v 1.94.2.15 2007/01/02 21:44:00 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/idl.c,v 1.86.2.4 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2007 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,1538 +17,1247 @@
 #include "portable.h"
 
 #include <stdio.h>
+
 #include <ac/string.h>
+#include <ac/socket.h>
 
-#include "back-bdb.h"
-#include "idl.h"
+#include "slap.h"
+#include "back-ldbm.h"
 
-#define IDL_MAX(x,y)	( x > y ? x : y )
-#define IDL_MIN(x,y)	( x < y ? x : y )
+static ID_BLOCK* idl_dup( ID_BLOCK *idl );
 
-#define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
-
-#define IDL_LRU_DELETE( bdb, e ) do { 					\
-	if ( e->idl_lru_prev != NULL ) {				\
-		e->idl_lru_prev->idl_lru_next = e->idl_lru_next; 	\
-	} else {							\
-		bdb->bi_idl_lru_head = e->idl_lru_next;			\
-	}								\
-	if ( e->idl_lru_next != NULL ) {				\
-		e->idl_lru_next->idl_lru_prev = e->idl_lru_prev;	\
-	} else {							\
-		bdb->bi_idl_lru_tail = e->idl_lru_prev;			\
-	}								\
-} while ( 0 )
-
-#define IDL_LRU_ADD( bdb, e ) do {					\
-	e->idl_lru_next = bdb->bi_idl_lru_head;				\
-	if ( e->idl_lru_next != NULL ) {				\
-		e->idl_lru_next->idl_lru_prev = (e);			\
-	}								\
-	(bdb)->bi_idl_lru_head = (e);					\
-	e->idl_lru_prev = NULL;						\
-	if ( (bdb)->bi_idl_lru_tail == NULL ) {				\
-		(bdb)->bi_idl_lru_tail = (e);				\
-	}								\
-} while ( 0 )
-
-static int
-bdb_idl_entry_cmp( const void *v_idl1, const void *v_idl2 )
+static void cont_alloc( Datum *cont, Datum *key )
 {
-	const bdb_idl_cache_entry_t *idl1 = v_idl1, *idl2 = v_idl2;
-	int rc;
+	ldbm_datum_init( *cont );
+	cont->dsize = 1 + sizeof(ID) + key->dsize;
+	cont->dptr = ch_malloc( cont->dsize );
 
-	if ((rc = SLAP_PTRCMP( idl1->db, idl2->db ))) return rc;
-	if ((rc = idl1->kstr.bv_len - idl2->kstr.bv_len )) return rc;
-	return ( memcmp ( idl1->kstr.bv_val, idl2->kstr.bv_val , idl1->kstr.bv_len ) );
+	* (unsigned char *) cont->dptr = SLAP_INDEX_CONT_PREFIX;
+
+	AC_MEMCPY( &((unsigned char *)cont->dptr)[1 + sizeof(ID)],
+		key->dptr, key->dsize );
 }
 
-#if IDL_DEBUG > 0
-static void idl_check( ID *ids )
+static void cont_id( Datum *cont, ID id )
 {
-	if( BDB_IDL_IS_RANGE( ids ) ) {
-		assert( BDB_IDL_RANGE_FIRST(ids) <= BDB_IDL_RANGE_LAST(ids) );
-	} else {
-		ID i;
-		for( i=1; i < ids[0]; i++ ) {
-			assert( ids[i+1] > ids[i] );
-		}
-	}
-}
+	unsigned int i;
 
-#if IDL_DEBUG > 1
-static void idl_dump( ID *ids )
-{
-	if( BDB_IDL_IS_RANGE( ids ) ) {
-		Debug( LDAP_DEBUG_ANY,
-			"IDL: range ( %ld - %ld )\n",
-			(long) BDB_IDL_RANGE_FIRST( ids ),
-			(long) BDB_IDL_RANGE_LAST( ids ) );
-
-	} else {
-		ID i;
-		Debug( LDAP_DEBUG_ANY, "IDL: size %ld", (long) ids[0], 0, 0 );
-
-		for( i=1; i<=ids[0]; i++ ) {
-			if( i % 16 == 1 ) {
-				Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
-			}
-			Debug( LDAP_DEBUG_ANY, "  %02lx", (long) ids[i], 0, 0 );
-		}
-
-		Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
+	for( i=1; i <= sizeof(id); i++) {
+		((unsigned char *)cont->dptr)[i] = (unsigned char)(id & 0xFF);
+		id >>= 8;
 	}
 
-	idl_check( ids );
 }
-#endif /* IDL_DEBUG > 1 */
-#endif /* IDL_DEBUG > 0 */
 
-unsigned bdb_idl_search( ID *ids, ID id )
+static void cont_free( Datum *cont )
 {
-#define IDL_BINARY_SEARCH 1
-#ifdef IDL_BINARY_SEARCH
+	ch_free( cont->dptr );
+}
+
+#ifdef LDBM_DEBUG_IDL
+static void idl_check(ID_BLOCK *idl)
+{
+	int i, max;
+	ID_BLOCK last;
+
+	if( ID_BLOCK_ALLIDS(idl) )
+	{
+		return;
+	}
+#ifndef USE_INDIRECT_NIDS
+	if( ID_BLOCK_INDIRECT(idl) )
+	{
+		for ( max = 0; !ID_BLOCK_NOID(idl, max); max++ ) ;
+	} else
+#endif
+	{
+		max = ID_BLOCK_NIDS(idl);
+	}
+	if ( max <= 1 )
+	{
+		return;
+	}
+
+	for( last = ID_BLOCK_ID(idl, 0), i = 1;
+		i < max;
+		last = ID_BLOCK_ID(idl, i), i++ )
+	{
+		assert (last < ID_BLOCK_ID(idl, i) );
+	}
+}
+#endif
+
+/* Allocate an ID_BLOCK with room for nids ids */
+ID_BLOCK *
+idl_alloc( unsigned int nids )
+{
+	ID_BLOCK	*new;
+
+	/* nmax + nids + space for the ids */
+	new = (ID_BLOCK *) ch_calloc( (ID_BLOCK_IDS_OFFSET + nids), sizeof(ID) );
+	ID_BLOCK_NMAX(new) = nids;
+	ID_BLOCK_NIDS(new) = 0;
+
+	return( new );
+}
+
+
+/* Allocate an empty ALLIDS ID_BLOCK */
+ID_BLOCK	*
+idl_allids( Backend *be )
+{
+	ID_BLOCK	*idl;
+	ID		id;
+
+	idl = idl_alloc( 0 );
+	ID_BLOCK_NMAX(idl) = ID_BLOCK_ALLIDS_VALUE;
+	if ( next_id_get( be, &id ) ) {
+		idl_free( idl );
+		return NULL;
+	}
+	ID_BLOCK_NIDS(idl) = id;
+
+	return( idl );
+}
+
+/* Free an ID_BLOCK */
+void
+idl_free( ID_BLOCK *idl )
+{
+	if ( idl == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"idl_free: called with NULL pointer\n",
+			0, 0, 0 );
+
+		return;
+	}
+
+	free( (char *) idl );
+}
+
+
+/* Fetch an single ID_BLOCK from the cache */
+static ID_BLOCK *
+idl_fetch_one(
+    Backend		*be,
+    DBCache	*db,
+    Datum		key
+)
+{
+	Datum	data;
+	ID_BLOCK	*idl;
+
+	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch_one\n", 0, 0, 0 ); */
+
+	data = ldbm_cache_fetch( db, key );
+
+	if( data.dptr == NULL ) {
+		return NULL;
+	}
+
+	idl = (ID_BLOCK *) data.dptr;
+	if ( ID_BLOCK_ALLIDS(idl) ) {
+		/* make sure we have the current value of highest id */
+		idl = idl_allids( be );
+	} else {
+		idl = idl_dup((ID_BLOCK *) data.dptr);
+	}
+
+	ldbm_datum_free( db->dbc_db, data );
+
+	return idl;
+}
+
+
+/* Fetch a set of ID_BLOCKs from the cache
+ *	if not INDIRECT
+ *		if block return is an ALLIDS block,
+ *			return an new ALLIDS block
+ *		otherwise
+ *			return block
+ *	construct super block from all blocks referenced by INDIRECT block
+ *	return super block
+ */
+ID_BLOCK *
+idl_fetch(
+    Backend		*be,
+    DBCache	*db,
+    Datum		key
+)
+{
+	Datum	data;
+	ID_BLOCK	*idl;
+	ID_BLOCK	**tmp;
+	unsigned	i, nids, nblocks;
+
+	idl = idl_fetch_one( be, db, key );
+
+	if ( idl == NULL ) {
+		return NULL;
+	}
+
+	if ( ID_BLOCK_ALLIDS(idl) ) {
+		/* all ids block */
+		return( idl );
+	}
+
+	if ( ! ID_BLOCK_INDIRECT( idl ) ) {
+		/* regular block */
+		return( idl );
+	}
+
 	/*
-	 * binary search of id in ids
-	 * if found, returns position of id
-	 * if not found, returns first postion greater than id
+	 * this is an indirect block which points to other blocks.
+	 * we need to read in all the blocks it points to and construct
+	 * a big id list containing all the ids, which we will return.
 	 */
-	unsigned base = 0;
-	unsigned cursor = 0;
-	int val = 0;
-	unsigned n = ids[0];
 
-#if IDL_DEBUG > 0
-	idl_check( ids );
-#endif
-
-	while( 0 < n ) {
-		int pivot = n >> 1;
-		cursor = base + pivot;
-		val = IDL_CMP( id, ids[cursor + 1] );
-
-		if( val < 0 ) {
-			n = pivot;
-
-		} else if ( val > 0 ) {
-			base = cursor + 1;
-			n -= pivot + 1;
-
-		} else {
-			return cursor + 1;
-		}
-	}
-	
-	if( val > 0 ) {
-		return cursor + 2;
-	} else {
-		return cursor + 1;
-	}
-
+#ifndef USE_INDIRECT_NIDS
+	/* count the number of blocks & allocate space for pointers to them */
+	for ( nblocks = 0; !ID_BLOCK_NOID(idl, nblocks); nblocks++ )
+		;	/* NULL */
 #else
-	/* (reverse) linear search */
-	int i;
+	nblocks = ID_BLOCK_NIDS(idl);
+#endif
+	tmp = (ID_BLOCK **) ch_malloc( nblocks * sizeof(ID_BLOCK *) );
 
-#if IDL_DEBUG > 0
-	idl_check( ids );
+	/* read in all the blocks */
+	cont_alloc( &data, &key );
+	nids = 0;
+	for ( i = 0; i < nblocks; i++ ) {
+		cont_id( &data, ID_BLOCK_ID(idl, i) );
+
+		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "idl_fetch: one returned NULL\n", 0, 0, 0 );
+
+			continue;
+		}
+
+		nids += ID_BLOCK_NIDS(tmp[i]);
+	}
+	cont_free( &data );
+	idl_free( idl );
+
+	/* allocate space for the big block */
+	idl = idl_alloc( nids );
+	ID_BLOCK_NIDS(idl) = nids;
+	nids = 0;
+
+	/* copy in all the ids from the component blocks */
+	for ( i = 0; i < nblocks; i++ ) {
+		if ( tmp[i] == NULL ) {
+			continue;
+		}
+
+		AC_MEMCPY(
+			(char *) &ID_BLOCK_ID(idl, nids),
+			(char *) &ID_BLOCK_ID(tmp[i], 0),
+			ID_BLOCK_NIDS(tmp[i]) * sizeof(ID) );
+		nids += ID_BLOCK_NIDS(tmp[i]);
+
+		idl_free( tmp[i] );
+	}
+	free( (char *) tmp );
+
+	assert( ID_BLOCK_NIDS(idl) == nids );
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(idl);
 #endif
 
-	for( i=ids[0]; i; i-- ) {
-		if( id > ids[i] ) {
+	Debug( LDAP_DEBUG_TRACE, "<= idl_fetch %ld ids (%ld max)\n",
+	       ID_BLOCK_NIDS(idl), ID_BLOCK_NMAXN(idl), 0 );
+
+	return( idl );
+}
+
+
+/* store a single block */
+static int
+idl_store(
+    Backend		*be,
+    DBCache	*db,
+    Datum		key, 
+    ID_BLOCK		*idl
+)
+{
+	int	rc, flags;
+	Datum	data;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(idl);
+#endif
+
+	ldbm_datum_init( data );
+
+	/* Debug( LDAP_DEBUG_TRACE, "=> idl_store\n", 0, 0, 0 ); */
+
+	data.dptr = (char *) idl;
+	data.dsize = (ID_BLOCK_IDS_OFFSET + ID_BLOCK_NMAXN(idl)) * sizeof(ID);
+	
+	flags = LDBM_REPLACE;
+	rc = ldbm_cache_store( db, key, data, flags );
+
+	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */
+	return( rc );
+}
+
+/* Binary search for id in block, return index
+ *    an index is always returned, even with no match. If no
+ * match, the returned index is the insertion point.
+ */
+static unsigned int
+idl_find(
+    ID_BLOCK	*b,
+    ID		id
+)
+{
+	int lo=0, hi=ID_BLOCK_NIDS(b)-1, nr=0;
+
+	for (;lo<=hi;)
+	{
+	    nr = ( lo + hi ) / 2;
+	    if (ID_BLOCK_ID(b, nr) == id)
+	    	break;
+	    if (ID_BLOCK_ID(b, nr) > id)
+	    	hi = nr - 1;
+	    else
+	    	lo = nr + 1;
+	}
+	return nr;
+}
+
+/* split the block at id 
+ *	locate ID greater than or equal to id.
+ */
+static void
+idl_split_block(
+    ID_BLOCK	*b,
+    ID		id,
+    ID_BLOCK	**right,
+    ID_BLOCK	**left
+)
+{
+	unsigned int	nr, nl;
+
+	/* find where to split the block */
+	nr = idl_find(b, id);
+	if ( ID_BLOCK_ID(b,nr) < id )
+		nr++;
+
+	nl = ID_BLOCK_NIDS(b) - nr;
+
+	*right = idl_alloc( nr == 0 ? 1 : nr );
+	*left = idl_alloc( nl + (nr == 0 ? 0 : 1));
+
+	/*
+	 * everything before the id being inserted in the first block
+	 * unless there is nothing, in which case the id being inserted
+	 * goes there.
+	 */
+	if ( nr == 0 ) {
+		ID_BLOCK_NIDS(*right) = 1;
+		ID_BLOCK_ID(*right, 0) = id;
+	} else {
+		AC_MEMCPY(
+			(char *) &ID_BLOCK_ID(*right, 0),
+			(char *) &ID_BLOCK_ID(b, 0),
+			nr * sizeof(ID) );
+		ID_BLOCK_NIDS(*right) = nr;
+		ID_BLOCK_ID(*left, 0) = id;
+	}
+
+	/* the id being inserted & everything after in the second block */
+	AC_MEMCPY(
+		(char *) &ID_BLOCK_ID(*left, (nr == 0 ? 0 : 1)),
+	    (char *) &ID_BLOCK_ID(b, nr),
+		nl * sizeof(ID) );
+	ID_BLOCK_NIDS(*left) = nl + (nr == 0 ? 0 : 1);
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(*right);
+	idl_check(*left);
+#endif
+}
+
+
+/*
+ * idl_change_first - called when an indirect block's first key has
+ * changed, meaning it needs to be stored under a new key, and the
+ * header block pointing to it needs updating.
+ */
+static int
+idl_change_first(
+    Backend		*be,
+    DBCache	*db,
+    Datum		hkey,		/* header block key	*/
+    ID_BLOCK		*h,		/* header block		*/
+    int			pos,		/* pos in h to update	*/
+    Datum		bkey,		/* data block key	*/
+    ID_BLOCK		*b		/* data block		*/
+)
+{
+	int	rc;
+
+	/* Debug( LDAP_DEBUG_TRACE, "=> idl_change_first\n", 0, 0, 0 ); */
+
+	/* delete old key block */
+	if ( (rc = ldbm_cache_delete( db, bkey )) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "idl_change_first: ldbm_cache_delete returned %d\n",
+			rc, 0, 0 );
+
+		return( rc );
+	}
+
+	/* write block with new key */
+	cont_id( &bkey, ID_BLOCK_ID(b, 0) );
+
+	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "idl_change_first: idl_store returned %d\n", rc, 0, 0 );
+
+		return( rc );
+	}
+
+	/* update + write indirect header block */
+	ID_BLOCK_ID(h, pos) = ID_BLOCK_ID(b, 0);
+	if ( (rc = idl_store( be, db, hkey, h )) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "idl_change_first: idl_store returned %d\n", rc, 0, 0 );
+
+		return( rc );
+	}
+
+	return( 0 );
+}
+
+
+int
+idl_insert_key(
+    Backend		*be,
+    DBCache	*db,
+    Datum		key,
+    ID			id
+)
+{
+	int	i, j, first, rc = 0;
+	ID_BLOCK	*idl, *tmp, *tmp2, *tmp3;
+	Datum	k2;
+
+	if ( (idl = idl_fetch_one( be, db, key )) == NULL ) {
+		idl = idl_alloc( 1 );
+		ID_BLOCK_ID(idl, ID_BLOCK_NIDS(idl)++) = id;
+		rc = idl_store( be, db, key, idl );
+
+		idl_free( idl );
+		return( rc );
+	}
+
+	if ( ID_BLOCK_ALLIDS( idl ) ) {
+		/* ALLIDS */
+		idl_free( idl );
+		return 0;
+	}
+
+	if ( ! ID_BLOCK_INDIRECT( idl ) ) {
+		/* regular block */
+		switch ( idl_insert( &idl, id, db->dbc_maxids ) ) {
+		case 0:		/* id inserted - store the updated block */
+		case 1:
+			rc = idl_store( be, db, key, idl );
+			break;
+
+		case 2:		/* id already there - nothing to do */
+			rc = 0;
+			break;
+
+		case 3:		/* id not inserted - block must be split */
+			/* check threshold for marking this an all-id block */
+			if ( db->dbc_maxindirect < 2 ) {
+				idl_free( idl );
+				idl = idl_allids( be );
+				rc = idl_store( be, db, key, idl );
+				break;
+			}
+
+			idl_split_block( idl, id, &tmp, &tmp2 );
+			idl_free( idl );
+
+			/* create the header indirect block */
+#ifndef USE_INDIRECT_NIDS
+			idl = idl_alloc( 3 );
+			ID_BLOCK_NMAX(idl) = 3;
+			ID_BLOCK_NIDS(idl) = ID_BLOCK_INDIRECT_VALUE;
+			ID_BLOCK_ID(idl, 0) = ID_BLOCK_ID(tmp, 0);
+			ID_BLOCK_ID(idl, 1) = ID_BLOCK_ID(tmp2, 0);
+			ID_BLOCK_ID(idl, 2) = NOID;
+#else
+			idl = idl_alloc( 2 );
+			ID_BLOCK_NMAX(idl) = 2 | ID_BLOCK_INDIRECT_VALUE;
+			ID_BLOCK_NIDS(idl) = 2;
+			ID_BLOCK_ID(idl, 0) = ID_BLOCK_ID(tmp, 0);
+			ID_BLOCK_ID(idl, 1) = ID_BLOCK_ID(tmp2, 0);
+#endif
+
+			/* store it */
+			rc = idl_store( be, db, key, idl );
+
+			cont_alloc( &k2, &key );
+			cont_id( &k2, ID_BLOCK_ID(tmp, 0) );
+
+			rc = idl_store( be, db, k2, tmp );
+
+			cont_id( &k2, ID_BLOCK_ID(tmp2, 0) );
+			rc = idl_store( be, db, k2, tmp2 );
+
+			cont_free( &k2 );
+
+			idl_free( tmp );
+			idl_free( tmp2 );
 			break;
 		}
+
+		idl_free( idl );
+		return( rc );
 	}
 
-	return i+1;
-#endif
-}
-
-int bdb_idl_insert( ID *ids, ID id )
-{
-	unsigned x;
-
-#if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", (long) id, x, 0 );
-	idl_dump( ids );
-#elif IDL_DEBUG > 0
-	idl_check( ids );
-#endif
-
-	if (BDB_IDL_IS_RANGE( ids )) {
-		/* if already in range, treat as a dup */
-		if (id >= BDB_IDL_FIRST(ids) && id <= BDB_IDL_LAST(ids))
-			return -1;
-		if (id < BDB_IDL_FIRST(ids))
-			ids[1] = id;
-		else if (id > BDB_IDL_LAST(ids))
-			ids[2] = id;
-		return 0;
-	}
-
-	x = bdb_idl_search( ids, id );
-	assert( x > 0 );
-
-	if( x < 1 ) {
-		/* internal error */
-		return -2;
-	}
-
-	if ( x <= ids[0] && ids[x] == id ) {
-		/* duplicate */
-		return -1;
-	}
-
-	if ( ++ids[0] >= BDB_IDL_DB_MAX ) {
-		if( id < ids[1] ) {
-			ids[1] = id;
-			ids[2] = ids[ids[0]-1];
-		} else if ( ids[ids[0]-1] < id ) {
-			ids[2] = id;
-		} else {
-			ids[2] = ids[ids[0]-1];
-		}
-		ids[0] = NOID;
-	
-	} else {
-		/* insert id */
-		AC_MEMCPY( &ids[x+1], &ids[x], (ids[0]-x) * sizeof(ID) );
-		ids[x] = id;
-	}
-
-#if IDL_DEBUG > 1
-	idl_dump( ids );
-#elif IDL_DEBUG > 0
-	idl_check( ids );
-#endif
-
-	return 0;
-}
-
-static int bdb_idl_delete( ID *ids, ID id )
-{
-	unsigned x;
-
-#if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x, 0 );
-	idl_dump( ids );
-#elif IDL_DEBUG > 0
-	idl_check( ids );
-#endif
-
-	if (BDB_IDL_IS_RANGE( ids )) {
-		/* If deleting a range boundary, adjust */
-		if ( ids[1] == id )
-			ids[1]++;
-		else if ( ids[2] == id )
-			ids[2]--;
-		/* deleting from inside a range is a no-op */
-
-		/* If the range has collapsed, re-adjust */
-		if ( ids[1] > ids[2] )
-			ids[0] = 0;
-		else if ( ids[1] == ids[2] )
-			ids[1] = 1;
-		return 0;
-	}
-
-	x = bdb_idl_search( ids, id );
-	assert( x > 0 );
-
-	if( x <= 0 ) {
-		/* internal error */
-		return -2;
-	}
-
-	if( x > ids[0] || ids[x] != id ) {
-		/* not found */
-		return -1;
-
-	} else if ( --ids[0] == 0 ) {
-		if( x != 1 ) {
-			return -3;
-		}
-
-	} else {
-		AC_MEMCPY( &ids[x], &ids[x+1], (1+ids[0]-x) * sizeof(ID) );
-	}
-
-#if IDL_DEBUG > 1
-	idl_dump( ids );
-#elif IDL_DEBUG > 0
-	idl_check( ids );
-#endif
-
-	return 0;
-}
-
-static char *
-bdb_show_key(
-	DBT		*key,
-	char		*buf )
-{
-	if ( key->size == 4 /* LUTIL_HASH_BYTES */ ) {
-		unsigned char *c = key->data;
-		sprintf( buf, "[%02x%02x%02x%02x]", c[0], c[1], c[2], c[3] );
-		return buf;
-	} else {
-		return key->data;
-	}
-}
-
-/* Find a db/key pair in the IDL cache. If ids is non-NULL,
- * copy the cached IDL into it, otherwise just return the status.
- */
-int
-bdb_idl_cache_get(
-	struct bdb_info	*bdb,
-	DB			*db,
-	DBT			*key,
-	ID			*ids )
-{
-	bdb_idl_cache_entry_t idl_tmp;
-	bdb_idl_cache_entry_t *matched_idl_entry;
-	int rc = LDAP_NO_SUCH_OBJECT;
-
-	DBT2bv( key, &idl_tmp.kstr );
-	idl_tmp.db = db;
-	ldap_pvt_thread_rdwr_rlock( &bdb->bi_idl_tree_rwlock );
-	matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
-				      bdb_idl_entry_cmp );
-	if ( matched_idl_entry != NULL ) {
-		if ( matched_idl_entry->idl && ids )
-			BDB_IDL_CPY( ids, matched_idl_entry->idl );
-		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
-		IDL_LRU_DELETE( bdb, matched_idl_entry );
-		IDL_LRU_ADD( bdb, matched_idl_entry );
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
-		if ( matched_idl_entry->idl )
-			rc = LDAP_SUCCESS;
-		else
-			rc = DB_NOTFOUND;
-	}
-	ldap_pvt_thread_rdwr_runlock( &bdb->bi_idl_tree_rwlock );
-
-	return rc;
-}
-
-void
-bdb_idl_cache_put(
-	struct bdb_info	*bdb,
-	DB			*db,
-	DBT			*key,
-	ID			*ids,
-	int			rc )
-{
-	bdb_idl_cache_entry_t idl_tmp;
-	bdb_idl_cache_entry_t *ee;
-
-	if ( rc == DB_NOTFOUND || BDB_IDL_IS_ZERO( ids ))
-		return;
-
-	DBT2bv( key, &idl_tmp.kstr );
-
-	ee = (bdb_idl_cache_entry_t *) ch_malloc(
-		sizeof( bdb_idl_cache_entry_t ) );
-	ee->db = db;
-	ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );
-	BDB_IDL_CPY( ee->idl, ids );
-
-	ee->idl_lru_prev = NULL;
-	ee->idl_lru_next = NULL;
-	ber_dupbv( &ee->kstr, &idl_tmp.kstr );
-	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
-	if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
-		bdb_idl_entry_cmp, avl_dup_error ))
-	{
-		ch_free( ee->kstr.bv_val );
-		ch_free( ee->idl );
-		ch_free( ee );
-		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
-		return;
-	}
-	ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
-	IDL_LRU_ADD( bdb, ee );
-	if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
-		int i = 0;
-		while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
-			ee = bdb->bi_idl_lru_tail;
-			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
-				    bdb_idl_entry_cmp ) == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_put: "
-					"AVL delete failed\n",
-					0, 0, 0 );
-			}
-			IDL_LRU_DELETE( bdb, ee );
-			i++;
-			--bdb->bi_idl_cache_size;
-			ch_free( ee->kstr.bv_val );
-			ch_free( ee->idl );
-			ch_free( ee );
-		}
-	}
-
-	ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
-	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
-}
-
-void
-bdb_idl_cache_del(
-	struct bdb_info	*bdb,
-	DB			*db,
-	DBT			*key )
-{
-	bdb_idl_cache_entry_t *matched_idl_entry, idl_tmp;
-	DBT2bv( key, &idl_tmp.kstr );
-	idl_tmp.db = db;
-	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
-	matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
-				      bdb_idl_entry_cmp );
-	if ( matched_idl_entry != NULL ) {
-		if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
-				    bdb_idl_entry_cmp ) == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_del: "
-				"AVL delete failed\n",
-				0, 0, 0 );
-		}
-		--bdb->bi_idl_cache_size;
-		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
-		IDL_LRU_DELETE( bdb, matched_idl_entry );
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
-		free( matched_idl_entry->kstr.bv_val );
-		if ( matched_idl_entry->idl )
-			free( matched_idl_entry->idl );
-		free( matched_idl_entry );
-	}
-	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
-}
-
-void
-bdb_idl_cache_add_id(
-	struct bdb_info	*bdb,
-	DB			*db,
-	DBT			*key,
-	ID			id )
-{
-	bdb_idl_cache_entry_t *cache_entry, idl_tmp;
-	DBT2bv( key, &idl_tmp.kstr );
-	idl_tmp.db = db;
-	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
-	cache_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
-				      bdb_idl_entry_cmp );
-	if ( cache_entry != NULL ) {
-		if ( !BDB_IDL_IS_RANGE( cache_entry->idl ) &&
-			cache_entry->idl[0] < BDB_IDL_DB_MAX ) {
-			size_t s = BDB_IDL_SIZEOF( cache_entry->idl ) + sizeof(ID);
-			cache_entry->idl = ch_realloc( cache_entry->idl, s );
-		}
-		bdb_idl_insert( cache_entry->idl, id );
-	}
-	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
-}
-
-void
-bdb_idl_cache_del_id(
-	struct bdb_info	*bdb,
-	DB			*db,
-	DBT			*key,
-	ID			id )
-{
-	bdb_idl_cache_entry_t *cache_entry, idl_tmp;
-	DBT2bv( key, &idl_tmp.kstr );
-	idl_tmp.db = db;
-	ldap_pvt_thread_rdwr_wlock( &bdb->bi_idl_tree_rwlock );
-	cache_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
-				      bdb_idl_entry_cmp );
-	if ( cache_entry != NULL ) {
-		bdb_idl_delete( cache_entry->idl, id );
-		if ( cache_entry->idl[0] == 0 ) {
-			if ( avl_delete( &bdb->bi_idl_tree, (caddr_t) cache_entry,
-						bdb_idl_entry_cmp ) == NULL ) {
-				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_cache_del: "
-					"AVL delete failed\n",
-					0, 0, 0 );
-			}
-			--bdb->bi_idl_cache_size;
-			ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
-			IDL_LRU_DELETE( bdb, cache_entry );
-			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
-			free( cache_entry->kstr.bv_val );
-			free( cache_entry->idl );
-			free( cache_entry );
-		}
-	}
-	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_idl_tree_rwlock );
-}
-
-int
-bdb_idl_fetch_key(
-	BackendDB	*be,
-	DB			*db,
-	DB_TXN		*tid,
-	DBT			*key,
-	ID			*ids,
-	DBC                     **saved_cursor,
-	int                     get_flag )
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int rc;
-	DBT data, key2, *kptr;
-	DBC *cursor;
-	ID *i;
-	void *ptr;
-	size_t len;
-	int rc2;
-	int flags = bdb->bi_db_opflags | DB_MULTIPLE;
-	int opflag;
-
-	/* If using BerkeleyDB 4.0, the buf must be large enough to
-	 * grab the entire IDL in one get(), otherwise BDB will leak
-	 * resources on subsequent get's.  We can safely call get()
-	 * twice - once for the data, and once to get the DB_NOTFOUND
-	 * result meaning there's no more data. See ITS#2040 for details.
-	 * This bug is fixed in BDB 4.1 so a smaller buffer will work if
-	 * stack space is too limited.
-	 *
-	 * configure now requires Berkeley DB 4.1.
+	/*
+	 * this is an indirect block which points to other blocks.
+	 * we need to read in the block into which the id should be
+	 * inserted, then insert the id and store the block.  we might
+	 * have to split the block if it is full, which means we also
+	 * need to write a new "header" block.
 	 */
-#if DB_VERSION_FULL < 0x04010000
-#	define BDB_ENOUGH 5
+
+#ifndef USE_INDIRECT_NIDS
+	/* select the block to try inserting into *//* XXX linear search XXX */
+	for ( i = 0; !ID_BLOCK_NOID(idl, i) && id >= ID_BLOCK_ID(idl, i); i++ )
+		;	/* NULL */
 #else
-	/* We sometimes test with tiny IDLs, and BDB always wants buffers
-	 * that are at least one page in size.
-	 */
-# if BDB_IDL_DB_SIZE < 4096
-#   define BDB_ENOUGH 2048
-# else
-#	define BDB_ENOUGH 1
-# endif
+	i = idl_find(idl, id);
+	if (ID_BLOCK_ID(idl, i) <= id)
+		i++;
 #endif
-	ID buf[BDB_IDL_DB_SIZE*BDB_ENOUGH];
-
-	char keybuf[16];
-
-	Debug( LDAP_DEBUG_ARGS,
-		"bdb_idl_fetch_key: %s\n", 
-		bdb_show_key( key, keybuf ), 0, 0 );
-
-	assert( ids != NULL );
-
-	if ( saved_cursor && *saved_cursor ) {
-		opflag = DB_NEXT;
-	} else if ( get_flag == LDAP_FILTER_GE ) {
-		opflag = DB_SET_RANGE;
-	} else if ( get_flag == LDAP_FILTER_LE ) {
-		opflag = DB_FIRST;
+	if ( i != 0 ) {
+		i--;
+		first = 0;
 	} else {
-		opflag = DB_SET;
+		first = 1;
 	}
 
-	/* only non-range lookups can use the IDL cache */
-	if ( bdb->bi_idl_cache_size && opflag == DB_SET ) {
-		rc = bdb_idl_cache_get( bdb, db, key, ids );
-		if ( rc != LDAP_NO_SUCH_OBJECT ) return rc;
+	/* At this point, the following condition must be true:
+	 * ID_BLOCK_ID(idl, i) <= id && id < ID_BLOCK_ID(idl, i+1)
+	 * except when i is the first or the last block.
+	 */
+
+	/* get the block */
+	cont_alloc( &k2, &key );
+	cont_id( &k2, ID_BLOCK_ID(idl, i) );
+
+	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "idl_insert_key: nonexistent continuation block\n",
+		    0, 0, 0 );
+
+		cont_free( &k2 );
+		idl_free( idl );
+		return( -1 );
 	}
 
-	DBTzero( &data );
+	/* insert the id */
+	switch ( idl_insert( &tmp, id, db->dbc_maxids ) ) {
+	case 0:		/* id inserted ok */
+		if ( (rc = idl_store( be, db, k2, tmp )) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "idl_insert_key: idl_store returned %d\n", rc, 0, 0 );
 
-	data.data = buf;
-	data.ulen = sizeof(buf);
-	data.flags = DB_DBT_USERMEM;
-
-	/* If we're not reusing an existing cursor, get a new one */
-	if( opflag != DB_NEXT ) {
-		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-			return rc;
 		}
-	} else {
-		cursor = *saved_cursor;
+		break;
+
+	case 1:		/* id inserted - first id in block has changed */
+		/*
+		 * key for this block has changed, so we have to
+		 * write the block under the new key, delete the
+		 * old key block + update and write the indirect
+		 * header block.
+		 */
+
+		rc = idl_change_first( be, db, key, idl, i, k2, tmp );
+		break;
+
+	case 2:		/* id not inserted - already there, do nothing */
+		rc = 0;
+		break;
+
+	case 3:		/* id not inserted - block is full */
+		/*
+		 * first, see if it will fit in the next block,
+		 * without splitting, unless we're trying to insert
+		 * into the beginning of the first block.
+		 */
+
+#ifndef USE_INDIRECT_NIDS
+		/* is there a next block? */
+		if ( !first && !ID_BLOCK_NOID(idl, i + 1) ) {
+#else
+		if ( !first && (unsigned long)(i + 1) < ID_BLOCK_NIDS(idl) ) {
+#endif
+			Datum k3;
+			/* read it in */
+			cont_alloc( &k3, &key );
+			cont_id( &k3, ID_BLOCK_ID(idl, i + 1) );
+			if ( (tmp2 = idl_fetch_one( be, db, k3 )) == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+				    "idl_insert_key: idl_fetch_one returned NULL\n",
+				    0, 0, 0 );
+
+				/* split the original block */
+				cont_free( &k3 );
+				goto split;
+			}
+
+			/* If the new id is less than the last id in the
+			 * current block, it must not be put into the next
+			 * block. Push the last id of the current block
+			 * into the next block instead.
+			 */
+			if (id < ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp) - 1)) {
+			    ID id2 = ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp) - 1);
+
+			    --ID_BLOCK_NIDS(tmp);
+			    /* This must succeed since we just popped one
+			     * ID off the end of it.
+			     */
+			    rc = idl_insert( &tmp, id, db->dbc_maxids );
+
+			    if ( (rc = idl_store( be, db, k2, tmp )) != 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+			    "idl_insert_key: idl_store returned %d\n", rc, 0, 0 );
+
+			    }
+
+			    id = id2;
+			    /* This new id will necessarily be inserted
+			     * as the first id of the next block by the
+			     * following switch() statement.
+			     */
+			}
+
+			switch ( (rc = idl_insert( &tmp2, id,
+			    db->dbc_maxids )) ) {
+			case 1:		/* id inserted first in block */
+				rc = idl_change_first( be, db, key, idl,
+				    i + 1, k3, tmp2 );
+				/* FALL */
+
+			case 2:		/* id already there - how? */
+			case 0:		/* id inserted: this can never be
+					 * the result of idl_insert, because
+					 * we guaranteed that idl_change_first
+					 * will always be called.
+					 */
+				if ( rc == 2 ) {
+					Debug( LDAP_DEBUG_ANY,
+					    "idl_insert_key: id %ld already in next block\n",
+					    id, 0, 0 );
+
+				}
+
+				idl_free( tmp );
+				idl_free( tmp2 );
+				cont_free( &k3 );
+				cont_free( &k2 );
+				idl_free( idl );
+				return( 0 );
+
+			case 3:		/* split the original block */
+				break;
+			}
+
+			idl_free( tmp2 );
+			cont_free( &k3 );
+		}
+
+split:
+		/*
+		 * must split the block, write both new blocks + update
+		 * and write the indirect header block.
+		 */
+
+		rc = 0;	/* optimistic */
+
+
+#ifndef USE_INDIRECT_NIDS
+		/* count how many indirect blocks *//* XXX linear count XXX */
+		for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ )
+			;	/* NULL */
+#else
+		j = ID_BLOCK_NIDS(idl);
+#endif
+
+		/* check it against all-id thresholed */
+		if ( j + 1 > db->dbc_maxindirect ) {
+			/*
+			 * we've passed the all-id threshold, meaning
+			 * that this set of blocks should be replaced
+			 * by a single "all-id" block.	our job: delete
+			 * all the indirect blocks, and replace the header
+			 * block by an all-id block.
+			 */
+
+			/* delete all indirect blocks */
+#ifndef USE_INDIRECT_NIDS
+			for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) {
+#else
+			for ( j = 0; (unsigned long) j < ID_BLOCK_NIDS(idl); j++ ) {
+#endif
+				cont_id( &k2, ID_BLOCK_ID(idl, j) );
+
+				rc = ldbm_cache_delete( db, k2 );
+			}
+
+			/* store allid block in place of header block */
+			idl_free( idl );
+			idl = idl_allids( be );
+			rc = idl_store( be, db, key, idl );
+
+			cont_free( &k2 );
+			idl_free( idl );
+			idl_free( tmp );
+			return( rc );
+		}
+
+		idl_split_block( tmp, id, &tmp2, &tmp3 );
+		idl_free( tmp );
+
+		/* create a new updated indirect header block */
+		tmp = idl_alloc( ID_BLOCK_NMAXN(idl) + 1 );
+#ifndef USE_INDIRECT_NIDS
+		ID_BLOCK_NIDS(tmp) = ID_BLOCK_INDIRECT_VALUE;
+#else
+		ID_BLOCK_NMAX(tmp) |= ID_BLOCK_INDIRECT_VALUE;
+#endif
+		/* everything up to the split block */
+		AC_MEMCPY(
+			(char *) &ID_BLOCK_ID(tmp, 0),
+			(char *) &ID_BLOCK_ID(idl, 0),
+		    i * sizeof(ID) );
+		/* the two new blocks */
+		ID_BLOCK_ID(tmp, i) = ID_BLOCK_ID(tmp2, 0);
+		ID_BLOCK_ID(tmp, i + 1) = ID_BLOCK_ID(tmp3, 0);
+		/* everything after the split block */
+#ifndef USE_INDIRECT_NIDS
+		AC_MEMCPY(
+			(char *) &ID_BLOCK_ID(tmp, i + 2),
+			(char *) &ID_BLOCK_ID(idl, i + 1),
+			(ID_BLOCK_NMAXN(idl) - i - 1) * sizeof(ID) );
+#else
+		AC_MEMCPY(
+			(char *) &ID_BLOCK_ID(tmp, i + 2),
+			(char *) &ID_BLOCK_ID(idl, i + 1),
+			(ID_BLOCK_NIDS(idl) - i - 1) * sizeof(ID) );
+		ID_BLOCK_NIDS(tmp) = ID_BLOCK_NIDS(idl) + 1;
+#endif
+
+		/* store the header block */
+		rc = idl_store( be, db, key, tmp );
+
+		/* store the first id block */
+		cont_id( &k2, ID_BLOCK_ID(tmp2, 0) );
+		rc = idl_store( be, db, k2, tmp2 );
+
+		/* store the second id block */
+		cont_id( &k2, ID_BLOCK_ID(tmp3, 0) );
+		rc = idl_store( be, db, k2, tmp3 );
+
+		idl_free( tmp2 );
+		idl_free( tmp3 );
+		break;
+	}
+
+	cont_free( &k2 );
+	idl_free( tmp );
+	idl_free( idl );
+	return( rc );
+}
+
+
+/*
+ * idl_insert - insert an id into an id list.
+ *
+ *	returns
+ *		0	id inserted
+ *		1	id inserted, first id in block has changed
+ *		2	id not inserted, already there
+ *		3	id not inserted, block must be split
+ */
+int
+idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
+{
+	unsigned int	i;
+
+	if ( ID_BLOCK_ALLIDS( *idl ) ) {
+		return( 2 );	/* already there */
+	}
+
+	/* is it already there? */
+	i = idl_find(*idl, id);
+	if ( ID_BLOCK_ID(*idl, i) == id ) {
+		return( 2 );	/* already there */
+	}
+	if ( ID_BLOCK_NIDS(*idl) && ID_BLOCK_ID(*idl, i) < id )
+		i++;
+
+	/* do we need to make room for it? */
+	if ( ID_BLOCK_NIDS(*idl) == ID_BLOCK_NMAXN(*idl) ) {
+		/* make room or indicate block needs splitting */
+		if ( ID_BLOCK_NMAXN(*idl) >= maxids ) {
+			return( 3 );	/* block needs splitting */
+		}
+
+		ID_BLOCK_NMAX(*idl) *= 2;
+		if ( ID_BLOCK_NMAXN(*idl) > maxids ) {
+			ID_BLOCK_NMAX(*idl) = maxids;
+		}
+		*idl = (ID_BLOCK *) ch_realloc( (char *) *idl,
+		    (ID_BLOCK_NMAXN(*idl) + ID_BLOCK_IDS_OFFSET) * sizeof(ID) );
+	}
+
+	/* make a slot for the new id */
+	AC_MEMCPY( &ID_BLOCK_ID(*idl, i+1), &ID_BLOCK_ID(*idl, i),
+		    (ID_BLOCK_NIDS(*idl) - i) * sizeof(ID) );
+
+	ID_BLOCK_ID(*idl, i) = id;
+	ID_BLOCK_NIDS(*idl)++;
+	(void) memset(
+		(char *) &ID_BLOCK_ID((*idl), ID_BLOCK_NIDS(*idl)),
+		'\0',
+	    (ID_BLOCK_NMAXN(*idl) - ID_BLOCK_NIDS(*idl)) * sizeof(ID) );
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(*idl);
+#endif
+
+	return( i == 0 ? 1 : 0 );	/* inserted - first id changed or not */
+}
+
+
+int
+idl_delete_key (
+	Backend		*be,
+	DBCache	 *db,
+	Datum		key,
+	ID		id
+)
+{
+	Datum  data;
+	ID_BLOCK *idl;
+	unsigned i;
+	int j, nids;
+
+	if ( (idl = idl_fetch_one( be, db, key ) ) == NULL )
+	{
+		/* It wasn't found.  Hmm... */
+		return -1;
+	}
+
+	if ( ID_BLOCK_ALLIDS( idl ) ) {
+		idl_free( idl );
+		return 0;
+	}
+
+	if ( ! ID_BLOCK_INDIRECT( idl ) ) {
+		i = idl_find(idl, id);
+		if ( ID_BLOCK_ID(idl, i) == id ) {
+			if( --ID_BLOCK_NIDS(idl) == 0 ) {
+				ldbm_cache_delete( db, key );
+
+			} else {
+				AC_MEMCPY(
+					&ID_BLOCK_ID(idl, i),
+					&ID_BLOCK_ID(idl, i+1),
+					(ID_BLOCK_NIDS(idl)-i) * sizeof(ID) );
+
+				ID_BLOCK_ID(idl, ID_BLOCK_NIDS(idl)) = NOID;
+
+				idl_store( be, db, key, idl );
+			}
+
+			idl_free( idl );
+			return 0;
+		}
+		/*  We didn't find the ID.  Hmmm... */
+		idl_free( idl );
+		return -1;
 	}
 	
-	/* If this is a LE lookup, save original key so we can determine
-	 * when to stop. If this is a GE lookup, save the key since it
-	 * will be overwritten.
-	 */
-	if ( get_flag == LDAP_FILTER_LE || get_flag == LDAP_FILTER_GE ) {
-		DBTzero( &key2 );
-		key2.flags = DB_DBT_USERMEM;
-		key2.ulen = sizeof(keybuf);
-		key2.data = keybuf;
-		key2.size = key->size;
-		AC_MEMCPY( keybuf, key->data, key->size );
-		kptr = &key2;
-	} else {
-		kptr = key;
-	}
-	len = key->size;
-	rc = cursor->c_get( cursor, kptr, &data, flags | opflag );
-
-	/* skip presence key on range inequality lookups */
-	while (rc == 0 && kptr->size != len) {
-		rc = cursor->c_get( cursor, kptr, &data, flags | DB_NEXT_NODUP );
-	}
-	/* If we're doing a LE compare and the new key is greater than
-	 * our search key, we're done
-	 */
-	if (rc == 0 && get_flag == LDAP_FILTER_LE && memcmp( kptr->data,
-		key->data, key->size ) > 0 ) {
-		rc = DB_NOTFOUND;
-	}
-	if (rc == 0) {
-		i = ids;
-		while (rc == 0) {
-			u_int8_t *j;
-
-			DB_MULTIPLE_INIT( ptr, &data );
-			while (ptr) {
-				DB_MULTIPLE_NEXT(ptr, &data, j, len);
-				if (j) {
-					++i;
-					BDB_DISK2ID( j, i );
-				}
-			}
-			rc = cursor->c_get( cursor, key, &data, flags | DB_NEXT_DUP );
-		}
-		if ( rc == DB_NOTFOUND ) rc = 0;
-		ids[0] = i - ids;
-		/* On disk, a range is denoted by 0 in the first element */
-		if (ids[1] == 0) {
-			if (ids[0] != BDB_IDL_RANGE_SIZE) {
-				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-					"range size mismatch: expected %d, got %ld\n",
-					BDB_IDL_RANGE_SIZE, ids[0], 0 );
-				cursor->c_close( cursor );
-				return -1;
-			}
-			BDB_IDL_RANGE( ids, ids[2], ids[3] );
-		}
-		data.size = BDB_IDL_SIZEOF(ids);
+	/* We have to go through an indirect block and find the ID
+	   in the list of IDL's
+	   */
+	cont_alloc( &data, &key );
+#ifndef USE_INDIRECT_NIDS
+	for ( nids = 0; !ID_BLOCK_NOID(idl, nids); nids++ ) {
+		;	/* Empty */
 	}
 
-	if ( saved_cursor && rc == 0 ) {
-		if ( !*saved_cursor )
-			*saved_cursor = cursor;
-		rc2 = 0;
-	}
-	else
-		rc2 = cursor->c_close( cursor );
-	if (rc2) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-			"close failed: %s (%d)\n", db_strerror(rc2), rc2, 0 );
-		return rc2;
-	}
-
-	if( rc == DB_NOTFOUND ) {
-		return rc;
-
-	} else if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-			"get failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		return rc;
-
-	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
-		/* size not multiple of ID size */
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-			"odd size: expected %ld multiple, got %ld\n",
-			(long) sizeof( ID ), (long) data.size, 0 );
-		return -1;
-
-	} else if ( data.size != BDB_IDL_SIZEOF(ids) ) {
-		/* size mismatch */
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-			"get size mismatch: expected %ld, got %ld\n",
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-		return -1;
-	}
-
-	if ( bdb->bi_idl_cache_max_size ) {
-		bdb_idl_cache_put( bdb, db, key, ids, rc );
-	}
-
-	return rc;
-}
-
-
-int
-bdb_idl_insert_key(
-	BackendDB	*be,
-	DB			*db,
-	DB_TXN		*tid,
-	DBT			*key,
-	ID			id )
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int	rc;
-	DBT data;
-	DBC *cursor;
-	ID lo, hi, nlo, nhi, nid;
-	char *err;
-
+	for ( j = 0; j<nids; j++ ) 
+#else
+	nids = ID_BLOCK_NIDS(idl);
+	j = idl_find(idl, id);
+	if ( ID_BLOCK_ID(idl, j) > id ) j--;
+	for (; j>=0; j = -1 ) /* execute once */
+#endif
 	{
-		char buf[16];
-		Debug( LDAP_DEBUG_ARGS,
-			"bdb_idl_insert_key: %lx %s\n", 
-			(long) id, bdb_show_key( key, buf ), 0 );
-	}
+		ID_BLOCK *tmp;
+		cont_id( &data, ID_BLOCK_ID(idl, j) );
 
-	assert( id != NOID );
+		if ( (tmp = idl_fetch_one( be, db, data )) == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "idl_delete_key: idl_fetch of returned NULL\n", 0, 0, 0 );
 
-	if ( bdb->bi_idl_cache_size ) {
-		bdb_idl_cache_del( bdb, db, key );
-	}
-
-	DBTzero( &data );
-	data.size = sizeof( ID );
-	data.ulen = data.size;
-	data.flags = DB_DBT_USERMEM;
-
-	BDB_ID2DISK( id, &nid );
-
-	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
-	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-		return rc;
-	}
-	data.data = &nlo;
-	/* Fetch the first data item for this key, to see if it
-	 * exists and if it's a range.
-	 */
-	rc = cursor->c_get( cursor, key, &data, DB_SET );
-	err = "c_get";
-	if ( rc == 0 ) {
-		if ( nlo != 0 ) {
-			/* not a range, count the number of items */
-			db_recno_t count;
-			rc = cursor->c_count( cursor, &count, 0 );
-			if ( rc != 0 ) {
-				err = "c_count";
-				goto fail;
-			}
-			if ( count >= BDB_IDL_DB_MAX ) {
-			/* No room, convert to a range */
-				DBT key2 = *key;
-				db_recno_t i;
-
-				key2.dlen = key2.ulen;
-				key2.flags |= DB_DBT_PARTIAL;
-
-				BDB_DISK2ID( &nlo, &lo );
-				data.data = &nhi;
-
-				rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_NODUP );
-				if ( rc != 0 && rc != DB_NOTFOUND ) {
-					err = "c_get next_nodup";
-					goto fail;
-				}
-				if ( rc == DB_NOTFOUND ) {
-					rc = cursor->c_get( cursor, key, &data, DB_LAST );
-					if ( rc != 0 ) {
-						err = "c_get last";
-						goto fail;
-					}
-				} else {
-					rc = cursor->c_get( cursor, key, &data, DB_PREV );
-					if ( rc != 0 ) {
-						err = "c_get prev";
-						goto fail;
-					}
-				}
-				BDB_DISK2ID( &nhi, &hi );
-				/* Update hi/lo if needed, then delete all the items
-				 * between lo and hi
-				 */
-				if ( id < lo ) {
-					lo = id;
-					nlo = nid;
-				} else if ( id > hi ) {
-					hi = id;
-					nhi = nid;
-				}
-				data.data = &nid;
-				/* Don't fetch anything, just position cursor */
-				data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
-				data.dlen = data.ulen = 0;
-				rc = cursor->c_get( cursor, key, &data, DB_SET );
-				if ( rc != 0 ) {
-					err = "c_get 2";
-					goto fail;
-				}
-				rc = cursor->c_del( cursor, 0 );
-				if ( rc != 0 ) {
-					err = "c_del range1";
-					goto fail;
-				}
-				/* Delete all the records */
-				for ( i=1; i<count; i++ ) {
-					rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_DUP );
-					if ( rc != 0 ) {
-						err = "c_get next_dup";
-						goto fail;
-					}
-					rc = cursor->c_del( cursor, 0 );
-					if ( rc != 0 ) {
-						err = "c_del range";
-						goto fail;
-					}
-				}
-				/* Store the range marker */
-				data.size = data.ulen = sizeof(ID);
-				data.flags = DB_DBT_USERMEM;
-				nid = 0;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
-				if ( rc != 0 ) {
-					err = "c_put range";
-					goto fail;
-				}
-				nid = nlo;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-				if ( rc != 0 ) {
-					err = "c_put lo";
-					goto fail;
-				}
-				nid = nhi;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
-				if ( rc != 0 ) {
-					err = "c_put hi";
-					goto fail;
-				}
-			} else {
-			/* There's room, just store it */
-				goto put1;
-			}
-		} else {
-			/* It's a range, see if we need to rewrite
-			 * the boundaries
-			 */
-			hi = id;
-			data.data = &nlo;
-			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
-			if ( rc != 0 ) {
-				err = "c_get lo";
-				goto fail;
-			}
-			BDB_DISK2ID( &nlo, &lo );
-			if ( id > lo ) {
-				data.data = &nhi;
-				rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
-				if ( rc != 0 ) {
-					err = "c_get hi";
-					goto fail;
-				}
-				BDB_DISK2ID( &nhi, &hi );
-			}
-			if ( id < lo || id > hi ) {
-				/* Delete the current lo/hi */
-				rc = cursor->c_del( cursor, 0 );
-				if ( rc != 0 ) {
-					err = "c_del";
-					goto fail;
-				}
-				data.data = &nid;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
-				if ( rc != 0 ) {
-					err = "c_put lo/hi";
-					goto fail;
-				}
-			}
+			continue;
 		}
-	} else if ( rc == DB_NOTFOUND ) {
-put1:		data.data = &nid;
-		rc = cursor->c_put( cursor, key, &data, DB_NODUPDATA );
-		/* Don't worry if it's already there */
-		if ( rc != 0 && rc != DB_KEYEXIST ) {
-			err = "c_put id";
-			goto fail;
-		}
-	} else {
-		/* initial c_get failed, nothing was done */
-fail:
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-			"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
-		cursor->c_close( cursor );
-		return rc;
-	}
-	rc = cursor->c_close( cursor );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-			"c_close failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-	}
-	return rc;
-}
+		/*
+		   Now try to find the ID in tmp
+		*/
 
-int
-bdb_idl_delete_key(
-	BackendDB	*be,
-	DB			*db,
-	DB_TXN		*tid,
-	DBT			*key,
-	ID			id )
-{
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int	rc;
-	DBT data;
-	DBC *cursor;
-	ID lo, hi, tmp, nid, nlo, nhi;
-	char *err;
-
-	{
-		char buf[16];
-		Debug( LDAP_DEBUG_ARGS,
-			"bdb_idl_delete_key: %lx %s\n", 
-			(long) id, bdb_show_key( key, buf ), 0 );
-	}
-	assert( id != NOID );
-
-	if ( bdb->bi_idl_cache_max_size ) {
-		bdb_idl_cache_del( bdb, db, key );
-	}
-
-	BDB_ID2DISK( id, &nid );
-
-	DBTzero( &data );
-	data.data = &tmp;
-	data.size = sizeof( id );
-	data.ulen = data.size;
-	data.flags = DB_DBT_USERMEM;
-
-	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
-	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
-			"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
-		return rc;
-	}
-	/* Fetch the first data item for this key, to see if it
-	 * exists and if it's a range.
-	 */
-	rc = cursor->c_get( cursor, key, &data, DB_SET );
-	err = "c_get";
-	if ( rc == 0 ) {
-		if ( tmp != 0 ) {
-			/* Not a range, just delete it */
-			if (tmp != nid) {
-				/* position to correct item */
-				tmp = nid;
-				rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH );
-				if ( rc != 0 ) {
-					err = "c_get id";
-					goto fail;
-				}
-			}
-			rc = cursor->c_del( cursor, 0 );
-			if ( rc != 0 ) {
-				err = "c_del id";
-				goto fail;
-			}
-		} else {
-			/* It's a range, see if we need to rewrite
-			 * the boundaries
-			 */
-			data.data = &nlo;
-			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
-			if ( rc != 0 ) {
-				err = "c_get lo";
-				goto fail;
-			}
-			BDB_DISK2ID( &nlo, &lo );
-			data.data = &nhi;
-			rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
-			if ( rc != 0 ) {
-				err = "c_get hi";
-				goto fail;
-			}
-			BDB_DISK2ID( &nhi, &hi );
-			if ( id == lo || id == hi ) {
-				if ( id == lo ) {
-					id++;
-					lo = id;
-				} else if ( id == hi ) {
-					id--;
-					hi = id;
-				}
-				if ( lo >= hi ) {
-				/* The range has collapsed... */
-					rc = db->del( db, tid, key, 0 );
-					if ( rc != 0 ) {
-						err = "del";
-						goto fail;
-					}
-				} else {
-					if ( id == lo ) {
-						/* reposition on lo slot */
-						data.data = &nlo;
-						cursor->c_get( cursor, key, &data, DB_PREV );
-					}
-					rc = cursor->c_del( cursor, 0 );
-					if ( rc != 0 ) {
-						err = "c_del";
-						goto fail;
-					}
-				}
-				if ( lo <= hi ) {
-					BDB_ID2DISK( id, &nid );
-					data.data = &nid;
-					rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
-					if ( rc != 0 ) {
-						err = "c_put lo/hi";
-						goto fail;
-					}
-				}
-			}
-		}
-	} else {
-		/* initial c_get failed, nothing was done */
-fail:
-		if ( rc != DB_NOTFOUND ) {
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
-			"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
-		}
-		cursor->c_close( cursor );
-		return rc;
-	}
-	rc = cursor->c_close( cursor );
-	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_delete_key: c_close failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-	}
-
-	return rc;
-}
-
-
-/*
- * idl_intersection - return a = a intersection b
- */
-int
-bdb_idl_intersection(
-	ID *a,
-	ID *b )
-{
-	ID ida, idb;
-	ID idmax, idmin;
-	ID cursora = 0, cursorb = 0, cursorc;
-	int swap = 0;
-
-	if ( BDB_IDL_IS_ZERO( a ) || BDB_IDL_IS_ZERO( b ) ) {
-		a[0] = 0;
-		return 0;
-	}
-
-	idmin = IDL_MAX( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
-	idmax = IDL_MIN( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
-	if ( idmin > idmax ) {
-		a[0] = 0;
-		return 0;
-	} else if ( idmin == idmax ) {
-		a[0] = 1;
-		a[1] = idmin;
-		return 0;
-	}
-
-	if ( BDB_IDL_IS_RANGE( a ) ) {
-		if ( BDB_IDL_IS_RANGE(b) ) {
-		/* If both are ranges, just shrink the boundaries */
-			a[1] = idmin;
-			a[2] = idmax;
-			return 0;
-		} else {
-		/* Else swap so that b is the range, a is a list */
-			ID *tmp = a;
-			a = b;
-			b = tmp;
-			swap = 1;
-		}
-	}
-
-	/* If a range completely covers the list, the result is
-	 * just the list. If idmin to idmax is contiguous, just
-	 * turn it into a range.
-	 */
-	if ( BDB_IDL_IS_RANGE( b )
-		&& BDB_IDL_FIRST( b ) <= BDB_IDL_FIRST( a )
-		&& BDB_IDL_LAST( b ) >= BDB_IDL_LAST( a ) ) {
-		if (idmax - idmin + 1 == a[0])
+		i = idl_find(tmp, id);
+		if ( ID_BLOCK_ID(tmp, i) == id )
 		{
-			a[0] = NOID;
-			a[1] = idmin;
-			a[2] = idmax;
-		}
-		goto done;
-	}
+			AC_MEMCPY(
+				&ID_BLOCK_ID(tmp, i),
+				&ID_BLOCK_ID(tmp, i+1),
+				(ID_BLOCK_NIDS(tmp)-(i+1)) * sizeof(ID));
+			ID_BLOCK_ID(tmp, ID_BLOCK_NIDS(tmp)-1 ) = NOID;
+			ID_BLOCK_NIDS(tmp)--;
 
-	/* Fine, do the intersection one element at a time.
-	 * First advance to idmin in both IDLs.
-	 */
-	cursora = cursorb = idmin;
-	ida = bdb_idl_first( a, &cursora );
-	idb = bdb_idl_first( b, &cursorb );
-	cursorc = 0;
+			if ( ID_BLOCK_NIDS(tmp) ) {
+				idl_store ( be, db, data, tmp );
 
-	while( ida <= idmax || idb <= idmax ) {
-		if( ida == idb ) {
-			a[++cursorc] = ida;
-			ida = bdb_idl_next( a, &cursora );
-			idb = bdb_idl_next( b, &cursorb );
-		} else if ( ida < idb ) {
-			ida = bdb_idl_next( a, &cursora );
-		} else {
-			idb = bdb_idl_next( b, &cursorb );
-		}
-	}
-	a[0] = cursorc;
-done:
-	if (swap)
-		BDB_IDL_CPY( b, a );
-
-	return 0;
-}
-
-
-/*
- * idl_union - return a = a union b
- */
-int
-bdb_idl_union(
-	ID	*a,
-	ID	*b )
-{
-	ID ida, idb;
-	ID cursora = 0, cursorb = 0, cursorc;
-
-	if ( BDB_IDL_IS_ZERO( b ) ) {
-		return 0;
-	}
-
-	if ( BDB_IDL_IS_ZERO( a ) ) {
-		BDB_IDL_CPY( a, b );
-		return 0;
-	}
-
-	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ) {
-over:		ida = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
-		idb = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
-		a[0] = NOID;
-		a[1] = ida;
-		a[2] = idb;
-		return 0;
-	}
-
-	ida = bdb_idl_first( a, &cursora );
-	idb = bdb_idl_first( b, &cursorb );
-
-	cursorc = b[0];
-
-	/* The distinct elements of a are cat'd to b */
-	while( ida != NOID || idb != NOID ) {
-		if ( ida < idb ) {
-			if( ++cursorc > BDB_IDL_UM_MAX ) {
-				goto over;
+			} else {
+				ldbm_cache_delete( db, data );
+				AC_MEMCPY(
+					&ID_BLOCK_ID(idl, j),
+					&ID_BLOCK_ID(idl, j+1),
+					(nids-(j+1)) * sizeof(ID));
+				ID_BLOCK_ID(idl, nids-1) = NOID;
+				nids--;
+#ifdef USE_INDIRECT_NIDS
+				ID_BLOCK_NIDS(idl)--;
+#endif
+				if ( ! nids )
+					ldbm_cache_delete( db, key );
+				else
+					idl_store( be, db, key, idl );
 			}
-			b[cursorc] = ida;
-			ida = bdb_idl_next( a, &cursora );
-
-		} else {
-			if ( ida == idb )
-				ida = bdb_idl_next( a, &cursora );
-			idb = bdb_idl_next( b, &cursorb );
+			idl_free( tmp );
+			cont_free( &data );
+			idl_free( idl );
+			return 0;
 		}
+		idl_free( tmp );
 	}
 
-	/* b is copied back to a in sorted order */
-	a[0] = cursorc;
-	cursora = 1;
-	cursorb = 1;
-	cursorc = b[0]+1;
-	while (cursorb <= b[0] || cursorc <= a[0]) {
-		if (cursorc > a[0])
-			idb = NOID;
-		else
-			idb = b[cursorc];
-		if (cursorb <= b[0] && b[cursorb] < idb)
-			a[cursora++] = b[cursorb++];
-		else {
-			a[cursora++] = idb;
-			cursorc++;
-		}
-	}
-
-	return 0;
+	cont_free( &data );
+	idl_free( idl );
+	return -1;
 }
 
 
-#if 0
-/*
- * bdb_idl_notin - return a intersection ~b (or a minus b)
- */
-int
-bdb_idl_notin(
-	ID	*a,
-	ID	*b,
-	ID *ids )
+/* return a duplicate of a single ID_BLOCK */
+static ID_BLOCK *
+idl_dup( ID_BLOCK *idl )
 {
-	ID ida, idb;
-	ID cursora = 0, cursorb = 0;
+	ID_BLOCK	*new;
 
-	if( BDB_IDL_IS_ZERO( a ) ||
-		BDB_IDL_IS_ZERO( b ) ||
-		BDB_IDL_IS_RANGE( b ) )
-	{
-		BDB_IDL_CPY( ids, a );
-		return 0;
+	if ( idl == NULL ) {
+		return( NULL );
 	}
 
-	if( BDB_IDL_IS_RANGE( a ) ) {
-		BDB_IDL_CPY( ids, a );
-		return 0;
-	}
+	new = idl_alloc( ID_BLOCK_NMAXN(idl) );
 
-	ida = bdb_idl_first( a, &cursora ),
-	idb = bdb_idl_first( b, &cursorb );
+	AC_MEMCPY(
+		(char *) new,
+		(char *) idl,
+		(ID_BLOCK_NMAXN(idl) + ID_BLOCK_IDS_OFFSET) * sizeof(ID) );
 
-	ids[0] = 0;
-
-	while( ida != NOID ) {
-		if ( idb == NOID ) {
-			/* we could shortcut this */
-			ids[++ids[0]] = ida;
-			ida = bdb_idl_next( a, &cursora );
-
-		} else if ( ida < idb ) {
-			ids[++ids[0]] = ida;
-			ida = bdb_idl_next( a, &cursora );
-
-		} else if ( ida > idb ) {
-			idb = bdb_idl_next( b, &cursorb );
-
-		} else {
-			ida = bdb_idl_next( a, &cursora );
-			idb = bdb_idl_next( b, &cursorb );
-		}
-	}
-
-	return 0;
-}
+#ifdef LDBM_DEBUG_IDL
+	idl_check(new);
 #endif
 
-ID bdb_idl_first( ID *ids, ID *cursor )
-{
-	ID pos;
-
-	if ( ids[0] == 0 ) {
-		*cursor = NOID;
-		return NOID;
-	}
-
-	if ( BDB_IDL_IS_RANGE( ids ) ) {
-		if( *cursor < ids[1] ) {
-			*cursor = ids[1];
-		}
-		return *cursor;
-	}
-
-	if ( *cursor == 0 )
-		pos = 1;
-	else
-		pos = bdb_idl_search( ids, *cursor );
-
-	if( pos > ids[0] ) {
-		return NOID;
-	}
-
-	*cursor = pos;
-	return ids[pos];
+	return( new );
 }
 
-ID bdb_idl_next( ID *ids, ID *cursor )
+
+/* return the smaller ID_BLOCK */
+static ID_BLOCK *
+idl_min( ID_BLOCK *a, ID_BLOCK *b )
 {
-	if ( BDB_IDL_IS_RANGE( ids ) ) {
-		if( ids[2] < ++(*cursor) ) {
+	return( ID_BLOCK_NIDS(a) > ID_BLOCK_NIDS(b) ? b : a );
+}
+
+
+/*
+ * idl_intersection - return a intersection b
+ */
+ID_BLOCK *
+idl_intersection(
+    Backend	*be,
+    ID_BLOCK	*a,
+    ID_BLOCK	*b
+)
+{
+	unsigned int	ai, bi, ni;
+	ID_BLOCK		*n;
+
+	if ( a == NULL || b == NULL ) {
+		return( NULL );
+	}
+	if ( ID_BLOCK_ALLIDS( a ) ) {
+		return( idl_dup( b ) );
+	}
+	if ( ID_BLOCK_ALLIDS( b ) ) {
+		return( idl_dup( a ) );
+	}
+	if ( ID_BLOCK_NIDS(a) == 0 || ID_BLOCK_NIDS(b) == 0 ) {
+		return( NULL );
+	}
+
+	n = idl_dup( idl_min( a, b ) );
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(a);
+	idl_check(b);
+#endif
+
+	for ( ni = 0, ai = 0, bi = 0; ; ) {
+		if ( ID_BLOCK_ID(b, bi) == ID_BLOCK_ID(a, ai) ) {
+			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
+			ai++;
+			bi++;
+			if ( ai >= ID_BLOCK_NIDS(a) || bi >= ID_BLOCK_NIDS(b) )
+				break;
+		} else if ( ID_BLOCK_ID(a, ai) < ID_BLOCK_ID(b, bi) ) {
+			ai++;
+			if ( ai >= ID_BLOCK_NIDS(a) )
+				break;
+		} else {
+			bi++;
+			if ( bi >= ID_BLOCK_NIDS(b) )
+				break;
+		}
+	}
+
+	if ( ni == 0 ) {
+		idl_free( n );
+		return( NULL );
+	}
+	ID_BLOCK_NIDS(n) = ni;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(n);
+#endif
+
+	return( n );
+}
+
+
+/*
+ * idl_union - return a union b
+ */
+ID_BLOCK *
+idl_union(
+    Backend	*be,
+    ID_BLOCK	*a,
+    ID_BLOCK	*b
+)
+{
+	unsigned int	ai, bi, ni;
+	ID_BLOCK		*n;
+
+	if ( a == NULL ) {
+		return( idl_dup( b ) );
+	}
+	if ( b == NULL ) {
+		return( idl_dup( a ) );
+	}
+	if ( ID_BLOCK_ALLIDS( a ) || ID_BLOCK_ALLIDS( b ) ) {
+		return( idl_allids( be ) );
+	}
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(a);
+	idl_check(b);
+#endif
+
+	if ( ID_BLOCK_NIDS(b) < ID_BLOCK_NIDS(a) ) {
+		n = a;
+		a = b;
+		b = n;
+	}
+
+	n = idl_alloc( ID_BLOCK_NIDS(a) + ID_BLOCK_NIDS(b) );
+
+	for ( ni = 0, ai = 0, bi = 0;
+		ai < ID_BLOCK_NIDS(a) && bi < ID_BLOCK_NIDS(b);
+		)
+	{
+		if ( ID_BLOCK_ID(a, ai) < ID_BLOCK_ID(b, bi) ) {
+			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai++);
+
+		} else if ( ID_BLOCK_ID(b, bi) < ID_BLOCK_ID(a, ai) ) {
+			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(b, bi++);
+
+		} else {
+			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
+			ai++, bi++;
+		}
+	}
+
+	for ( ; ai < ID_BLOCK_NIDS(a); ai++ ) {
+		ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
+	}
+	for ( ; bi < ID_BLOCK_NIDS(b); bi++ ) {
+		ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(b, bi);
+	}
+	ID_BLOCK_NIDS(n) = ni;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(n);
+#endif
+
+	return( n );
+}
+
+
+/*
+ * idl_notin - return a intersection ~b (or a minus b)
+ */
+ID_BLOCK *
+idl_notin(
+    Backend	*be,
+    ID_BLOCK	*a,
+    ID_BLOCK	*b
+)
+{
+	unsigned int	ni, ai, bi;
+	ID_BLOCK		*n;
+
+	if ( a == NULL ) {
+		return( NULL );
+	}
+	if ( b == NULL || ID_BLOCK_ALLIDS( b )) {
+		return( idl_dup( a ) );
+	}
+
+	if ( ID_BLOCK_ALLIDS( a ) ) {
+		n = idl_alloc( SLAPD_LDBM_MIN_MAXIDS );
+		ni = 0;
+
+		for ( ai = 1, bi = 0;
+			ai < ID_BLOCK_NIDS(a) && ni < ID_BLOCK_NMAXN(n) && bi < ID_BLOCK_NMAXN(b);
+			ai++ )
+		{
+			if ( ID_BLOCK_ID(b, bi) == ai ) {
+				bi++;
+			} else {
+				ID_BLOCK_ID(n, ni++) = ai;
+			}
+		}
+
+		for ( ; ai < ID_BLOCK_NIDS(a) && ni < ID_BLOCK_NMAXN(n); ai++ ) {
+			ID_BLOCK_ID(n, ni++) = ai;
+		}
+
+		if ( ni == ID_BLOCK_NMAXN(n) ) {
+			idl_free( n );
+			return( idl_allids( be ) );
+		} else {
+			ID_BLOCK_NIDS(n) = ni;
+			return( n );
+		}
+	}
+
+	n = idl_dup( a );
+
+	ni = 0;
+	for ( ai = 0, bi = 0; ai < ID_BLOCK_NIDS(a); ai++ ) {
+		for ( ;
+			bi < ID_BLOCK_NIDS(b) && ID_BLOCK_ID(b, bi) < ID_BLOCK_ID(a, ai);
+		    bi++ )
+		{
+			;	/* NULL */
+		}
+
+		if ( bi == ID_BLOCK_NIDS(b) ) {
+			break;
+		}
+
+		if ( ID_BLOCK_ID(b, bi) != ID_BLOCK_ID(a, ai) ) {
+			ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
+		}
+	}
+
+	for ( ; ai < ID_BLOCK_NIDS(a); ai++ ) {
+		ID_BLOCK_ID(n, ni++) = ID_BLOCK_ID(a, ai);
+	}
+	ID_BLOCK_NIDS(n) = ni;
+
+#ifdef LDBM_DEBUG_IDL
+	idl_check(n);
+#endif
+
+	return( n );
+}
+
+/*	return the first ID in the block
+ *	if ALLIDS block
+ *		NIDS > 1 return 1
+ *		otherwise return NOID 
+ *	otherwise return first ID
+ *
+ *	cursor is set to 1
+ */	    
+ID
+idl_firstid( ID_BLOCK *idl, ID *cursor )
+{
+	*cursor = 1;
+
+	if ( idl == NULL || ID_BLOCK_NIDS(idl) == 0 ) {
+		return( NOID );
+	}
+
+	if ( ID_BLOCK_ALLIDS( idl ) ) {
+		return( ID_BLOCK_NIDS(idl) > 1 ? 1 : NOID );
+	}
+
+	return( ID_BLOCK_ID(idl, 0) );
+}
+
+/*	return next ID
+ *	if ALLIDS block, cursor is id.
+ *		increment id
+ *		if id < NIDS return id
+ *		otherwise NOID.
+ *	otherwise cursor is index into block
+ *		if index < nids
+ *			return id at index then increment
+ */ 
+ID
+idl_nextid( ID_BLOCK *idl, ID *cursor )
+{
+	if ( ID_BLOCK_ALLIDS( idl ) ) {
+		if( ++(*cursor) < ID_BLOCK_NIDS(idl) ) {
+			return *cursor;
+		} else {
 			return NOID;
 		}
-		return *cursor;
 	}
 
-	if ( ++(*cursor) <= ids[0] ) {
-		return ids[*cursor];
+	if ( *cursor < ID_BLOCK_NIDS(idl) ) {
+		return( ID_BLOCK_ID(idl, (*cursor)++) );
 	}
 
-	return NOID;
+	return( NOID );
 }
-
-#ifdef BDB_HIER
-
-/* Add one ID to an unsorted list. We ensure that the first element is the
- * minimum and the last element is the maximum, for fast range compaction.
- *   this means IDLs up to length 3 are always sorted...
- */
-int bdb_idl_append_one( ID *ids, ID id )
-{
-	if (BDB_IDL_IS_RANGE( ids )) {
-		/* if already in range, treat as a dup */
-		if (id >= BDB_IDL_FIRST(ids) && id <= BDB_IDL_LAST(ids))
-			return -1;
-		if (id < BDB_IDL_FIRST(ids))
-			ids[1] = id;
-		else if (id > BDB_IDL_LAST(ids))
-			ids[2] = id;
-		return 0;
-	}
-	if ( ids[0] ) {
-		ID tmp;
-
-		if (id < ids[1]) {
-			tmp = ids[1];
-			ids[1] = id;
-			id = tmp;
-		}
-		if ( ids[0] > 1 && id < ids[ids[0]] ) {
-			tmp = ids[ids[0]];
-			ids[ids[0]] = id;
-			id = tmp;
-		}
-	}
-	ids[0]++;
-	if ( ids[0] >= BDB_IDL_UM_MAX ) {
-		ids[0] = NOID;
-		ids[2] = id;
-	} else {
-		ids[ids[0]] = id;
-	}
-	return 0;
-}
-
-/* Append sorted list b to sorted list a. The result is unsorted but
- * a[1] is the min of the result and a[a[0]] is the max.
- */
-int bdb_idl_append( ID *a, ID *b )
-{
-	ID ida, idb, tmp, swap = 0;
-
-	if ( BDB_IDL_IS_ZERO( b ) ) {
-		return 0;
-	}
-
-	if ( BDB_IDL_IS_ZERO( a ) ) {
-		BDB_IDL_CPY( a, b );
-		return 0;
-	}
-
-	ida = BDB_IDL_LAST( a );
-	idb = BDB_IDL_LAST( b );
-	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ||
-		a[0] + b[0] >= BDB_IDL_UM_MAX ) {
-		a[2] = IDL_MAX( ida, idb );
-		a[1] = IDL_MIN( a[1], b[1] );
-		a[0] = NOID;
-		return 0;
-	}
-
-	if ( b[0] > 1 && ida > idb ) {
-		swap = idb;
-		a[a[0]] = idb;
-		b[b[0]] = ida;
-	}
-
-	if ( b[1] < a[1] ) {
-		tmp = a[1];
-		a[1] = b[1];
-	} else {
-		tmp = b[1];
-	}
-	a[0]++;
-	a[a[0]] = tmp;
-
-	if ( b[0] > 1 ) {
-		int i = b[0] - 1;
-		AC_MEMCPY(a+a[0]+1, b+2, i * sizeof(ID));
-		a[0] += i;
-	}
-	if ( swap ) {
-		b[b[0]] = swap;
-	}
-	return 0;
-}
-
-#if 1
-
-/* Quicksort + Insertion sort for small arrays */
-
-#define SMALL	8
-#define	SWAP(a,b)	itmp=(a);(a)=(b);(b)=itmp
-
-void
-bdb_idl_sort( ID *ids, ID *tmp )
-{
-	int *istack = (int *)tmp;
-	int i,j,k,l,ir,jstack;
-	ID a, itmp;
-
-	if ( BDB_IDL_IS_RANGE( ids ))
-		return;
-
-	ir = ids[0];
-	l = 1;
-	jstack = 0;
-	for(;;) {
-		if (ir - l < SMALL) {	/* Insertion sort */
-			for (j=l+1;j<=ir;j++) {
-				a = ids[j];
-				for (i=j-1;i>=1;i--) {
-					if (ids[i] <= a) break;
-					ids[i+1] = ids[i];
-				}
-				ids[i+1] = a;
-			}
-			if (jstack == 0) break;
-			ir = istack[jstack--];
-			l = istack[jstack--];
-		} else {
-			k = (l + ir) >> 1;	/* Choose median of left, center, right */
-			SWAP(ids[k], ids[l+1]);
-			if (ids[l] > ids[ir]) {
-				SWAP(ids[l], ids[ir]);
-			}
-			if (ids[l+1] > ids[ir]) {
-				SWAP(ids[l+1], ids[ir]);
-			}
-			if (ids[l] > ids[l+1]) {
-				SWAP(ids[l], ids[l+1]);
-			}
-			i = l+1;
-			j = ir;
-			a = ids[l+1];
-			for(;;) {
-				do i++; while(ids[i] < a);
-				do j--; while(ids[j] > a);
-				if (j < i) break;
-				SWAP(ids[i],ids[j]);
-			}
-			ids[l+1] = ids[j];
-			ids[j] = a;
-			jstack += 2;
-			if (ir-i+1 >= j-1) {
-				istack[jstack] = ir;
-				istack[jstack-1] = i;
-				ir = j-1;
-			} else {
-				istack[jstack] = j-1;
-				istack[jstack-1] = l;
-				l = i;
-			}
-		}
-	}
-}
-
-#else
-
-/* 8 bit Radix sort + insertion sort
- * 
- * based on code from http://www.cubic.org/docs/radix.htm
- * with improvements by mbackes@symas.com and hyc@symas.com
- *
- * This code is O(n) but has a relatively high constant factor. For lists
- * up to ~50 Quicksort is slightly faster; up to ~100 they are even.
- * Much faster than quicksort for lists longer than ~100. Insertion
- * sort is actually superior for lists <50.
- */
-
-#define BUCKETS	(1<<8)
-#define SMALL	50
-
-void
-bdb_idl_sort( ID *ids, ID *tmp )
-{
-	int count, soft_limit, phase = 0, size = ids[0];
-	ID *idls[2];
-	unsigned char *maxv = (unsigned char *)&ids[size];
-
- 	if ( BDB_IDL_IS_RANGE( ids ))
- 		return;
-
-	/* Use insertion sort for small lists */
-	if ( size <= SMALL ) {
-		int i,j;
-		ID a;
-
-		for (j=1;j<=size;j++) {
-			a = ids[j];
-			for (i=j-1;i>=1;i--) {
-				if (ids[i] <= a) break;
-				ids[i+1] = ids[i];
-			}
-			ids[i+1] = a;
-		}
-		return;
-	}
-
-	tmp[0] = size;
-	idls[0] = ids;
-	idls[1] = tmp;
-
-#if BYTE_ORDER == BIG_ENDIAN
-    for (soft_limit = 0; !maxv[soft_limit]; soft_limit++);
-#else
-    for (soft_limit = sizeof(ID)-1; !maxv[soft_limit]; soft_limit--);
-#endif
-
-	for (
-#if BYTE_ORDER == BIG_ENDIAN
-	count = sizeof(ID)-1; count >= soft_limit; --count
-#else
-	count = 0; count <= soft_limit; ++count
-#endif
-	) {
-		unsigned int num[BUCKETS], * np, n, sum;
-		int i;
-        ID *sp, *source, *dest;
-        unsigned char *bp, *source_start;
-
-		source = idls[phase]+1;
-		dest = idls[phase^1]+1;
-		source_start =  ((unsigned char *) source) + count;
-
-        np = num;
-        for ( i = BUCKETS; i > 0; --i ) *np++ = 0;
-
-		/* count occurences of every byte value */
-		bp = source_start;
-        for ( i = size; i > 0; --i, bp += sizeof(ID) )
-				num[*bp]++;
-
-		/* transform count into index by summing elements and storing
-		 * into same array
-		 */
-        sum = 0;
-        np = num;
-        for ( i = BUCKETS; i > 0; --i ) {
-                n = *np;
-                *np++ = sum;
-                sum += n;
-        }
-
-		/* fill dest with the right values in the right place */
-		bp = source_start;
-        sp = source;
-        for ( i = size; i > 0; --i, bp += sizeof(ID) ) {
-                np = num + *bp;
-                dest[*np] = *sp++;
-                ++(*np);
-        }
-		phase ^= 1;
-	}
-
-	/* copy back from temp if needed */
-	if ( phase ) {
-		ids++; tmp++;
-		for ( count = 0; count < size; ++count ) 
-			*ids++ = *tmp++;
-	}
-}
-#endif	/* Quick vs Radix */
-
-#endif	/* BDB_HIER */

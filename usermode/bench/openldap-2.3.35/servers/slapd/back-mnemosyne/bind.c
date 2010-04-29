@@ -1,8 +1,8 @@
-/* bind.c - bdb backend bind routine */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-bdb/bind.c,v 1.41.2.4 2007/01/02 21:43:59 kurt Exp $ */
+/* bind.c - ldbm backend bind and unbind routines */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/bind.c,v 1.75.2.3 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2007 The OpenLDAP Foundation.
+ * Copyright 1998-2007 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -17,132 +17,109 @@
 #include "portable.h"
 
 #include <stdio.h>
+
 #include <ac/krb.h>
+#include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 
-#include "back-bdb.h"
+#include "slap.h"
+#include "back-ldbm.h"
+#include "proto-back-ldbm.h"
 
 int
-bdb_bind( Operation *op, SlapReply *rs )
+ldbm_back_bind(
+    Operation		*op,
+    SlapReply		*rs )
 {
-	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
+	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	Entry		*e;
 	Attribute	*a;
-	EntryInfo	*ei;
+	int		rc;
+	Entry		*matched;
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char		krbname[MAX_K_NAME_SZ + 1];
 	AttributeDescription *krbattr = slap_schema.si_ad_krbName;
-	struct berval	krbval;
 	AUTH_DAT	ad;
 #endif
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
-	u_int32_t	locker;
-	DB_LOCK		lock;
+	Debug(LDAP_DEBUG_ARGS,
+		"==> ldbm_back_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
 
-	Debug( LDAP_DEBUG_ARGS,
-		"==> " LDAP_XSTRING(bdb_bind) ": dn: %s\n",
-		op->o_req_dn.bv_val, 0, 0);
-
-	/* allow noauth binds */
-	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op )) {
+	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op ) ) {
 		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
 		/* front end will send result */
 		return LDAP_SUCCESS;
 	}
 
-	rs->sr_err = LOCK_ID(bdb->bi_dbenv, &locker);
-	switch(rs->sr_err) {
-	case 0:
-		break;
-	default:
-		rs->sr_text = "internal error";
-		send_ldap_result( op, rs );
-		return rs->sr_err;
-	}
+	/* grab giant lock for reading */
+	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
-dn2entry_retry:
 	/* get entry with reader lock */
-	rs->sr_err = bdb_dn2entry( op, NULL, &op->o_req_ndn, &ei, 1,
-		locker, &lock );
-
-	switch(rs->sr_err) {
-	case DB_NOTFOUND:
-	case 0:
-		break;
-	case LDAP_BUSY:
-		send_ldap_error( op, rs, LDAP_BUSY, "ldap_server_busy" );
-		LOCK_ID_FREE(bdb->bi_dbenv, locker);
-		return LDAP_BUSY;
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto dn2entry_retry;
-	default:
-		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		LOCK_ID_FREE(bdb->bi_dbenv, locker);
-		return rs->sr_err;
-	}
-
-	e = ei->bei_e;
-	if ( rs->sr_err == DB_NOTFOUND ) {
-		if( e != NULL ) {
-			bdb_cache_return_entry_r( bdb->bi_dbenv,
-				&bdb->bi_cache, e, &lock );
-			e = NULL;
+	if ( (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
+		if( matched != NULL ) {
+			cache_return_entry_r( &li->li_cache, matched );
 		}
+		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
+		/* allow noauth binds */
+		rc = 1;
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		send_ldap_result( op, rs );
-
-		LOCK_ID_FREE(bdb->bi_dbenv, locker);
-
 		return rs->sr_err;
 	}
-
-	ber_dupbv( &op->oq_bind.rb_edn, &e->e_name );
 
 	/* check for deleted */
+#ifdef LDBM_SUBENTRIES
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
-		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
-			0, 0 );
-		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		goto done;
+		Debug( LDAP_DEBUG_TRACE,
+				"entry is subentry\n", 0, 0, 0 );
+		rc = LDAP_INVALID_CREDENTIALS;
+		goto return_results;
 	}
+#endif
 
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
-		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		goto done;
+
+#if 1
+		rc = LDAP_INVALID_CREDENTIALS;
+#else
+		rs->sr_text = "entry is alias";
+		rc = LDAP_ALIAS_PROBLEM;
+#endif
+		goto return_results;
 	}
 
 	if ( is_entry_referral( e ) ) {
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-			0, 0 );
-		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		goto done;
+		/* entry is a referral, don't allow bind */
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0, 0, 0 );
+
+		rc = LDAP_INVALID_CREDENTIALS;
+		goto return_results;
 	}
 
 	switch ( op->oq_bind.rb_method ) {
 	case LDAP_AUTH_SIMPLE:
-		a = attr_find( e->e_attrs, password );
-		if ( a == NULL ) {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			goto done;
+		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
+			/* stop front end from sending result */
+			rc = LDAP_INVALID_CREDENTIALS;
+			goto return_results;
 		}
 
 		if ( slap_passwd_check( op, e, a, &op->oq_bind.rb_cred,
 					&rs->sr_text ) != 0 )
 		{
 			/* failure; stop front end from sending result */
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			goto done;
+			rc = LDAP_INVALID_CREDENTIALS;
+			goto return_results;
 		}
-			
-		rs->sr_err = 0;
+
+		rc = 0;
 		break;
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
@@ -150,64 +127,70 @@ dn2entry_retry:
 		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad )
 			!= LDAP_SUCCESS )
 		{
-			rs->sr_err = LDAP_INVALID_CREDENTIALS,
-			goto done;
+			rc = LDAP_INVALID_CREDENTIALS;
+			goto return_results;
 		}
 
-		rs->sr_err = access_allowed( op, e,
-			krbattr, NULL, ACL_AUTH, NULL );
-		if ( ! rs->sr_err ) {
-			rs->sr_err = LDAP_INSUFFICIENT_ACCESS,
-			goto done;
+		if ( ! access_allowed( op, e,
+			krbattr, NULL, ACL_AUTH, NULL ) )
+		{
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			goto return_results;
 		}
 
-		krbval.bv_len = sprintf( krbname, "%s%s%s@%s", ad.pname,
-			*ad.pinst ? "." : "", ad.pinst, ad.prealm );
+		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
+		    : "", ad.pinst, ad.prealm );
 
 		if ( (a = attr_find( e->e_attrs, krbattr )) == NULL ) {
 			/*
-			 * no krbname values present: check against DN
+			 * no krbname values present:  check against DN
 			 */
 			if ( strcasecmp( op->o_req_dn.bv_val, krbname ) == 0 ) {
-				rs->sr_err = 0;
+				rc = 0;
 				break;
 			}
-			rs->sr_err = LDAP_INAPPROPRIATE_AUTH,
-			goto done;
+			rc = LDAP_INAPPROPRIATE_AUTH;
+			goto return_results;
 
 		} else {	/* look for krbname match */
+			struct berval	krbval;
+
 			krbval.bv_val = krbname;
+			krbval.bv_len = strlen( krbname );
 
 			if ( value_find( a->a_desc, a->a_vals, &krbval ) != 0 ) {
-				rs->sr_err = LDAP_INVALID_CREDENTIALS;
-				goto done;
+				rc = LDAP_INVALID_CREDENTIALS;
+				goto return_results;
 			}
 		}
-		rs->sr_err = 0;
+		rc = 0;
 		break;
 #endif
 
 	default:
-		assert( 0 ); /* should not be unreachable */
-		rs->sr_err = LDAP_STRONG_AUTH_NOT_SUPPORTED;
+		assert( 0 ); /* should not be reachable */
 		rs->sr_text = "authentication method not supported";
+		rc = LDAP_STRONG_AUTH_NOT_SUPPORTED;
+		goto return_results;
 	}
 
-done:
+	ber_dupbv( &op->oq_bind.rb_edn, &e->e_name );
+
+return_results:;
 	/* free entry and reader lock */
-	if( e != NULL ) {
-		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
-	}
+	cache_return_entry_r( &li->li_cache, e );
+	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
-	LOCK_ID_FREE(bdb->bi_dbenv, locker);
-
-	if ( rs->sr_err ) {
+	if ( rc ) {
+		rs->sr_err = rc;
 		send_ldap_result( op, rs );
 		if ( rs->sr_ref ) {
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
 		}
 	}
-	/* front end will send result on success (rs->sr_err==0) */
-	return rs->sr_err;
+
+	/* front end will send result on success (rc==0) */
+	return( rc );
 }
+

@@ -125,8 +125,9 @@ static void * malloc_internal (size_t sz)
 
 extern "C" void * HOARD_MALLOC (size_t sz)
 {
-	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
-	abort();
+	return malloc_internal(sz);
+	//std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
+	//abort();
 }
 
 extern "C" void * HOARD_MALLOC_TXN (size_t sz)
@@ -174,8 +175,9 @@ static void free_internal (void * ptr)
 
 extern "C" void HOARD_FREE (void* ptr)
 {
-	std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
-	abort();
+	free_internal(ptr);
+	//std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
+	//abort();
 }
 
 

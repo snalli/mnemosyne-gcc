@@ -16,7 +16,7 @@
 #include "mode/common/rwset.h"
 
 #ifndef RW_SET_SIZE
-#define RW_SET_SIZE 16384
+#define RW_SET_SIZE (256*1024)
 #endif
 
 #undef DEFINE_VTABLE_MEMBER

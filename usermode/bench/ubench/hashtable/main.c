@@ -18,8 +18,9 @@
 #include <db.h>
 #include "uthash.h"
 
-
 //#define _DEBUG_THIS
+//#define _USE_RWLOCK
+
 #define INTERNAL_ERROR(msg)                                             \
 do {                                                                    \
   fprintf(stderr, "ERROR [%s:%d] %s.\n", __FILE__, __LINE__, msg);      \
@@ -406,6 +407,7 @@ typedef struct object_s {
 typedef struct mtm_hashtable_s {
 	object_t         *ht;
 	pthread_rwlock_t rwlock;
+	pthread_mutex_t  mutex[MAX_NUM_THREADS];
 	char             tmp_buf[16384];
 } mtm_hashtable_t;
 
@@ -430,11 +432,21 @@ int mtm_init(void)
 	}	
 	mtm_global->hashtable->ht = NULL;
 	pthread_rwlock_init(&mtm_global->hashtable->rwlock, NULL);
+	for (i=0; i<MAX_NUM_THREADS; i++) {
+		pthread_mutex_init(&mtm_global->hashtable->mutex[i], NULL);
+	}
 	experiment_global_state = (void *) mtm_global;
 
 	/* populate the hash table */
 	for(i=0;i<num_keys;i++) {
-		mtm_op_add(mtm_global->hashtable, i);
+		{
+			if ((obj = (object_t*) pmalloc(sizeof(object_t) + vsize)) == NULL) {
+				INTERNAL_ERROR("Could not allocate memory.\n")
+			}
+			obj->id = i;
+			memcpy(obj->value, mtm_global->hashtable->tmp_buf, vsize); 
+			HASH_ADD_INT(mtm_global->hashtable->ht, id, obj);
+		}
 	}
 
 	return 0;
@@ -496,12 +508,23 @@ int random_operation(unsigned int *seedp)
 }
 
 
-static inline int mtm_op_add(mtm_hashtable_t *hashtable, int id, int lock)
+static inline int mtm_op_add(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
 {
 	object_t     *obj;
+	int          i;
 
 	if (lock) {
+#ifdef	_USE_RWLOCK
 		pthread_rwlock_wrlock(&hashtable->rwlock);
+#else		
+		if (percent_get>0) {
+			for (i=0; i<num_threads; i++) {
+				pthread_mutex_lock(&hashtable->mutex[i]);
+			}
+		} else {
+			pthread_mutex_lock(&hashtable->mutex[0]);
+		}
+#endif		
 	}	
 	MNEMOSYNE_ATOMIC 
 	{
@@ -513,20 +536,41 @@ static inline int mtm_op_add(mtm_hashtable_t *hashtable, int id, int lock)
 		HASH_ADD_INT(hashtable->ht, id, obj);
 	}
 	if (lock) {
+#ifdef	_USE_RWLOCK
 		pthread_rwlock_unlock(&hashtable->rwlock);
+#else
+		if (percent_get>0) {
+			for (i=0; i<num_threads; i++) {
+				pthread_mutex_unlock(&hashtable->mutex[i]);
+			}	
+		} else {	
+			pthread_mutex_unlock(&hashtable->mutex[0]);
+		}	
+#endif		
 	}	
 
 	return 0;
 }
 
 
-static inline int mtm_op_del(mtm_hashtable_t *hashtable, int id, int lock)
+static inline int mtm_op_del(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
 {
 	object_t     *obj;
 	int          local_id = id;
+	int          i;
 
 	if (lock) {
+#ifdef	_USE_RWLOCK
 		pthread_rwlock_wrlock(&hashtable->rwlock);
+#else
+		if (percent_get>0) {
+			for (i=0; i<num_threads; i++) {
+				pthread_mutex_lock(&hashtable->mutex[i]);
+			}
+		} else {
+			pthread_mutex_lock(&hashtable->mutex[0]);
+		}
+#endif		
 	}	
 	MNEMOSYNE_ATOMIC 
 	{
@@ -537,24 +581,42 @@ static inline int mtm_op_del(mtm_hashtable_t *hashtable, int id, int lock)
 		}
 	}	
 	if (lock) {
+#ifdef	_USE_RWLOCK
 		pthread_rwlock_unlock(&hashtable->rwlock);
+#else		
+		if (percent_get>0) {
+			for (i=0; i<num_threads; i++) {
+				pthread_mutex_unlock(&hashtable->mutex[i]);
+			}	
+		} else {
+			pthread_mutex_unlock(&hashtable->mutex[0]);
+		}
+#endif		
 	}	
 
 	return 0;
 }
 
 
-static inline int mtm_op_get(mtm_hashtable_t *hashtable, int id, int lock)
+static inline int mtm_op_get(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
 {
 	object_t     *obj;
 	int          local_id = id;
 
 	if (lock) {
+#ifdef	_USE_RWLOCK
 		pthread_rwlock_rdlock(&hashtable->rwlock);
+#else		
+		pthread_mutex_lock(&hashtable->mutex[tid]);
+#endif		
 	}	
 	HASH_FIND_INT(hashtable->ht, &local_id, obj);
 	if (lock) {
+#ifdef	_USE_RWLOCK
 		pthread_rwlock_unlock(&hashtable->rwlock);
+#else		
+		pthread_mutex_unlock(&hashtable->mutex[tid]);
+#endif		
 	}	
 
 	return 0;
@@ -576,7 +638,7 @@ void mtm_mix(void *arg)
 
 	/* 
 	 * Before start wondering why the code is duplicated  below, here is 
-	 * the explanation: its better to check num_threads once and then set 
+	 * the explanation: it's better to check num_threads once and then set 
 	 * the lock parameter of each individual operations as constant since 
 	 * this will effectively allow the compiler to optimize out any 
 	 * unnecessary branches during inlining.
@@ -588,14 +650,14 @@ void mtm_mix(void *arg)
 			switch(op) {
 				case OP_HASH_PUT:
 					add++;
-					mtm_op_add(mtm_global->hashtable, id, 1);
+					mtm_op_add(tid, mtm_global->hashtable, id, 1);
 					break;
 				case OP_HASH_DEL:
 					del++;
-					mtm_op_del(mtm_global->hashtable, id, 1);
+					mtm_op_del(tid, mtm_global->hashtable, id, 1);
 					break;
 				case OP_HASH_GET:
-					mtm_op_get(mtm_global->hashtable, id, 1);
+					mtm_op_get(tid, mtm_global->hashtable, id, 1);
 					break;
 			}
 		}
@@ -606,14 +668,14 @@ void mtm_mix(void *arg)
 			switch(op) {
 				case OP_HASH_PUT:
 					add++;
-					mtm_op_add(mtm_global->hashtable, id, 0);
+					mtm_op_add(tid, mtm_global->hashtable, id, 0);
 					break;
 				case OP_HASH_DEL:
 					del++;
-					mtm_op_del(mtm_global->hashtable, id, 0);
+					mtm_op_del(tid, mtm_global->hashtable, id, 0);
 					break;
 				case OP_HASH_GET:
-					mtm_op_get(mtm_global->hashtable, id, 0);
+					mtm_op_get(tid, mtm_global->hashtable, id, 0);
 					break;
 			}
 		}
@@ -745,7 +807,6 @@ int bdb_init()
 	 */
 
 	/* Open the database */
-	//ret = open_db(&dbp, prog_name, file_name, envp, DB_DUPSORT);
 	ret = open_db(&dbp, prog_name, file_name, envp, 0);
 	if (ret != 0) {
 		goto err;

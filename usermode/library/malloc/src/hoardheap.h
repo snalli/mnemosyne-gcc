@@ -66,7 +66,7 @@ public:
 	// number of threads -- Hoard imposes no such limit.)  This must be
 	// a power of two! NB: This number is twice the maximum number of
 	// PROCESSORS supported by Hoard.
-	enum { MAX_HEAPS = 1 };
+	enum { MAX_HEAPS = 16 };
 
 	// ANDing with this rounds to MAX_HEAPS.
 	enum { MAX_HEAPS_MASK = MAX_HEAPS - 1 };

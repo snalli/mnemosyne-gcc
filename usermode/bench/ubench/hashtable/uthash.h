@@ -72,8 +72,8 @@ typedef unsigned int uint32_t;
 #define uthash_expand_fyi(tbl)            /* can be defined to log expands   */
 
 /* initial number of buckets */
-#define HASH_INITIAL_NUM_BUCKETS 32      /* initial number of buckets        */
-#define HASH_INITIAL_NUM_BUCKETS_LOG2 5  /* lg2 of initial number of buckets */
+#define HASH_INITIAL_NUM_BUCKETS 16384      /* initial number of buckets        */
+#define HASH_INITIAL_NUM_BUCKETS_LOG2 14  /* lg2 of initial number of buckets */
 #define HASH_BKT_CAPACITY_THRESH 100000      /* expand when bucket count reaches */
 
 /* calculate the element whose hash handle address is hhe */

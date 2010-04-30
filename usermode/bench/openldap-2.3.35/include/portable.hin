@@ -945,6 +945,9 @@
 /* define to support LDBM backend */
 #undef SLAPD_LDBM
 
+/* define to support MNEMOSYNE backend */
+#undef SLAPD_MNEMOSYNE
+
 /* define to support LAN Manager passwords */
 #undef SLAPD_LMHASH
 

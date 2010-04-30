@@ -45662,7 +45662,6 @@ _ACEOF
 fi
 
 if test "$ol_enable_mnemosyne" != no ; then
-	echo "MNEMOSYNE"
 	BUILD_SLAPD=yes
 	BUILD_MNEMOSYNE=$ol_enable_mnemosyne
 	if test "$ol_enable_mnemosyne" = mod ; then

@@ -203,42 +203,25 @@ static inline int lg (int num)
 // Hash out the thread id to a heap and return an index to that heap.
 int processHeap::getHeapIndex (void) {
 //  int tid = hoardGetThreadID() & hoardHeap::_numProcessorsMask;
-  int tid = hoardGetThreadID() & MAX_HEAPS_MASK;
-  assert (tid < MAX_HEAPS);
-  return tid;
+	int tid = hoardGetThreadID() & MAX_HEAPS_MASK;
+	assert (tid < MAX_HEAPS);
+	return tid;
 }
 
 
-superblock * processHeap::acquire (const int sizeclass,
-				   hoardHeap * dest)
-{
-  lock ();
-
-  // Remove the superblock with the most free space.
-  superblock * maxSb = removeMaxSuperblock (sizeclass);
-  if (maxSb) {
-    maxSb->setOwner (dest);
-  }
-
-  unlock ();
-
-  return maxSb;
+superblock * processHeap::acquire (const int,
+                                   hoardHeap *)
+{	
+	assert(0);
+	return NULL;
 }
 
 
 // Put a superblock back into our list of superblocks.
-void processHeap::release (superblock * sb)
+void processHeap::release (superblock *)
 {
-  assert (EMPTY_FRACTION * sb->getNumAvailable() > sb->getNumBlocks());
-
-  lock();
-
-  // Insert the superblock.
-  insertSuperblock (sb->getBlockSizeClass(), sb, this);
-
-  unlock();
+	assert(0);
 }
 
 
 #endif // _PROCESSHEAP_H_
-

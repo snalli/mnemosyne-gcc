@@ -46,7 +46,7 @@
 
 enum {PERSISTENTHEAP_HEADER_BASE = 0xa00000000};
 enum {PERSISTENTHEAP_BASE = 0xb00000000};
-enum {PERSISTENTSUPERBLOCK_NUM = 1024};
+enum {PERSISTENTSUPERBLOCK_NUM = (32*1024)};
 enum {PERSISTENTHEAP_SIZE = PERSISTENTSUPERBLOCK_NUM * SUPERBLOCK_SIZE};
 
 class persistentHeap : public hoardHeap {
@@ -80,15 +80,14 @@ public:
   // Get the thread heap with index i.
   inline threadHeap& getHeap (int i);
 
-  // Extract a superblock.
-  inline superblock * acquire (const int c,
-			       hoardHeap * dest);
+	// Extract a superblock.
+	inline superblock * acquire (const int c,
+	                             hoardHeap * dest);
 
   // Insert a superblock.
   inline void release (superblock * sb);
 
   void scavenge();
-  persistentSuperblock *acquirePersistentSuperblock(bool isFree, int fullness, int sizeClass);
 
 #if HEAP_LOG
   // Get the log for index i.
@@ -121,6 +120,10 @@ public:
   }
   
 #endif
+  void *getPersistentSegmentBase()
+  {
+    return _psegmentBase;
+  }
 
 private:
 
@@ -146,12 +149,12 @@ private:
   // unintrusively keep track of these on a multiprocessor, because
   // this would become a bottleneck.
 
-  int _currentAllocated;
-  int _currentRequested;
-  int _maxAllocated;
-  int _maxRequested;
-  int _inUseAtMaxAllocated;
-  int _fragmentation;
+  int  _currentAllocated;
+  int  _currentRequested;
+  int  _maxAllocated;
+  int  _maxRequested;
+  int  _inUseAtMaxAllocated;
+  int  _fragmentation;
 
   // A lock to protect these statistics.
   hoardLockType _statsLock;
@@ -166,6 +169,9 @@ private:
 
   char * 	_buffer;
   int 		_bufferCount;
+
+  // The persistent segment backing the heap
+  void *_psegmentBase;
 };
 
 
@@ -197,38 +203,37 @@ int persistentHeap::getHeapIndex (void) {
 
 
 superblock * persistentHeap::acquire (const int sizeclass,
-				   hoardHeap * dest)
+                                      hoardHeap * dest)
 {
-  lock ();
+	lock ();
 
-  // Remove the superblock with the most free space.
-  superblock * maxSb = removeMaxSuperblock (sizeclass);
-  if (maxSb) {
-    maxSb->setOwner (dest);
-  }
+	// Remove the superblock with the most free space.
+	superblock * maxSb = removeMaxSuperblock (sizeclass);
+	if (maxSb) {
+		maxSb->setOwner (dest);
+	}
 
-  unlock ();
+	unlock ();
 
-  return maxSb;
+	return maxSb;
 }
 
 
 
 // Put a superblock back into our list of superblocks.
-void persistentHeap::release (superblock *)
+void persistentHeap::release (superblock *sb)
 {
-//FIXME
-#if 0
-  assert (EMPTY_FRACTION * sb->getNumAvailable() > sb->getNumBlocks());
+	assert (EMPTY_FRACTION * sb->getNumAvailable() > sb->getNumBlocks());
 
-  lock();
+	lock();
 
-  // Insert the superblock.
-  insertSuperblock (sb->getBlockSizeClass(), sb, this);
+	// Insert the superblock.
+	insertSuperblock (sb->getBlockSizeClass(), sb, this);
 
-  unlock();
-#endif
+	unlock();
 }
+
+
 
 
 #endif // _PERSISTENTHEAP_H_

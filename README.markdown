@@ -1,3 +1,7 @@
+efw       : A framework for deploying, running, and analyzing experiments
+kernelmode: Mnemosyne kernel extensions
+usermode  : Mnemosyne user-mode library suite
+
 Mnemosyne Persistent Memory Suite
 =================================
 This library suite is designed to help programmers leverage byte-addressible persistent memory in their programs. It is currently under development.

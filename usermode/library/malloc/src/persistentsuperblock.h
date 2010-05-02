@@ -6,15 +6,10 @@
 #include <iostream>
 #include <stdint.h>
 #include <assert.h>
-
+#include <pcm.h>
 #include "hoardheap.h"
 
 class superblock; // forward declaration
-
-#define PCM_STORE(addr, val)                               \
-        *(addr) = val; 
-
-#define PCM_BARRIER
 
 #if 0
 # define __BITMAP_ZERO(bitsetp) \
@@ -26,15 +21,17 @@ class superblock; // forward declaration
   } while (0)
 #endif
 
+//FIXME: PCM_NT_STORE must be replaced with transactional barrier 
+
 /* Basic access macros for bitmaps.  */
 # define __BITMAPELT(bit)	((bit) / BITMAP_ARRAY_ENTRY_SIZE_BITS)
 # define __BITMAPMASK(bit)	((uint64_t) 1 << ((bit) % BITMAP_ARRAY_ENTRY_SIZE_BITS))
-# define __BITMAP_SET(bit, bitmap)                            \
-  PCM_STORE(&bitmap[__BITMAPELT (bit)],                       \
-            bitmap[__BITMAPELT (bit)] | __BITMAPMASK (bit));
-# define __BITMAP_CLR(bit, bitmap)                            \
-  PCM_STORE(&bitmap[__BITMAPELT (bit)],                       \
-            bitmap[__BITMAPELT (bit)] & ~__BITMAPMASK (bit));
+# define __BITMAP_SET(set, bit, bitmap)                               \
+  PCM_NT_STORE(set, &bitmap[__BITMAPELT (bit)],                       \
+               bitmap[__BITMAPELT (bit)] | __BITMAPMASK (bit));
+# define __BITMAP_CLR(set, bit, bitmap)                               \
+  PCM_NT_STORE(set, &bitmap[__BITMAPELT (bit)],                       \
+               bitmap[__BITMAPELT (bit)] & ~__BITMAPMASK (bit));
 # define __BITMAP_ISSET(bit, bitmap) \
   ((bitmap[__BITMAPELT (bit)] & __BITMAPMASK (bit)) != 0)
 
@@ -50,13 +47,15 @@ public:
 	enum { BITMAP_ARRAY_SIZE = BITMAP_SIZE / BITMAP_ARRAY_ENTRY_SIZE_BITS  };
 
 	persistentSuperblock(char *pregion) {
-		int i;
+		int            i;
+		pcm_storeset_t *set = pcm_storeset_get();
+
 		for (i=0; i<BITMAP_ARRAY_SIZE; i++) {
-			PCM_STORE(&_bitmap[i], 0);
+			PCM_NT_STORE(set, &_bitmap[i], 0);
 		}
-		PCM_STORE(&_pregion, pregion);
-		PCM_STORE(&_blksize, PERSISTENTBLOCK_MIN_SIZE);
-		PCM_BARRIER
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &_pregion, (pcm_word_t) pregion); /* _pregion is a pointer, so it has a size of 64-bit on 64-bit systems */
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &_blksize, (pcm_word_t) PERSISTENTBLOCK_MIN_SIZE);
+		PCM_NT_FLUSH(set);
 	}
 
 	void volatileInit() {
@@ -86,22 +85,24 @@ public:
 	}
 
 	void allocBlock(int index) {
-		int bitsPerBlock = _blksize / PERSISTENTBLOCK_MIN_SIZE;
-		int firstBit = index * bitsPerBlock;
-		int i;
+		int            bitsPerBlock = _blksize / PERSISTENTBLOCK_MIN_SIZE;
+		int            firstBit = index * bitsPerBlock;
+		int            i;
+		pcm_storeset_t *set = pcm_storeset_get();
 
 		for (i=firstBit; i<firstBit+bitsPerBlock; i++) {
-			__BITMAP_SET(i, _bitmap);
+			__BITMAP_SET(set, i, _bitmap);
 		}
 	}
 
 	void freeBlock(int index) {
-		int bitsPerBlock = _blksize / PERSISTENTBLOCK_MIN_SIZE;
-		int firstBit = index * bitsPerBlock;
-		int i;
+		int            bitsPerBlock = _blksize / PERSISTENTBLOCK_MIN_SIZE;
+		int            firstBit = index * bitsPerBlock;
+		int            i;
+		pcm_storeset_t *set = pcm_storeset_get();
 
 		for (i=firstBit; i<firstBit+bitsPerBlock; i++) {
-			__BITMAP_CLR(i, _bitmap);
+			__BITMAP_CLR(set, i, _bitmap);
 		}
 	}
 
@@ -172,7 +173,7 @@ public:
 	}
 
 private:
-	int      _blksize;
+	uint64_t _blksize;
 	uint64_t _bitmap[BITMAP_ARRAY_SIZE];
 	char     *_pregion;
 

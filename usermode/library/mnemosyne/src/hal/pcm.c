@@ -264,7 +264,7 @@ crash_flush_cacheline(pcm_storeset_t *set, volatile pcm_word_t *addr, int allow_
 	int                 random_number;
 	int                 i;
 	int                 sum;
-	int                 successfully_flushed_words_num;
+	int                 successfully_flushed_words_num=0;
 	cacheline_t         *cacheline;
 	cacheline_bitmask_t bitmask;
 

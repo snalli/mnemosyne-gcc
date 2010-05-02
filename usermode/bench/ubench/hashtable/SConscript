@@ -1,0 +1,21 @@
+Import('ubenchEnv')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('mallocLibrary')
+
+myEnv = ubenchEnv.Clone() 
+myEnv.Append(CPPPATH = ['#library/common'])
+myEnv.Append(CPPPATH = ['/home/hvolos/workspace/db-4.8.26/build_unix/'])
+
+bdbLibrary = '/home/hvolos/workspace/db-4.8.26/build_unix/libdb.a'
+myEnv.Append(LINKFLAGS = '-Wl,--whole-archive /home/hvolos/workspace/db-4.8.26/build_unix/libdb.a -Wl,--no-whole-archive')
+
+sources = Split("""
+                main.c
+                """)
+
+
+myEnv.Append(LIBS = [mcoreLibrary])
+myEnv.Append(LIBS = [mtmLibrary])
+myEnv.Append(LIBS = [mallocLibrary])
+myEnv.Program('hashtable', sources)

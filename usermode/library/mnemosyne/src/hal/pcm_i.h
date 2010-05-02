@@ -13,6 +13,11 @@
 #include "cuckoo_hash/PointerHashInline.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /** 
  * Stores may block wait to find space in the cache (write buffer is full and 
  * must wait to evict other cacheline from the cache) or to find an empty 
@@ -531,5 +536,8 @@ PCM_SEQSTREAM_FLUSH(pcm_storeset_t *set)
 #endif
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _PCM_INTERNAL_H */

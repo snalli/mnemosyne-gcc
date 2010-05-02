@@ -248,7 +248,7 @@ rollback_transaction (mtm_tx_t *tx)
 {
 	pwb_rollback (tx);
 #if defined(ENABLE_ISOLATION) ||                                              \
-    (!defined(ENABLE_ISOLATION) && defined(ENABLE_USER_ABORTS))
+    (!defined(ENABLE_ISOLATION) && defined(ALLOW_ABORTS))
 	mtm_local_rollback (tx);
 #endif
 	mtm_useraction_freeActions (&tx->commit_actions);
@@ -269,6 +269,10 @@ rollback_transaction (mtm_tx_t *tx)
 void _ITM_CALL_CONVENTION
 mtm_pwb_rollbackTransaction (mtm_tx_t *tx, const _ITM_srcLocation *loc)
 {
+#if (!defined(ALLOW_ABORTS))
+	assert(0 && "Aborts disabled but want to abort.\n");
+#endif
+
 	assert ((tx->prop & pr_hasNoAbort) == 0);
 	//assert ((mtm_tx()->state & STATE_ABORTING) == 0);
 
@@ -303,6 +307,10 @@ mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r)
 {
 	uint32_t actions;
 
+#if (!defined(ALLOW_ABORTS))
+	assert(0 && "Aborts disabled but want to abort.\n");
+#endif
+
 	rollback_transaction(tx);
 	cm_delay(tx);
 	mtm_decide_retry_strategy (r); 
@@ -322,6 +330,10 @@ mtm_pwb_abortTransaction (mtm_tx_t *tx,
                             _ITM_abortReason reason,
                             const _ITM_srcLocation *loc)
 {
+#if (!defined(ALLOW_ABORTS))
+	assert(0 && "Aborts disabled but want to abort.\n");
+#endif
+
 	assert (reason == userAbort || reason == userRetry);
 	/* Compiler Bug: pr_hasNoRetry seems to be wrong */
 	assert ((reason == userAbort && (tx->prop & pr_hasNoAbort) == 0) || 
@@ -365,7 +377,7 @@ trycommit_transaction (mtm_tx_t *tx)
 			return true;
 		}
 #if defined(ENABLE_ISOLATION) ||                                              \
-    (!defined(ENABLE_ISOLATION) && defined(ENABLE_USER_ABORTS))
+    (!defined(ENABLE_ISOLATION) && defined(ALLOW_ABORTS))
 		mtm_local_commit(tx);
 #endif
 		mtm_useraction_freeActions (&tx->undo_actions);

@@ -52,8 +52,8 @@
 #include "log_i.h"
 
 
-//#define _DEBUG_THIS 1
 #undef _DEBUG_THIS 
+//#define _DEBUG_THIS 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -142,22 +142,25 @@ tornbit_write_buffer2log(pcm_storeset_t *set, m_phlog_tornbit_t *log)
 	 * Modulo arithmetic is implemented using the most efficient equivalent:
 	 * (log->tail + k) % PHYSICAL_LOG_NUM_ENTRIES == (log->tail + k) & (PHYSICAL_LOG_NUM_ENTRIES-1)
 	 */
+#ifdef _DEBUG_THIS		
+	printf("tornbit_write_buffer2log: log->tail = %llu\n", log->tail);	 
+#endif	
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+0)], 
-	                    (pcm_word_t) log->buffer[0]);
+	                    log->tornbit | (pcm_word_t) log->buffer[0]);
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+1)], 
-	                    (pcm_word_t) log->buffer[1]);
+	                    log->tornbit | (pcm_word_t) log->buffer[1]);
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+2)], 
-	                    (pcm_word_t) log->buffer[2]);
+	                    log->tornbit | (pcm_word_t) log->buffer[2]);
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+3)], 
-	                    (pcm_word_t) log->buffer[3]);
+	                    log->tornbit | (pcm_word_t) log->buffer[3]);
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+4)], 
-	                    (pcm_word_t) log->buffer[4]);
+	                    log->tornbit | (pcm_word_t) log->buffer[4]);
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+5)], 
-	                    (pcm_word_t) log->buffer[5]);
+	                    log->tornbit | (pcm_word_t) log->buffer[5]);
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+6)], 
-	                    (pcm_word_t) log->buffer[6]);
+	                    log->tornbit | (pcm_word_t) log->buffer[6]);
 	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+7)], 
-	                    (pcm_word_t) log->buffer[7]);
+	                    log->tornbit | (pcm_word_t) log->buffer[7]);
 
 
 	log->buffer_count=0;
@@ -191,6 +194,7 @@ m_phlog_tornbit_write(pcm_storeset_t *set, m_phlog_tornbit_t *log, pcm_word_t va
 
 #ifdef _DEBUG_THIS
 	printf("buffer_count = %lu, write_remainder_nbits = %lu\n", log->buffer_count, log->write_remainder_nbits);
+	printf("value = 0x%llX\n", value);
 #endif
 	/* Will new write flush buffer out to log? */
 	if (log->buffer_count+1 > CHUNK_SIZE/sizeof(pcm_word_t)-1) {
@@ -281,6 +285,8 @@ m_phlog_tornbit_flush(pcm_storeset_t *set, m_phlog_tornbit_t *log)
 {
 #ifdef _DEBUG_THIS		
 	printf("m_phlog_flush\n");
+  	printf("nvmd       : %p\n", log->nvmd);
+  	printf("nvphlog    : %p\n", log->nvphlog);
 #endif	
 	if (log->write_remainder_nbits > 0) {
 		/* Will log overflow? */
@@ -317,7 +323,9 @@ m_phlog_tornbit_flush(pcm_storeset_t *set, m_phlog_tornbit_t *log)
 	}
 	log->stable_tail = log->tail;
 	PCM_SEQSTREAM_FLUSH(set);
-
+#ifdef _DEBUG_THIS		
+	printf("phlog_tornbit_flush: log->stable_tail = %llu\n", log->stable_tail);
+#endif	
 	return M_R_SUCCESS;
 }
 

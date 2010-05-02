@@ -16,7 +16,7 @@
 #include "mode/common/rwset.h"
 
 #ifndef RW_SET_SIZE
-#define RW_SET_SIZE 16384
+#define RW_SET_SIZE (256*1024)
 #endif
 
 #undef DEFINE_VTABLE_MEMBER
@@ -63,7 +63,11 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 	mtm_allocate_ws_entries(tx, data, 0);
 
 	/* Non-volatile log */
+#ifdef SYNC_TRUNCATION	
+	m_logmgr_alloc_log(tx->pcm_storeset, M_TMLOG_LF_TYPE, 0, &data->ptmlog_dsc);
+#else
 	m_logmgr_alloc_log(tx->pcm_storeset, M_TMLOG_LF_TYPE, LF_ASYNC_TRUNCATION, &data->ptmlog_dsc);
+#endif	
 	data->ptmlog = (M_TMLOG_T *) data->ptmlog_dsc->log;
 
 

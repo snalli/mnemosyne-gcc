@@ -116,10 +116,10 @@ void processHeap::setAllocated (int requestedSize,
 void processHeap::setDeallocated (int requestedSize,
 				  int actualSize)
 {
-  hoardLock (_statsLock);
-  _currentRequested -= requestedSize;
-  _currentAllocated -= actualSize;
-  hoardUnlock (_statsLock);
+	hoardLock (_statsLock);
+	_currentRequested -= requestedSize;
+	_currentAllocated -= actualSize;
+	hoardUnlock (_statsLock);
 }
 #endif
 
@@ -132,76 +132,11 @@ void processHeap::setDeallocated (int requestedSize,
 
 void processHeap::free (void*)
 {
-// TODO: not sure yet whether we need a processHeap for allocation/free
-// in addition to persistentHeap
-#if 0
-  // Return if ptr is 0.
-  // This is the behavior prescribed by the standard.
-  if (ptr == 0) {
-    return;
-  }
-
-  // Find the block and superblock corresponding to this ptr.
-
-  block * b = (block *) ptr - 1;
-  assert (b->isValid());
-
-  // Check to see if this block came from a memalign() call.
-  if ((unsigned long) b->getNext() & 1) {
-    // It did. Set the block to the actual block header.
-    b = (block *) ((unsigned long) b->getNext() & ~1);
-    assert (b->isValid());
-  }    
-
-  b->markFree();
-
-  superblock * sb = b->getSuperblock();
-  assert (sb);
-  assert (sb->isValid());
-
-  const int sizeclass = sb->getBlockSizeClass();
-
-  //
-  // Return the block to the superblock,
-  // find the heap that owns this superblock
-  // and update its statistics.
-  //
-
-  hoardHeap * owner;
-
-  // By acquiring the up lock on the superblock,
-  // we prevent it from moving to the global heap.
-  // This eventually pins it down in one heap,
-  // so this loop is guaranteed to terminate.
-  // (It should generally take no more than two iterations.)
-  sb->upLock();
-  for (;;) {
-    owner = sb->getOwner();
-    owner->lock();
-    if (owner == sb->getOwner()) {
-      break;
-    } else {
-      owner->unlock();
-    }
-    // Suspend to allow ownership to quiesce.
-    hoardYield();
-  }
-
-#if HEAP_LOG
-  MemoryRequest m;
-  m.free (ptr);
-  getLog (owner->getIndex()).append(m);
-#endif
-#if HEAP_FRAG_STATS
-  setDeallocated (b->getRequestedSize(), 0);
-#endif
-
-  int sbUnmapped = owner->freeBlock (b, sb, sizeclass, this);
-
-  owner->unlock();
-  if (!sbUnmapped) {
-    sb->upUnlock();
-  }
-
-#endif  
+	// TODO: For now the ProcessHeap does not play any role since all 
+	// superblocks are acquired from and released to the Persistent Heap
+	// which plays the role of a Process Heap as well. Decoupling the 
+	// process heap from the persistent heap could allow more flexibility
+	// in the policies. We haven't implemented this yet but since processheap
+	// is kept around, we make sure that there is no call ever here.
+	assert(0);
 }

@@ -17,7 +17,7 @@ persistentHeap::persistentHeap (void)
 	persistentSuperblock *psb;
 
 	// Format persistent heap; this happens only the first time 
-	// the heap is ever incarnated
+	// the heap is ever incarnated.
 	format();
 	scavenge();
 	
@@ -45,7 +45,8 @@ void persistentHeap::format()
 			b = (void *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 			buf = (void *) ((uintptr_t) psegment + i*persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE);
 			new(b) persistentSuperblock((char *)buf);
-		}	
+		}
+		_psegmentBase = psegment;
 	}
 }
 
@@ -74,6 +75,7 @@ void persistentHeap::scavenge()
 		std::cout << "sb: " << sb << std::endl;
 		std::cout << "  ->numBlocks: " << sb->getNumBlocks() << std::endl;
 		std::cout << "  ->numAvailable: " << sb->getNumAvailable() << std::endl;
+		std::cout << "  ->getFullness: " << sb->getFullness() << std::endl;
 #endif		
 	}	
 }
@@ -93,109 +95,76 @@ void persistentHeap::stats (void) {
 
 void persistentHeap::free (void * ptr)
 {
-  // Return if ptr is 0.
-  // This is the behavior prescribed by the standard.
-  if (ptr == 0) {
-    return;
-  }
+	// Return if ptr is 0.
+	// This is the behavior prescribed by the standard.
+	if (ptr == 0) {
+		return;
+	}
 
-  // Find the block and superblock corresponding to this ptr.
+	// Find the block and superblock corresponding to this ptr.
 
-  uintptr_t psb_index = ((uintptr_t) ptr - (uintptr_t) psegment) / persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE;
-  persistentSuperblock *psb = (persistentSuperblock *) ((uintptr_t) psegmentheader + psb_index * sizeof(persistentSuperblock));
-  int blksize = psb->getBlockSize();
-  uintptr_t block_index = (((uintptr_t) ptr - (uintptr_t) psegment) % persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE) / blksize;
-  superblock *sb = psb->getSuperblock();
-  std::cout << "block_index = " << block_index << std::endl;
-  std::cout << "psb = " << psb << std::endl;
-  std::cout << "1.sb = " << sb << std::endl;
-  assert (sb);
-  assert (sb->isValid());
-  block *b = sb->getBlock(block_index);
-  std::cout << "2.sb = " << sb << std::endl;
+	uintptr_t psb_index = ((uintptr_t) ptr - (uintptr_t) psegment) / persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE;
+	persistentSuperblock *psb = (persistentSuperblock *) ((uintptr_t) psegmentheader + psb_index * sizeof(persistentSuperblock));
+	int blksize = psb->getBlockSize();
+	uintptr_t block_index = (((uintptr_t) ptr - (uintptr_t) psegment) % persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE) / blksize;
+	superblock *sb = psb->getSuperblock();
+	assert (sb);
+	assert (sb->isValid());
+	block *b = sb->getBlock(block_index);
+	//std::cout << "block_index = " << block_index << std::endl;
+	//std::cout << "psb = " << psb << std::endl;
+	//std::cout << "1.sb = " << sb << std::endl;
 
-  // Check to see if this block came from a memalign() call.
-  // TODO: Currently we don't support memalign()
+	// Check to see if this block came from a memalign() call.
+	// TODO: Currently we don't support memalign()
 
-  b->markFree();
+	b->markFree();
 
-  assert (sb == b->getSuperblock());
-  assert (sb);
-  assert (sb->isValid());
+	assert (sb == b->getSuperblock());
+	assert (sb);
+	assert (sb->isValid());
 
-  std::cout << sb << std::endl;
-  const int sizeclass = sb->getBlockSizeClass();
+	const int sizeclass = sb->getBlockSizeClass();
 
-  //
-  // Return the block to the superblock,
-  // find the heap that owns this superblock
-  // and update its statistics.
-  //
+	//
+	// Return the block to the superblock,
+	// find the heap that owns this superblock
+	// and update its statistics.
+	//
 
-  hoardHeap * owner;
+	hoardHeap * owner;
 
-  // By acquiring the up lock on the superblock,
-  // we prevent it from moving to the global heap.
-  // This eventually pins it down in one heap,
-  // so this loop is guaranteed to terminate.
-  // (It should generally take no more than two iterations.)
-  sb->upLock();
-  for (;;) {
-    owner = sb->getOwner();
-    owner->lock();
-    if (owner == sb->getOwner()) {
-      break;
-    } else {
-      owner->unlock();
-    }
-    // Suspend to allow ownership to quiesce.
-    hoardYield();
-  }
+	// By acquiring the up lock on the superblock,
+	// we prevent it from moving to the global heap.
+	// This eventually pins it down in one heap,
+	// so this loop is guaranteed to terminate.
+	// (It should generally take no more than two iterations.)
+	sb->upLock();
+	for (;;) {
+		owner = sb->getOwner();
+		owner->lock();
+		if (owner == sb->getOwner()) {
+			break;
+		} else {
+			owner->unlock();
+		}
+		// Suspend to allow ownership to quiesce.
+		hoardYield();
+	}
 
 #if HEAP_LOG
-  MemoryRequest m;
-  m.free (ptr);
-  getLog (owner->getIndex()).append(m);
+	MemoryRequest m;
+	m.free (ptr);
+	getLog (owner->getIndex()).append(m);
 #endif
 #if HEAP_FRAG_STATS
-  setDeallocated (b->getRequestedSize(), 0);
+	setDeallocated (b->getRequestedSize(), 0);
 #endif
 
-  int sbUnmapped = owner->freeBlock (b, sb, sizeclass, this);
+	int sbUnmapped = owner->freeBlock (b, sb, sizeclass, this);
 
-  owner->unlock();
-  if (!sbUnmapped) {
-    sb->upUnlock();
-  }
-}
-
-
-persistentSuperblock *
-persistentHeap::acquirePersistentSuperblock(bool isFree, int fullness, int blksize)
-{
-	int i;
-	persistentSuperblock *psb;
-	assert(0); // deprecated interface
-
-	for(i=0; i<PERSISTENTSUPERBLOCK_NUM; i++) { 
-		psb = (persistentSuperblock *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
-		std::cout << psb << " " <<  psb->getFullness() << std::endl;
-		std::cout << psb << " " <<  psb->isAcquired() << std::endl;
-		if (isFree == true) {
-			if (!psb->isAcquired() && psb->isFree() == true) {
-				psb->acquire();
-				psb->setBlockSize(blksize);
-				return psb;
-			}
-		} else {
-			if (!psb->isAcquired() && psb->getFullness()==fullness 
-			    && psb->getBlockSize() == blksize) 
-			{
-				psb->acquire();
-				return psb;
-			}
-		}
-	}	
-
-	return NULL;
+	owner->unlock();
+	if (!sbUnmapped) {
+		sb->upUnlock();
+	}
 }

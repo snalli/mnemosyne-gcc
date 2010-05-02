@@ -58,8 +58,6 @@ hoardHeap::hoardHeap (void)
   }
 }
 
-// FIXME: Move findAvailableSuperblock under processHeap and persistentHeap?
-//
 // FIXME:
 // Currently findAvailableSuperblock will check whether the persistent heap
 // has any partially-full superblock if the current heap does not. 
@@ -89,10 +87,11 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
       // Check whether the persistent heap has a superblock of fullness i and 
 	  // size class sizeclass available.
       sb = persistentheap->removePartiallyFullSuperblock(i, sizeclass);
-      //std::cout << "removePartiallyFullSuperblock: " << i << ", " << sizeclass << ", "<< sb << std::endl;
       if (sb) {
         // Insert it into the bin list.
+
         insertSuperblock (sizeclass, sb, persistentheap);
+
         assert (sb->getOwner() == this);
         break;
 	  }
@@ -163,45 +162,55 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
 
 
 void hoardHeap::insertSuperblock (int sizeclass,
-				  superblock * sb,
-				  persistentHeap *)
+                                  superblock * sb,
+                                  persistentHeap *)
 {
-  assert (sb->isValid());
-  assert (sb->getBlockSizeClass() == sizeclass);
-  assert (sb->getPrev() == NULL);
-  assert (sb->getNext() == NULL);
-  assert (_magic == HEAP_MAGIC);
+	assert (sb->isValid());
+	assert (sb->getBlockSizeClass() == sizeclass);
+	assert (sb->getPrev() == NULL);
+	assert (sb->getNext() == NULL);
+	assert (_magic == HEAP_MAGIC);
 
-  // Now it's ours.
-  sb->setOwner (this);
+	// Now it's ours.
+	sb->setOwner (this);
 
-  // How full is this superblock?  We'll use this information to put
-  // it into the right 'bin'.
-  sb->computeFullness();
-  int fullness = sb->getFullness();
+	// How full is this superblock?  We'll use this information to put
+	// it into the right 'bin'.
+	sb->computeFullness();
+	int fullness = sb->getFullness();
 
-  // Update the stats.
-  incStats (sizeclass,
-	    sb->getNumBlocks() - sb->getNumAvailable(),
-	    sb->getNumBlocks());
+	// Update the stats.
+	incStats (sizeclass,
+	          sb->getNumBlocks() - sb->getNumAvailable(),
+	          sb->getNumBlocks());
 
-  if ((fullness == 0) &&
-      (sb->getNumBlocks() > 1) &&
-      (sb->getNumBlocks() == sb->getNumAvailable())) {
-    // This superblock is empty --
-    // recycle this superblock (make it available for any sizeclass).
-    recycle (sb);
-  } else {
-    // Insert it into the appropriate list.
-    superblock *& head = _superblocks[fullness][sizeclass];
-    sb->insertBefore (head);
-    head = sb;
-    assert (head->isValid());
+#if 0
+	printf("hoardHeap::insertSuperBlock sb: %p\n", sb);
+	printf("\tfullness: %d\n", fullness);
+	printf("\tsizeclass: %d\n", sizeclass);
+	printf("\tnumAvailable: %d\n", sb->getNumAvailable());
+	printf("\tnumBlocks: %d\n", sb->getNumBlocks());
+#endif
+
+	if ((fullness == 0) &&
+	    (sb->getNumBlocks() > 1) &&
+	    (sb->getNumBlocks() == sb->getNumAvailable())) 
+	{
+		// This superblock is empty --
+		// recycle this superblock (make it available for any sizeclass).
+		recycle (sb);
+	} else {
+		// Insert it into the appropriate list.
+		superblock *& head = _superblocks[fullness][sizeclass];
+		sb->insertBefore (head);
+		head = sb;
+		assert (head->isValid());
     
-    // Reset the least-empty bin counter.
-    _leastEmptyBin[sizeclass] = RESET_LEAST_EMPTY_BIN;
-  }
+		// Reset the least-empty bin counter.
+		_leastEmptyBin[sizeclass] = RESET_LEAST_EMPTY_BIN;
+	}
 }
+
 
 void hoardHeap::printSuperblockList()
 {
@@ -217,148 +226,121 @@ void hoardHeap::printSuperblockList()
   }
 }
 
-void hoardHeap::insertSuperblock (int sizeclass,
-                                  superblock * sb,
-                                  processHeap *)
-{
-  assert (sb->isValid());
-  assert (sb->getBlockSizeClass() == sizeclass);
-  assert (sb->getPrev() == NULL);
-  assert (sb->getNext() == NULL);
-  assert (_magic == HEAP_MAGIC);
-
-  // Now it's ours.
-  sb->setOwner (this);
-
-  // How full is this superblock?  We'll use this information to put
-  // it into the right 'bin'.
-  sb->computeFullness();
-  int fullness = sb->getFullness();
-
-  // Update the stats.
-  incStats (sizeclass,
-	    sb->getNumBlocks() - sb->getNumAvailable(),
-	    sb->getNumBlocks());
-
-  if ((fullness == 0) &&
-      (sb->getNumBlocks() > 1) &&
-      (sb->getNumBlocks() == sb->getNumAvailable())) {
-    // This superblock is empty --
-    // recycle this superblock (make it available for any sizeclass).
-    recycle (sb);
-  } else {
-    // Insert it into the appropriate list.
-    superblock *& head = _superblocks[fullness][sizeclass];
-    sb->insertBefore (head);
-    head = sb;
-    assert (head->isValid());
-    
-    // Reset the least-empty bin counter.
-    _leastEmptyBin[sizeclass] = RESET_LEAST_EMPTY_BIN;
-
-  }
-}
-
 
 superblock * hoardHeap::removeMaxSuperblock (int sizeclass)
 {
-  assert (_magic == HEAP_MAGIC);
+	assert (_magic == HEAP_MAGIC);
 
-  superblock * head = NULL;
+	superblock * head = NULL;
 
-  // First check the reusable superblocks list.
+	// First check the reusable superblocks list.
 
-  head = reuse (sizeclass);
-  if (head) {
-    // We found one. Since we're removing this superblock, update the
-    // stats accordingly.
-    decStats (sizeclass,
-	      0,
-	      head->getNumBlocks());
+	head = reuse (sizeclass);
+	if (head) {
+		// We found one. Since we're removing this superblock, update the
+		// stats accordingly.
+		decStats (sizeclass,
+		          0,
+		          head->getNumBlocks());
 
-    return head;
-  }
-  // Instead of finding the superblock with the most available space
-  // (something that would either involve a linear scan through the
-  // superblocks or maintaining the superblocks in sorted order), we
-  // just pick one that is no more than
-  // 1/(SUPERBLOCK_FULLNESS_GROUP-1) more full than the superblock
-  // with the most available space.  We start with the emptiest group.
+		return head;
+	}
+	// Instead of finding the superblock with the most available space
+	// (something that would either involve a linear scan through the
+	// superblocks or maintaining the superblocks in sorted order), we
+	// just pick one that is no more than
+	// 1/(SUPERBLOCK_FULLNESS_GROUP-1) more full than the superblock
+	// with the most available space.  We start with the emptiest group.
 
-  int i = 0;
+	int i = 0;
 
-  // Note: the last group (SUPERBLOCK_FULLNESS_GROUP - 1) is full, so
-  // we never need to check it. But for robustness, we leave it in.
-  while (i < SUPERBLOCK_FULLNESS_GROUP) {
-    head = _superblocks[i][sizeclass];
-    if (head) {
-      break;
-    }
-    i++;
-  }
+	// HARIS: Doing what is suggested by the comment below could give us
+	// a full block. The original code does this for robustness because it
+	// is captured in the assertion check that I commented out. So I don't
+	// check the last group.
+	//
+	// Note: the last group (SUPERBLOCK_FULLNESS_GROUP - 1) is full, so
+	// we never need to check it. But for robustness, we leave it in.
+	// while (i < SUPERBLOCK_FULLNESS_GROUP) {
+	while (i < (SUPERBLOCK_FULLNESS_GROUP - 1)) {
+		head = _superblocks[i][sizeclass];
+		if (head) {
+			break;
+		}
+		i++;
+	}
 
-  if (!head) {
-    return NULL;
-  }
+	if (!head) {
+		return NULL;
+	}
 
-  // Make sure that this superblock is at least 1/EMPTY_FRACTION
-  // empty.
-  assert (head->getNumAvailable() * EMPTY_FRACTION >= head->getNumBlocks());
+	// When we reincarnate, we bring any partially filled superblocks into 
+	// the _superblocks array but we don't enforce Hoard's invariant: 
+	//   (head->getNumAvailable() * EMPTY_FRACTION >= head->getNumBlocks())
+	// because this would lead to a memory leak. 
 
-  removeSuperblock (head, sizeclass);
+	// Make sure that this superblock is at least 1/EMPTY_FRACTION empty.
+	//assert (head->getNumAvailable() * EMPTY_FRACTION >= head->getNumBlocks());
 
-  assert (head->isValid());
-  assert (head->getPrev() == NULL);
-  assert (head->getNext() == NULL);
-  return head;
+	removeSuperblock (head, sizeclass);
+
+	assert (head->isValid());
+	assert (head->getPrev() == NULL);
+	assert (head->getNext() == NULL);
+
+	return head;
 }
 
 superblock * hoardHeap::removePartiallyFullSuperblock (int fullness, int sizeclass)
 {
-  assert (_magic == HEAP_MAGIC);
+	assert (_magic == HEAP_MAGIC);
 
-  superblock * head = NULL;
+	superblock * head = NULL;
 
-  head = _superblocks[fullness][sizeclass];
+	head = _superblocks[fullness][sizeclass];
 
-  if (!head) {
-    return NULL;
-  }
+	if (!head) {
+		return NULL;
+	}
 
-  // Make sure that this superblock is at least 1/EMPTY_FRACTION
-  // empty.
-  assert (head->getNumAvailable() * EMPTY_FRACTION >= head->getNumBlocks());
+	// When we reincarnate, we bring any partially filled superblocks into 
+	// the _superblocks array but we don't enforce Hoard's invariant: 
+	//   (head->getNumAvailable() * EMPTY_FRACTION >= head->getNumBlocks())
+	// because this would lead to a memory leak. 
 
-  removeSuperblock (head, sizeclass);
+	// Make sure that this superblock is at least 1/EMPTY_FRACTION empty.
+	//assert (head->getNumAvailable() * EMPTY_FRACTION >= head->getNumBlocks());
 
-  assert (head->isValid());
-  assert (head->getPrev() == NULL);
-  assert (head->getNext() == NULL);
-  return head;
+	removeSuperblock (head, sizeclass);
+
+	assert (head->isValid());
+	assert (head->getPrev() == NULL);
+	assert (head->getNext() == NULL);
+	return head;
 }
 
 
 void hoardHeap::removeSuperblock (superblock * sb,
                                   int sizeclass)
 {
-  assert (_magic == HEAP_MAGIC);
+	assert (_magic == HEAP_MAGIC);
 
-  assert (sb->isValid());
-  assert (sb->getOwner() == this);
-  assert (sb->getBlockSizeClass() == sizeclass);
+	assert (sb->isValid());
+	assert (sb->getOwner() == this);
+	assert (sb->getBlockSizeClass() == sizeclass);
 
-  for (int i = 0; i < SUPERBLOCK_FULLNESS_GROUP; i++) {
-    if (sb == _superblocks[i][sizeclass]) {
-      _superblocks[i][sizeclass] = sb->getNext();
-      if (_superblocks[i][sizeclass] != NULL) {
-	assert (_superblocks[i][sizeclass]->isValid());
-      }
-      break;
-    }
-  }
+	for (int i = 0; i < SUPERBLOCK_FULLNESS_GROUP; i++) {
+		if (sb == _superblocks[i][sizeclass]) {
+			_superblocks[i][sizeclass] = sb->getNext();
+			if (_superblocks[i][sizeclass] != NULL) {
+				assert (_superblocks[i][sizeclass]->isValid());
+			}
+			break;
+		}
+	}
 
-  sb->remove();
-  decStats (sizeclass, sb->getNumBlocks() - sb->getNumAvailable(), sb->getNumBlocks());
+	sb->remove();
+	decStats (sizeclass, sb->getNumBlocks() - sb->getNumAvailable(), sb->getNumBlocks());
 }
 
 
@@ -367,33 +349,33 @@ void hoardHeap::moveSuperblock (superblock * sb,
 				int fromBin,
 				int toBin)
 {
-  assert (_magic == HEAP_MAGIC);
-  assert (sb->isValid());
-  assert (sb->getOwner() == this);
-  assert (sb->getBlockSizeClass() == sizeclass);
-  assert (sb->getFullness() == toBin);
+	assert (_magic == HEAP_MAGIC);
+	assert (sb->isValid());
+	assert (sb->getOwner() == this);
+	assert (sb->getBlockSizeClass() == sizeclass);
+	assert (sb->getFullness() == toBin);
 
-  // Remove the superblock from the old bin.
+	// Remove the superblock from the old bin.
 
-  superblock *& oldHead = _superblocks[fromBin][sizeclass];
-  if (sb == oldHead) {
-    oldHead = sb->getNext();
-    if (oldHead != NULL) {
-      assert (oldHead->isValid());
-    }
-  }
+	superblock *& oldHead = _superblocks[fromBin][sizeclass];
+	if (sb == oldHead) {
+		oldHead = sb->getNext();
+		if (oldHead != NULL) {
+			assert (oldHead->isValid());
+		}
+	}
 
-  sb->remove();
+	sb->remove();
 
-  // Insert the superblock into the new bin.
+	// Insert the superblock into the new bin.
 
-  superblock *& newHead = _superblocks[toBin][sizeclass];
-  sb->insertBefore (newHead);
-  newHead = sb;
-  assert (newHead->isValid());
+	superblock *& newHead = _superblocks[toBin][sizeclass];
+	sb->insertBefore (newHead);
+	newHead = sb;
+	assert (newHead->isValid());
 
-  // Reset the least-empty bin counter.
-  _leastEmptyBin[sizeclass] = RESET_LEAST_EMPTY_BIN;
+	// Reset the least-empty bin counter.
+	_leastEmptyBin[sizeclass] = RESET_LEAST_EMPTY_BIN;
 }
 
 
@@ -404,110 +386,113 @@ int hoardHeap::freeBlock (block *& b,
 			   int sizeclass,
 			   persistentHeap * persistentheap)
 {
-  assert (sb->isValid());
-  assert (b->isValid());
-  assert (this == sb->getOwner());
+	assert (sb->isValid());
+	assert (b->isValid());
+	assert (this == sb->getOwner());
 
-  const int oldFullness = sb->getFullness();
-  sb->putBlock (b);
-  decUStats (sizeclass);
-  const int newFullness = sb->getFullness();
+	const int oldFullness = sb->getFullness();
+	sb->putBlock (b);
+#if 0 // DEBUGPRINT
+	std::cout << "hoardheap::freeBlock  hoardheap(this) = " << this 
+	          << "sb = " << sb
+	          << ", b = " << b
+	          << ", sizeclass = " << sizeclass
+	          << ", size = " << sizeFromClass(sizeclass) << std::endl;
+#endif
+	decUStats (sizeclass);
+	const int newFullness = sb->getFullness();
   
-  // Free big superblocks.
-  if (sb->getNumBlocks() == 1) {
-    //TODO: currently our persistent allocator handles blocks of size smaller that superblock size
-    assert(0);
-    removeSuperblock (sb, sizeclass);
+	// Free big superblocks.
+	if (sb->getNumBlocks() == 1) {
+		//TODO: currently our persistent allocator handles blocks of size smaller that superblock size
+		assert (0);
+	    removeSuperblock (sb, sizeclass);
 #if HEAP_LOG
-    // Record the memory deallocation.
-    MemoryRequest m;
-    m.deallocate ((int) sb->getNumBlocks() * (int) sizeFromClass(sb->getBlockSizeClass()));
-    persistentheap->getLog(getIndex()).append(m);
+		// Record the memory deallocation.
+		MemoryRequest m;
+		m.deallocate ((int) sb->getNumBlocks() * (int) sizeFromClass(sb->getBlockSizeClass()));
+		persistentheap->getLog(getIndex()).append(m);
 #endif
 #if HEAP_FRAG_STATS
-    persistentheap->setDeallocated (0, sb->getNumBlocks() * sizeFromClass(sb->getBlockSizeClass()));
+		persistentheap->setDeallocated (0, sb->getNumBlocks() * sizeFromClass(sb->getBlockSizeClass()));
 #endif
-    sb->superblock::~superblock();
-    hoardFreeMemory (sb);
-    return 1;
-  }
+		sb->superblock::~superblock();
+		hoardFreeMemory (sb);
+		return 1;
+	}
 
-  // If the fullness value has changed, move the superblock.
-  if (newFullness != oldFullness) {
-    moveSuperblock (sb, sizeclass, oldFullness, newFullness);
-  } else {
-    // Move the superblock to the front of its list (to reduce
-    // paging).
-    superblock *& head = _superblocks[newFullness][sizeclass];
-    if (sb != head) {
-      sb->remove();
-      sb->insertBefore (head);
-      head = sb;
-    }
-  }
+	// If the fullness value has changed, move the superblock.
+	if (newFullness != oldFullness) {
+		moveSuperblock (sb, sizeclass, oldFullness, newFullness);
+	} else {
+		// Move the superblock to the front of its list (to reduce paging).
+		superblock *& head = _superblocks[newFullness][sizeclass];
+		if (sb != head) {
+			sb->remove();
+			sb->insertBefore (head);
+			head = sb;
+		}
+	}
  
-  // If the superblock is now empty, recycle it
-  // or free it.
+	// If the superblock is now empty, recycle it or free it.
 
-  if ((newFullness == 0) &&
-      (sb->getNumBlocks() == sb->getNumAvailable())) {
+	if ((newFullness == 0) &&
+	    (sb->getNumBlocks() == sb->getNumAvailable())) 
+	{
+		removeSuperblock (sb, sizeclass);
+		if (_numProcessors == 1) {
+			assert(0);
+			hoardFreeMemory (sb);
+		} else {
+			recycle (sb);
+			// Update the stats.  This restores the stats to their state
+			// before the call to removeSuperblock, above.
+			incStats (sizeclass, 0, sb->getNumBlocks());
+		}
+	}
 
-    removeSuperblock (sb, sizeclass);
-    if (_numProcessors == 1) {
-      hoardFreeMemory (sb);
-    } else {
-      recycle (sb);
-      // Update the stats.  This restores the stats to their state
-      // before the call to removeSuperblock, above.
-      incStats (sizeclass, 0, sb->getNumBlocks());
-    }
-  }
+	// If this is the persistent heap, then we're done.
+	if (this == (hoardHeap *) persistentheap) {
+		return 0;
+	}
 
-  // If this is the persistent heap, then we're done.
-  if (this == (hoardHeap *) persistentheap) {
-    return 0;
-  }
+	//FIXME: What is the right policy here for persistent blocks?
+	//TODO: What is the right policy here for persistent blocks?
 
-  assert(0);
-  //TODO: What is the right policy here for persistent blocks?
+	//
+	// Release a superblock, if necessary.
+	//
 
-  //
-  // Release a superblock, if necessary.
-  //
+	//
+	// Check to see if the amount free exceeds the release threshold
+	// (two superblocks worth of blocks for a given sizeclass) and if
+	// the heap is sufficiently empty.
+	//
 
-  //
-  // Check to see if the amount free exceeds the release threshold
-  // (two superblocks worth of blocks for a given sizeclass) and if
-  // the heap is sufficiently empty.
-  //
+	// We never move anything to the process heap if we're on a
+	// uniprocessor.
+	if (_numProcessors > 1) {
+		int inUse, allocated;
+		getStats (sizeclass, inUse, allocated);
+		const bool crossedThreshold 
+		               = ((inUse < allocated - getReleaseThreshold(sizeclass)) && 
+		                  (EMPTY_FRACTION * inUse < EMPTY_FRACTION * allocated - allocated));
+		if (crossedThreshold) {
+			// We've crossed the magical threshold. Find the superblock with
+			// the most free blocks and give it to the process heap.
+			superblock * const maxSb = removeMaxSuperblock (sizeclass);
+			assert (maxSb != NULL);
 
-  // We never move anything to the process heap if we're on a
-  // uniprocessor.
-  if (_numProcessors > 1) {
+			// Update the statistics.
 
-    int inUse, allocated;
-    getStats (sizeclass, inUse, allocated);
-    const bool crossedThreshold 
-      = ((inUse < allocated - getReleaseThreshold(sizeclass)) && 
-	 (EMPTY_FRACTION * inUse < EMPTY_FRACTION * allocated - allocated));
-    if (crossedThreshold) {
-      
-	// We've crossed the magical threshold. Find the superblock with
-	// the most free blocks and give it to the process heap.
-	superblock * const maxSb = removeMaxSuperblock (sizeclass);
-	assert (maxSb != NULL);
-	
-	// Update the statistics.
-	
-	assert (maxSb->getNumBlocks() >= maxSb->getNumAvailable());
-	
-	// Give the superblock back to the process heap.
-	persistentheap->release (maxSb);
-	
-    }
-  }
+			assert (maxSb->getNumBlocks() >= maxSb->getNumAvailable());
 
-  return 0;
+			// Give the superblock back to the process heap.
+			persistentheap->release (maxSb);
+    	}
+	}
+
+	return 0;
 }
 
 // Static initialization of the number of processors (and a mask).

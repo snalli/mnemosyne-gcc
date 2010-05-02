@@ -36,7 +36,7 @@
                                              SEGMENT_TABLE_SIZE)
 /* Log pool */										  
 #define LOG_POOL_START                   SEGMENT_TABLE_END 
-#define LOG_POOL_SIZE                    (32*512*1024+32*32*64)
+#define LOG_POOL_SIZE                    (32*4*1024*1024+32*32*64)
 #define LOG_POOL_HOLE                    0x10000
 #define LOG_POOL_END                     PAGE_ALIGN(                          \
                                              LOG_POOL_START +                 \

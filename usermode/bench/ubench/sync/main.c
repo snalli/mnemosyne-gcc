@@ -337,6 +337,8 @@ void fixture_ubench_msync(void *arg, system_t system)
  	unsigned int                   tid = args->tid;
 	fixture_state_ubench_msync_t*  fixture_state;
 	char                           filename[128];
+	uint64_t                       index;
+	volatile uint64_t              local; /* disable any optimizations around local by making it volatile */
 
 	fixture_state = (fixture_state_ubench_msync_t*) malloc(sizeof(fixture_state_ubench_msync_t));
 	fixture_state->seed = 0;
@@ -356,6 +358,12 @@ void fixture_ubench_msync(void *arg, system_t system)
 	assert(fixture_state->fd>0);
 	fixture_state->segment = (word_t *) mmap(NULL, PRIVATE_REGION_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fixture_state->fd, 0);
 	assert(fixture_state->segment != (void *) -1);
+
+	/* bring all pages in the file-cache to avoid cold misses */
+	for (index=0; index < PRIVATION_REGION_SIZE; index+=PAGE_SIZE) {
+		page_addr = (uint64_t *) ((uint64_t) fixture_state->segment + index); 
+		local = *page_addr; 
+	}
 
 	args->fixture_state = (void *) fixture_state;
 }

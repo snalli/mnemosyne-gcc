@@ -113,7 +113,7 @@ log_truncation_main (void *arg)
 		rc =  gettimeofday(&tp, NULL);
 		ts.tv_sec = tp.tv_sec;
 		ts.tv_nsec = tp.tv_usec * 1000; 
-		ts.tv_sec += 1;
+		ts.tv_sec += 1; /* sleep time */
 		pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
 
 		truncate_logs(set, 0);

@@ -82,12 +82,12 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 			if (w->mask != 0) {
 				PCM_WB_STORE_ALIGNED_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
 			}	
-			if (SYNC_TRUNCATION) {
+# ifdef	SYNC_TRUNCATION
 				/* Flush the cacheline to persistent memory if this is the last entry in this line. */
 				if (w->next_cache_neighbor == NULL) {
 					PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
 				}
-			}	
+# endif
 			/* Only drop lock for last covered address in write set */
 			if (w->next == NULL) {
 				ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
@@ -98,9 +98,9 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		ATOMIC_STORE_REL(&tx->id, id + 2);
 # endif /* READ_LOCKED_DATA */
 
-		if (SYNC_TRUNCATION) {
+# ifdef	SYNC_TRUNCATION
 			M_TMLOG_TRUNCATE_SYNC(tx->pcm_storeset, modedata->ptmlog);
-		}
+# endif
 	}
 	cm_reset(tx);
 	return true;
@@ -179,7 +179,6 @@ pwb_rollback(mtm_tx_t *tx)
 }
 
 
-
 uint32_t
 mtm_pwb_beginTransaction_internal (mtm_tx_t *tx, 
                                    uint32_t prop, 
@@ -227,9 +226,9 @@ start:
 	gc_set_epoch(modedata->start);
 #endif /* EPOCH_GC */
 
-	//FIXME
 	if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
 	{
+		// FIXME: Currently we don't implement serial mode 
 		//MTM_serialmode (true, true);
 		return (prop & pr_uninstrumentedCode
 		        ? a_runUninstrumentedCode : a_runInstrumentedCode);

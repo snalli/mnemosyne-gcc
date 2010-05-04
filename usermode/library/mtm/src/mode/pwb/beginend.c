@@ -69,7 +69,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 
 		/* Make sure the persistent tm log is made stable */
 		M_TMLOG_COMMIT(tx->pcm_storeset, modedata->ptmlog, t);
-	
+
 		/* Install new versions, drop locks and set new timestamp */
 		/* In the case when isolation is off, the write set contains entries 
 		 * that point to private pseudo-locks. */
@@ -235,9 +235,10 @@ start:
 		        ? a_runUninstrumentedCode : a_runInstrumentedCode);
 	}
 
-	// FIXME: Don't need to acquire the serial lock if isolation
-	// not enabled 
-	mtm_rwlock_read_lock (&mtm_serial_lock);
+#if defined(ENABLE_ISOLATION)
+	// FIXME: Currently we don't implement serial mode 
+	//mtm_rwlock_read_lock (&mtm_serial_lock);
+#endif
 
 	return a_runInstrumentedCode | a_saveLiveVariables;
 }
@@ -348,11 +349,14 @@ mtm_pwb_abortTransaction (mtm_tx_t *tx,
 		rollback_transaction (tx);
 		//pwb_fini (td);
 
-		if (tx->status & TX_SERIAL) {
-			mtm_rwlock_write_unlock (&mtm_serial_lock);
-		} else {
-			mtm_rwlock_read_unlock (&mtm_serial_lock);
-		}	
+#if defined(ENABLE_ISOLATION)
+		// FIXME: Currently we don't implement serial mode 
+		//if (tx->status & TX_SERIAL) {
+		//	mtm_rwlock_write_unlock (&mtm_serial_lock);
+		//} else {
+		//	mtm_rwlock_read_unlock (&mtm_serial_lock);
+		//}	
+#endif		
 
 		//set_mtm_tx (tx->prev);
 		//free_tx (td, tx);

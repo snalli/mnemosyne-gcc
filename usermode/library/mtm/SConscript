@@ -23,6 +23,9 @@ if buildEnv['BUILD_DEBUG'] == True:
 else:
 	buildEnv.Append(CCFLAGS = ' -O1 -g')
 
+if buildEnv['BUILD_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
+
 
 
 # Programs to generate VTable mappings to the Intel ABI. Ask Haris.
@@ -34,7 +37,7 @@ srcgen_vtable = buildEnv.Program('generate_vtable', 'src/srcgen/generate_vtable.
 #   scons: warning: Two different environments were specified for target ... 
 #   but they appear to have the same actions: ...
 
-COMMON_OBJS = buildEnv.SharedObject('src/debug', '../common/debug.c')
+COMMON_OBJS = buildEnv.SharedObject('src/debug', '../common/debug.c') + buildEnv.SharedObject('src/chhash', '../common/chhash.c')
 
 CC_SRC = Split("""
                src/config.c
@@ -58,6 +61,7 @@ CC_SRC = Split("""
                src/mode/serial/serial.c
                src/mtm.c
                src/retry.c
+               src/stats.c
                src/useraction.c
                """)
 

@@ -49,6 +49,7 @@ class Environment(SCons.Environment.Environment):
 		# Inherit some command line options from the main environment
 		if mainEnv is not None:
 			self['BUILD_DEBUG'] = mainEnv['BUILD_DEBUG'] 
+			self['BUILD_STATS'] = mainEnv['BUILD_STATS'] 
 			self['MY_ROOT_DIR'] = mainEnv['MY_ROOT_DIR'] 
 			self['MY_UTIL_DIR'] = mainEnv['MY_UTIL_DIR'] 
 	

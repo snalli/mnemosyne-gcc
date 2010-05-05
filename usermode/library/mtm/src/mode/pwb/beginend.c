@@ -102,6 +102,12 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 			M_TMLOG_TRUNCATE_SYNC(tx->pcm_storeset, modedata->ptmlog);
 # endif
 	}
+
+#ifdef _M_STATS_BUILD	
+	m_stats_threadstat_aggregate(tx->threadstat, tx->statset);
+	assert(m_stats_statset_destroy(&tx->statset) == M_R_SUCCESS);
+#endif	
+
 	cm_reset(tx);
 	return true;
 }
@@ -225,6 +231,12 @@ start:
 #ifdef EPOCH_GC
 	gc_set_epoch(modedata->start);
 #endif /* EPOCH_GC */
+
+
+#ifdef _M_STATS_BUILD	
+	assert(m_stats_statset_create(&tx->statset) == M_R_SUCCESS);
+	assert(m_stats_statset_init(tx->statset, srcloc->psource) == M_R_SUCCESS);
+#endif	
 
 	if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
 	{

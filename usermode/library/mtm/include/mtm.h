@@ -20,4 +20,14 @@
  */
 #define MNEMOSYNE_ATOMIC __tm_atomic
 
+# ifdef __cplusplus
+extern "C" {
+# endif
+
+void mtm_fini_global();
+
+
+# ifdef __cplusplus
+}
+# endif
 #endif /* end of include guard: MTM_H_CFA9SVDY */

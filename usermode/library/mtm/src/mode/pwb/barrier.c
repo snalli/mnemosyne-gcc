@@ -243,7 +243,8 @@ pwb_write_internal(mtm_tx_t *tx,
 	if (tx->status != TX_ACTIVE) {
 		assert(0);
 	}
-	
+
+
 	/* Check whether access is to volatile or non-volatile memory */
 	if (((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
 	     (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))
@@ -301,6 +302,9 @@ pwb_write_internal(mtm_tx_t *tx,
 		}
 	}
 
+#ifdef _M_STATS_BUILD
+	m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, writes, 1);
+#endif	
 
 	/* Get reference to lock */
 	if (enable_isolation) {
@@ -355,6 +359,9 @@ restart_no_load:
 					
 					mtm_pwb_restart_transaction (tx, RESTART_REALLOCATE);  // Does not return!
 				} else {
+#ifdef _M_STATS_BUILD
+					m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, writes_distinct, 1);
+#endif					
 					// Build a new write set entry
 					w = &modedata->w_set.entries[modedata->w_set.nb_entries];
 					version = write_set_tail->version;  // Get version from previous write set entry (all
@@ -441,6 +448,9 @@ restart_no_load:
 		
 		w_entry_t* initialized_entry = 	initialize_write_set_entry(w, addr, value, mask, version, lock, access_is_nonvolatile);
 		insert_write_set_entry_after(initialized_entry, write_set_tail, tx, NULL);					
+#ifdef _M_STATS_BUILD
+		m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, writes_distinct, 1);
+#endif		
 		return w;
 	}
 }

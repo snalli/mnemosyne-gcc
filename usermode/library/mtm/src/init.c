@@ -6,9 +6,13 @@
 #include "mode/wbetl/wbetl.h"
 #include "mode/pwb/tmlog.h"
 #include "sysdeps/x86/target.h"
+#include "stats.h"
 
 static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
 volatile uint32_t mtm_initialized = 0;
+static int global_num=0;
+
+m_statsmgr_t *mtm_statsmgr;
 
 
 /*
@@ -112,6 +116,13 @@ init_global()
 	m_logmgr_register_logtype(pcm_storeset, M_TMLOG_LF_TYPE, &M_TMLOG_OPS);
 	m_logmgr_do_recovery(pcm_storeset);
 
+#ifdef _M_STATS_BUILD	
+	/* Create a statistics manager if need to dynamically profile */
+	if (1) {
+		m_statsmgr_create(&mtm_statsmgr, "/tmp/mtm_stats");
+	}	
+#endif	
+
 	/* Catch signals for non-faulting load */
 	act.sa_handler = signal_catcher;
 	act.sa_flags = 0;
@@ -145,19 +156,22 @@ mtm_init_global(void)
 void 
 fini_global()
 {
-  PRINT_DEBUG("==> mtm_exit()\n");
+	PRINT_DEBUG("==> mtm_exit()\n");
 
 #ifndef TLS
-  pthread_key_delete(_mtm_thread_tx);
+	pthread_key_delete(_mtm_thread_tx);
 #endif /* ! TLS */
 #ifdef ROLLOVER_CLOCK
-  pthread_cond_destroy(&tx_reset);
-  pthread_mutex_destroy(&tx_count_mutex);
+	pthread_cond_destroy(&tx_reset);
+	pthread_mutex_destroy(&tx_count_mutex);
 #endif /* ROLLOVER_CLOCK */
 
 #ifdef EPOCH_GC
-  gc_exit();
+	gc_exit();
 #endif /* EPOCH_GC */
+#ifdef _M_STATS_BUILD	
+	m_stats_print(mtm_statsmgr);
+#endif  
 }
 
 
@@ -297,6 +311,11 @@ mtm_init_thread(void)
 
 	tx->commit_actions = NULL;
 	tx->undo_actions = NULL;
+
+	tx->thread_num = __sync_add_and_fetch (&global_num, 1);
+#ifdef _M_STATS_BUILD	
+	m_stats_threadstat_create(mtm_statsmgr, tx->thread_num, &tx->threadstat);
+#endif
 
 	TX_RETURN;
 }

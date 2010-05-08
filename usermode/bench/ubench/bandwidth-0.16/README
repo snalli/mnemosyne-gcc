@@ -1,0 +1,43 @@
+
+This is the Readme file for my program
+called "bandwidth".
+
+This is a benchmark that attempts to measure
+memory bandwidth. It's useful because hardware
+specifications can at times leave out key facts
+about a given piece of hardware. 
+
+You could run a non-artificial benchmark and 
+observe that a general performance number is lower 
+on that machine, but that conceals the cause. 
+
+So you can run this program, whose purpose is 
+to help you pinpoint the cause of a 
+performance problem.
+
+Version 0.16 focuses on 64-bit assembly code, which
+requires nasm 2. I have not tested 32-bit support
+in version 0.16 since I don't have 32-bit Linux
+at the moment, but will make sure it works for 0.17.
+
+Version 0.15 added 32-bit assembly code, and
+more precise reporting of bandwidth values.
+
+Bandwidth tests:
+	Level 1 cache sequential read
+	Level 1 cache sequential write 
+	Level 2 cache sequential read
+	Level 2 cache sequential write 
+	Main memory sequential read speed
+	Main memory sequential write speed
+	Video memory sequential read speed
+	Video memory sequential write speed
+	Speed of library routines memset, memcpy, bzero.
+
+This program is provided without any warranty
+and AS-IS. See the file COPYING for details.
+
+Zack Smith
+fbui@comcast.net
+January 2009
+

@@ -18,7 +18,7 @@ typedef struct m_chhash_s m_chhash_t;
 /* Opaque structure used to represent hash table iterator. */
 typedef struct m_chhash_iter_s m_chhash_iter_t;
 
-typedef unsigned int m_chhash_key_t;
+typedef uintptr_t m_chhash_key_t;
 typedef void *m_chhash_value_t;
 typedef struct m_chhash_bucket_s m_chhash_bucket_t;
 

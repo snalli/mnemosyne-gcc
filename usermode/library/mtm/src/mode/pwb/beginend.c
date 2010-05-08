@@ -69,7 +69,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 
 		/* Make sure the persistent tm log is made stable */
 		M_TMLOG_COMMIT(tx->pcm_storeset, modedata->ptmlog, t);
-	
+
 		/* Install new versions, drop locks and set new timestamp */
 		/* In the case when isolation is off, the write set contains entries 
 		 * that point to private pseudo-locks. */
@@ -82,12 +82,12 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 			if (w->mask != 0) {
 				PCM_WB_STORE_ALIGNED_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
 			}	
-			if (SYNC_TRUNCATION) {
+# ifdef	SYNC_TRUNCATION
 				/* Flush the cacheline to persistent memory if this is the last entry in this line. */
 				if (w->next_cache_neighbor == NULL) {
 					PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
 				}
-			}	
+# endif
 			/* Only drop lock for last covered address in write set */
 			if (w->next == NULL) {
 				ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
@@ -98,10 +98,16 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		ATOMIC_STORE_REL(&tx->id, id + 2);
 # endif /* READ_LOCKED_DATA */
 
-		if (SYNC_TRUNCATION) {
+# ifdef	SYNC_TRUNCATION
 			M_TMLOG_TRUNCATE_SYNC(tx->pcm_storeset, modedata->ptmlog);
-		}
+# endif
 	}
+
+#ifdef _M_STATS_BUILD	
+	m_stats_threadstat_aggregate(tx->threadstat, tx->statset);
+	assert(m_stats_statset_destroy(&tx->statset) == M_R_SUCCESS);
+#endif	
+
 	cm_reset(tx);
 	return true;
 }
@@ -179,7 +185,6 @@ pwb_rollback(mtm_tx_t *tx)
 }
 
 
-
 uint32_t
 mtm_pwb_beginTransaction_internal (mtm_tx_t *tx, 
                                    uint32_t prop, 
@@ -227,17 +232,24 @@ start:
 	gc_set_epoch(modedata->start);
 #endif /* EPOCH_GC */
 
-	//FIXME
+
+#ifdef _M_STATS_BUILD	
+	assert(m_stats_statset_create(&tx->statset) == M_R_SUCCESS);
+	assert(m_stats_statset_init(tx->statset, srcloc->psource) == M_R_SUCCESS);
+#endif	
+
 	if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
 	{
+		// FIXME: Currently we don't implement serial mode 
 		//MTM_serialmode (true, true);
 		return (prop & pr_uninstrumentedCode
 		        ? a_runUninstrumentedCode : a_runInstrumentedCode);
 	}
 
-	// FIXME: Don't need to acquire the serial lock if isolation
-	// not enabled 
-	mtm_rwlock_read_lock (&mtm_serial_lock);
+#if defined(ENABLE_ISOLATION)
+	// FIXME: Currently we don't implement serial mode 
+	//mtm_rwlock_read_lock (&mtm_serial_lock);
+#endif
 
 	return a_runInstrumentedCode | a_saveLiveVariables;
 }
@@ -348,11 +360,14 @@ mtm_pwb_abortTransaction (mtm_tx_t *tx,
 		rollback_transaction (tx);
 		//pwb_fini (td);
 
-		if (tx->status & TX_SERIAL) {
-			mtm_rwlock_write_unlock (&mtm_serial_lock);
-		} else {
-			mtm_rwlock_read_unlock (&mtm_serial_lock);
-		}	
+#if defined(ENABLE_ISOLATION)
+		// FIXME: Currently we don't implement serial mode 
+		//if (tx->status & TX_SERIAL) {
+		//	mtm_rwlock_write_unlock (&mtm_serial_lock);
+		//} else {
+		//	mtm_rwlock_read_unlock (&mtm_serial_lock);
+		//}	
+#endif		
 
 		//set_mtm_tx (tx->prev);
 		//free_tx (td, tx);

@@ -14,6 +14,10 @@ AddOption("--build-debug",
            action="store_true", dest="build_debug", 
            default = True,
            help="build library with debug info [default]")
+AddOption("--build-stats",
+           action="store_true", dest="build_stats", 
+           default = False,
+           help="build library with profiling support [default]")
 AddOption("--build-ubench",
            action="store_true", dest="build_ubench", 
            default = False,
@@ -51,6 +55,7 @@ Help(option_help)
 mainEnv = mnemosyne.Environment(None)
 mainEnv['BUILD_LINKAGE'] = GetOption('linkage')
 mainEnv['BUILD_DEBUG'] = GetOption('build_debug')
+mainEnv['BUILD_STATS'] = GetOption('build_stats')
 mainEnv['BUILD_UBENCH'] = GetOption('build_ubench')
 mainEnv['BUILD_EXAMPLE'] = GetOption('selected_example')
 mainEnv['BUILD_CONFIG_NAME'] = GetOption('config_name')

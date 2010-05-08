@@ -175,6 +175,7 @@ extern int cm_threshold;
 #include "aatree.h"
 #include "locks.h"
 #include "local.h"
+#include "stats.h"
 
 /**
  * Size of a word (accessible atomically) on the target architecture.
@@ -239,23 +240,25 @@ struct mtm_tx_s {
 	pthread_t           thread_id;        /* Thread identifier (immutable) */
 #endif /* CONFLICT_TRACKING */
 #if CM == CM_DELAY || CM == CM_PRIORITY
-	volatile mtm_word_t *c_lock;          /* Pointer to contented lock (cause of abort). */
+	volatile mtm_word_t  *c_lock;          /* Pointer to contented lock (cause of abort). */
 #endif /* CM == CM_DELAY || CM == CM_PRIORITY */
 #if CM == CM_BACKOFF
-	unsigned long       backoff;          /* Maximum backoff duration. */
-	unsigned long       seed;             /* RNG seed. */
+	unsigned long        backoff;          /* Maximum backoff duration. */
+	unsigned long        seed;             /* RNG seed. */
 #endif /* CM == CM_BACKOFF */
 #if CM == CM_PRIORITY
-	int                 priority;         /* Transaction priority */
-	int                 visible_reads;    /* Should we use visible reads? */
+	int                  priority;         /* Transaction priority */
+	int                  visible_reads;    /* Should we use visible reads? */
 #endif /* CM == CM_PRIORITY */
-	unsigned long       retries;          /* Number of consecutive aborts (retries) */
+	unsigned long        retries;          /* Number of consecutive aborts (retries) */
 
-	uintptr_t           stack_base;       /* Stack base address */
-	uintptr_t           stack_size;       /* Stack size */
-	mtm_local_undo_t    local_undo;       /* Data used by local.c for the local memory undo log.  */
-	mtm_word_t          *wb_table;        /* Private write-back table for use when isolation is off. */
-	pcm_storeset_t      *pcm_storeset;    /* PCM emulation bookkeeping structure */
+	uintptr_t            stack_base;       /* Stack base address */
+	uintptr_t            stack_size;       /* Stack size */
+	mtm_local_undo_t     local_undo;       /* Data used by local.c for the local memory undo log.  */
+	mtm_word_t           *wb_table;        /* Private write-back table for use when isolation is off. */
+	pcm_storeset_t       *pcm_storeset;    /* PCM emulation bookkeeping structure */
+	m_stats_threadstat_t *threadstat;      /* Thread statistics */
+	m_stats_statset_t    *statset;         /* Per transaction instance statistics */
 	struct mtm_user_action_s *commit_actions;
 	struct mtm_user_action_s *undo_actions;
 };
@@ -330,6 +333,9 @@ extern volatile mtm_word_t gclock;
 # define CLOCK                          (gclock)
 #endif /* ! CLOCK_IN_CACHE_LINE */
 
+#ifdef _M_STATS_BUILD	
+extern m_statsmgr_t *mtm_statsmgr;
+#endif
 
 /* The lock that provides access to serial mode.  Non-serialized transactions
    acquire read locks; the serialized transaction aquires a write lock.  */

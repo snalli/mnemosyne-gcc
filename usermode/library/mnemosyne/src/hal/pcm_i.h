@@ -223,6 +223,38 @@ int rand_int(unsigned int *seed)
 }
 
 
+# ifdef _EMULATE_LATENCY_USING_NOPS
+/* So you think nops are more accurate? you might be surprised */
+static inline void asm_nop10() {
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+	asm volatile("nop");
+}
+
+static inline
+void
+emulate_latency_ns(int ns)
+{
+	int          i;
+	pcm_hrtime_t cycles;
+	pcm_hrtime_t start;
+	pcm_hrtime_t stop;
+	
+	cycles = NS2CYCLE(ns);
+	for (i=0; i<cycles; i+=5) {
+		asm_nop10(); /* each nop is 1 cycle */
+	}
+}
+
+# else
+
 static inline
 void
 emulate_latency_ns(int ns)
@@ -245,6 +277,7 @@ emulate_latency_ns(int ns)
 	} while (stop - start < cycles);
 }
 
+# endif
 
 /**
  * \brief Writes a masked word.

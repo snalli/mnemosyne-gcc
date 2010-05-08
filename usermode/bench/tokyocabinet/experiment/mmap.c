@@ -28,18 +28,29 @@ int main(int argc, char **argv)
 		fprintf(stderr, "open error: %s\n", tcbdberrmsg(ecode));
 	}
 	
+	fprintf(stderr, "Filling out a tree of 7,000.\n");
 	/* store records */
-	for(i = 0; i < 1000; ++i)
+	for(i = 0; i < 7000; ++i)
 	{
-		if (!tcbdbput(bdb, &i, sizeof(size_t), &i, sizeof(size_t)))
-		{
-			ecode = tcbdbecode(bdb);
-			fprintf(stderr, "put error: %s\n", tcbdberrmsg(ecode));
-		}
-		else {
-			tcbdbsync(bdb);
-		}
+    bool result;
+    result = tcbdbput(bdb, &i, sizeof(size_t), &i, sizeof(size_t));
 	}
+  tcbdbsync(bdb);
+	
+  fprintf(stderr, "Running 1,000,000 updates on the tree.\n");
+  struct timeval begin;
+  gettimeofday(&begin, NULL);
+  size_t x;
+  for (x = 0; x < 1000000; ++x) {
+    size_t key = x % 7000;
+      tcbdbput(bdb, &key, sizeof(size_t), &key, sizeof(size_t)); 
+      tcbdbsync(bdb);
+      tcbdbout(bdb, &key, sizeof(size_t));
+      tcbdbsync(bdb);
+  }
+  struct timeval end;
+  gettimeofday(&end, NULL);
+  printf("Time: %lu microseconds\n", 1000000 * (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec));
 	
 	/* close the database */
 	if(!tcbdbclose(bdb)){

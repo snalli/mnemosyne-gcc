@@ -24,6 +24,17 @@
  * basic utilities
  *************************************************************************************************/
 
+__attribute__((tm_callable))  int
+      memcmp_p(const void *s1, const void *s2, size_t n) {
+        char* datum1 = s1;
+        char* datum2 = s2;
+        for (size_t i = 0; i < n; ++i) {
+          if (datum1[i] != datum2[i])
+            return 1;
+        }
+        return 0;
+      }
+
 
 /* String containing the version information. */
 const char *tcversion = _TC_VERSION;
@@ -400,7 +411,6 @@ static int tclistelemcmpci(const void *a, const void *b);
 
 
 /* Create a list object. */
-TM_CALLABLE
 TCLIST *tclistnew(void){
   TCLIST *list;
   TCMALLOC(list, sizeof(*list));
@@ -413,13 +423,24 @@ TCLIST *tclistnew(void){
 
 
 /* Create a list object. */
-TM_CALLABLE
 TCLIST *tclistnew2(int anum){
   TCLIST *list;
   TCMALLOC(list, sizeof(*list));
   if(anum < 1) anum = 1;
   list->anum = anum;
   TCMALLOC(list->array, sizeof(list->array[0]) * list->anum);
+  list->start = 0;
+  list->num = 0;
+  return list;
+}
+
+
+TCLIST *tclistnew2_p(int anum){
+  TCLIST *list;
+  list = pmalloc(sizeof(*list));
+  if(anum < 1) anum = 1;
+  list->anum = anum;
+  list->array = pmalloc(sizeof(list->array[0]) * list->anum);
   list->start = 0;
   list->num = 0;
   return list;
@@ -468,7 +489,6 @@ TCLIST *tclistdup(const TCLIST *list){
 
 
 /* Delete a list object. */
-TM_CALLABLE
 void tclistdel(TCLIST *list){
   assert(list);
   TCLISTDATUM *array = list->array;
@@ -478,6 +498,18 @@ void tclistdel(TCLIST *list){
   }
   TCFREE(list->array);
   TCFREE(list);
+}
+
+
+void tclistdel_p(TCLIST *list){
+  assert(list);
+  TCLISTDATUM *array = list->array;
+  int end = list->start + list->num;
+  for(int i = list->start; i < end; i++){
+    pfree(array[i].ptr);
+  }
+  pfree(list->array);
+  pfree(list);
 }
 
 
@@ -563,7 +595,6 @@ char *tclistpop2(TCLIST *list){
 
 
 /* Add an element at the top of a list object. */
-TM_CALLABLE
 void tclistunshift(TCLIST *list, const void *ptr, int size){
   assert(list && ptr && size >= 0);
   if(list->start < 1){
@@ -576,6 +607,29 @@ void tclistunshift(TCLIST *list, const void *ptr, int size){
   }
   int index = list->start - 1;
   TCMALLOC(list->array[index].ptr, tclmax(size + 1, TCXSTRUNIT));
+  memcpy(list->array[index].ptr, ptr, size);
+  list->array[index].ptr[size] = '\0';
+  list->array[index].size = size;
+  list->start--;
+  list->num++;
+}
+
+
+void tclistunshift_p(TCLIST *list, const void *ptr, int size){
+  assert(list && ptr && size >= 0);
+  if(list->start < 1){
+    if(list->start + list->num >= list->anum){
+      list->anum += list->num + 1;
+      TCLISTDATUM* old_array = list->array;
+      list->array = pmalloc(list->anum * sizeof(list->array[0]));
+      memcpy(list->array, old_array, (list->anum - 1) * sizeof(list->array[0]));
+      pfree(old_array);
+    }
+    list->start = list->anum - list->num;
+    memmove(list->array + list->start, list->array, list->num * sizeof(list->array[0]));
+  }
+  int index = list->start - 1;
+  list->array[index].ptr = pmalloc(tclmax(size + 1, TCXSTRUNIT));
   memcpy(list->array[index].ptr, ptr, size);
   list->array[index].ptr[size] = '\0';
   list->array[index].size = size;
@@ -606,7 +660,6 @@ void tclistunshift2(TCLIST *list, const char *str){
 
 
 /* Remove an element of the top of a list object. */
-TM_CALLABLE
 void *tclistshift(TCLIST *list, int *sp){
   assert(list && sp);
   if(list->num < 1) return NULL;
@@ -679,7 +732,6 @@ void tclistinsert2(TCLIST *list, int index, const char *str){
 
 
 /* Remove an element at the specified location of a list object. */
-TM_CALLABLE
 void *tclistremove(TCLIST *list, int index, int *sp){
   assert(list && index >= 0 && sp);
   if(index >= list->num) return NULL;
@@ -990,6 +1042,9 @@ void tclistprintf(TCLIST *list, const char *format, ...){
 #define TCKEYCMP(TC_abuf, TC_asiz, TC_bbuf, TC_bsiz)                    \
   ((TC_asiz > TC_bsiz) ? 1 : (TC_asiz < TC_bsiz) ? -1 : memcmp(TC_abuf, TC_bbuf, TC_asiz))
 
+#define TCKEYCMP_P(TC_abuf, TC_asiz, TC_bbuf, TC_bsiz)                    \
+  ((TC_asiz > TC_bsiz) ? 1 : (TC_asiz < TC_bsiz) ? -1 : memcmp_p(TC_abuf, TC_bbuf, TC_asiz))
+
 
 /* Create a map object. */
 TCMAP *tcmapnew(void){
@@ -1008,6 +1063,24 @@ TCMAP *tcmapnew2(uint32_t bnum){
   } else {
     TCCALLOC(buckets, bnum, sizeof(*buckets));
   }
+  map->buckets = buckets;
+  map->first = NULL;
+  map->last = NULL;
+  map->cur = NULL;
+  map->bnum = bnum;
+  map->rnum = 0;
+  map->msiz = 0;
+  return map;
+}
+
+
+/* Create a map object with specifying the number of the buckets. */
+TCMAP *tcmapnew2_p(uint32_t bnum){
+  if(bnum < 1) bnum = 1;
+  TCMAP *map;
+  map = pmalloc(sizeof(*map));
+  TCMAPREC **buckets;
+  buckets = pmalloc(bnum * sizeof(*buckets));
   map->buckets = buckets;
   map->first = NULL;
   map->last = NULL;
@@ -1071,6 +1144,19 @@ void tcmapdel(TCMAP *map){
     TCFREE(map->buckets);
   }
   TCFREE(map);
+}
+
+
+void tcmapdel_p(TCMAP *map){
+  assert(map);
+  TCMAPREC *rec = map->first;
+  while(rec){
+    TCMAPREC *next = rec->next;
+    pfree(rec);
+    rec = next;
+  }
+  pfree(map->buckets);
+  pfree(map);
 }
 
 
@@ -1192,6 +1278,62 @@ bool tcmapputkeep(TCMAP *map, const void *kbuf, int ksiz, const void *vbuf, int 
   int psiz = TCALIGNPAD(ksiz);
   map->msiz += ksiz + vsiz;
   TCMALLOC(rec, sizeof(*rec) + ksiz + psiz + vsiz + 1);
+  char *dbuf = (char *)rec + sizeof(*rec);
+  memcpy(dbuf, kbuf, ksiz);
+  dbuf[ksiz] = '\0';
+  rec->ksiz = ksiz | hash;
+  memcpy(dbuf + ksiz + psiz, vbuf, vsiz);
+  dbuf[ksiz+psiz+vsiz] = '\0';
+  rec->vsiz = vsiz;
+  rec->left = NULL;
+  rec->right = NULL;
+  rec->prev = map->last;
+  rec->next = NULL;
+  *entp = rec;
+  if(!map->first) map->first = rec;
+  if(map->last) map->last->next = rec;
+  map->last = rec;
+  map->rnum++;
+  return true;
+}
+
+
+bool tcmapputkeep_p(TCMAP *map, const void *kbuf, int ksiz, const void *vbuf, int vsiz){
+  assert(map && kbuf && ksiz >= 0 && vbuf && vsiz >= 0);
+  if(ksiz > TCMAPKMAXSIZ) ksiz = TCMAPKMAXSIZ;
+  uint32_t hash;
+  TCMAPHASH1(hash, kbuf, ksiz);
+  int bidx = hash % map->bnum;
+  TCMAPREC *rec = map->buckets[bidx];
+  TCMAPREC **entp = map->buckets + bidx;
+  TCMAPHASH2(hash, kbuf, ksiz);
+  hash &= ~TCMAPKMAXSIZ;
+  while(rec){
+    uint32_t rhash = rec->ksiz & ~TCMAPKMAXSIZ;
+    uint32_t rksiz = rec->ksiz & TCMAPKMAXSIZ;
+    if(hash > rhash){
+      entp = &(rec->left);
+      rec = rec->left;
+    } else if(hash < rhash){
+      entp = &(rec->right);
+      rec = rec->right;
+    } else {
+      char *dbuf = (char *)rec + sizeof(*rec);
+      int kcmp = TCKEYCMP_P(kbuf, ksiz, dbuf, rksiz);
+      if(kcmp < 0){
+        entp = &(rec->left);
+        rec = rec->left;
+      } else if(kcmp > 0){
+        entp = &(rec->right);
+        rec = rec->right;
+      } else {
+        return false;
+      }
+    }
+  }
+  int psiz = TCALIGNPAD(ksiz);
+  map->msiz += ksiz + vsiz;
+  rec = pmalloc(sizeof(*rec) + ksiz + psiz + vsiz + 1);
   char *dbuf = (char *)rec + sizeof(*rec);
   memcpy(dbuf, kbuf, ksiz);
   dbuf[ksiz] = '\0';
@@ -1389,7 +1531,7 @@ const void *tcmapget(const TCMAP *map, const void *kbuf, int ksiz, int *sp){
       rec = rec->right;
     } else {
       char *dbuf = (char *)rec + sizeof(*rec);
-      int kcmp = TCKEYCMP(kbuf, ksiz, dbuf, rksiz);
+      int kcmp = TCKEYCMP_P(kbuf, ksiz, dbuf, rksiz);
       if(kcmp < 0){
         rec = rec->left;
       } else if(kcmp > 0){
@@ -2159,7 +2301,7 @@ const void *tcmapget3(TCMAP *map, const void *kbuf, int ksiz, int *sp){
       rec = rec->right;
     } else {
       char *dbuf = (char *)rec + sizeof(*rec);
-      int kcmp = TCKEYCMP(kbuf, ksiz, dbuf, rksiz);
+      int kcmp = TCKEYCMP_P(kbuf, ksiz, dbuf, rksiz);
       if(kcmp < 0){
         rec = rec->left;
       } else if(kcmp > 0){
@@ -4706,7 +4848,6 @@ static time_t tcmkgmtime(struct tm *tm);
 
 
 /* Get the larger value of two integers. */
-TM_WAIVER
 long tclmax(long a, long b){
   return (a > b) ? a : b;
 }
@@ -9336,7 +9477,6 @@ static const char *tctmpldumpevalvar(const TCMAP **stack, int depth, const char 
 
 
 /* Create a pointer list object. */
-TM_CALLABLE
 TCPTRLIST *tcptrlistnew(void){
   TCPTRLIST *ptrlist;
   TCMALLOC(ptrlist, sizeof(*ptrlist));
@@ -9349,13 +9489,24 @@ TCPTRLIST *tcptrlistnew(void){
 
 
 /* Create a pointer list object with expecting the number of elements. */
-TM_CALLABLE
 TCPTRLIST *tcptrlistnew2(int anum){
   TCPTRLIST *ptrlist;
   TCMALLOC(ptrlist, sizeof(*ptrlist));
   if(anum < 1) anum = 1;
   ptrlist->anum = anum;
   TCMALLOC(ptrlist->array, sizeof(ptrlist->array[0]) * ptrlist->anum);
+  ptrlist->start = 0;
+  ptrlist->num = 0;
+  return ptrlist;
+}
+
+
+TCPTRLIST *tcptrlistnew2_p(int anum){
+  TCPTRLIST *ptrlist;
+  ptrlist = pmalloc(sizeof(*ptrlist));
+  if(anum < 1) anum = 1;
+  ptrlist->anum = anum;
+  ptrlist->array = pmalloc(sizeof(ptrlist->array[0]) * ptrlist->anum);
   ptrlist->start = 0;
   ptrlist->num = 0;
   return ptrlist;
@@ -9418,7 +9569,6 @@ void tcptrlistpush(TCPTRLIST *ptrlist, void *ptr){
 
 
 /* Remove an element of the end of a pointer list object. */
-TM_CALLABLE
 void *tcptrlistpop(TCPTRLIST *ptrlist){
   assert(ptrlist);
   if(ptrlist->num < 1) return NULL;
@@ -9447,7 +9597,6 @@ void tcptrlistunshift(TCPTRLIST *ptrlist, void *ptr){
 
 
 /* Remove an element of the top of a pointer list object. */
-TM_CALLABLE
 void *tcptrlistshift(TCPTRLIST *ptrlist){
   assert(ptrlist);
   if(ptrlist->num < 1) return NULL;
@@ -9481,7 +9630,6 @@ void tcptrlistinsert(TCPTRLIST *ptrlist, int index, void *ptr){
 
 
 /* Remove an element at the specified location of a pointer list object. */
-TM_CALLABLE
 void *tcptrlistremove(TCPTRLIST *ptrlist, int index){
   assert(ptrlist && index >= 0);
   if(index >= ptrlist->num) return NULL;
@@ -9495,7 +9643,6 @@ void *tcptrlistremove(TCPTRLIST *ptrlist, int index){
 
 
 /* Overwrite an element at the specified location of a pointer list object. */
-TM_CALLABLE
 void tcptrlistover(TCPTRLIST *ptrlist, int index, void *ptr){
   assert(ptrlist && index >= 0 && ptr);
   if(index >= ptrlist->num) return;
@@ -9579,7 +9726,6 @@ const char *tcerrmsg(int ecode){
 
 
 /* Show error message on the standard error output and exit. */
-TM_WAIVER
 void *tcmyfatal(const char *message){
   assert(message);
   if(tcfatalfunc){

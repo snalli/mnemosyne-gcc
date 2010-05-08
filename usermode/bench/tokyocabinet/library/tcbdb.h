@@ -66,8 +66,8 @@ typedef struct {                         /* type of structure for a B+ tree data
   int hnum;                              /* number of element of the history array */
   volatile uint64_t hleaf;               /* ID number of the leaf referred by the history */
   volatile uint64_t lleaf;               /* ID number of the last visited leaf */
-  bool tran;                             /* whether in the transaction */
   char *rbopaque;                        /* opaque for rollback */
+  bool tran;                             /* whether in the transaction */
   volatile uint64_t clock;               /* logical clock */
   volatile int64_t cnt_saveleaf;         /* tesing counter for leaf save times */
   volatile int64_t cnt_loadleaf;         /* tesing counter for leaf load times */
@@ -257,8 +257,8 @@ bool tcbdbclose(TCBDB *bdb);
    `vsiz' specifies the size of the region of the value.
    If successful, the return value is true, else, it is false.
    If a record with the same key exists in the database, it is overwritten. */
+__attribute__((tm_callable))
 bool tcbdbput(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
-bool tcbdbput_mnemosyne(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
 
 
 /* Store a string record into a B+ tree database object.
@@ -349,6 +349,7 @@ bool tcbdbputdup3(TCBDB *bdb, const void *kbuf, int ksiz, const TCLIST *vals);
    `ksiz' specifies the size of the region of the key.
    If successful, the return value is true, else, it is false.
    If the key of duplicated records is specified, the first one is selected. */
+__attribute__((tm_callable))
 bool tcbdbout(TCBDB *bdb, const void *kbuf, int ksiz);
 
 
@@ -645,13 +646,11 @@ uint64_t tcbdbfsiz(TCBDB *bdb);
    Note that the cursor is available only after initialization with the `tcbdbcurfirst' or the
    `tcbdbcurjump' functions and so on.  Moreover, the position of the cursor will be indefinite
    when the database is updated after the initialization of the cursor. */
-TM_CALLABLE
 BDBCUR *tcbdbcurnew(TCBDB *bdb);
 
 
 /* Delete a cursor object.
    `cur' specifies the cursor object. */
-TM_CALLABLE
 void tcbdbcurdel(BDBCUR *cur);
 
 
@@ -830,7 +829,7 @@ bool tcbdbcurrec(BDBCUR *cur, TCXSTR *kxstr, TCXSTR *vxstr);
    `file' specifies the file name of the code.
    `line' specifies the line number of the code.
    `func' specifies the function name of the code. */
-TM_WAIVER
+__attribute__((tm_callable))
 void tcbdbsetecode(TCBDB *bdb, int ecode, const char *filename, int line, const char *func);
 
 

@@ -72,6 +72,8 @@ int main (int argc, char const *argv[])
 		my_objects.people->append(Person(2114));
 	}
 	
+	mtm_fini_global();
+
 	return 0;
 }
 

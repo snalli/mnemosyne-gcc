@@ -82,6 +82,10 @@ m_phlog_base_init(m_phlog_base_t *phlog,
 	phlog->tail = phlog->nvmd->tail;
 	phlog->read_index = phlog->nvmd->head;
 
+	/* initialize statistics */
+	phlog->stat_wait_for_trunc = 0;
+	phlog->stat_wait_time_for_trunc = 0;
+
 	return M_R_SUCCESS;
 }
 

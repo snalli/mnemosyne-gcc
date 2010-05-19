@@ -54,6 +54,7 @@ typedef enum {
 typedef enum {
 	UBENCH_UNKNOWN = -1,
 	UBENCH_MIX = 0,
+	UBENCH_MIX_THINK = 1,
 	num_of_benchs
 } ubench_t;
 
@@ -63,6 +64,7 @@ int                   num_threads;
 int                   percent_put;
 int                   percent_del;
 int                   percent_get;
+int                   work_percent;
 int                   vsize;
 int                   num_keys;
 ubench_t              ubench_to_run;
@@ -95,6 +97,7 @@ struct {
 	ubench_t val;
 } ubenchs[] = { 
 	{ "mix", UBENCH_MIX},
+	{ "mix_think", UBENCH_MIX_THINK},
 };
 
 static void run(void* arg);
@@ -108,13 +111,16 @@ int mtm_init(void);
 int mtm_fini(void);
 void fixture_mtm_mix(void *arg);
 void mtm_mix(void *);
+void mtm_mix_think(void *);
 
-void (*ubenchf_array[1][2])(void *) = {
+void (*ubenchf_array[2][2])(void *) = {
 	{ mtm_mix, bdb_mix },
+	{ mtm_mix_think, NULL },
 };	
 
-void (*ubenchf_array_fixture[1][2])(void *) = {
+void (*ubenchf_array_fixture[2][2])(void *) = {
 	{ fixture_mtm_mix, fixture_bdb_mix },
+	{ fixture_mtm_mix, NULL },
 };	
 
 typedef uint64_t word_t;
@@ -163,6 +169,7 @@ void usage(char *name)
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--get=PERCENTAGE_OF_GET_OPERATIONS");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--vsize=VALUE_SIZE");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--nkeys=KEY_SPACE");
+	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--work=WORK_PERCENT");
 	printf("\nValid arguments:\n");
 	printf("  --ubench     [mix]\n");
 	printf("  --system     [mtm]\n");
@@ -193,6 +200,7 @@ main(int argc, char *argv[])
 	percent_del = 0;
 	percent_get = 0;
 	num_keys = 1000;
+	work_percent = 100; /* No thinking; just work */
 	vsize = sizeof(word_t);
 
 
@@ -207,11 +215,12 @@ main(int argc, char *argv[])
 			{"del", required_argument, 0, 'd'},
 			{"vsize", required_argument, 0, 'v'},
 			{"nkeys", required_argument, 0, 'k'},
+			{"work", required_argument, 0, 'w'},
 			{0, 0, 0, 0}
 		};
 		int option_index = 0;
      
-		c = getopt_long (argc, argv, "b:r:s:t:p:v:g:d:",
+		c = getopt_long (argc, argv, "b:r:s:t:p:v:g:d:w:",
 		                 long_options, &option_index);
      
 		/* Detect the end of the options. */
@@ -273,6 +282,10 @@ main(int argc, char *argv[])
 				num_keys = atoi(optarg);
 				break;
 
+			case 'w':
+				work_percent = atoi(optarg);
+				break;
+
 			case '?':
 				/* getopt_long already printed an error message. */
 				usage(prog_name);
@@ -318,6 +331,7 @@ main(int argc, char *argv[])
 	printf("total_its         %llu\n", total_iterations);
 	printf("throughput_its    %f (iterations/s) \n", throughput_its * 1000 * 1000);
 
+	m_logmgr_fini();
 out:
 	experiment_global_fini();
 	return 0;
@@ -375,7 +389,8 @@ int experiment_global_init(void)
 	if (system_to_use == SYSTEM_BDB && ubench_to_run == UBENCH_MIX) {
 		return bdb_init();
 	}
-	if (system_to_use == SYSTEM_MTM && ubench_to_run == UBENCH_MIX) {
+	if ((system_to_use == SYSTEM_MTM && ubench_to_run == UBENCH_MIX) ||
+	    (system_to_use == SYSTEM_MTM && ubench_to_run == UBENCH_MIX_THINK)) {
 		return mtm_init();
 	}
 	return 0;
@@ -416,7 +431,7 @@ typedef struct mtm_global_s {
 	mtm_hashtable_t *hashtable;
 } mtm_global_t;
 
-int mtm_op_add(mtm_hashtable_t *hashtable, int id);
+static inline int mtm_op_add(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock);
 
 int mtm_init(void)
 {
@@ -683,6 +698,53 @@ void mtm_mix(void *arg)
 }
 
 
+/* mix workload with thinking/sleeping time  */
+void mtm_mix_think(void *arg)
+{
+ 	ubench_args_t*            args = (ubench_args_t *) arg;
+ 	unsigned int              tid = args->tid;
+ 	unsigned int              iterations_per_chunk = args->iterations_per_chunk;
+	fixture_state_mtm_mix_t*  fixture_state = args->fixture_state;
+	mtm_global_t              *mtm_global = (mtm_global_t *) experiment_global_state;
+	unsigned int*             seedp = &fixture_state->seed;
+	int                       i;
+	int                       j;
+	int                       id;
+	int                       op;
+	int                       block = 128;
+	struct timeval            start_time;
+	struct timeval            stop_time;
+	unsigned long long        work_time;    /* in usec */
+	unsigned long long        think_time;      /* in usec */
+
+	for (i=0; i<iterations_per_chunk; i+=block) {
+		gettimeofday(&start_time, NULL);
+		for (j=0; j<block; j++) {
+			op = random_operation(seedp);
+			id = rand_r(seedp) % num_keys;
+			switch(op) {
+				case OP_HASH_PUT:
+					add++;
+					mtm_op_add(tid, mtm_global->hashtable, id, 0);
+					break;
+				case OP_HASH_DEL:
+					del++;
+					mtm_op_del(tid, mtm_global->hashtable, id, 0);
+					break;
+				case OP_HASH_GET:
+					mtm_op_get(tid, mtm_global->hashtable, id, 0);
+					break;
+			}
+		}
+		gettimeofday(&stop_time, NULL);
+		work_time = 1000000 * (stop_time.tv_sec - start_time.tv_sec) +
+	                              stop_time.tv_usec - start_time.tv_usec;
+		think_time = ((100 - work_percent) * work_time) / work_percent;
+		usleep(think_time);
+	}
+}
+
+
 /* 
  * BDB MIX 
  */
@@ -720,7 +782,6 @@ open_db(DB **dbpp, const char *prog_name, const char *file_name,
 	/* Now open the database */
 	open_flags = DB_CREATE              | /* Allow database creation */ 
 				 DB_AUTO_COMMIT;          /* Allow autocommit */
-
 	ret = dbp->open(dbp,        /* Pointer to the database */
 					NULL,       /* Txn pointer */
 					file_name,  /* File name */
@@ -790,6 +851,10 @@ int bdb_init()
 	if (num_threads > 1) {
 		env_flags |=
 		  DB_INIT_LOCK;  /* Initialize the locking subsystem */
+	}
+	ret = envp->set_cachesize(envp, 0, 128*1024*1024, 0);
+	if (ret != 0) {
+		goto err;
 	}
 
 	/* Now actually open the environment */

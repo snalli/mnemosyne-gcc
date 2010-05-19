@@ -100,6 +100,7 @@ m_result_t m_tmlog_base_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 m_result_t m_tmlog_base_recovery_init(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
 m_result_t m_tmlog_base_recovery_prepare_next(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
 m_result_t m_tmlog_base_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
+m_result_t m_tmlog_base_report_stats(m_log_dsc_t *log_dsc);
 
 
 #endif /* _TMLOG_BASE_H */

@@ -1,6 +1,8 @@
 #include <libconfig.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "config_generic.h"
 
 #define ENVVAR_MAX_LEN 128
@@ -10,7 +12,6 @@ env_setting_lookup(char *group, char *member, char **value_str)
 {
 	char name[ENVVAR_MAX_LEN];
 	char *val;
-	int  l;
 	int  i;
 	int  len;
 	int  group_len = strlen(group);
@@ -61,7 +62,7 @@ env_setting_lookup_bool(char *group, char *member, int *value)
 
 
 static inline int 
-env_setting_lookup_string(char *group, char *member, char *value)
+env_setting_lookup_string(char *group, char *member, char **value)
 {
 	return env_setting_lookup(group, member, value);	
 }
@@ -75,8 +76,6 @@ m_config_setting_lookup_bool(config_t *cfg,
                              int validity_check, ...)
 {
 	config_setting_t *group = config_lookup(cfg, group_name);
-	int              ret;
-	va_list          ap;
 	int              val;
 	int              found_val  = 0;
 
@@ -105,12 +104,12 @@ m_config_setting_lookup_int(config_t *cfg,
                             int validity_check, ...)
 {
 	config_setting_t *group;
-	int              ret;
 	int              min;
 	int              max;
 	int              list_length;
 	int              i;
 	int              val;
+	int              listval;
 	va_list          ap;
 	int              found_val  = 0;
 
@@ -118,7 +117,7 @@ m_config_setting_lookup_int(config_t *cfg,
 		found_val = 1;
 	} else {	
 		group = config_lookup(cfg, group_name);
-	    if (group && config_setting_lookup_int(group, member_name , &val) == CONFIG_TRUE) {
+	    if (group && config_setting_lookup_int(group, member_name , (long int *) &val) == CONFIG_TRUE) {
 			found_val = 1;
 		}
 	}
@@ -129,7 +128,7 @@ m_config_setting_lookup_int(config_t *cfg,
 				*value = val;
 				return CONFIG_TRUE;
 			case CONFIG_RANGE_CHECK:
-				va_start(ap, 2);
+				va_start(ap, validity_check);
 				min = va_arg(ap, int);
 				max = va_arg(ap, int);
 				va_end(ap);
@@ -139,13 +138,11 @@ m_config_setting_lookup_int(config_t *cfg,
 				}
 				break;
 			case CONFIG_LIST_CHECK:
-				va_start(ap, 1);
-				list_length = va_arg(ap, int);
-				va_end(ap);
-				va_start(ap, list_length+1);
+				va_start(ap, validity_check);
 				list_length = va_arg(ap, int);
 				for (i=0; i<list_length; i++) {
-					if (*value == va_arg(ap, int)) {
+					listval = va_arg(ap, int);
+					if (val == listval) {
 						*value = val;
 						return CONFIG_TRUE;
 					}
@@ -166,7 +163,6 @@ m_config_setting_lookup_string(config_t *cfg,
                                int validity_check, ...)
 {
 	config_setting_t *group = config_lookup(cfg, group_name);
-	int              ret;
 	int              list_length;
 	int              i;
 	char             *val;
@@ -177,7 +173,7 @@ m_config_setting_lookup_string(config_t *cfg,
 		found_val = 1;
 	} else {	
 		group = config_lookup(cfg, group_name);
-	    if (group && config_setting_lookup_string(group, member_name , &val) == CONFIG_TRUE) {
+	    if (group && config_setting_lookup_string(group, member_name , (const char **) &val) == CONFIG_TRUE) {
 			found_val = 1;
 		}
 	}
@@ -190,13 +186,10 @@ m_config_setting_lookup_string(config_t *cfg,
 			case CONFIG_RANGE_CHECK:
 				break;
 			case CONFIG_LIST_CHECK:
-				va_start(ap, 1);
-				list_length = va_arg(ap, int);
-				va_end(ap);
-				va_start(ap, list_length+1);
+				va_start(ap, validity_check);
 				list_length = va_arg(ap, int);
 				for (i=0; i<list_length; i++) {
-					if (strcmp(*value, va_arg(ap, char *))==0) {
+					if (strcmp(val, va_arg(ap, char *))==0) {
 						*value = val;
 						return CONFIG_TRUE;
 					}

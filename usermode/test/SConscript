@@ -1,21 +1,27 @@
+import os
 import sys
-from configuration import test
-testEnv = test.Environment('default')
+import string
+sys.path.append('%s/library' % (Dir('#').abspath))
+
+def addUnitTest(env, osenv, unit_test, args):
+	env.Append(UNIT_TEST_CMDS = [[osenv, unit_test, args]])
+
+Import('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+Import('mainEnv')
+testEnv = mainEnv.Clone()
 
 # For correct and complete compilation.
 testEnv.Append(CCFLAGS = ' -m64 -g')
+testEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
+testEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
 testEnv.Append(LINKFLAGS = ' -T '+ 'util/linker_script_persistent_segment_m64')
+testEnv.AddMethod(addUnitTest, "addUnitTest")
 
-# LibMTM Unit Tests
-Import('mtmLibrary', 'mcoreLibrary')
-mtmTestEnv = testEnv.Clone()
-mtmTestEnv.Append(CPPPATH = ['#library/mtm/src/sysdeps/linux', '#library/mtm/src'])
-mtmTestEnv.Append(CPPPATH = ['#library/atomic_ops'])
-mtm_tests = mtmTestEnv.Program('mtm_tests', source = [Glob('mtm/*.tests.cxx'), Glob('mtm/*.fixtures.cxx'), Glob('mtm/*.helpers.cxx'), 'main.cxx'], LIBS=['UnitTest++', mcoreLibrary, mtmLibrary])
+Export('testEnv')
+Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 
-# Physical Log Unit Tests
-physicalLogTestEnv = testEnv.Clone()
-#physical_log_tests = physicalLogTestEnv.Program('physical_log_tests', source = ['../library/common/phlog.c', Glob('log/*.tests.cxx'), Glob('log/*.fixtures.cxx'), Glob('log/*.helpers.cxx'), 'log/main.cxx'], LIBS=['UnitTest++', mcoreLibrary])
+thedir=os.getcwd()
+dirs = [ name for name in os.listdir(thedir) if os.path.isdir(os.path.join(thedir, name)) ]
 
-#Return(['mtm_tests', 'physical_log_tests'])
-Return(['mtm_tests', 'mtm_tests'])
+for d in dirs:
+	SConscript('%s/SConscript' % d)

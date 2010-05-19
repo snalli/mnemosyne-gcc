@@ -6,10 +6,9 @@ import configuration.mcore
 Import('mainEnv')
 buildEnv = configuration.mcore.Environment(mainEnv)
 
-Import('CommonObjects')
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library/mnemosyne/src'])
-buildEnv.Append(LIBS = ['elf', CommonObjects, 'pthread'])
+buildEnv.Append(LIBS = ['config', 'elf', 'pthread'])
 buildEnv.Append(CCFLAGS = ' -m64 ')
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
@@ -20,14 +19,20 @@ if buildEnv['BUILD_DEBUG'] == True:
 else:
 	buildEnv.Append(CCFLAGS = ' -O2')
 
-# I would love to use SCons's automatic linking with this, but it appears that 
-# the whole-archive option (necessary to build static libraries into dynamic ones)
-# cannot be built except by hand.
-Import('CommonObjects')
-buildEnv.Append(LINKFLAGS = '-Wl,--whole-archive build/library/common/libmnemosyne_common.a -Wl,--no-whole-archive')
+# For common source files we need to manually specify the object creation rules 
+# to avoid getting the following error:
+#   scons: warning: Two different environments were specified for target ... 
+#   but they appear to have the same actions: ...
 
+COMMON_SRC = [
+              ('src/config_generic', '../common/config_generic.c'),
+              ('src/debug', '../common/debug.c'), 
+             ]
 
+COMMON_OBJS = [buildEnv.SharedObject(src[0], src[1]) for src in COMMON_SRC]
+	
 C_SRC = Split("""
+              src/config.c
               src/module.c
               src/files.c
               src/init.c
@@ -44,9 +49,9 @@ LOG_C_SRC = Split("""
               """)
 
 
-SRC = C_SRC + LOG_C_SRC
+SRC = C_SRC + LOG_C_SRC + COMMON_OBJS
 
-if mainEnv['BUILD_LINKAGE'] == 'dynamic':
+if buildEnv['BUILD_LINKAGE'] == 'dynamic':
 	mcoreLibrary = buildEnv.SharedLibrary('mnemosyne', SRC)
 else:
 	mcoreLibrary = buildEnv.StaticLibrary('mnemosyne', SRC)

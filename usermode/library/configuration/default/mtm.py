@@ -18,8 +18,8 @@ ENABLE_ISOLATION = False
 
 ########################################################################
 # ALLOW_ABORTS: Allows transaction aborts. When disabled and 
-# combined with no-isolation, the TM system does not need to perform 
-# version management for volatile data.
+#   combined with no-isolation, the TM system does not need to perform 
+#   version management for volatile data.
 ########################################################################
 
 ALLOW_ABORTS = False
@@ -44,6 +44,17 @@ SYNC_TRUNCATION = True
 ########################################################################
 
 TMLOG_TYPE = 'TMLOG_TYPE_BASE'
+
+
+########################################################################
+# FLUSH_CACHELINE_ONCE: When asynchronously truncating the log, the log 
+#   manager flushes each cacheline of the write set only once by keeping 
+#   track flushed cachelines. This adds some bookkeeping overhead which 
+#   for some workloads might be worse than simply flushing a cacheline 
+#   multiple times.
+########################################################################
+
+FLUSH_CACHELINE_ONCE = False
 
 ########################################################################
 ########################################################################

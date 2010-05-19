@@ -22,12 +22,14 @@ m_log_ops_t tmlog_tornbit_ops = {
 	m_tmlog_tornbit_recovery_init,
 	m_tmlog_tornbit_recovery_prepare_next,
 	m_tmlog_tornbit_recovery_do,
+	m_tmlog_tornbit_report_stats,
 };
 
 
 /* Print debug messages */
 #undef _DEBUG_THIS
 //#define _DEBUG_THIS
+
 
 #define _DEBUG_PRINT_TMLOG(tmlog)                                 \
   printf("nvmd       : %p\n", tmlog->phlog_tornbit.nvmd);         \
@@ -111,8 +113,8 @@ retry:
 					 * Log fragment corresponds to an aborted transaction.
 					 * Ignore it, truncate the log up to here, and retry.
 					 */
-					//FIXME:
-					 goto retry;
+					//FIXME: truncate the log up to here
+					goto retry;
 				} else {
 					assert(m_phlog_tornbit_read(&(tmlog->phlog_tornbit), &value) == M_R_SUCCESS);
 					assert(m_phlog_tornbit_read(&(tmlog->phlog_tornbit), &mask) == M_R_SUCCESS);
@@ -120,13 +122,18 @@ retry:
 					printf("addr  = 0x%lX\n", addr);
 					printf("value = 0x%lX\n", value);
 					printf("mask  = 0x%lX\n", mask);
-#endif					
+#endif
 					block_addr = (uintptr_t) BLOCK_ADDR(addr);
+
+#ifdef FLUSH_CACHELINE_ONCE
 					if (!PointerHash_at_((PointerHash *) tmlog->flush_set, (void *) block_addr)) {
 						PointerHash_at_put_((PointerHash *) tmlog->flush_set, 
 						                    (void *) block_addr, 
 						                    (void *) 1);
 					}
+#else 					
+					PCM_WB_FLUSH(set, (volatile pcm_word_t *) block_addr);
+#endif					
 				}	
 			} else {
 				M_INTERNALERROR("Invariant violation: there must be at least one atomic log fragment.");
@@ -167,12 +174,15 @@ m_tmlog_tornbit_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	_DEBUG_PRINT_TMLOG(tmlog)
 #endif
 
+#ifdef FLUSH_CACHELINE_ONCE
 	for(i = 0; i < ((PointerHash *) tmlog->flush_set)->size; i++) {
 		PointerHashRecord *r = PointerHashRecords_recordAt_(((PointerHash *) tmlog->flush_set)->records, i);
 		if (block_addr = (uintptr_t) r->k) {
 			PointerHash_removeKey_((PointerHash *) tmlog->flush_set, (void *) block_addr);
+			PCM_WB_FLUSH(set, (volatile pcm_word_t *) block_addr);
 		}
 	}
+#endif	
 	m_phlog_tornbit_truncate_async(set, &tmlog->phlog_tornbit);
 
 #ifdef _DEBUG_THIS
@@ -327,4 +337,15 @@ m_tmlog_tornbit_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	}	
 
 	return M_R_SUCCESS;
+}
+
+
+m_result_t 
+m_tmlog_tornbit_report_stats(m_log_dsc_t *log_dsc)
+{
+	m_tmlog_tornbit_t *tmlog = (m_tmlog_tornbit_t *) log_dsc->log;
+	m_phlog_tornbit_t *phlog = &(tmlog->phlog_tornbit);
+
+	printf("PRINT TORNBIT STATS\n");
+	printf("wait_for_trunc: %llu\n", phlog->stat_wait_for_trunc);
 }

@@ -96,6 +96,7 @@ m_result_t m_tmlog_tornbit_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_d
 m_result_t m_tmlog_tornbit_recovery_init(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
 m_result_t m_tmlog_tornbit_recovery_prepare_next(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
 m_result_t m_tmlog_tornbit_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
+m_result_t m_tmlog_tornbit_report_stats(m_log_dsc_t *log_dsc);
 
 
 #endif /* _TMLOG_TORNBIT_H */

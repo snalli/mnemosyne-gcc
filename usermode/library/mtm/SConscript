@@ -5,6 +5,8 @@ import configuration.mtm
 Import('mainEnv')  # read only -- clone if need to modify
 
 buildEnv = configuration.mtm.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
+buildEnv['CC'] = 'gcc'
+buildEnv['CXX'] = 'g++'
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
 buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
 buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
@@ -37,7 +39,13 @@ srcgen_vtable = buildEnv.Program('generate_vtable', 'src/srcgen/generate_vtable.
 #   scons: warning: Two different environments were specified for target ... 
 #   but they appear to have the same actions: ...
 
-COMMON_OBJS = buildEnv.SharedObject('src/debug', '../common/debug.c') + buildEnv.SharedObject('src/chhash', '../common/chhash.c')
+COMMON_SRC = [
+              ('src/config_generic', '../common/config_generic.c'), 
+              ('src/chhash', '../common/chhash.c'),
+              ('src/debug', '../common/debug.c'), 
+             ]
+
+COMMON_OBJS = [buildEnv.SharedObject(src[0], src[1]) for src in COMMON_SRC]
 
 CC_SRC = Split("""
                src/config.c
@@ -74,7 +82,7 @@ S_SRC = Split("""src/sysdeps/x86/sjlj.S""")
 
 SRC = CC_SRC + S_SRC + CC_LINUX_SRC + COMMON_OBJS
 
-if mainEnv['BUILD_LINKAGE'] == 'dynamic':
+if buildEnv['BUILD_LINKAGE'] == 'dynamic':
 	mtmLibrary = buildEnv.SharedLibrary('mtm', SRC)
 else:
 	mtmLibrary = buildEnv.StaticLibrary('mtm', SRC)

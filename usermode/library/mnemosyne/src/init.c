@@ -5,6 +5,7 @@
 #include "log/log_i.h"
 #include "thrdesc.h"
 #include "debug.h"
+#include "config.h"
 
 
 static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -32,6 +33,7 @@ do_global_init(void)
 
 	pthread_mutex_lock(&global_init_lock);
 	if (!mnemosyne_initialized) {
+		mcore_config_init();
 		m_segmentmgr_init();
 		mnemosyne_initialized = 1;
 		mnemosyne_reincarnation_callback_execute_all();

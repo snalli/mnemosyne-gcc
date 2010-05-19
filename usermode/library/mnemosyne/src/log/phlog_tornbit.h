@@ -109,6 +109,11 @@ struct m_phlog_tornbit_s {
 	uint64_t                read_index;
 	uint64_t                tornbit;
 	//uint64_t              tornbit[CHUNK_SIZE/sizeof(uint64_t)];
+	
+	/* statistics */
+	uint64_t                pad1[8];                                /**< some padding to avoid having statistics in the same cacheline with metadata */
+	uint64_t                stat_wait_for_trunc;                    /**< number of times waited for asynchronous truncation */
+	uint64_t                stat_wait_time_for_trunc;               /**< total time waited for asynchronous truncation */
 };
 
 
@@ -193,8 +198,9 @@ m_phlog_tornbit_write(pcm_storeset_t *set, m_phlog_tornbit_t *log, pcm_word_t va
 	 */
 
 #ifdef _DEBUG_THIS
-	printf("buffer_count = %lu, write_remainder_nbits = %lu\n", log->buffer_count, log->write_remainder_nbits);
+	printf("buffer_count = %lu, write_remainder_nbits = %lu, log->head=%lu, log->tail=%lu\n", log->buffer_count, log->write_remainder_nbits, log->head, log->tail);
 	printf("value = 0x%llX\n", value);
+	printf("[T: %x] &log->tail= %p\n", pthread_self(), &log->tail);
 #endif
 	/* Will new write flush buffer out to log? */
 	if (log->buffer_count+1 > CHUNK_SIZE/sizeof(pcm_word_t)-1) {
@@ -216,15 +222,12 @@ m_phlog_tornbit_write(pcm_storeset_t *set, m_phlog_tornbit_t *log, pcm_word_t va
 			log->buffer[log->buffer_count] = ~TORN_MASK & 
 											 (log->write_remainder | 
 											  (value << log->write_remainder_nbits));
-			/* 
-			 * Invariant: Remainder bits cannot be more than 63. So one buffer 
-			 * slot should suffice. 
-			 */
+			/* the new remainder is the part of the value not written to the buffer */								  
+			log->write_remainder = value >> (64 - (log->write_remainder_nbits+1));
 			log->write_remainder_nbits = (log->write_remainder_nbits + 1) & (64 - 1); /* efficient form of (log->write_remainder_nbits + 1) % 64 */
-			log->write_remainder = value >> (64 - log->write_remainder_nbits);
-			log->buffer_count++;
+			//log->buffer_count++; /* do we need this inc? write_buffer2log sets this to zero */
 
-			tornbit_write_buffer2log(set, log);
+			tornbit_write_buffer2log(set, log); /* write_buffer2log resets buffer_count to zero */
 			/* 
 			 * If write_remainder_nbits wrapped around then we are actually left 
 			 * with an overflow remainder of 64 bits, not zero. Write a complete 
@@ -234,7 +237,9 @@ m_phlog_tornbit_write(pcm_storeset_t *set, m_phlog_tornbit_t *log, pcm_word_t va
 				log->buffer[0] = ~TORN_MASK & 
 				                 (log->write_remainder);
 				log->buffer_count++;
-				log->write_remainder = value >> 63;
+				//log->write_remainder = value >> 63;
+				/* the new remainder is the 64th bit that didn't make it */
+				log->write_remainder = log->write_remainder >> 63;
 				log->write_remainder_nbits = 1;
 			}
 		}
@@ -264,10 +269,12 @@ m_phlog_tornbit_write(pcm_storeset_t *set, m_phlog_tornbit_t *log, pcm_word_t va
 		 * Note: It would be easier to check whether there are 63 remaining
 		 * bits and write them to the buffer. However this would add an 
 		 * extra branch in the common path. We avoid this by doing the check
-		 * in the uncommon path above. 
+		 * in the uncommon path above instead. This is correct because we go 
+		 * through the uncommon path every 8th write, so when we are left with 
+		 * 64 bits to write out (i.e 63 bits we had to write + 1 new bit), we 
+		 * will be in the uncommon path already.
 		 */
 	}
-
 	return M_R_SUCCESS;
 }
 
@@ -324,7 +331,7 @@ m_phlog_tornbit_flush(pcm_storeset_t *set, m_phlog_tornbit_t *log)
 	log->stable_tail = log->tail;
 	PCM_SEQSTREAM_FLUSH(set);
 #ifdef _DEBUG_THIS		
-	printf("phlog_tornbit_flush: log->stable_tail = %llu\n", log->stable_tail);
+	printf("phlog_tornbit_flush: log->tail = %llu, log->stable_tail = %llu\n", log->tail, log->stable_tail);
 #endif	
 	return M_R_SUCCESS;
 }
@@ -405,14 +412,20 @@ m_phlog_tornbit_next_chunk(m_phlog_tornbit_t *log)
 {
 	uint64_t read_index; 
 
-	log->read_remainder_nbits = 0;
-	read_index = log->read_index & ~(CHUNK_SIZE/sizeof(pcm_word_t) - 1);
-	/* 
-	 * If current log->read_index points to the beginning of a chunk
-	 * then we are already in the next chunk so we don't need to advance.
-	 */
-	if (read_index != log->read_index) {
+	if (log->read_remainder_nbits > 0) {
+		log->read_remainder_nbits = 0;
+		read_index = log->read_index & ~(CHUNK_SIZE/sizeof(pcm_word_t) - 1);
 		log->read_index = (read_index + CHUNK_SIZE/sizeof(pcm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1); 
+	} else {
+		log->read_remainder_nbits = 0;
+		read_index = log->read_index & ~(CHUNK_SIZE/sizeof(pcm_word_t) - 1);
+		/* 
+		 * If current log->read_index points to the beginning of a chunk
+		 * then we are already in the next chunk so we don't need to advance.
+		 */
+		if (read_index != log->read_index) {
+			log->read_index = (read_index + CHUNK_SIZE/sizeof(pcm_word_t)) & (PHYSICAL_LOG_NUM_ENTRIES-1); 
+		}
 	}
 }
 

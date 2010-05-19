@@ -153,6 +153,9 @@ m_phlog_tornbit_init (m_phlog_tornbit_t *phlog,
 	phlog->read_remainder_nbits = 0;
 	phlog->head = phlog->tail = phlog->stable_tail = phlog->read_index = phlog->nvmd->flags & LF_HEAD_MASK;
 
+	/* initialize statistics */
+	phlog->stat_wait_for_trunc = 0;
+	phlog->stat_wait_time_for_trunc = 0;
 	return M_R_SUCCESS;
 }
 

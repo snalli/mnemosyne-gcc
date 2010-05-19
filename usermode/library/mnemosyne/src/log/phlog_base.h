@@ -75,6 +75,11 @@ struct m_phlog_base_s {
 	uint64_t                head;
 	uint64_t                tail;
 	uint64_t                read_index;
+
+	/* statistics */
+	uint64_t                pad1[8];                                /**< some padding to avoid having statistics in the same cacheline with metadata */
+	uint64_t                stat_wait_for_trunc;                    /**< number of times waited for asynchronous truncation */
+	uint64_t                stat_wait_time_for_trunc;               /**< total time waited for asynchronous truncation */
 };
 
 

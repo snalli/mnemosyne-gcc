@@ -12,6 +12,7 @@
 #include "log_i.h"
 #include "logtrunc.h"
 #include "hal/pcm_i.h"
+#include "phlog_tornbit.h"
 
 static m_logmgr_t *logmgr;
 
@@ -113,8 +114,10 @@ log_truncation_main (void *arg)
 		rc =  gettimeofday(&tp, NULL);
 		ts.tv_sec = tp.tv_sec;
 		ts.tv_nsec = tp.tv_usec * 1000; 
-		ts.tv_sec += 1; /* sleep time */
-		pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
+		ts.tv_sec += 0; /* sleep time */
+		//pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
+		pthread_mutex_unlock(&(logmgr->mutex));
+		pthread_mutex_lock(&(logmgr->mutex));
 
 		truncate_logs(set, 0);
 	}	

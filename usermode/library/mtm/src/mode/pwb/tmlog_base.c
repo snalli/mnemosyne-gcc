@@ -22,21 +22,8 @@ m_log_ops_t tmlog_base_ops = {
 	m_tmlog_base_recovery_init,
 	m_tmlog_base_recovery_prepare_next,
 	m_tmlog_base_recovery_do,
+	m_tmlog_base_report_stats,
 };
-
-#ifndef CACHELINE_SIZE
-#ifdef __x86_64__
-# define CACHELINE_SIZE 64
-# define CACHELINE_SIZE_LOG 6
-#else
-# define CACHELINE_SIZE 32
-# define CACHELINE_SIZE_LOG 5
-#endif
-#endif
-
-#ifndef BLOCK_ADDR
-#define BLOCK_ADDR(addr) ( (uint64_t *) ((uint64_t) addr & ~(CACHELINE_SIZE - 1)) )
-#endif 
 
 /* Print debug messages */
 #undef _DEBUG_THIS
@@ -127,12 +114,14 @@ retry:
 					 */
 					assert(m_phlog_base_read(&(tmlog->phlog_base), &sqn) == M_R_SUCCESS);
 					m_phlog_base_next_chunk(&tmlog->phlog_base);
+#ifdef FLUSH_CACHELINE_ONCE
 					for(i = 0; i < ((PointerHash *) tmlog->flush_set)->size; i++) {
 						PointerHashRecord *r = PointerHashRecords_recordAt_(((PointerHash *) tmlog->flush_set)->records, i);
 						if (block_addr = (uintptr_t) r->k) {
 							PointerHash_removeKey_((PointerHash *) tmlog->flush_set, (void *) block_addr);
 						}
 					}
+#endif					
 					m_phlog_base_truncate_async(set, &tmlog->phlog_base);
 					sqn = INV_LOG_ORDER;
 					goto retry;
@@ -140,12 +129,17 @@ retry:
 					assert(m_phlog_base_read(&(tmlog->phlog_base), &value) == M_R_SUCCESS);
 					assert(m_phlog_base_read(&(tmlog->phlog_base), &mask) == M_R_SUCCESS);
 					block_addr = (uintptr_t) BLOCK_ADDR(addr);
+
+#ifdef FLUSH_CACHELINE_ONCE
 					if (!PointerHash_at_((PointerHash *) tmlog->flush_set, (void *) block_addr)) {
 						PointerHash_at_put_((PointerHash *) tmlog->flush_set, 
 						                    (void *) block_addr, 
 						                    (void *) 1);
 					}
-				}	
+#else 					
+					PCM_WB_FLUSH(set, (volatile pcm_word_t *) block_addr);
+#endif					
+				}
 			} else {
 				M_INTERNALERROR("Invariant violation: there must be at least one atomic log fragment.");
 			}
@@ -186,19 +180,21 @@ m_tmlog_base_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 #endif
 
 
+#ifdef FLUSH_CACHELINE_ONCE
 	for(i = 0; i < ((PointerHash *) tmlog->flush_set)->size; i++) {
 		PointerHashRecord *r = PointerHashRecords_recordAt_(((PointerHash *) tmlog->flush_set)->records, i);
 		if (block_addr = (uintptr_t) r->k) {
 			PointerHash_removeKey_((PointerHash *) tmlog->flush_set, (void *) block_addr);
+			PCM_WB_FLUSH(set, (volatile pcm_word_t *) block_addr);
 		}
 	}
+#endif	
 	m_phlog_base_truncate_async(set, &tmlog->phlog_base);
 
 #ifdef _DEBUG_THIS
 	printf("m_tmlog_base_truncation_do: DONE: log_dsc = %p\n", log_dsc);
 	_DEBUG_PRINT_TMLOG(tmlog);
 #endif
-
 
 	return M_R_SUCCESS;
 }
@@ -342,4 +338,10 @@ m_tmlog_base_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	}	
 
 	return M_R_SUCCESS;
+}
+
+m_result_t 
+m_tmlog_base_report_stats(m_log_dsc_t *log_dsc)
+{
+
 }

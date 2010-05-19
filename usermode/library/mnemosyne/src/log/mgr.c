@@ -17,6 +17,7 @@
 #include "staticlogs.h"
 #include "../segment.h"
 #include "../pregionlayout.h"
+#include "phlog_tornbit.h"
 
 __attribute__ ((section("PERSISTENT"))) pcm_word_t log_pool = 0x0;
 
@@ -187,11 +188,19 @@ m_logmgr_init(pcm_storeset_t *set)
  * \brief Shutdowns the log manager.
  *
  * It flushes any dirty logs.
+ * Prints statistics.
  */
 m_result_t
 m_logmgr_fini(void)
 {
-	//TODO
+	m_log_dsc_t       *log_dsc;
+
+#ifdef _M_STATS_BUILD
+	list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
+		log_dsc->ops->report_stats(log_dsc);
+	}
+#endif
+
 	return M_R_SUCCESS;
 }
 

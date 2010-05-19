@@ -21,13 +21,13 @@
 #include "module.h"
 #include "hal/pcm_i.h"
 #include "pregionlayout.h"
+#include "config.h"
 
 
 /**
  * The directory where persistent segment backing stores are kept.
  */
-#define SEGMENTS_DIR "/tmp/segments"
-//#define SEGMENTS_DIR ".segments"
+#define SEGMENTS_DIR mcore_runtime_settings.segments_dir
 
 
 #define M_DEBUG_SEGMENT 1
@@ -797,6 +797,15 @@ segment_create_sections(m_segtbl_t *segtbl)
 m_result_t 
 m_segmentmgr_init()
 {
+	char buf[256];
+
+	/* Clear previous life segments? */
+	if (mcore_runtime_settings.reset_segments) {
+		/* what if buffer overflow attack -- who cares, this is a prototype */
+		sprintf(buf, "rm -rf %s", SEGMENTS_DIR);
+		system(buf);
+	}
+
 	segment_table_incarnate();
 	segment_reincarnate_segments(&m_segtbl);
 	segment_create_sections(&m_segtbl);

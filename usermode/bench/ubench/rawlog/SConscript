@@ -1,0 +1,18 @@
+Import('ubenchEnv')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+
+myEnv = ubenchEnv.Clone() 
+myEnv.Append(CPPPATH = ['#library/common'])
+
+
+sources = Split("""
+                main.c
+		rawlog_base.c
+		rawlog_tornbit.c
+                """)
+
+
+myEnv.Append(LIBS = [mcoreLibrary])
+myEnv.Append(LIBS = [mtmLibrary])
+myEnv.Program('rawlog', sources)

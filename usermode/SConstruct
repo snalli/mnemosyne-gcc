@@ -66,6 +66,9 @@ rootDir = os.getcwd()
 mainEnv['MY_ROOT_DIR'] = rootDir
 mainEnv['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
+mainEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
+mainEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc'
+
 
 Export('mainEnv')
 
@@ -92,7 +95,5 @@ if mainEnv['BUILD_UBENCH'] == True:
 
 
 #Testing Environment
-#Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
-#unit_tests = SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))
-#for unit_test in unit_tests:
-#	AddPostAction(unit_test, unit_test[0].path)
+Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))

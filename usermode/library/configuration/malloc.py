@@ -21,7 +21,7 @@ class Environment(mnemosyne.Environment):
 		mnemosyne.Environment.__init__(self, mainEnv, configuration_name)
 		
 		# Apply the configuration variables specific to MTM.
-		directives = helper.Directives(configuration_name, ARGUMENTS, self._boolean_directive_vars, self._enumerable_directive_vars, self._numerical_directive_vars)
+		directives = helper.Directives(configuration_name, 'malloc', ARGUMENTS, self._boolean_directive_vars, self._enumerable_directive_vars, self._numerical_directive_vars)
 
 
 		# Bring in appropriate environment variables and preprocessor definitions.
@@ -50,5 +50,5 @@ class Environment(mnemosyne.Environment):
 	]
 	
 	#: Build directives which have numerical values
-	_boolean_directive_vars = [
+	_numerical_directive_vars = [
 	]

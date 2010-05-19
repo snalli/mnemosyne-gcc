@@ -2,12 +2,12 @@ import os
 import sys
 import string
 sys.path.append('%s/library' % (Dir('#').abspath))
+import configuration.malloc
 
-Import('mainEnv')
-configEnv = mainEnv.Clone()
-buildEnv = configEnv.Clone()
+Import('mainEnv')  # read only -- clone if need to modify
 
-Import('CommonObjects')
+buildEnv = configuration.malloc.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
+
 OPTIMIZE_FLAG = '-fno-rtti -fno-exceptions -finline-functions'
 WARNINGS = '-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
 DISABLE_WARNINGS = ['-wd981',  #remark  #981 : operands are evaluated in unspecified order
@@ -17,22 +17,19 @@ DISABLE_WARNINGS = ['-wd981',  #remark  #981 : operands are evaluated in unspeci
                    ]
 
 
-if configEnv['BUILD_DEBUG'] == True:
+if buildEnv['BUILD_DEBUG'] == True:
 	CCFLAGS= ' -g -D_MNEMOSYNE_BUILD_DEBUG '
 else:
 	CCFLAGS= ' -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
 
-#CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fPIC -fno-omit-frame-pointer'
 CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fpic -fno-omit-frame-pointer'
 CCFLAGS = CCFLAGS + ' -m64 '
 
-buildEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
-buildEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc'
 buildEnv.Append(CCFLAGS = CCFLAGS)
 buildEnv.Append(CXXFLAGS = CCFLAGS)
 buildEnv.Append(CPPPATH = ['#library'])
 buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
-buildEnv.Append(LINKFLAGS = ' -T '+ configEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 
 C_SRC = Split("""
               src/dlmalloc.c
@@ -57,7 +54,7 @@ DEPRECATED_CXX_SRC = Split("""
 SRC = C_SRC + CXX_SRC
 
 
-if mainEnv['BUILD_LINKAGE'] == 'dynamic':
+if buildEnv['BUILD_LINKAGE'] == 'dynamic':
 	mallocLibrary = buildEnv.SharedLibrary('malloc', SRC)
 else:
 	mallocLibrary = buildEnv.StaticLibrary('malloc', SRC)

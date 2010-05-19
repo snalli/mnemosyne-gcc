@@ -65,6 +65,9 @@ class Environment(mnemosyne.Environment):
 			False),
 		('SYNC_TRUNCATION',          'Synchronously flushes the write set out of the HW cache and truncates the persistent log.',
 			True),
+		('FLUSH_CACHELINE_ONCE',          'When asynchronously truncating the log, the log manager flushes each cacheline of the write set only once by keeping track flushed cachelines.',
+			False),
+
 	]
 	
 	#: Build directives which have enumerated values.

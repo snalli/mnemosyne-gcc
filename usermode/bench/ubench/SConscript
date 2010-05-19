@@ -25,6 +25,7 @@ ubench_list = Split("""
                 sync
                 tmlog
 		hashtable
+		rawlog
                 """)
 
 for ubench in ubench_list:

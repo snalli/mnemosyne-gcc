@@ -7,6 +7,7 @@
 #ifndef _LOG_INTERNAL_H
 #define _LOG_INTERNAL_H
 
+#include <stdio.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <result.h>
@@ -64,6 +65,7 @@ struct m_log_ops_s {
 	m_result_t (*recovery_init)(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
 	m_result_t (*recovery_prepare_next)(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
 	m_result_t (*recovery_do)(pcm_storeset_t *set, m_log_dsc_t *log_dsc);
+	m_result_t (*report_stats)(m_log_dsc_t *log_dsc);
 };
 
 
@@ -118,7 +120,8 @@ do {                                                                          \
     while (m_phlog_##logtype##_write(set, (phlog), (val)) != M_R_SUCCESS) {   \
         if (retries++ > 1) {                                                  \
             M_INTERNALERROR("Cannot complete log write successfully.\n");     \
-		}                                                                     \
+        }                                                                     \
+        (phlog)->stat_wait_for_trunc++;                                       \
         m_logtrunc_truncate(set);                                             \
     }                                                                         \
 } while (0);
@@ -130,7 +133,8 @@ do {                                                                          \
     while (m_phlog_##logtype##_flush(set, (phlog)) != M_R_SUCCESS) {          \
         if (retries++ > 1) {                                                  \
             M_INTERNALERROR("Cannot complete log write successfully.\n");     \
-		}                                                                     \
+        }                                                                     \
+        (phlog)->stat_wait_for_trunc++;                                       \
         m_logtrunc_truncate(set);                                             \
     }                                                                         \
 } while (0);

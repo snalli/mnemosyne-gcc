@@ -7,11 +7,11 @@
 #================================================================
 
 # Package name
-AC_INIT(tokyocabinet, 1.4.43)
+AC_INIT(tokyocabinet, 1.4.44)
 
 # Package information
 MYLIBVER=9
-MYLIBREV=6
+MYLIBREV=7
 MYFORMATVER="1.0"
 
 # Targets
@@ -31,10 +31,10 @@ MYDOCUMENTFILES="COPYING ChangeLog THANKS doc tokyocabinet.idl"
 MYPCFILES="tokyocabinet.pc"
 
 # Building flags
-MYCFLAGS="-std=c99 -Wall -fPIC -fsigned-char -O2"
+MYCFLAGS="-std=c99 -Qtm_enabled -Wall -fpic -m64 -fsigned-char -O2 -I../../library/malloc/include -fno-omit-frame-pointer"
 MYCPPFLAGS="-I. -I\$(INCLUDEDIR) -I$HOME/include -I/usr/local/include"
 MYCPPFLAGS="$MYCPPFLAGS -DNDEBUG -D_GNU_SOURCE=1 -D_REENTRANT -D__EXTENSIONS__"
-MYLDFLAGS="-L. -L\$(LIBDIR) -L$HOME/lib -L/usr/local/lib"
+MYLDFLAGS="-L. -L\$(LIBDIR) -L$HOME/lib -L/usr/local/lib -T ../../util/linker_script_persistent_section_m64 -L../../build/library/malloc"
 MYCMDLDFLAGS=""
 MYRUNPATH="\$(LIBDIR)"
 MYLDLIBPATHENV="LD_LIBRARY_PATH"
@@ -64,7 +64,7 @@ AC_ARG_ENABLE(debug,
   AC_HELP_STRING([--enable-debug], [build for debugging]))
 if test "$enable_debug" = "yes"
 then
-  MYCFLAGS="-std=c99 -Wall -fPIC -pedantic -fsigned-char -g -O0"
+  MYCFLAGS="-std=c99 -Wall -fpic -pedantic -fsigned-char -g -O0"
   MYCPPFLAGS="$MYCPPFLAGS -UNDEBUG"
   MYCMDLDFLAGS="$MYCMDLDFLAGS -static"
   enables="$enables (debug)"
@@ -75,7 +75,7 @@ AC_ARG_ENABLE(devel,
   AC_HELP_STRING([--enable-devel], [build for development]))
 if test "$enable_devel" = "yes"
 then
-  MYCFLAGS="-std=c99 -Wall -fPIC -pedantic -fsigned-char -g -O2 -pipe"
+  MYCFLAGS="-std=c99 -Wall -fpic -pedantic -fsigned-char -g -O2 -pipe"
   MYCPPFLAGS="$MYCPPFLAGS -UNDEBUG"
   enables="$enables (devel)"
 fi
@@ -85,7 +85,7 @@ AC_ARG_ENABLE(profile,
   AC_HELP_STRING([--enable-profile], [build for profiling]))
 if test "$enable_profile" = "yes"
 then
-  MYCFLAGS="-std=c99 -Wall -fPIC -pedantic -fsigned-char -g -pg -O2 -pipe"
+  MYCFLAGS="-std=c99 -Wall -fpic -pedantic -fsigned-char -g -pg -O2 -pipe"
   enables="$enables (profile)"
 fi
 
@@ -104,7 +104,7 @@ AC_ARG_ENABLE(fastest,
 if test "$enable_fastest" = "yes"
 then
   MYLIBOBJFILES="tokyocabinet_all.o"
-  MYCFLAGS="-std=c99 -Wall -fPIC -pedantic -fsigned-char -O3"
+  MYCFLAGS="-std=c99 -Wall -fpic -pedantic -fsigned-char -O3"
   MYCFLAGS="$MYCFLAGS -fomit-frame-pointer -fforce-addr -minline-all-stringops"
   MYCPPFLAGS="$MYCPPFLAGS -D_MYFASTEST"
   enables="$enables (fastest)"

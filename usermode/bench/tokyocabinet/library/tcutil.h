@@ -35,7 +35,7 @@ __TCUTIL_CLINKAGEBEGIN
 #include <time.h>
 #include <limits.h>
 #include <math.h>
-#include <transactions.h>
+#include <malloc/include/malloc.h>
 
 
 
@@ -301,15 +301,16 @@ typedef struct {                         /* type of structure for an array list 
 
 /* Create a list object.
    The return value is the new list object. */
-TM_CALLABLE
 TCLIST *tclistnew(void);
 
 
 /* Create a list object with expecting the number of elements.
    `anum' specifies the number of elements expected to be stored in the list.
    The return value is the new list object. */
-TM_CALLABLE
 TCLIST *tclistnew2(int anum);
+
+__attribute__((tm_callable))
+TCLIST *tclistnew2_p(int anum);
 
 
 /* Create a list object with initial string elements.
@@ -328,8 +329,10 @@ TCLIST *tclistdup(const TCLIST *list);
 /* Delete a list object.
    `list' specifies the list object.
    Note that the deleted object and its derivatives can not be used anymore. */
-TM_CALLABLE
 void tclistdel(TCLIST *list);
+
+__attribute__((tm_callable))
+void tclistdel_p(TCLIST *list);
 
 
 /* Get the number of elements of a list object.
@@ -396,8 +399,10 @@ char *tclistpop2(TCLIST *list);
    `list' specifies the list object.
    `ptr' specifies the pointer to the region of the new element.
    `size' specifies the size of the region. */
-TM_CALLABLE
 void tclistunshift(TCLIST *list, const void *ptr, int size);
+
+__attribute__((tm_callable))
+void tclistunshift_p(TCLIST *list, const void *ptr, int size);
 
 
 /* Add a string element at the top of a list object.
@@ -415,7 +420,7 @@ void tclistunshift2(TCLIST *list, const char *str);
    the return value can be treated as a character string.  Because the region of the return
    value is allocated with the `malloc' call, it should be released with the `free' call when it
    is no longer in use.  If the list is empty, the return value is `NULL'. */
-TM_CALLABLE
+__attribute__((tm_callable))
 void *tclistshift(TCLIST *list, int *sp);
 
 
@@ -456,7 +461,6 @@ void tclistinsert2(TCLIST *list, int index, const char *str);
    value is allocated with the `malloc' call, it should be released with the `free' call when it
    is no longer in use.  If `index' is equal to or more than the number of elements, no element
    is removed and the return value is `NULL'. */
-TM_CALLABLE
 void *tclistremove(TCLIST *list, int index, int *sp);
 
 
@@ -616,6 +620,9 @@ TCMAP *tcmapnew(void);
    The return value is the new map object. */
 TCMAP *tcmapnew2(uint32_t bnum);
 
+__attribute__((tm_callable))
+TCMAP *tcmapnew2_p(uint32_t bnum);
+
 
 /* Create a map object with initial string elements.
    `str' specifies the string of the first element.
@@ -635,6 +642,9 @@ TCMAP *tcmapdup(const TCMAP *map);
    `map' specifies the map object.
    Note that the deleted object and its derivatives can not be used anymore. */
 void tcmapdel(TCMAP *map);
+
+__attribute__((tm_callable))
+void tcmapdel_p(TCMAP *map);
 
 
 /* Store a record into a map object.
@@ -664,6 +674,9 @@ void tcmapput2(TCMAP *map, const char *kstr, const char *vstr);
    If successful, the return value is true, else, it is false.
    If a record with the same key exists in the map, this function has no effect. */
 bool tcmapputkeep(TCMAP *map, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
+
+__attribute__((tm_callable))
+bool tcmapputkeep_p(TCMAP *map, const void *kbuf, int ksiz, const void *vbuf, int vsiz);
 
 
 /* Store a new string record into a map object.
@@ -720,6 +733,7 @@ bool tcmapout2(TCMAP *map, const char *kstr);
    corresponding record.  `NULL' is returned when no record corresponds.
    Because an additional zero code is appended at the end of the region of the return value,
    the return value can be treated as a character string. */
+__attribute__((tm_callable))
 const void *tcmapget(const TCMAP *map, const void *kbuf, int ksiz, int *sp);
 
 
@@ -930,6 +944,7 @@ bool tcmapputproc(TCMAP *map, const void *kbuf, int ksiz, const void *vbuf, int 
    the return value can be treated as a character string.  The internal region of the returned
    record is moved to the tail so that the record will survive for a time under LRU cache
    algorithm removing records from the head. */
+__attribute__((tm_callable))
 const void *tcmapget3(TCMAP *map, const void *kbuf, int ksiz, int *sp);
 
 
@@ -2298,7 +2313,7 @@ TCMPOOL *tcmpoolglobal(void);
    `a' specifies an integer.
    `b' specifies the other integer.
    The return value is the larger value of the two. */
-TM_WAIVER
+__attribute__((tm_pure))
 long tclmax(long a, long b);
 
 
@@ -3478,15 +3493,16 @@ typedef struct {                         /* type of structure for a pointer list
 
 /* Create a pointer list object.
    The return value is the new pointer list object. */
-TM_CALLABLE
 TCPTRLIST *tcptrlistnew(void);
 
 
 /* Create a pointer list object with expecting the number of elements.
    `anum' specifies the number of elements expected to be stored in the list.
    The return value is the new pointer list object. */
-TM_CALLABLE
 TCPTRLIST *tcptrlistnew2(int anum);
+
+__attribute__((tm_callable))
+TCPTRLIST *tcptrlistnew2_p(int anum);
 
 
 /* Copy a pointer list object.
@@ -3525,7 +3541,7 @@ void tcptrlistpush(TCPTRLIST *ptrlist, void *ptr);
    `ptrlist' specifies the pointer list object.
    The return value is the pointer to the region of the removed element.
    If the list is empty, the return value is `NULL'. */
-TM_CALLABLE
+__attribute__((tm_callable))
 void *tcptrlistpop(TCPTRLIST *ptrlist);
 
 
@@ -3539,7 +3555,6 @@ void tcptrlistunshift(TCPTRLIST *ptrlist, void *ptr);
    `ptrlist' specifies the pointer list object.
    The return value is the pointer to the region of the removed element.
    If the list is empty, the return value is `NULL'. */
-TM_CALLABLE
 void *tcptrlistshift(TCPTRLIST *ptrlist);
 
 
@@ -3557,7 +3572,7 @@ void tcptrlistinsert(TCPTRLIST *ptrlist, int index, void *ptr);
    The return value is the pointer to the region of the removed element.
    If `index' is equal to or more than the number of elements, no element is removed and the
    return value is `NULL'. */
-TM_CALLABLE
+__attribute__((tm_callable))
 void *tcptrlistremove(TCPTRLIST *ptrlist, int index);
 
 
@@ -3566,7 +3581,7 @@ void *tcptrlistremove(TCPTRLIST *ptrlist, int index);
    `index' specifies the index of the element to be overwritten.
    `ptr' specifies the pointer to the region of the new content.
    If `index' is equal to or more than the number of elements, this function has no effect. */
-TM_CALLABLE
+__attribute__((tm_callable))
 void tcptrlistover(TCPTRLIST *ptrlist, int index, void *ptr);
 
 
@@ -3699,8 +3714,8 @@ typedef unsigned char TCBITMAP;          /* type of a bit map object */
 
 #include <stdio.h>
 
-#define _TC_VERSION    "1.4.43"
-#define _TC_LIBVER     906
+#define _TC_VERSION    "1.4.44"
+#define _TC_LIBVER     907
 #define _TC_FORMATVER  "1.0"
 
 enum {                                   /* enumeration for error codes */
@@ -3747,7 +3762,8 @@ const char *tcerrmsg(int ecode);
 /* Show error message on the standard error output and exit.
    `message' specifies an error message.
    This function does not return. */
-TM_WAIVER void *tcmyfatal(const char *message);
+__attribute__((tm_pure))
+void *tcmyfatal(const char *message);
 
 
 /* Allocate a large nullified region.
@@ -4005,6 +4021,13 @@ uint64_t tcpagealign(uint64_t off);
     memcpy((TC_res), (TC_ptr), (TC_size)); \
     (TC_res)[TC_size] = '\0'; \
   } while(false)
+  
+#define TCMEMDUP_P(TC_res, TC_ptr, TC_size) \
+  do { \
+    (TC_res) = pmalloc((TC_size) + 1); \
+    memcpy((TC_res), (TC_ptr), (TC_size)); \
+    (TC_res)[TC_size] = '\0'; \
+  } while(false)
 
 
 /* Alias of `tcfree'. */
@@ -4151,6 +4174,20 @@ typedef union { int32_t i; int64_t l; double d; void *p; TCCMP f; } tcgeneric_t;
     (TC_ptrlist)->array[TC_index] = (TC_ptr); \
     (TC_ptrlist)->num++; \
   } while(false)
+  
+#define TCPTRLISTPUSH_P(TC_ptrlist, TC_ptr) \
+  do { \
+    int TC_index = (TC_ptrlist)->start + (TC_ptrlist)->num; \
+    if(TC_index >= (TC_ptrlist)->anum){ \
+      (TC_ptrlist)->anum += (TC_ptrlist)->num + 1; \
+      void** old_array = (TC_ptrlist)->array;                                                             \
+      (TC_ptrlist)->array = pmalloc((TC_ptrlist)->anum * sizeof((TC_ptrlist)->array[0]));                 \
+      memcpy((TC_ptrlist)->array, old_array, ((TC_ptrlist)->anum - 1) * sizeof((TC_ptrlist)->array[0])); \
+      pfree(old_array);                                                                                   \
+    } \
+    (TC_ptrlist)->array[TC_index] = (TC_ptr); \
+    (TC_ptrlist)->num++; \
+  } while(false)
 
 
 /* Alias of `tcptrlistinsert'. */
@@ -4162,6 +4199,24 @@ typedef union { int32_t i; int64_t l; double d; void *p; TCCMP f; } tcgeneric_t;
       (TC_ptrlist)->anum += (TC_ptrlist)->num + 1; \
       TCREALLOC((TC_ptrlist)->array, (TC_ptrlist)->array, \
                 (TC_ptrlist)->anum * sizeof((TC_ptrlist)->array[0])); \
+    } \
+    memmove((TC_ptrlist)->array + TC_myindex + 1, (TC_ptrlist)->array + TC_myindex, \
+            sizeof((TC_ptrlist)->array[0]) * ((TC_ptrlist)->start + \
+                                              (TC_ptrlist)->num - TC_myindex)); \
+    (TC_ptrlist)->array[TC_myindex] = (TC_ptr); \
+    (TC_ptrlist)->num++; \
+  } while(false)
+  
+#define TCPTRLISTINSERT_P(TC_ptrlist, TC_index, TC_ptr) \
+  do { \
+    int TC_myindex = (TC_index); \
+    TC_myindex += (TC_ptrlist)->start; \
+    if((TC_ptrlist)->start + (TC_ptrlist)->num >= (TC_ptrlist)->anum){ \
+      (TC_ptrlist)->anum += (TC_ptrlist)->num + 1; \
+      void** old_array = (TC_ptrlist)->array;                                                             \
+      (TC_ptrlist)->array = pmalloc((TC_ptrlist)->anum * sizeof((TC_ptrlist)->array[0]));                 \
+      memcpy((TC_ptrlist)->array, old_array, ((TC_ptrlist)->anum - 1) * sizeof((TC_ptrlist)->array[0])); \
+      pfree(old_array);                                                                                   \
     } \
     memmove((TC_ptrlist)->array + TC_myindex + 1, (TC_ptrlist)->array + TC_myindex, \
             sizeof((TC_ptrlist)->array[0]) * ((TC_ptrlist)->start + \

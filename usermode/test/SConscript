@@ -1,27 +1,47 @@
-import os
-import sys
-import string
+import re, os, sys, string
 sys.path.append('%s/library' % (Dir('#').abspath))
 
-def addUnitTest(env, osenv, unit_test, args):
-	env.Append(UNIT_TEST_CMDS = [[osenv, unit_test, args]])
-
+def addUnitTest(env, path):
+    pass
+ 
+def addUnitTestSeries(env, path, suite, *tests):
+    if tests == ():
+        osenv = ({'MCORE_RESET_SEGMENTS': '1'})
+        args = ['-s', suite]
+        env.Append(UNIT_TEST_CMDS = [(osenv, path, args)])
+    else:
+        for utest in tests:
+            if utest == tests[0]:  # this is the first unittest in the series
+                osenv = ({'MCORE_RESET_SEGMENTS': '1'})
+            else:    
+                osenv = ({'MCORE_RESET_SEGMENTS': '0'})
+            args = ['-s', suite, '-t', utest]
+            env.Append(UNIT_TEST_CMDS = [(osenv, path, args)])
+ 
 Import('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 Import('mainEnv')
 testEnv = mainEnv.Clone()
 
 # For correct and complete compilation.
+testEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+testEnv.Append(CPPPATH = '#library/common')
 testEnv.Append(CCFLAGS = ' -m64 -g')
 testEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
 testEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
 testEnv.Append(LINKFLAGS = ' -T '+ 'util/linker_script_persistent_segment_m64')
 testEnv.AddMethod(addUnitTest, "addUnitTest")
+testEnv.AddMethod(addUnitTestSeries, "addUnitTestSeries")
+testEnv['UNIT_TEST_CMDS'] = []
 
 Export('testEnv')
 Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 
-thedir=os.getcwd()
+thedir = os.path.join(Dir('#').abspath, 'test')
 dirs = [ name for name in os.listdir(thedir) if os.path.isdir(os.path.join(thedir, name)) ]
 
 for d in dirs:
-	SConscript('%s/SConscript' % d)
+	if re.match(testEnv['TEST_FILTER'], d) and os.path.isfile(os.path.join(thedir, d, 'SConscript')):
+		SConscript(os.path.join(d, 'SConscript'))
+
+
+mainEnv['TEST_FILTER'] = GetOption('test_filter')

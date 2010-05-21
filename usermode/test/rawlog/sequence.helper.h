@@ -5,23 +5,30 @@
 #include <vector>
 #include <stdlib.h>
 #include <assert.h>
-#include <phlog.h>
+#include "rawlog_tornbit.helper.h"
 
 #define SEQUENCE_END 0xDEADBEEFDEADBEEF
+
+typedef m_rawlog_tornbit_t m_rawlog_t;
+
+#define PHLOG_T      m_phlog_tornbit_t
+#define PHLOG_PREFIX phlog
+#define RAWLOG_WRITE m_rawlog_tornbit_write
+#define RAWLOG_FLUSH m_rawlog_tornbit_flush
 
 class Sequence {
 public:
 	Sequence(int len, int seed);
 	Sequence(int len);
-	int write2log(m_phlog_t *log);
-	int readFromLog(m_phlog_t *log);
+	int  write2log(pcm_storeset_t *set, m_rawlog_t *log);
+	int  readFromLog(pcm_storeset_t *set, m_rawlog_t *log);
 	bool operator==(Sequence &other) const;
 	bool operator!=(Sequence &other) const;
-	int size();
+	int  size();
 	void print();
 private:
 	int                      _len;
-	std::vector<scm_word_t>  _words;
+	std::vector<pcm_word_t>  _words;
 	unsigned int             _seed;
 };
 
@@ -29,13 +36,13 @@ private:
 Sequence::Sequence(int len, int seed): _len(len)
 {
 	int        i;
-	scm_word_t value;
+	pcm_word_t value;
 
 	_seed = seed;
 
 	for (i=0; i<len; i++) {
 retry:
-		value = ((scm_word_t) rand_r(&_seed) | ( ((scm_word_t) rand_r(&_seed)) << 32));
+		value = ((pcm_word_t) rand_r(&_seed) | ( ((pcm_word_t) rand_r(&_seed)) << 32));
 		if (value == SEQUENCE_END) {
 			goto retry;
 		}
@@ -49,37 +56,41 @@ Sequence::Sequence(int len): _len(len)
 }
 
 
-int Sequence::write2log(m_phlog_t *log)
+int Sequence::write2log(pcm_storeset_t *set, m_rawlog_t *rawlog)
 {
 	int i;
 
-	
 	for (i=0; i<_words.size(); i++) {
-		if (m_phlog_write(log, _words[i]) != M_R_SUCCESS) {
-			assert(0);
+		if (RAWLOG_WRITE(set, rawlog, _words[i]) != M_R_SUCCESS) {
+			CHECK(false);
 		}
 	}
-	m_phlog_write(log, SEQUENCE_END);
-	m_phlog_flush(log);
+	RAWLOG_WRITE(set, rawlog, SEQUENCE_END);
+	RAWLOG_FLUSH(set, rawlog);
+
+	return 0;
 }
 
-int Sequence::readFromLog(m_phlog_t *log)
+
+int Sequence::readFromLog(pcm_storeset_t *set, m_rawlog_t *rawlog)
 {
 	int        i;
-	scm_word_t value;
+	pcm_word_t value;
 
 	_words.clear();
 	while(1) {
-		if (m_phlog_read(log, &value) != M_R_SUCCESS) {
+		if (m_phlog_tornbit_read(&(rawlog->phlog_tornbit), &value) != M_R_SUCCESS) {
 			assert(0);
 		}
 		if (value == SEQUENCE_END) {
-			m_phlog_next_chunk(log);
+			m_phlog_tornbit_next_chunk(&rawlog->phlog_tornbit);
 			break;
 		} else {
 			_words.push_back(value);
 		}
 	}
+
+	return 0;
 }
 
 

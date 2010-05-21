@@ -32,6 +32,15 @@ AddOption("--linkage",
           type="choice", choices=["dynamic", "static"],
           default = "dynamic",
           help="library linkage: dynamic, static [default: %default]")
+AddOption("--test",
+           action="store_true", dest="run_tests", 
+           default = False,
+           help="run tests")
+AddOption('--test-filter',
+           action="store", dest='test_filter',
+           type='string',
+           metavar='NAME',
+           help='a regular expression used to match tests to run')
 
 # Custom help message. Overrides the help output of the local options.
 Help("""
@@ -61,6 +70,7 @@ mainEnv['BUILD_EXAMPLE'] = GetOption('selected_example')
 mainEnv['BUILD_CONFIG_NAME'] = GetOption('config_name')
 if mainEnv['BUILD_CONFIG_NAME'] is None:
 	mainEnv['BUILD_CONFIG_NAME'] = 'default'
+mainEnv['TEST_FILTER'] = GetOption('test_filter')
 
 rootDir = os.getcwd()
 mainEnv['MY_ROOT_DIR'] = rootDir
@@ -93,7 +103,8 @@ if mainEnv['BUILD_UBENCH'] == True:
 	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 	SConscript('bench/ubench/SConscript', variant_dir = os.path.join('build', 'bench', 'ubench'))
 
-
-#Testing Environment
-Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
-SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))
+if GetOption('run_tests') == True:
+	if mainEnv['TEST_FILTER'] is None:
+		mainEnv['TEST_FILTER'] = ".*"
+	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+	SConscript('test/SConscript', variant_dir = os.path.join('build', 'test'))

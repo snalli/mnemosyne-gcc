@@ -1,0 +1,16 @@
+import os
+import sys
+import string
+sys.path.append('%s/library' % (Dir('#').abspath))
+
+Import('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+Import('mainEnv')
+Import('testEnv')
+configEnv = mainEnv.Clone()
+
+testEnv.Append(CPPPATH = ['#library/mtm/src/sysdeps/linux', '#library/mtm/src'])
+testEnv.Append(CPPPATH = ['#library/atomic_ops'])
+#tests = testEnv.Program('tests', source = [Glob('*.tests.cxx'), Glob('*.fixtures.cxx'), Glob('*.helpers.cxx'), 'main.cxx'], LIBS=['UnitTest++', mcoreLibrary, mtmLibrary])
+
+
+#AddPostAction(tests[0], tests[0].path)

@@ -1,8 +1,8 @@
 .sconsign.dblite
 ._*
 *~
-build
 *.pyc
+/build
 csope.out
 .DS_Store
 .segments

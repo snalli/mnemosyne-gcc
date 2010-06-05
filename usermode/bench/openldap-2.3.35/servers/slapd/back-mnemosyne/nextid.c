@@ -1,5 +1,5 @@
 /* nextid.c - keep track of the next id to be given out */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/nextid.c,v 1.36.2.4 2007/01/02 21:44:03 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/nextid.c,v 1.36.2.4 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -23,7 +23,7 @@
 #include <ac/param.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
 static int
 next_id_read( Backend *be, ID *idp )
@@ -33,50 +33,50 @@ next_id_read( Backend *be, ID *idp )
 
 	*idp = NOID;
 
-	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = mnemosynedbm_cache_open( be, "nextid", MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT ))
 	    == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" LDBM_SUFFIX "\n",
+		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" MNEMOSYNEDBM_SUFFIX "\n",
 			0, 0, 0 );
 
 		return( -1 );
 	}
 
-	ldbm_datum_init( key );
+	mnemosynedbm_datum_init( key );
 	key.dptr = (char *) idp;
 	key.dsize = sizeof(ID);
 
-	data = ldbm_cache_fetch( db, key );
+	data = mnemosynedbm_cache_fetch( db, key );
 
 	if( data.dptr != NULL ) {
 		AC_MEMCPY( idp, data.dptr, sizeof( ID ) );
-		ldbm_datum_free( db->dbc_db, data );
+		mnemosynedbm_datum_free( db->dbc_db, data );
 
 	} else {
 		*idp = 1;
 	}
 
-	ldbm_cache_close( be, db );
+	mnemosynedbm_cache_close( be, db );
 	return( 0 );
 }
 
 int
-next_id_write( Backend *be, ID id )
+m_next_id_write( Backend *be, ID id )
 {
 	Datum key, data;
 	DBCache *db;
 	ID noid = NOID;
 	int flags, rc = 0;
 
-	if ( (db = ldbm_cache_open( be, "nextid", LDBM_SUFFIX, LDBM_WRCREAT ))
+	if ( (db = mnemosynedbm_cache_open( be, "nextid", MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT ))
 	    == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" LDBM_SUFFIX "\n",
+		Debug( LDAP_DEBUG_ANY, "Could not open/create nextid" MNEMOSYNEDBM_SUFFIX "\n",
 		    0, 0, 0 );
 
 		return( -1 );
 	}
 
-	ldbm_datum_init( key );
-	ldbm_datum_init( data );
+	mnemosynedbm_datum_init( key );
+	mnemosynedbm_datum_init( data );
 
 	key.dptr = (char *) &noid;
 	key.dsize = sizeof(ID);
@@ -84,19 +84,19 @@ next_id_write( Backend *be, ID id )
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
-	flags = LDBM_REPLACE;
-	if ( ldbm_cache_store( db, key, data, flags ) != 0 ) {
+	flags = MNEMOSYNEDBM_REPLACE;
+	if ( mnemosynedbm_cache_store( db, key, data, flags ) != 0 ) {
 		rc = -1;
 	}
 
-	ldbm_cache_close( be, db );
+	mnemosynedbm_cache_close( be, db );
 	return( rc );
 }
 
 int
-next_id_get( Backend *be, ID *idp )
+m_next_id_get( Backend *be, ID *idp )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	int rc = 0;
 
 	*idp = NOID;
@@ -114,9 +114,9 @@ next_id_get( Backend *be, ID *idp )
 }
 
 int
-next_id( Backend *be, ID *idp )
+m_next_id( Backend *be, ID *idp )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	int rc = 0;
 
 	if ( li->li_nextid == NOID ) {
@@ -127,7 +127,7 @@ next_id( Backend *be, ID *idp )
 	}
 
 	*idp = li->li_nextid++;
-	if ( next_id_write( be, li->li_nextid ) ) {
+	if ( m_next_id_write( be, li->li_nextid ) ) {
 		rc = -1;
 	}
 

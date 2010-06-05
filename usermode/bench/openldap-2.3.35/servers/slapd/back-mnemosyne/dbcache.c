@@ -1,5 +1,5 @@
-/* ldbmcache.c - maintain a cache of open ldbm files */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/dbcache.c,v 1.57.2.5 2007/01/02 21:44:02 kurt Exp $ */
+/* mnemosynedbmcache.c - maintain a cache of open mnemosynedbm files */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/dbcache.c,v 1.57.2.5 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -26,18 +26,18 @@
 #include <sys/stat.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 #include <ldap_rq.h>
 
 DBCache *
-ldbm_cache_open(
+mnemosynedbm_cache_open(
     Backend	*be,
     const char	*name,
     const char	*suffix,
     int		flags
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	int		i, lru, empty;
 	time_t		oldtime;
 	char		buf[MAXPATHLEN];
@@ -52,18 +52,18 @@ ldbm_cache_open(
 			li->li_directory, name, suffix );
 
 	if( li->li_dblocking ) {
-		flags |= LDBM_LOCKING;
+		flags |= MNEMOSYNEDBM_LOCKING;
 	} else {
-		flags |= LDBM_NOLOCKING;
+		flags |= MNEMOSYNEDBM_NOLOCKING;
 	}
 	
 	if( li->li_dbwritesync ) {
-		flags |= LDBM_SYNC;
+		flags |= MNEMOSYNEDBM_SYNC;
 	} else {
-		flags |= LDBM_NOSYNC;
+		flags |= MNEMOSYNEDBM_NOSYNC;
 	}
 	
-	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
+	Debug( LDAP_DEBUG_TRACE, "=> mnemosynedbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );
 
 
@@ -106,7 +106,7 @@ ldbm_cache_open(
 				}
 				li->li_dbcache[i].dbc_refcnt++;
 				Debug( LDAP_DEBUG_TRACE,
-				    "<= ldbm_cache_open (cache %d)\n", i, 0, 0 );
+				    "<= mnemosynedbm_cache_open (cache %d)\n", i, 0, 0 );
 
 				ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 				return( &li->li_dbcache[i] );
@@ -127,12 +127,12 @@ ldbm_cache_open(
 			/* no empty slots, not already open - close lru and use that slot */
 			if ( li->li_dbcache[lru].dbc_refcnt == 0 ) {
 				i = lru;
-				ldbm_close( li->li_dbcache[i].dbc_db );
+				mnemosynedbm_close( li->li_dbcache[i].dbc_db );
 				free( li->li_dbcache[i].dbc_name );
 				li->li_dbcache[i].dbc_name = NULL;
 			} else {
 				Debug( LDAP_DEBUG_ANY,
-				    "ldbm_cache_open no unused db to close - waiting\n",
+				    "mnemosynedbm_cache_open no unused db to close - waiting\n",
 				    0, 0, 0 );
 
 				ldap_pvt_thread_cond_wait( &li->li_dbcache_cv,
@@ -145,12 +145,12 @@ ldbm_cache_open(
 		}
 	} while (i == MAXDBCACHE);
 
-	if ( (li->li_dbcache[i].dbc_db = ldbm_open( li->li_dbenv, buf, flags, li->li_mode,
+	if ( (li->li_dbcache[i].dbc_db = mnemosynedbm_open( li->li_dbenv, buf, flags, li->li_mode,
 	    li->li_dbcachesize )) == NULL )
 	{
 		int err = errno;
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= ldbm_cache_open NULL \"%s\" errno=%d reason=\"%s\")\n",
+		    "<= mnemosynedbm_cache_open NULL \"%s\" errno=%d reason=\"%s\")\n",
 		    buf, err, err > -1 && err < sys_nerr ?
 		    sys_errlist[err] : "unknown" );
 
@@ -172,17 +172,17 @@ ldbm_cache_open(
 	}
 	li->li_dbcache[i].dbc_maxids = (li->li_dbcache[i].dbc_blksize /
 	    sizeof(ID)) - ID_BLOCK_IDS_OFFSET;
-	li->li_dbcache[i].dbc_maxindirect = ( SLAPD_LDBM_MIN_MAXIDS /
+	li->li_dbcache[i].dbc_maxindirect = ( SLAPD_MNEMOSYNEDBM_MIN_MAXIDS /
 	    li->li_dbcache[i].dbc_maxids ) + 1;
 
 	assert( li->li_dbcache[i].dbc_maxindirect < 256 );
 
 	Debug( LDAP_DEBUG_ARGS,
-	    "ldbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",
+	    "mnemosynedbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",
 	    li->li_dbcache[i].dbc_blksize, li->li_dbcache[i].dbc_maxids,
 	    li->li_dbcache[i].dbc_maxindirect );
 
-	Debug( LDAP_DEBUG_TRACE, "<= ldbm_cache_open (opened %d)\n", i, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= mnemosynedbm_cache_open (opened %d)\n", i, 0, 0 );
 
 	ldap_pvt_thread_mutex_init( &li->li_dbcache[i].dbc_write_mutex );
 
@@ -191,12 +191,12 @@ ldbm_cache_open(
 }
 
 void
-ldbm_cache_close( Backend *be, DBCache *db )
+mnemosynedbm_cache_close( Backend *be, DBCache *db )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 
 	if( li->li_dbwritesync && db->dbc_dirty ) {
-		ldbm_sync( db->dbc_db );
+		mnemosynedbm_sync( db->dbc_db );
 		db->dbc_dirty = 0;
 	}
 
@@ -209,15 +209,15 @@ ldbm_cache_close( Backend *be, DBCache *db )
 }
 
 void
-ldbm_cache_really_close( Backend *be, DBCache *db )
+mnemosynedbm_cache_really_close( Backend *be, DBCache *db )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	if ( --db->dbc_refcnt <= 0 ) {
 		db->dbc_refcnt = 0;
 		ldap_pvt_thread_cond_signal( &li->li_dbcache_cv );
-		ldbm_close( db->dbc_db );
+		mnemosynedbm_close( db->dbc_db );
 		free( db->dbc_name );
 		db->dbc_name = NULL;
 		ldap_pvt_thread_mutex_destroy( &db->dbc_write_mutex );
@@ -226,18 +226,18 @@ ldbm_cache_really_close( Backend *be, DBCache *db )
 }
 
 void
-ldbm_cache_flush_all( Backend *be )
+mnemosynedbm_cache_flush_all( Backend *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	int		i;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		if ( li->li_dbcache[i].dbc_name != NULL ) {
-			Debug( LDAP_DEBUG_TRACE, "ldbm flushing db (%s)\n",
+			Debug( LDAP_DEBUG_TRACE, "mnemosynedbm flushing db (%s)\n",
 			    li->li_dbcache[i].dbc_name, 0, 0 );
 
-			ldbm_sync( li->li_dbcache[i].dbc_db );
+			mnemosynedbm_sync( li->li_dbcache[i].dbc_db );
 			li->li_dbcache[i].dbc_dirty = 0;
 			if ( li->li_dbcache[i].dbc_refcnt != 0 ) {
 				Debug( LDAP_DEBUG_TRACE,
@@ -247,11 +247,11 @@ ldbm_cache_flush_all( Backend *be )
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
-				       "ldbm closing db (%s)\n",
+				       "mnemosynedbm closing db (%s)\n",
 				       li->li_dbcache[i].dbc_name, 0, 0 );
 
 				ldap_pvt_thread_cond_signal( &li->li_dbcache_cv );
-				ldbm_close( li->li_dbcache[i].dbc_db );
+				mnemosynedbm_close( li->li_dbcache[i].dbc_db );
 				free( li->li_dbcache[i].dbc_name );
 				li->li_dbcache[i].dbc_name = NULL;
 			}
@@ -261,9 +261,9 @@ ldbm_cache_flush_all( Backend *be )
 }
 
 void
-ldbm_cache_sync( Backend *be )
+mnemosynedbm_cache_sync( Backend *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	int		i;
 	int		do_log = 1;
 
@@ -275,28 +275,28 @@ ldbm_cache_sync( Backend *be )
 				Debug( LDAP_DEBUG_TRACE, "syncing %s\n",
 					li->li_directory, 0, 0 );
 			}
-			Debug(	LDAP_DEBUG_TRACE, "ldbm syncing db (%s)\n",
+			Debug(	LDAP_DEBUG_TRACE, "mnemosynedbm syncing db (%s)\n",
 				li->li_dbcache[i].dbc_name, 0, 0 );
-			ldbm_sync( li->li_dbcache[i].dbc_db );
+			mnemosynedbm_sync( li->li_dbcache[i].dbc_db );
 			li->li_dbcache[i].dbc_dirty = 0;
 		}
 	}
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 }
 
-#if 0 /* macro in proto-back-ldbm.h */
+#if 0 /* macro in proto-back-mnemosynedbm.h */
 Datum
-ldbm_cache_fetch(
+mnemosynedbm_cache_fetch(
     DBCache	*db,
     Datum		key
 )
 {
-	return ldbm_fetch( db->dbc_db, key );
+	return mnemosynedbm_fetch( db->dbc_db, key );
 }
 #endif /* 0 */
 
 int
-ldbm_cache_store(
+mnemosynedbm_cache_store(
     DBCache	*db,
     Datum		key,
     Datum		data,
@@ -306,13 +306,13 @@ ldbm_cache_store(
 	int	rc;
 
 	db->dbc_dirty = 1;
-	rc = ldbm_store( db->dbc_db, key, data, flags );
+	rc = mnemosynedbm_store( db->dbc_db, key, data, flags );
 
 	return( rc );
 }
 
 int
-ldbm_cache_delete(
+mnemosynedbm_cache_delete(
     DBCache	*db,
     Datum		key
 )
@@ -320,37 +320,16 @@ ldbm_cache_delete(
 	int	rc;
 
 	db->dbc_dirty = 1;
-	rc = ldbm_delete( db->dbc_db, key );
+	rc = mnemosynedbm_delete( db->dbc_db, key );
 
 	return( rc );
 }
 
 void *
-ldbm_cache_sync_daemon(
+mnemosynedbm_cache_sync_daemon(
 	void *ctx,
 	void *arg
 )
 {
-	struct re_s *rtask = arg;
-	Backend *be = rtask->arg;
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-
-	/* If server is idle, or we've already waited the limit */
-	if ( li->li_dbsyncwaitcount == li->li_dbsyncwaitn || 
-		ldap_pvt_thread_pool_backload(&connection_pool) < 2 ) {
-		rtask->interval.tv_sec = li->li_dbsyncfreq;
-		li->li_dbsyncwaitcount = 0;
-		ldbm_cache_sync( be );
-	} else {
-		rtask->interval.tv_sec = li->li_dbsyncwaitinterval;
-		li->li_dbsyncwaitcount++;
-		Debug( LDAP_DEBUG_TRACE, "delay #%d syncing %s\n", 
-			li->li_dbsyncwaitcount, li->li_directory, 0 );
-	}
-
-	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-	ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
-	ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
-	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	return NULL;
 }

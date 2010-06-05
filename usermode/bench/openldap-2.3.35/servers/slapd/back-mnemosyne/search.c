@@ -1,5 +1,5 @@
-/* search.c - ldbm backend search function */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/search.c,v 1.128.2.8 2007/01/02 21:44:03 kurt Exp $ */
+/* search.c - mnemosynedbm backend search function */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/search.c,v 1.128.2.8 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,8 +22,8 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 static ID_BLOCK	*base_candidate(
 	Backend *be, Entry *e );
@@ -34,11 +34,11 @@ static ID_BLOCK	*search_candidates(
 
 
 int
-ldbm_back_search(
+mnemosynedbm_back_search(
     Operation	*op,
     SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	int		rc;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
@@ -51,7 +51,7 @@ ldbm_back_search(
 	slap_mask_t	mask;
 #endif
 
-	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "=> mnemosynedbm_back_search\n", 0, 0, 0);
 
 	/* grab giant lock for reading */
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
@@ -71,14 +71,14 @@ ldbm_back_search(
 		
 	} else if ( op->ors_deref & LDAP_DEREF_FINDING ) {
 		/* deref dn and get entry with reader lock */
-		e = deref_dn_r( op->o_bd, &op->o_req_ndn,
+		e = m_deref_dn_r( op->o_bd, &op->o_req_ndn,
 			&rs->sr_err, &matched, &rs->sr_text );
 
 		if( rs->sr_err == LDAP_NO_SUCH_OBJECT ) rs->sr_err = LDAP_REFERRAL;
 
 	} else {
 		/* get entry with reader lock */
-		e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched );
+		e = m_dn2entry_r( op->o_bd, &op->o_req_ndn, &matched );
 		rs->sr_err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
 		rs->sr_text = NULL;
 	}
@@ -106,7 +106,7 @@ ldbm_back_search(
 					: NULL;
 			}
 
-			cache_return_entry_r( li->li_cache, matched );
+			m_cache_return_entry_r( &li->li_cache, matched );
 
 			if ( erefs ) {
 				rs->sr_ref = referral_rewrite( erefs, &matched_dn,
@@ -144,7 +144,7 @@ ldbm_back_search(
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		}
 
-		cache_return_entry_r( li->li_cache, e );
+		m_cache_return_entry_r( &li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		send_ldap_result( op, rs );
@@ -164,11 +164,11 @@ ldbm_back_search(
 		ber_dupbv( &matched_dn, &e->e_name );
 		erefs = get_entry_referrals( op, e );
 
-		cache_return_entry_r( li->li_cache, e );
+		m_cache_return_entry_r( &li->li_cache, e );
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		Debug( LDAP_DEBUG_TRACE,
-			"ldbm_search: entry is referral\n",
+			"mnemosynedbm_search: entry is referral\n",
 			0, 0, 0 );
 
 		if ( erefs ) {
@@ -208,12 +208,12 @@ ldbm_back_search(
 	/* need normalized dn below */
 	ber_dupbv( &realbase, &e->e_nname );
 
-	cache_return_entry_r( li->li_cache, e );
+	m_cache_return_entry_r( &li->li_cache, e );
 
 searchit:
 	if ( candidates == NULL ) {
 		/* no candidates */
-		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
+		Debug( LDAP_DEBUG_TRACE, "mnemosynedbm_search: no candidates\n",
 			0, 0, 0 );
 
 		rs->sr_err = LDAP_SUCCESS;
@@ -237,8 +237,8 @@ searchit:
 	stoptime = op->o_time + op->ors_tlimit;
 	rs->sr_attrs = op->ors_attrs;
 
-	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
-	    id = idl_nextid( candidates, &cursor ) )
+	for ( id = m_idl_firstid( candidates, &cursor ); id != NOID;
+	    id = m_idl_nextid( candidates, &cursor ) )
 	{
 		int scopeok = 0;
 		int result = 0;
@@ -260,11 +260,11 @@ searchit:
 		}
 
 		/* get the entry with reader lock */
-		e = id2entry_r( op->o_bd, id );
+		e = m_id2entry_r( op->o_bd, id );
 
 		if ( e == NULL ) {
 			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_search: candidate %ld not found\n",
+				"mnemosynedbm_search: candidate %ld not found\n",
 				id, 0, 0 );
 
 			goto loop_continue;
@@ -272,7 +272,7 @@ searchit:
 
 		rs->sr_entry = e;
 
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 		if ( is_entry_subentry( e ) ) {
 			if( op->ors_scope != LDAP_SCOPE_BASE ) {
 				if(!get_subentries_visibility( op )) {
@@ -298,7 +298,7 @@ searchit:
 			int err;
 			const char *text;
 			
-			e = deref_entry_r( op->o_bd, e, &err, &matched, &text );
+			e = m_deref_entry_r( op->o_bd, e, &err, &matched, &text );
 
 			if( e == NULL ) {
 				e = matched;
@@ -321,7 +321,7 @@ searchit:
 			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
 				/* alias is within scope */
 				Debug( LDAP_DEBUG_TRACE,
-					"ldbm_search: alias \"%s\" in subtree\n",
+					"mnemosynedbm_search: alias \"%s\" in subtree\n",
 					e->e_dn, 0, 0 );
 
 				goto loop_continue;
@@ -386,7 +386,7 @@ searchit:
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
-					"ldbm_search: candidate referral %ld scope not okay\n",
+					"mnemosynedbm_search: candidate referral %ld scope not okay\n",
 					id, 0, 0 );
 			}
 
@@ -434,11 +434,11 @@ searchit:
 
 					switch ( rs->sr_err ) {
 					case LDAP_UNAVAILABLE:	/* connection closed */
-						cache_return_entry_r( li->li_cache, e );
+						m_cache_return_entry_r( &li->li_cache, e );
 						rc = LDAP_SUCCESS;
 						goto done;
 					case LDAP_SIZELIMIT_EXCEEDED:
-						cache_return_entry_r( li->li_cache, e );
+						m_cache_return_entry_r( &li->li_cache, e );
 						rc = rs->sr_err;
 						rs->sr_entry = NULL;
 						send_ldap_result( op, rs );
@@ -449,20 +449,20 @@ searchit:
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
-					"ldbm_search: candidate entry %ld scope not okay\n",
+					"mnemosynedbm_search: candidate entry %ld scope not okay\n",
 					id, 0, 0 );
 			}
 
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_search: candidate entry %ld does not match filter\n",
+				"mnemosynedbm_search: candidate entry %ld does not match filter\n",
 				id, 0, 0 );
 		}
 
 loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
-			cache_return_entry_r( li->li_cache, e );
+			m_cache_return_entry_r( &li->li_cache, e );
 		}
 
 		ldap_pvt_thread_yield();
@@ -478,7 +478,7 @@ done:
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 	if( candidates != NULL )
-		idl_free( candidates );
+		m_idl_free( candidates );
 
 	if( rs->sr_v2ref ) ber_bvarray_free( rs->sr_v2ref );
 	if( realbase.bv_val ) free( realbase.bv_val );
@@ -497,8 +497,8 @@ base_candidate(
 		e->e_dn, 0, 0);
 
 
-	idl = idl_alloc( 1 );
-	idl_insert( &idl, e->e_id, 1 );
+	idl = m_idl_alloc( 1 );
+	m_idl_insert( &idl, e->e_id, 1 );
 
 	return( idl );
 }
@@ -517,7 +517,7 @@ search_candidates(
     AttributeAssertion aa_ref, aa_alias;
 	struct berval bv_ref = { sizeof("referral")-1, "referral" };
 	struct berval bv_alias = { sizeof("alias")-1, "alias" };
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 	Filter  sf;
 	AttributeAssertion aa_subentry;
 #endif
@@ -560,7 +560,7 @@ search_candidates(
 	fand.f_dn = &e->e_nname;
 	fand.f_next = xf.f_or == filter ? filter : &xf ;
 
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 	if ( get_subentries_visibility( op )) {
 		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
 		sf.f_choice = LDAP_FILTER_EQUALITY;
@@ -572,6 +572,6 @@ search_candidates(
 	}
 #endif
 
-	candidates = filter_candidates( op, &f );
+	candidates = m_filter_candidates( op, &f );
 	return( candidates );
 }

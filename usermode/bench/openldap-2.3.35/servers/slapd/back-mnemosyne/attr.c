@@ -1,5 +1,5 @@
 /* attr.c - backend routines for dealing with attributes */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/attr.c,v 1.39.2.4 2007/01/02 21:44:02 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/attr.c,v 1.39.2.4 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,10 +22,10 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
 /* for the cache of attribute information (which are indexed, etc.) */
-typedef struct ldbm_attrinfo {
+typedef struct mnemosynedbm_attrinfo {
 	AttributeDescription *ai_desc; /* attribute description cn;lang-en */
 	slap_mask_t ai_indexmask;	/* how the attr is indexed	*/
 } AttrInfo;
@@ -52,8 +52,8 @@ ainfo_cmp(
 }
 
 void
-attr_mask(
-    struct ldbminfo	*li,
+m_attr_mask(
+    struct mnemosynedbminfo	*li,
     AttributeDescription *desc,
     slap_mask_t *indexmask )
 {
@@ -65,8 +65,8 @@ attr_mask(
 }
 
 int
-attr_index_config(
-    struct ldbminfo	*li,
+m_attr_index_config(
+    struct mnemosynedbminfo	*li,
     const char		*fname,
     int			lineno,
     int			argc,
@@ -215,7 +215,7 @@ attr_index_config(
 }
 
 void
-attr_index_destroy( Avlnode *tree )
+m_attr_index_destroy( Avlnode *tree )
 {
 	avl_free( tree, free );
 }

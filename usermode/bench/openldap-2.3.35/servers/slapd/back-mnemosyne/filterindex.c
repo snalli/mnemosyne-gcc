@@ -1,5 +1,5 @@
 /* filterindex.c - generate the list of candidate entries from a filter */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/filterindex.c,v 1.53.2.3 2007/01/02 21:44:02 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/filterindex.c,v 1.53.2.3 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,7 +22,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
 static ID_BLOCK	*presence_candidates(
 	Operation *op,
@@ -40,7 +40,7 @@ static ID_BLOCK	*list_candidates(
 	int ftype );
 
 ID_BLOCK *
-filter_candidates(
+m_filter_candidates(
     Operation	*op,
     Filter	*f
 )
@@ -48,7 +48,7 @@ filter_candidates(
 	char *sub = "SUBTREE";
 	ID_BLOCK	*result;
 
-	Debug( LDAP_DEBUG_TRACE, "=> filter_candidates\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> m_filter_candidates\n", 0, 0, 0 );
 
 
 	result = NULL;
@@ -64,7 +64,7 @@ filter_candidates(
 			result = NULL;
 			break;
 		case LDAP_COMPARE_TRUE:
-			result = idl_allids( op->o_bd );
+			result = m_idl_allids( op->o_bd );
 			break;
 		}
 		break;
@@ -73,9 +73,9 @@ filter_candidates(
 		Debug( LDAP_DEBUG_FILTER, "\tDN ONE\n", 0, 0, 0 );
 
 		/* an error is treated as an empty list */
-		if ( dn2idl( op->o_bd, f->f_dn, DN_ONE_PREFIX, &result ) != 0
+		if ( m_dn2idl( op->o_bd, f->f_dn, DN_ONE_PREFIX, &result ) != 0
 				&& result != NULL ) {
-			idl_free( result );
+			m_idl_free( result );
 			result = NULL;
 		}
 		break;
@@ -89,9 +89,9 @@ filter_candidates(
 			"\tDN %s\n", sub, 0, 0 );
 
 		/* an error is treated as an empty list */
-		if ( dn2idl( op->o_bd, f->f_dn, DN_SUBTREE_PREFIX, &result ) != 0
+		if ( m_dn2idl( op->o_bd, f->f_dn, DN_SUBTREE_PREFIX, &result ) != 0
 				&& result != NULL ) {
-			idl_free( result );
+			m_idl_free( result );
 			result = NULL;
 		}
 		break;
@@ -153,18 +153,18 @@ filter_candidates(
 		 * list could result in matching entries be excluded from
 		 * the returned candidate list.
 		 */
-		result = idl_allids( op->o_bd );
+		result = m_idl_allids( op->o_bd );
 		break;
 	default:
 		Debug( LDAP_DEBUG_FILTER, "\tUNKNOWN\n", 0, 0, 0 );
 		/* unknown filters must not return NULL, to allow
 		 * extended filter processing to be done later.
 		 */
-		result = idl_allids( op->o_bd );
+		result = m_idl_allids( op->o_bd );
 		break;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= filter_candidates %ld\n",
+	Debug( LDAP_DEBUG_TRACE, "<= m_filter_candidates %ld\n",
 	    result ? ID_BLOCK_NIDS(result) : 0, 0, 0 );
 
 	return( result );
@@ -185,18 +185,18 @@ presence_candidates(
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
-	idl = idl_allids( op->o_bd );
+	idl = m_idl_allids( op->o_bd );
 
 	if( desc == slap_schema.si_ad_objectClass ) {
 		return idl;
 	}
 
-	rc = index_param( op->o_bd, desc, LDAP_FILTER_PRESENT,
+	rc = m_index_param( op->o_bd, desc, LDAP_FILTER_PRESENT,
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= presence_candidates: index_param returned=%d\n",
+		    "<= presence_candidates: m_index_param returned=%d\n",
 			rc, 0, 0 );
 
 		return idl;
@@ -211,21 +211,21 @@ presence_candidates(
 		return idl;
 	}
 
-	db = ldbm_cache_open( op->o_bd, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
+	db = mnemosynedbm_cache_open( op->o_bd, dbname, MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= presense_candidates db open failed (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			dbname, MNEMOSYNEDBM_SUFFIX, 0 );
 
 		return idl;
 	}
 
 	if( prefix.bv_val != NULL ) {
-		idl_free( idl );
+		m_idl_free( idl );
 		idl = NULL;
 
-		rc = key_read( op->o_bd, db, &prefix, &idl );
+		rc = m_key_read( op->o_bd, db, &prefix, &idl );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -241,7 +241,7 @@ presence_candidates(
 		}
 	}
 
-	ldbm_cache_close( op->o_bd, db );
+	mnemosynedbm_cache_close( op->o_bd, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -268,14 +268,14 @@ equality_candidates(
 	Debug( LDAP_DEBUG_TRACE, "=> equality_candidates\n", 0, 0, 0 );
 
 
-	idl = idl_allids( op->o_bd );
+	idl = m_idl_allids( op->o_bd );
 
-	rc = index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
+	rc = m_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= equality_candidates: index_param returned=%d\n",
+		    "<= equality_candidates: m_index_param returned=%d\n",
 			rc, 0, 0 );
 
 		return idl;
@@ -311,7 +311,7 @@ equality_candidates(
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= equality_candidates: (%s%s) MR filter failed (%d)\n",
-			dbname, LDBM_SUFFIX, rc );
+			dbname, MNEMOSYNEDBM_SUFFIX, rc );
 
 		return idl;
 	}
@@ -319,17 +319,17 @@ equality_candidates(
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= equality_candidates: no keys (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			dbname, MNEMOSYNEDBM_SUFFIX, 0 );
 
 		return idl;
 	}
 
-	db = ldbm_cache_open( op->o_bd, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
+	db = mnemosynedbm_cache_open( op->o_bd, dbname, MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= equality_candidates db open failed (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			dbname, MNEMOSYNEDBM_SUFFIX, 0 );
 
 		return idl;
 	}
@@ -338,10 +338,10 @@ equality_candidates(
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( op->o_bd, db, &keys[i], &tmp );
+		rc = m_key_read( op->o_bd, db, &keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
-			idl_free( idl );
+			m_idl_free( idl );
 			idl = NULL;
 			Debug( LDAP_DEBUG_TRACE,
 				"<= equality_candidates key read failed (%d)\n",
@@ -351,7 +351,7 @@ equality_candidates(
 		}
 
 		if( tmp == NULL ) {
-			idl_free( idl );
+			m_idl_free( idl );
 			idl = NULL;
 			Debug( LDAP_DEBUG_TRACE,
 				"<= equality_candidates NULL\n",
@@ -361,16 +361,16 @@ equality_candidates(
 		}
 
 		save = idl;
-		idl = idl_intersection( op->o_bd, idl, tmp );
-		idl_free( save );
-		idl_free( tmp );
+		idl = m_idl_intersection( op->o_bd, idl, tmp );
+		m_idl_free( save );
+		m_idl_free( tmp );
 
 		if( idl == NULL ) break;
 	}
 
 	ber_bvarray_free_x( keys, op->o_tmpmemctx );
 
-	ldbm_cache_close( op->o_bd, db );
+	mnemosynedbm_cache_close( op->o_bd, db );
 
 
 	Debug( LDAP_DEBUG_TRACE, "<= equality_candidates %ld\n",
@@ -398,14 +398,14 @@ approx_candidates(
 	Debug( LDAP_DEBUG_TRACE, "=> approx_candidates\n", 0, 0, 0 );
 
 
-	idl = idl_allids( op->o_bd );
+	idl = m_idl_allids( op->o_bd );
 
-	rc = index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_APPROX,
+	rc = m_index_param( op->o_bd, ava->aa_desc, LDAP_FILTER_APPROX,
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= approx_candidates: index_param returned=%d\n",
+		    "<= approx_candidates: m_index_param returned=%d\n",
 			rc, 0, 0 );
 
 		return idl;
@@ -446,7 +446,7 @@ approx_candidates(
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= approx_candidates: (%s%s) MR filter failed (%d)\n",
-			dbname, LDBM_SUFFIX, rc );
+			dbname, MNEMOSYNEDBM_SUFFIX, rc );
 
 		return idl;
 	}
@@ -454,17 +454,17 @@ approx_candidates(
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= approx_candidates: no keys (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			dbname, MNEMOSYNEDBM_SUFFIX, 0 );
 
 		return idl;
 	}
 
-	db = ldbm_cache_open( op->o_bd, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
+	db = mnemosynedbm_cache_open( op->o_bd, dbname, MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= approx_candidates db open failed (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			dbname, MNEMOSYNEDBM_SUFFIX, 0 );
 
 		return idl;
 	}
@@ -473,10 +473,10 @@ approx_candidates(
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( op->o_bd, db, &keys[i], &tmp );
+		rc = m_key_read( op->o_bd, db, &keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
-			idl_free( idl );
+			m_idl_free( idl );
 			idl = NULL;
 			Debug( LDAP_DEBUG_TRACE, "<= approx_candidates key read failed (%d)\n",
 			    rc, 0, 0 );
@@ -485,7 +485,7 @@ approx_candidates(
 		}
 
 		if( tmp == NULL ) {
-			idl_free( idl );
+			m_idl_free( idl );
 			idl = NULL;
 			Debug( LDAP_DEBUG_TRACE, "<= approx_candidates NULL\n",
 			    0, 0, 0 );
@@ -494,16 +494,16 @@ approx_candidates(
 		}
 
 		save = idl;
-		idl = idl_intersection( op->o_bd, idl, tmp );
-		idl_free( save );
-		idl_free( tmp );
+		idl = m_idl_intersection( op->o_bd, idl, tmp );
+		m_idl_free( save );
+		m_idl_free( tmp );
 
 		if( idl == NULL ) break;
 	}
 
 	ber_bvarray_free_x( keys, op->o_tmpmemctx );
 
-	ldbm_cache_close( op->o_bd, db );
+	mnemosynedbm_cache_close( op->o_bd, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -526,12 +526,12 @@ list_candidates(
 
 	idl = NULL;
 	for ( f = flist; f != NULL; f = f->f_next ) {
-		if ( (tmp = filter_candidates( op, f )) == NULL &&
+		if ( (tmp = m_filter_candidates( op, f )) == NULL &&
 		    ftype == LDAP_FILTER_AND ) {
 			Debug( LDAP_DEBUG_TRACE,
 			       "<= list_candidates NULL\n", 0, 0, 0 );
 
-			idl_free( idl );
+			m_idl_free( idl );
 			return( NULL );
 		}
 
@@ -539,13 +539,13 @@ list_candidates(
 		if ( idl == NULL ) {
 			idl = tmp;
 		} else if ( ftype == LDAP_FILTER_AND ) {
-			idl = idl_intersection( op->o_bd, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
+			idl = m_idl_intersection( op->o_bd, idl, tmp );
+			m_idl_free( tmp );
+			m_idl_free( tmp2 );
 		} else {
-			idl = idl_union( op->o_bd, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
+			idl = m_idl_union( op->o_bd, idl, tmp );
+			m_idl_free( tmp );
+			m_idl_free( tmp2 );
 		}
 	}
 
@@ -574,14 +574,14 @@ substring_candidates(
 	Debug( LDAP_DEBUG_TRACE, "=> substrings_candidates\n", 0, 0, 0 );
 
 
-	idl = idl_allids( op->o_bd );
+	idl = m_idl_allids( op->o_bd );
 
-	rc = index_param( op->o_bd, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
+	rc = m_index_param( op->o_bd, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
-		    "<= substrings_candidates: index_param returned=%d\n",
+		    "<= substrings_candidates: m_index_param returned=%d\n",
 			rc, 0, 0 );
 
 		return idl;
@@ -618,7 +618,7 @@ substring_candidates(
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= substrings_candidates: (%s%s) MR filter failed (%d)\n",
-			dbname, LDBM_SUFFIX, rc );
+			dbname, MNEMOSYNEDBM_SUFFIX, rc );
 
 		return idl;
 	}
@@ -626,17 +626,17 @@ substring_candidates(
 	if( keys == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= substrings_candidates: (0x%04lx) no keys (%s%s)\n",
-			mask, dbname, LDBM_SUFFIX );
+			mask, dbname, MNEMOSYNEDBM_SUFFIX );
 
 		return idl;
 	}
 
-	db = ldbm_cache_open( op->o_bd, dbname, LDBM_SUFFIX, LDBM_WRCREAT );
+	db = mnemosynedbm_cache_open( op->o_bd, dbname, MNEMOSYNEDBM_SUFFIX, MNEMOSYNEDBM_WRCREAT );
 	
 	if ( db == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "<= substrings_candidates db open failed (%s%s)\n",
-			dbname, LDBM_SUFFIX, 0 );
+			dbname, MNEMOSYNEDBM_SUFFIX, 0 );
 
 		return idl;
 	}
@@ -645,10 +645,10 @@ substring_candidates(
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = key_read( op->o_bd, db, &keys[i], &tmp );
+		rc = m_key_read( op->o_bd, db, &keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
-			idl_free( idl );
+			m_idl_free( idl );
 			idl = NULL;
 			Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates key read failed (%d)\n",
 			    rc, 0, 0 );
@@ -657,7 +657,7 @@ substring_candidates(
 		}
 
 		if( tmp == NULL ) {
-			idl_free( idl );
+			m_idl_free( idl );
 			idl = NULL;
 			Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates NULL\n",
 			    0, 0, 0 );
@@ -666,16 +666,16 @@ substring_candidates(
 		}
 
 		save = idl;
-		idl = idl_intersection( op->o_bd, idl, tmp );
-		idl_free( save );
-		idl_free( tmp );
+		idl = m_idl_intersection( op->o_bd, idl, tmp );
+		m_idl_free( save );
+		m_idl_free( tmp );
 
 		if( idl == NULL ) break;
 	}
 
 	ber_bvarray_free_x( keys, op->o_tmpmemctx );
 
-	ldbm_cache_close( op->o_bd, db );
+	mnemosynedbm_cache_close( op->o_bd, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );

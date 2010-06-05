@@ -1,5 +1,5 @@
 /* cache.c - routines to maintain an in-core cache of entries */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/cache.c,v 1.66.2.5 2007/01/02 21:44:02 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/cache.c,v 1.66.2.5 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -24,19 +24,12 @@
 
 #include "slap.h"
 
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
-#if 0
-# define pavl_insert    avl_insert
-# define pavl_delete    avl_delete
-# define pavl_find      avl_find
-# define pavl_dup_error avl_dup_error
-#endif
-
-/* LDBM backend specific entry info -- visible only to the cache */
-typedef struct ldbm_entry_info {
+/* MNEMOSYNEDBM backend specific entry info -- visible only to the cache */
+typedef struct mnemosynedbm_entry_info {
 	/*
-	 * These items are specific to the LDBM backend and should
+	 * These items are specific to the MNEMOSYNEDBM backend and should
 	 * be hidden.  Backend cache lock required to access.
 	 */
 	int		lei_state;	/* for the cache */
@@ -70,7 +63,7 @@ cache_entry_private_init( Entry*e )
 		return 1;
 	}
 
-	e->e_private = ch_calloc(1, sizeof(struct ldbm_entry_info));
+	e->e_private = ch_calloc(1, sizeof(struct mnemosynedbm_entry_info));
 
 	return 0;
 }
@@ -82,7 +75,7 @@ cache_entry_private_init( Entry*e )
  * but lets the entry untouched (owned by someone else)
  */
 void
-cache_entry_commit( Entry *e )
+m_cache_entry_commit( Entry *e )
 {
 	assert( e != NULL );
 	assert( e->e_private != NULL );
@@ -103,7 +96,7 @@ cache_entry_private_destroy( Entry*e )
 }
 
 void
-cache_return_entry_rw( Cache *cache, Entry *e, int rw )
+m_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 {
 	ID id;
 	int refcnt, freeit = 1;
@@ -206,14 +199,13 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
  *		-1	something bad happened
  */
 int
-cache_add_entry_rw(
+m_cache_add_entry_rw(
     Cache	*cache,
     Entry		*e,
 	int		rw
 )
 {
 	int	i, rc;
-	int     ret;
 	Entry	*ee;
 
 	/* set cache mutex */
@@ -247,21 +239,16 @@ cache_add_entry_rw(
 		return( 1 );
 	}
 
-	__tm_atomic 
-	{
-		ret = pavl_insert( &cache->c_idtree, (caddr_t) e,
-		                  entry_id_cmp, pavl_dup_error );
-	}
-
 	/* id tree */
-	if ( ret != 0 )
+	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
+	                 entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_add_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
+		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 		                 entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
@@ -322,108 +309,6 @@ cache_add_entry_rw(
 	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 	return( 0 );
 }
-
-
-int
-cache_add_id2entry_rw(
-    Cache	*cache,
-    Entry		*e,
-	int		rw
-)
-{
-	int	i, rc;
-	int     ret;
-	Entry	*ee;
-
-	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
-
-	assert( e->e_private == NULL );
-
-	if( cache_entry_private_init(e) != 0 ) {
-		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-
-		Debug( LDAP_DEBUG_ANY,
-			"====> cache_add_entry( %ld ): \"%s\": private init failed!\n",
-		    e->e_id, e->e_dn, 0 );
-
-		return( -1 );
-	}
-
-	ret = pavl_insert( &cache->c_idtree, (caddr_t) e,
-	                  entry_id_cmp, pavl_dup_error );
-
-	/* id tree */
-	if ( ret != 0 )
-	{
-		Debug( LDAP_DEBUG_ANY,
-			"====> cache_add_entry( %ld ): \"%s\": already in id cache\n",
-		    e->e_id, e->e_dn, 0 );
-
-		/* delete from dn tree inserted above */
-		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
-		                 entry_dn_cmp ) == NULL )
-		{
-			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
-			    0, 0, 0 );
-		}
-
-		cache_entry_private_destroy(e);
-
-		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-		return( -1 );
-	}
-
-	/* put the entry into 'CREATING' state */
-	/* will be marked after when entry is returned */
-	LEI(e)->lei_state = CACHE_ENTRY_CREATING;
-	LEI(e)->lei_refcnt = 1;
-
-	/* lru */
-	LRU_ADD( cache, e );
-	if ( ++cache->c_cursize > cache->c_maxsize ) {
-		/*
-		 * find the lru entry not currently in use and delete it.
-		 * in case a lot of entries are in use, only look at the
-		 * first 10 on the tail of the list.
-		 */
-		i = 0;
-		while ( cache->c_lrutail != NULL &&
-			LEI(cache->c_lrutail)->lei_refcnt != 0 &&
-			i < 10 )
-		{
-			/* move this in-use entry to the front of the q */
-			ee = cache->c_lrutail;
-			LRU_DELETE( cache, ee );
-			LRU_ADD( cache, ee );
-			i++;
-		}
-
-		/*
-		 * found at least one to delete - try to get back under
-		 * the max cache size.
-		 */
-		while ( cache->c_lrutail != NULL &&
-			LEI(cache->c_lrutail)->lei_refcnt == 0 &&
-			cache->c_cursize > cache->c_maxsize )
-		{
-			e = cache->c_lrutail;
-
-			/* delete from cache and lru q */
-			/* XXX do we need rc ? */
-			rc = cache_delete_entry_internal( cache, e );
-			cache_entry_private_destroy( e );
-			entry_free( e );
-		}
-	}
-
-	/* free cache mutex */
-	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-	return( 0 );
-}
-
 
 /*
  * cache_update_entry - update a LOCKED entry which has been deleted.
@@ -432,7 +317,7 @@ cache_add_id2entry_rw(
  *		-1	something bad happened
  */
 int
-cache_update_entry(
+m_cache_update_entry(
     Cache	*cache,
     Entry		*e
 )
@@ -458,15 +343,15 @@ cache_update_entry(
 	}
 
 	/* id tree */
-	if ( pavl_insert( &cache->c_idtree, (caddr_t) e,
-	                 entry_id_cmp, pavl_dup_error ) != 0 )
+	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
+	                 entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> cache_update_entry( %ld ): \"%s\": already in id cache\n",
 		    e->e_id, e->e_dn, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( pavl_delete( &cache->c_dntree, (caddr_t) e,
+		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
 		                 entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
@@ -526,7 +411,7 @@ cache_update_entry(
 }
 
 ID
-cache_find_entry_ndn2id(
+m_cache_find_entry_ndn2id(
 	Backend		*be,
     Cache	*cache,
     struct berval	*ndn
@@ -570,7 +455,7 @@ try_again:
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 			Debug(LDAP_DEBUG_TRACE,
-				"====> cache_find_entry_ndn2id(\"%s\"): %ld (not ready) %d\n",
+				"====> m_cache_find_entry_ndn2id(\"%s\"): %ld (not ready) %d\n",
 				ndn->bv_val, id, state);
 
 			ldap_pvt_thread_yield();
@@ -585,7 +470,7 @@ try_again:
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 
 		Debug(LDAP_DEBUG_TRACE,
-			"====> cache_find_entry_ndn2id(\"%s\"): %ld (%d tries)\n",
+			"====> m_cache_find_entry_ndn2id(\"%s\"): %ld (%d tries)\n",
 			ndn->bv_val, id, count);
 
 	} else {
@@ -602,7 +487,7 @@ try_again:
  */
 
 Entry *
-cache_find_entry_id(
+m_cache_find_entry_id(
 	Cache	*cache,
 	ID				id,
 	int				rw
@@ -618,7 +503,7 @@ try_again:
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	if ( (ep = (Entry *) pavl_find( cache->c_idtree, (caddr_t) &e,
+	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
 	                               entry_id_cmp )) != NULL )
 	{
 		int state;
@@ -671,10 +556,10 @@ try_again:
 }
 
 /*
- * cache_delete_entry - delete the entry e from the cache.  the caller
+ * m_cache_delete_entry - delete the entry e from the cache.  the caller
  * should have obtained e (increasing its ref count) via a call to one
  * of the cache_find_* routines.  the caller should *not* call the
- * cache_return_entry() routine prior to calling cache_delete_entry().
+ * cache_return_entry() routine prior to calling m_cache_delete_entry().
  * it performs this function.
  *
  * returns:	0	e was deleted ok
@@ -682,7 +567,7 @@ try_again:
  *		-1	something bad happened
  */
 int
-cache_delete_entry(
+m_cache_delete_entry(
     Cache	*cache,
     Entry		*e
 )
@@ -694,7 +579,7 @@ cache_delete_entry(
 
 	assert( e->e_private != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry( %ld )\n",
+	Debug( LDAP_DEBUG_TRACE, "====> m_cache_delete_entry( %ld )\n",
 		e->e_id, 0, 0 );
 
 	rc = cache_delete_entry_internal( cache, e );
@@ -719,7 +604,7 @@ cache_delete_entry_internal(
 	}
 
 	/* id tree */
-	if ( pavl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp ) == NULL )
 	{
 		rc = -1;
 	}
@@ -741,7 +626,7 @@ cache_delete_entry_internal(
 }
 
 void
-cache_release_all( Cache *cache )
+m_cache_release_all( Cache *cache )
 {
 	Entry *e;
 	int rc;
@@ -749,7 +634,7 @@ cache_release_all( Cache *cache )
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	Debug( LDAP_DEBUG_TRACE, "====> cache_release_all\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "====> m_cache_release_all\n", 0, 0, 0 );
 
 
 	while ( (e = cache->c_lrutail) != NULL && LEI(e)->lei_refcnt == 0 ) {

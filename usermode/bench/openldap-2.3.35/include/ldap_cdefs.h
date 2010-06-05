@@ -162,6 +162,11 @@
 #	define LDAP_LDBM_F(type)	extern type
 #	define LDAP_LDBM_V(type)	extern type
 
+/* Mnemosyne backend library */
+/* Not exported/imported any more */
+#	define LDAP_MNEMOSYNEDBM_F(type)	extern type
+#	define LDAP_MNEMOSYNEDBM_V(type)	extern type
+
 /* LDIF library */
 #if defined(_WIN32) && defined(SLAPD_IMPORT)
 #	define LDAP_LDIF_F(type)	extern __declspec(dllimport) type

@@ -44,6 +44,7 @@ struct list_head {
 #define LIST_HEAD(name) \
 	struct list_head name = LIST_HEAD_INIT(name)
 
+__attribute__ ((tm_callable))
 static inline void INIT_LIST_HEAD(struct list_head *list)
 {
 	list->next = list;
@@ -56,6 +57,7 @@ static inline void INIT_LIST_HEAD(struct list_head *list)
  * This is only for internal list manipulation where we know
  * the prev/next entries already!
  */
+__attribute__ ((tm_callable))
 static inline void __list_add(struct list_head *_new,
 			      struct list_head *prev,
 			      struct list_head *next)
@@ -74,6 +76,7 @@ static inline void __list_add(struct list_head *_new,
  * Insert a new entry after the specified head.
  * This is good for implementing stacks.
  */
+__attribute__ ((tm_callable))
 static inline void list_add(struct list_head *_new, struct list_head *head)
 {
 	__list_add(_new, head, head->next);

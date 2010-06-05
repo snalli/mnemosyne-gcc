@@ -1,5 +1,5 @@
-/* modify.c - ldbm backend modify routine */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/modify.c,v 1.115.2.9 2007/01/02 21:44:03 kurt Exp $ */
+/* modify.c - mnemosynedbm backend modify routine */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/modify.c,v 1.115.2.9 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -23,15 +23,15 @@
 #include <ac/time.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 /* We need this function because of LDAP modrdn. If we do not 
  * add this there would be a bunch of code replication here 
  * and there and of course the likelihood of bugs increases.
  * Juan C. Gomez (gomez@engr.sgi.com) 05/18/99
  */ 
-int ldbm_modify_internal(
+int mnemosynedbm_modify_internal(
     Operation	*op,
     Modifications	*modlist,
     Entry	*e,
@@ -46,7 +46,7 @@ int ldbm_modify_internal(
 	Attribute 	*ap;
 
 	Debug(LDAP_DEBUG_TRACE,
-		"ldbm_modify_internal: %s\n",
+		"mnemosynedbm_modify_internal: %s\n",
 		e->e_name.bv_val,
 		get_permissiveModify(op) ? " (permissive)" : "",
 		0 );
@@ -64,56 +64,56 @@ int ldbm_modify_internal(
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
 			Debug(LDAP_DEBUG_ARGS,
-				"ldbm_modify_internal: add\n", 0, 0, 0);
+				"mnemosynedbm_modify_internal: add\n", 0, 0, 0);
 
 			rc = modify_add_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
-				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+				Debug(LDAP_DEBUG_ARGS, "mnemosynedbm_modify_internal: %d %s\n",
 					rc, *text, 0);
 			}
 			break;
 
 		case LDAP_MOD_DELETE:
 			Debug(LDAP_DEBUG_ARGS,
-				"ldbm_modify_internal: delete\n", 0, 0, 0);
+				"mnemosynedbm_modify_internal: delete\n", 0, 0, 0);
 
 			rc = modify_delete_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			assert( rc != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( rc != LDAP_SUCCESS ) {
-				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+				Debug(LDAP_DEBUG_ARGS, "mnemosynedbm_modify_internal: %d %s\n",
 					rc, *text, 0);
 			}
 			break;
 
 		case LDAP_MOD_REPLACE:
 			Debug(LDAP_DEBUG_ARGS,
-				"ldbm_modify_internal: replace\n", 0, 0, 0);
+				"mnemosynedbm_modify_internal: replace\n", 0, 0, 0);
 
 			rc = modify_replace_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
-				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+				Debug(LDAP_DEBUG_ARGS, "mnemosynedbm_modify_internal: %d %s\n",
 					rc, *text, 0);
 			}
 			break;
 
 		case LDAP_MOD_INCREMENT:
 			Debug(LDAP_DEBUG_ARGS,
-				"ldbm_modify_internal:  increment\n",0,0,0);
+				"mnemosynedbm_modify_internal:  increment\n",0,0,0);
 
 			rc = modify_increment_values( e, mod, get_permissiveModify( op ),
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
-				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+				Debug(LDAP_DEBUG_ARGS, "mnemosynedbm_modify_internal: %d %s\n",
 					rc, *text, 0);
 			}
 			break;
 
 		case SLAP_MOD_SOFTADD:
 			Debug(LDAP_DEBUG_ARGS,
-				"ldbm_modify_internal: softadd\n", 0, 0, 0);
+				"mnemosynedbm_modify_internal: softadd\n", 0, 0, 0);
 
 			/* Avoid problems in index_add_mods()
 			 * We need to add index if necessary.
@@ -128,18 +128,18 @@ int ldbm_modify_internal(
 			}
 
 			if( rc != LDAP_SUCCESS ) {
-				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+				Debug(LDAP_DEBUG_ARGS, "mnemosynedbm_modify_internal: %d %s\n",
 					rc, *text, 0);
 			}
 			break;
 
 		default:
-			Debug(LDAP_DEBUG_ANY, "ldbm_modify_internal: invalid op %d\n",
+			Debug(LDAP_DEBUG_ANY, "mnemosynedbm_modify_internal: invalid op %d\n",
 				mod->sm_op, 0, 0);
 
 			rc = LDAP_OTHER;
 			*text = "Invalid modify operation";
-			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
+			Debug(LDAP_DEBUG_ARGS, "mnemosynedbm_modify_internal: %d %s\n",
 				rc, *text, 0);
 		}
 
@@ -153,7 +153,7 @@ int ldbm_modify_internal(
 		}
 
 		/* check if modified attribute was indexed */
-		rc = index_is_indexed( op->o_bd, mod->sm_desc );
+		rc = m_index_is_indexed( op->o_bd, mod->sm_desc );
 		if ( rc == LDAP_SUCCESS ) {
 			ap = attr_find( save_attrs, mod->sm_desc );
 			if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
@@ -184,12 +184,12 @@ int ldbm_modify_internal(
 	/* start with deleting the old index entries */
 	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
-			rc = index_values( op, ap->a_desc,
+			rc = m_index_values( op, ap->a_desc,
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_DELETE_OP );
 			if ( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"ldbm_modify_internal: Attribute index delete failure\n",
+					"mnemosynedbm_modify_internal: Attribute index delete failure\n",
 					0, 0, 0 );
 				goto exit;
 			}
@@ -200,12 +200,12 @@ int ldbm_modify_internal(
 	/* add the new index entries */
 	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
 		if ( ap->a_flags & SLAP_ATTR_IXADD ) {
-			rc = index_values( op, ap->a_desc,
+			rc = m_index_values( op, ap->a_desc,
 				ap->a_nvals,
 				e->e_id, SLAP_INDEX_ADD_OP );
 			if ( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
-					"ldbm_modify_internal: Attribute index add failure\n",
+					"mnemosynedbm_modify_internal: Attribute index add failure\n",
 					0, 0, 0 );
 				goto exit;
 			}
@@ -228,18 +228,18 @@ exit:
 }
 
 int
-ldbm_back_modify(
+mnemosynedbm_back_modify(
     Operation	*op,
     SlapReply	*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	Entry		*matched;
 	Entry		*e;
 	int		manageDSAit = get_manageDSAit( op );
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 
-	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_ARGS, "mnemosynedbm_back_modify:\n", 0, 0, 0);
 
 	slap_mods_opattrs( op, &op->orm_modlist, 1 );
 
@@ -247,7 +247,7 @@ ldbm_back_modify(
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
 	/* acquire and lock entry */
-	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
+	e = m_dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
 
 	/* FIXME: dn2entry() should return non-glue entry */
 	if (( e == NULL ) || ( !manageDSAit && e && is_entry_glue( e ))) {
@@ -256,7 +256,7 @@ ldbm_back_modify(
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
-			cache_return_entry_r( li->li_cache, matched );
+			m_cache_return_entry_r( &li->li_cache, matched );
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
 				&op->o_req_dn, LDAP_SCOPE_DEFAULT );
@@ -282,19 +282,19 @@ ldbm_back_modify(
 	}
 	
 	/* Modify the entry */
-	rs->sr_err = ldbm_modify_internal( op, op->oq_modify.rs_modlist, e,
+	rs->sr_err = mnemosynedbm_modify_internal( op, op->oq_modify.rs_modlist, e,
 		&rs->sr_text, textbuf, textlen );
 
 	/* change the entry itself */
 	if( rs->sr_err == LDAP_SUCCESS ) {
-		if ( id2entry_add( op->o_bd, e ) != 0 ) {
+		if ( m_id2entry_add( op->o_bd, e ) != 0 ) {
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "id2entry failure";
 		}
 	}
 
 return_results:;
-	if( e != NULL ) cache_return_entry_w( li->li_cache, e );
+	if( e != NULL ) m_cache_return_entry_w( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 	send_ldap_result( op, rs );

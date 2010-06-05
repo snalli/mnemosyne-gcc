@@ -1,5 +1,5 @@
-/* config.c - ldbm backend configuration file routine */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/config.c,v 1.37.2.5 2007/01/02 21:44:02 kurt Exp $ */
+/* config.c - mnemosynedbm backend configuration file routine */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/config.c,v 1.37.2.5 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,11 +22,11 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 #include "lutil.h"
 
 int
-ldbm_back_db_config(
+mnemosynedbm_back_db_config(
     Backend	*be,
     const char	*fname,
     int		lineno,
@@ -35,10 +35,10 @@ ldbm_back_db_config(
 )
 {
 	int rc;
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 
 	if ( li == NULL ) {
-		fprintf( stderr, "%s: line %d: ldbm database info is null!\n",
+		fprintf( stderr, "%s: line %d: mnemosynedbm database info is null!\n",
 		    fname, lineno );
 		return( 1 );
 	}
@@ -85,7 +85,7 @@ ldbm_back_db_config(
 			return( 1 );
 #endif /* SLAPD_CONF_UNKNOWN_BAILOUT */
 		}
-		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1] );
+		rc = m_attr_index_config( li, fname, lineno, argc - 1, &argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
 
@@ -97,7 +97,7 @@ ldbm_back_db_config(
 			    fname, lineno );
 			return( 1 );
 		}
-		if ( lutil_atoi( li->li_cache->c_maxsize, argv[1] ) != 0 ) {
+		if ( lutil_atoi( &li->li_cache.c_maxsize, argv[1] ) != 0 ) {
 			fprintf( stderr,
 		"%s: line %d: unable to parse cachesize \"%s\"\n",
 			    fname, lineno, argv[1] );

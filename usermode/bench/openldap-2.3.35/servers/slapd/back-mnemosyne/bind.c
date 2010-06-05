@@ -1,5 +1,5 @@
-/* bind.c - ldbm backend bind and unbind routines */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/bind.c,v 1.75.2.3 2007/01/02 21:44:02 kurt Exp $ */
+/* bind.c - mnemosynedbm backend bind and unbind routines */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/bind.c,v 1.75.2.3 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -24,15 +24,15 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 int
-ldbm_back_bind(
+mnemosynedbm_back_bind(
     Operation		*op,
     SlapReply		*rs )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	Entry		*e;
 	Attribute	*a;
 	int		rc;
@@ -46,7 +46,7 @@ ldbm_back_bind(
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
 	Debug(LDAP_DEBUG_ARGS,
-		"==> ldbm_back_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
+		"==> mnemosynedbm_back_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
 
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op ) ) {
 		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
@@ -58,9 +58,9 @@ ldbm_back_bind(
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
 	/* get entry with reader lock */
-	if ( (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
+	if ( (e = m_dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
 		if( matched != NULL ) {
-			cache_return_entry_r( li->li_cache, matched );
+			m_cache_return_entry_r( &li->li_cache, matched );
 		}
 		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
@@ -72,7 +72,7 @@ ldbm_back_bind(
 	}
 
 	/* check for deleted */
-#ifdef LDBM_SUBENTRIES
+#ifdef MNEMOSYNEDBM_SUBENTRIES
 	if ( is_entry_subentry( e ) ) {
 		/* entry is an subentry, don't allow bind */
 		Debug( LDAP_DEBUG_TRACE,
@@ -178,7 +178,7 @@ ldbm_back_bind(
 
 return_results:;
 	/* free entry and reader lock */
-	cache_return_entry_r( li->li_cache, e );
+	m_cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 	if ( rc ) {

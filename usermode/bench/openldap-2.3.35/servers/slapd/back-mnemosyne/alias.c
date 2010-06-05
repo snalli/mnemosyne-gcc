@@ -1,4 +1,4 @@
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/alias.c,v 1.47.2.4 2007/01/02 21:44:02 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/alias.c,v 1.47.2.4 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -19,8 +19,8 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 
 static void new_superior(
@@ -33,7 +33,7 @@ static int dnlist_subordinate(
 	BerVarray dnlist,
 	struct berval *dn );
 
-Entry *deref_internal_r(
+Entry *m_deref_internal_r(
 	Backend*	be,
 	Entry*		alias,
 	struct berval*	dn_in,
@@ -42,7 +42,7 @@ Entry *deref_internal_r(
 	const char**		text )
 {
 	struct berval dn;
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo *li = (struct mnemosynedbminfo *) be->be_private;
 	Entry *entry;
 	Entry *sup;
 	unsigned depth;
@@ -57,7 +57,7 @@ Entry *deref_internal_r(
 
 	if( alias == NULL ) {
 		ber_dupbv( &dn, dn_in );
-		entry = dn2entry_r( be, &dn, &sup );
+		entry = m_dn2entry_r( be, &dn, &sup );
 
 	} else {
 		ber_dupbv( &dn, &alias->e_nname );
@@ -108,11 +108,11 @@ Entry *deref_internal_r(
 
 			/* attempt to dereference alias */
 
-			newe = dn2entry_r( be, &aliasDN, &sup );
+			newe = m_dn2entry_r( be, &aliasDN, &sup );
 			ch_free( aliasDN.bv_val );
 
 			if( newe != NULL ) {
-				cache_return_entry_r(li->li_cache, entry );
+				m_cache_return_entry_r(&li->li_cache, entry );
 				entry = newe;
 				ber_dupbv( &dn, &entry->e_nname );
 				ber_bvarray_add( &dnlist, &dn );
@@ -120,7 +120,7 @@ Entry *deref_internal_r(
 			}
 			
 			if ( sup != NULL ) {
-				cache_return_entry_r(li->li_cache, entry );
+				m_cache_return_entry_r(&li->li_cache, entry );
 				entry = NULL;
 				continue;
 			}
@@ -171,11 +171,11 @@ Entry *deref_internal_r(
 			}
 
 			/* attempt to dereference alias */
-			newe = dn2entry_r( be, &aliasDN, &newSup );
+			newe = m_dn2entry_r( be, &aliasDN, &newSup );
 
 			if( newe != NULL ) {
 				free(aliasDN.bv_val);
-				cache_return_entry_r(li->li_cache, sup );
+				m_cache_return_entry_r(&li->li_cache, sup );
 				entry = newe;
 				ber_dupbv( &dn, &entry->e_nname );
 				ber_bvarray_add( &dnlist, &dn );
@@ -183,7 +183,7 @@ Entry *deref_internal_r(
 			}
 			
 			if ( newSup != NULL ) {
-				cache_return_entry_r(li->li_cache, sup );
+				m_cache_return_entry_r(&li->li_cache, sup );
 				sup = newSup;
 				ber_dupbv( &dn, &aliasDN );
 				continue;

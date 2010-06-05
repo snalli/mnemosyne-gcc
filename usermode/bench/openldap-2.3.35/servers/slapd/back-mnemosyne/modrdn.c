@@ -1,5 +1,5 @@
-/* modrdn.c - ldbm backend modrdn routine */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/modrdn.c,v 1.153.2.9 2007/01/02 21:44:03 kurt Exp $ */
+/* modrdn.c - mnemosynedbm backend modrdn routine */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/modrdn.c,v 1.153.2.9 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -30,17 +30,17 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 int
-ldbm_back_modrdn(
+mnemosynedbm_back_modrdn(
     Operation	*op,
     SlapReply	*rs )
 {
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
-	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) op->o_bd->be_private;
 	struct berval	p_dn, p_ndn;
 	struct berval	new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
 	struct berval	old_ndn = BER_BVNULL;
@@ -57,12 +57,12 @@ ldbm_back_modrdn(
 	Entry		*np = NULL;	/* newSuperior Entry */
 	struct berval	*np_ndn = NULL; /* newSuperior ndn */
 	struct berval	*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
-	/* Used to interface with ldbm_modify_internal() */
+	/* Used to interface with mnemosynedbm_modify_internal() */
 	Modifications	*mod = NULL;		/* Used to delete old/add new rdn */
 	int		manageDSAit = get_manageDSAit( op );
 
 	Debug( LDAP_DEBUG_TRACE,
-		"==>ldbm_back_modrdn: dn: %s newSuperior=%s\n", 
+		"==>mnemosynedbm_back_modrdn: dn: %s newSuperior=%s\n", 
 		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "NULL",
 		( op->oq_modrdn.rs_newSup && op->oq_modrdn.rs_newSup->bv_len )
 			? op->oq_modrdn.rs_newSup->bv_val : "NULL", 0 );
@@ -70,17 +70,17 @@ ldbm_back_modrdn(
 	/* grab giant lock for writing */
 	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
-	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
+	e = m_dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
 
 	/* get entry with writer lock */
-	/* FIXME: dn2entry() should return non-glue entry */
+	/* FIXME: m_dn2entry() should return non-glue entry */
 	if (( e == NULL  ) || ( !manageDSAit && e && is_entry_glue( e ))) {
 		if ( matched != NULL ) {
 			rs->sr_matched = strdup( matched->e_dn );
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
 				: NULL;
-			cache_return_entry_r( li->li_cache, matched );
+			m_cache_return_entry_r( &li->li_cache, matched );
 		} else {
 			rs->sr_ref = referral_rewrite( default_referral, NULL,
 						&op->o_req_dn, LDAP_SCOPE_DEFAULT );
@@ -102,7 +102,7 @@ ldbm_back_modrdn(
 	if ( ! access_allowed( op, e, entry, NULL, ACL_WRITE, NULL ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"<=- ldbm_back_modrdn: no write access to entry\n", 0,
+			"<=- mnemosynedbm_back_modrdn: no write access to entry\n", 0,
 			0, 0 );
 
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
@@ -129,7 +129,7 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	if ( has_children( op->o_bd, e ) ) {
+	if ( m_has_children( op->o_bd, e ) ) {
 		Debug( LDAP_DEBUG_TRACE, "entry %s has children\n", e->e_dn,
 		    0, 0 );
 
@@ -149,7 +149,7 @@ ldbm_back_modrdn(
 		 * children.
 		 */
 
-		if( (p = dn2entry_w( op->o_bd, &p_ndn, NULL )) == NULL) {
+		if( (p = m_dn2entry_w( op->o_bd, &p_ndn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
 
@@ -182,7 +182,7 @@ ldbm_back_modrdn(
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-		   "ldbm_back_modrdn: wr to children of entry %s OK\n",
+		   "mnemosynedbm_back_modrdn: wr to children of entry %s OK\n",
 		   p_ndn.bv_val, 0, 0 );
 
 	if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
@@ -191,21 +191,21 @@ ldbm_back_modrdn(
 		dnParent( &e->e_name, &p_dn );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: parent dn=%s\n",
+	Debug( LDAP_DEBUG_TRACE, "mnemosynedbm_back_modrdn: parent dn=%s\n",
 		   p_dn.bv_val, 0, 0 );
 
 	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
 	if ( op->oq_modrdn.rs_newSup != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, 
-			"ldbm_back_modrdn: new parent \"%s\" requested...\n",
+			"mnemosynedbm_back_modrdn: new parent \"%s\" requested...\n",
 			op->oq_modrdn.rs_newSup->bv_val, 0, 0 );
 
 		np_ndn = op->oq_modrdn.rs_nnewSup;
 
 		/* newSuperior == oldParent? */
 		if ( dn_match( &p_ndn, np_ndn ) ) {
-			Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: "
+			Debug( LDAP_DEBUG_TRACE, "mnemosynedbm_back_modrdn: "
 				"new parent\"%s\" seems to be the same as the "
 				"old parent \"%s\"\n",
 				op->oq_modrdn.rs_newSup->bv_val, p_dn.bv_val, 0 );
@@ -219,9 +219,9 @@ ldbm_back_modrdn(
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
 		if ( op->oq_modrdn.rs_nnewSup->bv_len ) {
-			if( (np = dn2entry_w( op->o_bd, np_ndn, NULL )) == NULL) {
+			if( (np = m_dn2entry_w( op->o_bd, np_ndn, NULL )) == NULL) {
 				Debug( LDAP_DEBUG_TRACE,
-				    "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
+				    "mnemosynedbm_back_modrdn: newSup(ndn=%s) not here!\n",
 				    np_ndn->bv_val, 0, 0);
 
 				send_ldap_error( op, rs, LDAP_NO_SUCH_OBJECT,
@@ -230,7 +230,7 @@ ldbm_back_modrdn(
 			}
 
 			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
+				"mnemosynedbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
 				(void *) np, np->e_id, 0 );
 
 			/* check newSuperior for "children" acl */
@@ -238,7 +238,7 @@ ldbm_back_modrdn(
 					      ACL_WADD, NULL ) )
 			{
 				Debug( LDAP_DEBUG_TRACE,
-				       "ldbm_back_modrdn: no wr to newSup children\n",
+				       "mnemosynedbm_back_modrdn: no wr to newSup children\n",
 				       0, 0, 0 );
 
 				send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS, NULL );
@@ -280,7 +280,7 @@ ldbm_back_modrdn(
 				/* check parent for "children" acl */
 				if ( ! can_access ) {
 					Debug( LDAP_DEBUG_TRACE,
-						"<=- ldbm_back_modrdn: no "
+						"<=- mnemosynedbm_back_modrdn: no "
 						"access to new superior\n", 0, 0, 0 );
 
 						send_ldap_error( op, rs,
@@ -291,7 +291,7 @@ ldbm_back_modrdn(
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
-					"<=- ldbm_back_modrdn: \"\" "
+					"<=- mnemosynedbm_back_modrdn: \"\" "
 					"not allowed as new superior\n", 
 					0, 0, 0);
 
@@ -303,7 +303,7 @@ ldbm_back_modrdn(
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-		    "ldbm_back_modrdn: wr to new parent's children OK\n",
+		    "mnemosynedbm_back_modrdn: wr to new parent's children OK\n",
 		    0, 0, 0 );
 
 		new_parent_dn = op->oq_modrdn.rs_newSup;
@@ -313,7 +313,7 @@ ldbm_back_modrdn(
 	build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
 	dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn, NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
+	Debug( LDAP_DEBUG_TRACE, "mnemosynedbm_back_modrdn: new ndn=%s\n",
 	    new_ndn.bv_val, 0, 0 );
 
 	/* check for abandon */
@@ -322,15 +322,15 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	if ( ( rc_id = dn2id ( op->o_bd, &new_ndn, &id ) ) || id != NOID ) {
-		/* if (rc_id) something bad happened to ldbm cache */
+	if ( ( rc_id = m_dn2id ( op->o_bd, &new_ndn, &id ) ) || id != NOID ) {
+		/* if (rc_id) something bad happened to mnemosynedbm cache */
 		rs->sr_err = rc_id ? LDAP_OTHER : LDAP_ALREADY_EXISTS;
 		send_ldap_result( op, rs );
 		goto return_results;
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-	    "ldbm_back_modrdn: new ndn=%s does not exist\n",
+	    "mnemosynedbm_back_modrdn: new ndn=%s does not exist\n",
 	    new_ndn.bv_val, 0, 0 );
 
 	/* Get attribute type and attribute value of our new rdn, we will
@@ -340,7 +340,7 @@ ldbm_back_modrdn(
 		LDAP_DN_FORMAT_LDAP ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
-			"ldbm_back_modrdn: can't figure out "
+			"mnemosynedbm_back_modrdn: can't figure out "
 			"type(s)/values(s) of newrdn\n", 
 			0, 0, 0 );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX,
@@ -349,7 +349,7 @@ ldbm_back_modrdn(
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-		"ldbm_back_modrdn: new_rdn_type=\"%s\", "
+		"mnemosynedbm_back_modrdn: new_rdn_type=\"%s\", "
 		"new_rdn_val=\"%s\"\n",
 		new_rdn[ 0 ]->la_attr.bv_val,
 		new_rdn[ 0 ]->la_value.bv_val, 0 );
@@ -359,7 +359,7 @@ ldbm_back_modrdn(
 			LDAP_DN_FORMAT_LDAP ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_back_modrdn: can't figure out "
+				"mnemosynedbm_back_modrdn: can't figure out "
 				"the old_rdn type(s)/value(s)\n", 
 				0, 0, 0 );
 			send_ldap_error( op, rs, LDAP_OTHER,
@@ -368,7 +368,7 @@ ldbm_back_modrdn(
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
+	Debug( LDAP_DEBUG_TRACE, "mnemosynedbm_back_modrdn: DN_X500\n",
 	       0, 0, 0 );
 	
 	if ( slap_modrdn2mods( op, rs, e, old_rdn, new_rdn, &mod ) != LDAP_SUCCESS ) {
@@ -382,7 +382,7 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	(void) cache_delete_entry( li->li_cache, e );
+	(void) m_cache_delete_entry( &li->li_cache, e );
 
 	free( e->e_dn );
 	old_ndn = e->e_nname;
@@ -396,7 +396,7 @@ ldbm_back_modrdn(
 	 */
 
 	/* modify memory copy of entry */
-	rs->sr_err = ldbm_modify_internal( op, &mod[0], e,
+	rs->sr_err = mnemosynedbm_modify_internal( op, &mod[0], e,
 		&rs->sr_text, textbuf, textlen );
 	switch ( rs->sr_err ) {
 	case LDAP_SUCCESS:
@@ -417,16 +417,16 @@ ldbm_back_modrdn(
 	 */
 
 	/* delete old one */
-	if ( dn2id_delete( op->o_bd, &old_ndn, e->e_id ) != 0 ) {
+	if ( m_dn2id_delete( op->o_bd, &old_ndn, e->e_id ) != 0 ) {
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"DN index delete fail" );
 		goto return_results;
 	}
 
 	/* add new one */
-	if ( dn2id_add( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
+	if ( m_dn2id_add( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
 		/* try to repair old entry - probably hopeless */
-        if( dn2id_add( op->o_bd, &old_ndn, e->e_id) != 0 ) {
+        if( m_dn2id_add( op->o_bd, &old_ndn, e->e_id) != 0 ) {
 			send_ldap_error( op, rs, LDAP_OTHER,
 				"DN index add and repair failed" );
 		} else {
@@ -437,11 +437,11 @@ ldbm_back_modrdn(
 	}
 
 	/* id2entry index */
-	if ( id2entry_add( op->o_bd, e ) != 0 ) {
+	if ( m_id2entry_add( op->o_bd, e ) != 0 ) {
 		/* Try to undo */
 		int rc;
-		rc = dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
-		rc |= dn2id_add( op->o_bd, &old_ndn, e->e_id );
+		rc = m_dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
+		rc |= m_dn2id_add( op->o_bd, &old_ndn, e->e_id );
 		if( rc ) {
 			send_ldap_error( op, rs, LDAP_OTHER,
 				"entry update and repair failed" );
@@ -452,12 +452,12 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	(void) cache_update_entry( li->li_cache, e );
+	(void) m_cache_update_entry( &li->li_cache, e );
 
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
 	send_ldap_result( op, rs );
-	cache_entry_commit( e );
+	m_cache_entry_commit( e );
 
 return_results:
 	slap_graduate_commit_csn( op );
@@ -490,16 +490,16 @@ return_results:
 	/* LDAP v3 Support */
 	if( np != NULL ) {
 		/* free new parent and writer lock */
-		cache_return_entry_w( li->li_cache, np );
+		m_cache_return_entry_w( &li->li_cache, np );
 	}
 
 	if( p != NULL ) {
 		/* free parent and writer lock */
-		cache_return_entry_w( li->li_cache, p );
+		m_cache_return_entry_w( &li->li_cache, p );
 	}
 
 	/* free entry and writer lock */
-	cache_return_entry_w( li->li_cache, e );
+	m_cache_return_entry_w( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	rs->sr_text = NULL;
 	return( rs->sr_err );

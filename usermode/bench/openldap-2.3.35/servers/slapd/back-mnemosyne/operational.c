@@ -1,5 +1,5 @@
-/* operational.c - ldbm backend operational attributes function */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/operational.c,v 1.12.2.4 2007/01/02 21:44:03 kurt Exp $ */
+/* operational.c - mnemosynedbm backend operational attributes function */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/operational.c,v 1.12.2.4 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,20 +22,20 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
-#include "proto-back-ldbm.h"
+#include "back-mnemosynedbm.h"
+#include "proto-back-mnemosynedbm.h"
 
 /*
  * sets *hasSubordinates to LDAP_COMPARE_TRUE/LDAP_COMPARE_FALSE
  * if the entry has children or not.
  */
 int
-ldbm_back_hasSubordinates(
+mnemosynedbm_back_hasSubordinates(
 	Operation	*op,
 	Entry		*e,
 	int		*hasSubordinates )
 {
-	if ( has_children( op->o_bd, e ) ) {
+	if ( m_has_children( op->o_bd, e ) ) {
 		*hasSubordinates = LDAP_COMPARE_TRUE;
 
 	} else {
@@ -49,7 +49,7 @@ ldbm_back_hasSubordinates(
  * sets the supported operational attributes (if required)
  */
 int
-ldbm_back_operational(
+mnemosynedbm_back_operational(
 	Operation	*op,
 	SlapReply	*rs )
 {
@@ -65,7 +65,7 @@ ldbm_back_operational(
 	{
 		int	hs;
 
-		hs = has_children( op->o_bd, rs->sr_entry );
+		hs = m_has_children( op->o_bd, rs->sr_entry );
 		*ap = slap_operational_hasSubordinate( hs );
 		assert( *ap != NULL );
 

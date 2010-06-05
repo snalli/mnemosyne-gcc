@@ -1,5 +1,5 @@
 /* tools.c - tools for slap tools */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/tools.c,v 1.43.2.5 2007/01/02 21:44:03 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/tools.c,v 1.43.2.5 2007/01/02 21:44:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -22,15 +22,15 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldbm.h"
+#include "back-mnemosynedbm.h"
 
-static LDBMCursor *cursorp = NULL;
+static MNEMOSYNEDBMCursor *cursorp = NULL;
 static DBCache *id2entry = NULL;
 
-int ldbm_tool_entry_open(
+int mnemosynedbm_tool_entry_open(
 	BackendDB *be, int mode )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	int flags;
 
 	assert( slapMode & SLAP_TOOL_MODE );
@@ -38,24 +38,24 @@ int ldbm_tool_entry_open(
 
 	switch( mode ) {
 	case 1:
-		flags = LDBM_WRCREAT;
+		flags = MNEMOSYNEDBM_WRCREAT;
 		break;
 	case 2:
 #ifdef TRUNCATE_MODE
-		flags = LDBM_NEWDB;
+		flags = MNEMOSYNEDBM_NEWDB;
 #else
-		flags = LDBM_WRCREAT;
+		flags = MNEMOSYNEDBM_WRCREAT;
 #endif
 		break;
 	default:
-		flags = LDBM_READER;
+		flags = MNEMOSYNEDBM_READER;
 	}
 
 	li->li_dbwritesync = 0;
 
-	if ( (id2entry = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, flags ))
+	if ( (id2entry = mnemosynedbm_cache_open( be, "id2entry", MNEMOSYNEDBM_SUFFIX, flags ))
 	    == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry" LDBM_SUFFIX "\n",
+		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry" MNEMOSYNEDBM_SUFFIX "\n",
 		    0, 0, 0 );
 
 		return( -1 );
@@ -64,22 +64,22 @@ int ldbm_tool_entry_open(
 	return 0;
 }
 
-int ldbm_tool_entry_close(
+int mnemosynedbm_tool_entry_close(
 	BackendDB *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
-	ldbm_cache_close( be, id2entry );
+	mnemosynedbm_cache_close( be, id2entry );
 	li->li_dbwritesync = 1;
 	id2entry = NULL;
 
 	return 0;
 }
 
-ID ldbm_tool_entry_first(
+ID mnemosynedbm_tool_entry_first(
 	BackendDB *be )
 {
 	Datum key;
@@ -88,7 +88,7 @@ ID ldbm_tool_entry_first(
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
-	key = ldbm_firstkey( id2entry->dbc_db, &cursorp );
+	key = mnemosynedbm_firstkey( id2entry->dbc_db, &cursorp );
 
 	if( key.dptr == NULL ) {
 		return NOID;
@@ -99,12 +99,12 @@ ID ldbm_tool_entry_first(
 	id = ntohl( id );
 #endif
 
-	ldbm_datum_free( id2entry->dbc_db, key );
+	mnemosynedbm_datum_free( id2entry->dbc_db, key );
 
 	return id;
 }
 
-ID ldbm_tool_entry_next(
+ID mnemosynedbm_tool_entry_next(
 	BackendDB *be )
 {
 	Datum key;
@@ -114,9 +114,9 @@ ID ldbm_tool_entry_next(
 	assert( id2entry != NULL );
 
 	/* allow for NEXTID */
-	ldbm_datum_init( key );
+	mnemosynedbm_datum_init( key );
 
-	key = ldbm_nextkey( id2entry->dbc_db, key, cursorp );
+	key = mnemosynedbm_nextkey( id2entry->dbc_db, key, cursorp );
 
 	if( key.dptr == NULL ) {
 		return NOID;
@@ -127,12 +127,12 @@ ID ldbm_tool_entry_next(
 	id = ntohl( id );
 #endif
 
-	ldbm_datum_free( id2entry->dbc_db, key );
+	mnemosynedbm_datum_free( id2entry->dbc_db, key );
 
 	return id;
 }
 
-Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
+Entry* mnemosynedbm_tool_entry_get( BackendDB *be, ID id )
 {
 	Entry *e;
 	Datum key, data;
@@ -142,7 +142,7 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
 
-	ldbm_datum_init( key );
+	mnemosynedbm_datum_init( key );
 
 #ifndef WORDS_BIGENDIAN
 	id2 = htonl( id );
@@ -152,14 +152,14 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 #endif
 	key.dsize = sizeof(ID);
 
-	data = ldbm_cache_fetch( id2entry, key );
+	data = mnemosynedbm_cache_fetch( id2entry, key );
 
 	if ( data.dptr == NULL ) {
 		return NULL;
 	}
 
 	e = str2entry2( data.dptr, 0 );
-	ldbm_datum_free( id2entry->dbc_db, data );
+	mnemosynedbm_datum_free( id2entry->dbc_db, data );
 
 	if( e != NULL ) {
 		e->e_id = id;
@@ -168,12 +168,12 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 	return e;
 }
 
-ID ldbm_tool_entry_put(
+ID mnemosynedbm_tool_entry_put(
 	BackendDB *be,
 	Entry *e,
 	struct berval *text )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 	Datum key, data;
 	int rc, len;
 	ID id;
@@ -187,25 +187,25 @@ ID ldbm_tool_entry_put(
 	assert( text->bv_val != NULL );
 	assert( text->bv_val[0] == '\0' );	/* overconservative? */
 
-	if ( next_id_get( be, &id ) || id == NOID ) {
+	if ( m_next_id_get( be, &id ) || id == NOID ) {
 		strncpy( text->bv_val, "unable to get nextid", text->bv_len );
 		return NOID;
 	}
 
 	e->e_id = li->li_nextid++;
 
-	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_put( %ld, \"%s\" )\n",
+	Debug( LDAP_DEBUG_TRACE, "=> mnemosynedbm_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
 
-	if ( dn2id( be, &e->e_nname, &id ) ) {
-		/* something bad happened to ldbm cache */
-		strncpy( text->bv_val, "ldbm cache corrupted", text->bv_len );
+	if ( m_dn2id( be, &e->e_nname, &id ) ) {
+		/* something bad happened to mnemosynedbm cache */
+		strncpy( text->bv_val, "mnemosynedbm cache corrupted", text->bv_len );
 		return NOID;
 	}
 
 	if( id != NOID ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"<= ldbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
+			"<= mnemosynedbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
 			e->e_ndn, id, 0 );
 		strncpy( text->bv_val, "already exists", text->bv_len );
 		return NOID;
@@ -216,20 +216,20 @@ ID ldbm_tool_entry_put(
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
 
-	rc = index_entry_add( &op, e );
+	rc = m_index_entry_add( &op, e );
 	if( rc != 0 ) {
 		strncpy( text->bv_val, "index add failed", text->bv_len );
 		return NOID;
 	}
 
-	rc = dn2id_add( be, &e->e_nname, e->e_id );
+	rc = m_dn2id_add( be, &e->e_nname, e->e_id );
 	if( rc != 0 ) {
-		strncpy( text->bv_val, "dn2id add failed", text->bv_len );
+		strncpy( text->bv_val, "m_dn2id add failed", text->bv_len );
 		return NOID;
 	}
 
-	ldbm_datum_init( key );
-	ldbm_datum_init( data );
+	mnemosynedbm_datum_init( key );
+	mnemosynedbm_datum_init( data );
 
 #ifndef WORDS_BIGENDIAN
 	id = htonl( e->e_id );
@@ -243,10 +243,10 @@ ID ldbm_tool_entry_put(
 	data.dsize = len + 1;
 
 	/* store it */
-	rc = ldbm_cache_store( id2entry, key, data, LDBM_REPLACE );
+	rc = mnemosynedbm_cache_store( id2entry, key, data, MNEMOSYNEDBM_REPLACE );
 
 	if( rc != 0 ) {
-		(void) dn2id_delete( be, &e->e_nname, e->e_id );
+		(void) m_dn2id_delete( be, &e->e_nname, e->e_id );
 		strncpy( text->bv_val, "cache store failed", text->bv_len );
 		return NOID;
 	}
@@ -254,7 +254,7 @@ ID ldbm_tool_entry_put(
 	return e->e_id;
 }
 
-int ldbm_tool_entry_reindex(
+int mnemosynedbm_tool_entry_reindex(
 	BackendDB *be,
 	ID id )
 {
@@ -263,15 +263,15 @@ int ldbm_tool_entry_reindex(
 	Operation op = {0};
 	Opheader ohdr = {0};
 
-	Debug( LDAP_DEBUG_ARGS, "=> ldbm_tool_entry_reindex( %ld )\n",
+	Debug( LDAP_DEBUG_ARGS, "=> mnemosynedbm_tool_entry_reindex( %ld )\n",
 		(long) id, 0, 0 );
 
 
-	e = ldbm_tool_entry_get( be, id );
+	e = mnemosynedbm_tool_entry_get( be, id );
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"ldbm_tool_entry_reindex:: could not locate id=%ld\n",
+			"mnemosynedbm_tool_entry_reindex:: could not locate id=%ld\n",
 			(long) id, 0, 0 );
 
 		return -1;
@@ -284,30 +284,30 @@ int ldbm_tool_entry_reindex(
 	 *
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_reindex( %ld, \"%s\" )\n",
+	Debug( LDAP_DEBUG_TRACE, "=> mnemosynedbm_tool_entry_reindex( %ld, \"%s\" )\n",
 		id, e->e_dn, 0 );
 
-	dn2id_add( be, &e->e_nname, e->e_id );
+	m_dn2id_add( be, &e->e_nname, e->e_id );
 
 	op.o_hdr = &ohdr;
 	op.o_bd = be;
 	op.o_tmpmemctx = NULL;
 	op.o_tmpmfuncs = &ch_mfuncs;
-	rc = index_entry_add( &op, e );
+	rc = m_index_entry_add( &op, e );
 
 	entry_free( e );
 
 	return rc;
 }
 
-int ldbm_tool_sync( BackendDB *be )
+int mnemosynedbm_tool_sync( BackendDB *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	struct mnemosynedbminfo	*li = (struct mnemosynedbminfo *) be->be_private;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 
 	if ( li->li_nextid != NOID ) {
-		if ( next_id_write( be, li->li_nextid ) ) {
+		if ( m_next_id_write( be, li->li_nextid ) ) {
 			return( -1 );
 		}
 	}

@@ -1,5 +1,5 @@
-/* back-ldbm.h - ldap ldbm back-end header file */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-ldbm/back-ldbm.h,v 1.64.2.5 2007/01/02 21:44:02 kurt Exp $ */
+/* back-mnemosynedbm.h - ldap mnemosynedbm back-end header file */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-mnemosynedbm/back-mnemosynedbm.h,v 1.64.2.5 2007/01/02 21:44:02 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2007 The OpenLDAP Foundation.
@@ -14,17 +14,18 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
-#ifndef _BACK_LDBM_H_
-#define _BACK_LDBM_H_
+#ifndef _BACK_MNEMOSYNEDBM_H_
+#define _BACK_MNEMOSYNEDBM_H_
 
-#include "ldbm.h"
+#include "mnemosynedbm.h"
 #include "alock.h"
+#include "hash.h"
 
 LDAP_BEGIN_DECL
 
-#define LDBM_SUBENTRIES 1
+#define MNEMOSYNEDBM_SUBENTRIES 1
 
-#define DEFAULT_CACHE_SIZE	100000
+#define DEFAULT_CACHE_SIZE	1000
 
 #if defined(HAVE_BERKELEY_DB) && DB_VERSION_MAJOR >= 2
 #	define DEFAULT_DBCACHE_SIZE (100 * DEFAULT_DB_PAGE_SIZE)
@@ -104,7 +105,7 @@ typedef ID ID_BLOCK;
 #endif	/* USE_INDIRECT_NIDS */
 
 /* for the in-core cache of entries */
-typedef struct ldbm_cache {
+typedef struct mnemosynedbm_cache {
 	int		c_maxsize;
 	int		c_cursize;
 	Avlnode		*c_dntree;
@@ -118,7 +119,7 @@ typedef struct ldbm_cache {
 #define CACHE_WRITE_LOCK	1
 
 /* for the cache of open index files */
-typedef struct ldbm_dbcache {
+typedef struct mnemosynedbm_dbcache {
 	int		dbc_refcnt;
 	int		dbc_maxids;
 	int		dbc_maxindirect;
@@ -127,19 +128,19 @@ typedef struct ldbm_dbcache {
 	time_t	dbc_lastref;
 	long	dbc_blksize;
 	char	*dbc_name;
-	LDBM	dbc_db;
+	MNEMOSYNEDBM	dbc_db;
 	ldap_pvt_thread_mutex_t	dbc_write_mutex;
 } DBCache;
 
 #define MAXDBCACHE	128
 
-struct ldbminfo {
+struct mnemosynedbminfo {
 	ldap_pvt_thread_rdwr_t		li_giant_rwlock;
 	ID			li_nextid;
 	int			li_mode;
 	slap_mask_t	li_defaultmask;
 	char			*li_directory;
-	Cache		*li_cache;
+	Cache		li_cache;
 	Avlnode			*li_attrs;
 	int			li_dblocking;	/* lock databases */
 	int			li_dbwritesync;	/* write sync */
@@ -158,6 +159,6 @@ struct ldbminfo {
 
 LDAP_END_DECL
 
-#include "proto-back-ldbm.h"
+#include "proto-back-mnemosynedbm.h"
 
-#endif /* _back_ldbm_h_ */
+#endif /* _back_mnemosynedbm_h_ */

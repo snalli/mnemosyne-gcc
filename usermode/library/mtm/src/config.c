@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "config.h"
 
 mtm_config_t mtm_runtime_settings;

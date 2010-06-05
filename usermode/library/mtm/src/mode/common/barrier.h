@@ -29,6 +29,23 @@ typedef union convert_u {
   uint8_t b[sizeof(mtm_word_t)];
 } convert_t;
 
+#define DEFINE_IDENTITY_LOAD_BYTES(NAME)                                       \
+void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
+                             volatile uint8_t *addr,                           \
+                             uint8_t *buf,                                     \
+                             size_t size)                                      \
+{                                                                              \
+  convert_t    val;                                                            \
+  unsigned int i;                                                              \
+  mtm_word_t   *a;                                                             \
+                                                                               \
+  if (size == 0) {                                                             \
+    return;                                                                    \
+  }                                                                            \
+  for (i=0; i < size; i++) {                                                   \
+    buf[i] = addr[i];                                                          \
+  }                                                                            \	
+}
 
 #define DEFINE_LOAD_BYTES(NAME)                                                \
 void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
@@ -68,6 +85,25 @@ void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
       *buf++ = val.b[i];                                                       \
     }                                                                          \
   }                                                                            \
+}
+
+#define DEFINE_IDENTITY_STORE_BYTES(NAME)                                      \
+void mtm_##NAME##_store_bytes(mtm_tx_t *tx,                                    \
+                              volatile uint8_t *addr,                          \
+                              uint8_t *buf,                                    \
+                              size_t size)                                     \
+{                                                                              \
+  convert_t    val;                                                            \
+  convert_t    mask;                                                           \
+  unsigned int i;                                                              \
+  mtm_word_t   *a;                                                             \
+                                                                               \
+  if (size == 0) {                                                             \
+    return;                                                                    \
+  }                                                                            \
+  for (i=0; i < size; i++) {                                                   \
+    addr[i] = buf[i];                                                          \
+  }                                                                            \	
 }
 
 

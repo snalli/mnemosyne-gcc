@@ -17,8 +17,11 @@ buildEnv.Append(CPPPATH = 'src/sysdeps/posix')
 buildEnv.Append(CPPPATH = 'src/sysdeps/generic')
 buildEnv.Append(CPPPATH = 'src')
 buildEnv.Append(CPPPATH = 'src/common')
-buildEnv.Append(LINKFLAGS = ['-g', '-fPIC'])
-buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
+#buildEnv.Append(LINKFLAGS = ['-g', '-fPIC'])
+buildEnv.Append(LINKFLAGS = '-fpic')
+buildEnv.Append(CCFLAGS = ' -m64 ')
+#buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
+buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fpic')
 
 if buildEnv['BUILD_DEBUG'] == True:
 	buildEnv.Append(CCFLAGS = ' -g -D_MTM_BUILD_DEBUG')

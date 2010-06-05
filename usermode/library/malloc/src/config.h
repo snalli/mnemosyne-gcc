@@ -62,7 +62,7 @@ enum { SUPERBLOCK_FULLNESS_GROUP = 9 };
 
 // A superblock that holds more than one object must hold at least
 // this many bytes.
-enum { SUPERBLOCK_SIZE = 8192 };
+enum { SUPERBLOCK_SIZE = 16384 };
 
 
 // DO NOT CHANGE THESE.  They require running of maketable to replace

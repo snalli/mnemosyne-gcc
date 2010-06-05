@@ -114,6 +114,7 @@ init_global()
 
 	/* Register persistent logical log type with the log manager */
 	m_logmgr_register_logtype(pcm_storeset, M_TMLOG_LF_TYPE, &M_TMLOG_OPS);
+	/* Ask log manager to perform recovery on the new log type */
 	m_logmgr_do_recovery(pcm_storeset);
 
 #ifdef _M_STATS_BUILD	

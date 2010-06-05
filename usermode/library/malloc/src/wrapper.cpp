@@ -47,6 +47,8 @@
 
 #include "dlmalloc.h"
 
+#include <itm.h>
+
 //
 // Access exactly one instance of the global persistent heap
 // (which contains objects allocated in previous incarnations).
@@ -100,15 +102,19 @@ __attribute__((tm_wrapping(HOARD_MALLOC))) void *HOARD_MALLOC_TXN(size_t);
 __attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
 __attribute__((tm_wrapping(HOARD_REALLOC))) void *HOARD_REALLOC_TXN(void *, size_t);
 
+
+
 static void * malloc_internal (size_t sz)
 {
 	void                  *addr;
 	static persistentHeap *persistentheap = getPersistentAllocator();
 	static processHeap    *pHeap = getAllocator(persistentheap);
+
 	if (sz == 0) {
 		sz = 1;
 	}
 	//printf("pmalloc[START]: size = %d\n",  (int) sz);
+
 	if (sz >= SUPERBLOCK_SIZE) {
 		/* Fall back to the standard persistent allocator. 
 		 * Begin a new atomic block to force the compiler to fall through down the TM 

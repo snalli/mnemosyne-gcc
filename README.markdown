@@ -22,6 +22,11 @@ The following _must_ be installed to successfully compile the libraries. Compila
 - [`libconfig`](www.hyperrealm.com/libconfig/) (yum install libconfig libconfig-devel)
 - [UnitTest++](unittest-cpp.sourceforge.net) (`libunittest++-dev` in most RPM systems)
 
+Using Mnemosyne
+---------------
+It is important to compile with framepointers on using: -fno-omit-frame-pointer
+
+
 Testing
 -------
 Unit tests are intended to run as part of the compilation process (thus making it hard to check in broken code). 

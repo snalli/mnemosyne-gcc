@@ -22,6 +22,7 @@ class superblock; // forward declaration
 #endif
 
 //FIXME: PCM_NT_STORE must be replaced with transactional barrier 
+//TODO: Need to call transactional barriers directly
 
 /* Basic access macros for bitmaps.  */
 # define __BITMAPELT(bit)	((bit) / BITMAP_ARRAY_ENTRY_SIZE_BITS)
@@ -35,6 +36,12 @@ class superblock; // forward declaration
 # define __BITMAP_ISSET(bit, bitmap) \
   ((bitmap[__BITMAPELT (bit)] & __BITMAPMASK (bit)) != 0)
 
+
+
+# define __BITMAP_CLR2(bit, bitmap)                                              \
+  bitmap[__BITMAPELT (bit)] = bitmap[__BITMAPELT (bit)] & ~__BITMAPMASK (bit);
+# define __BITMAP_SET2(bit, bitmap)                                              \
+  bitmap[__BITMAPELT (bit)] = bitmap[__BITMAPELT (bit)] | __BITMAPMASK (bit);
 
 class persistentSuperblock {
 
@@ -88,10 +95,11 @@ public:
 		int            bitsPerBlock = _blksize / PERSISTENTBLOCK_MIN_SIZE;
 		int            firstBit = index * bitsPerBlock;
 		int            i;
-		pcm_storeset_t *set = pcm_storeset_get();
+		//pcm_storeset_t *set = pcm_storeset_get();
 
 		for (i=firstBit; i<firstBit+bitsPerBlock; i++) {
-			__BITMAP_SET(set, i, _bitmap);
+			//__BITMAP_SET(set, i, _bitmap);
+			__BITMAP_SET2(i, _bitmap);
 		}
 	}
 
@@ -102,7 +110,8 @@ public:
 		pcm_storeset_t *set = pcm_storeset_get();
 
 		for (i=firstBit; i<firstBit+bitsPerBlock; i++) {
-			__BITMAP_CLR(set, i, _bitmap);
+			//__BITMAP_CLR(set, i, _bitmap);
+			__BITMAP_CLR2(i, _bitmap);
 		}
 	}
 

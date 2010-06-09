@@ -1,10 +1,10 @@
 #include <malloc.h>
 #include <mnemosyne.h>
-#include "../unittest.h"
+#include "../common/unittest.h"
 
 MNEMOSYNE_PERSISTENT void *dummy_ptr1;
 
-SUITE(Suite1)
+SUITE(SuiteSimple)
 {
 	TEST(Test1)
 	{

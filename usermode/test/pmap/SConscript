@@ -13,5 +13,4 @@ myTestEnv = testEnv.Clone()
 test = myTestEnv.Program('test', source = [Glob('*.test.cxx'), Glob('*.fixture.cxx'), Glob('*.helper.cxx'), 'main.cxx'], LIBS=['UnitTest++', mcoreLibrary, mtmLibrary, mallocLibrary])
 runtests = myTestEnv.Command("test.passed", ['test', mcoreLibrary, mallocLibrary, mtmLibrary], runUnitTests)
 
-myTestEnv.addUnitTestSeries(test[0].path, 'SuiteSimple', 'Test1', 'Test2')
-myTestEnv.addUnitTestSeries(test[0].path, 'SuiteLarge', 'Test1', 'Test2')
+myTestEnv.addUnitTestSeries(test[0].path, 'SuiteWriteRead', 'Test1', 'Test2')

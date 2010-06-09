@@ -1,5 +1,7 @@
+#include <iostream>
 #include <fstream>
 #include <getopt.h>
+#include <string.h>
 #include <unittest++/UnitTest++.h>
 #include <unittest++/TestReporterStdout.h>
 #include <unittest++/TestRunner.h>

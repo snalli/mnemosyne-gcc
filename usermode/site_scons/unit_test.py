@@ -1,4 +1,4 @@
-import os, subprocess, string
+import os, subprocess, string, re
 from xml.etree.ElementTree import ElementTree
 import xml
 
@@ -14,8 +14,9 @@ def runUnitTests(source, target, env):
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, close_fds=True, env=osenv)
         ret = os.waitpid(utest.pid, 0)
-        if ret[1] == 0:
-            xmlout = string.join(utest.stderr.readlines())
+        lines = utest.stderr.readlines()
+        if re.search("xml", lines[0]):
+            xmlout = string.join(lines)
             tree = xml.etree.ElementTree.XML(xmlout)
             test_list = []
             for child in tree:

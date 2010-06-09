@@ -32,7 +32,8 @@ buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 
 C_SRC = Split("""
-              src/dlmalloc.c
+              src/genalloc.c 
+              src/vistaheap.c
               """)
 
 CXX_SRC = Split("""

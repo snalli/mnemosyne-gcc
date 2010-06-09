@@ -3,6 +3,7 @@ casket.tcb
 
 experiment/mmap
 experiment/mmap-nosync
+experiment/mnemosyne
 
 library/Makefile
 library/config.log
@@ -33,3 +34,34 @@ library/libtokyocabinet.9.6.0.dylib
 library/libtokyocabinet.9.dylib
 library/libtokyocabinet.a
 library/libtokyocabinet.dylib
+
+
+library-reg/Makefile
+library-reg/config.log
+library-reg/config.status
+library-reg/tokyocabinet.pc
+
+library-reg/tcamgr
+library-reg/tcamttest
+library-reg/tcatest
+library-reg/tcawmgr.cgi
+library-reg/tcbmgr
+library-reg/tcbmttest
+library-reg/tcbtest
+library-reg/tcfmgr
+library-reg/tcfmttest
+library-reg/tcftest
+library-reg/tchmgr
+library-reg/tchmttest
+library-reg/tchtest
+library-reg/tctmgr
+library-reg/tctmttest
+library-reg/tcttest
+library-reg/tcucodec
+library-reg/tcumttest
+library-reg/tcutest
+
+library-reg/libtokyocabinet.9.6.0.dylib
+library-reg/libtokyocabinet.9.dylib
+library-reg/libtokyocabinet.a
+library-reg/libtokyocabinet.dylib

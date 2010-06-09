@@ -331,6 +331,7 @@ bool tcbdbclose(TCBDB *bdb){
 
 /* Store a record into a B+ tree database object. */
 bool tcbdbput(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz){
+  bool rv;
   assert(bdb && kbuf && ksiz >= 0 && vbuf && vsiz >= 0);
   __tm_waiver { if(!BDBLOCKMETHOD(bdb, true)) return false; }
   if(!bdb->open || !bdb->wmode){
@@ -338,7 +339,7 @@ bool tcbdbput(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz
     __tm_waiver BDBUNLOCKMETHOD(bdb);
     return false;
   }
-  bool rv = tcbdbputimpl(bdb, kbuf, ksiz, vbuf, vsiz, BDBPDOVER);
+  rv = tcbdbputimpl(bdb, kbuf, ksiz, vbuf, vsiz, BDBPDOVER);
   __tm_waiver { BDBUNLOCKMETHOD(bdb); }
   return rv;
 }

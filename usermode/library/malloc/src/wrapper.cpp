@@ -45,7 +45,9 @@
 #include "persistentheap.h"
 #include "arch-specific.h"
 
-#include "dlmalloc.h"
+//#include "pdlmalloc.h"
+//#include "dlmalloc.h"
+#include "genalloc.h"
 
 #include <itm.h>
 
@@ -91,8 +93,8 @@ extern "C" void * HOARD_MALLOC(size_t);
 extern "C" void * HOARD_MALLOC_TXN(size_t);
 extern "C" void   HOARD_FREE(void *);
 extern "C" void   HOARD_FREE_TXN(void *);
-extern "C" void * HOARD_REALLOC(void *, size_t);
-extern "C" void * HOARD_REALLOC_TXN(void *, size_t);
+//extern "C" void * HOARD_REALLOC(void *, size_t);
+//extern "C" void * HOARD_REALLOC_TXN(void *, size_t);
 extern "C" void * HOARD_CALLOC(size_t, size_t);
 extern "C" void * HOARD_MEMALIGN(size_t, size_t);
 extern "C" void * HOARD_VALLOC(size_t);
@@ -100,8 +102,7 @@ extern "C" size_t HOARD_GET_USABLE_SIZE(void *);
 
 __attribute__((tm_wrapping(HOARD_MALLOC))) void *HOARD_MALLOC_TXN(size_t);
 __attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
-__attribute__((tm_wrapping(HOARD_REALLOC))) void *HOARD_REALLOC_TXN(void *, size_t);
-
+//__attribute__((tm_wrapping(HOARD_REALLOC))) void *HOARD_REALLOC_TXN(void *, size_t);
 
 
 static void * malloc_internal (size_t sz)
@@ -115,7 +116,7 @@ static void * malloc_internal (size_t sz)
 	}
 	//printf("pmalloc[START]: size = %d\n",  (int) sz);
 
-	if (sz >= SUPERBLOCK_SIZE) {
+	if (sz >= SUPERBLOCK_SIZE/2) {
 		/* Fall back to the standard persistent allocator. 
 		 * Begin a new atomic block to force the compiler to fall through down the TM 
 		 * instrumented path. Actually we are already in the transactional path so
@@ -123,7 +124,7 @@ static void * malloc_internal (size_t sz)
 		 */
 		__tm_atomic 
 		{
-			addr = PDL_MALLOC(sz);
+			addr = GENERIC_PMALLOC(sz);
 		}
 	} else {
 		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
@@ -176,7 +177,7 @@ static void free_internal (void * ptr)
 	} else {
 		__tm_atomic 
 		{
-			PDL_FREE (ptr);
+			GENERIC_PFREE (ptr);
 		}
 	}
 }
@@ -215,9 +216,11 @@ extern "C" void * HOARD_VALLOC (size_t size)
 	return HOARD_MEMALIGN (hoardGetPageSize(), size);
 }
 
-
+#if 0
 static void * realloc_internal (void * ptr, size_t sz)
 {
+	_ITM_transaction *tx;
+
 	if (ptr == NULL) {
 		return malloc_internal (sz);
 	}
@@ -243,7 +246,8 @@ static void * realloc_internal (void * ptr, size_t sz)
 	// FIXME: how to guarantee atomicity of the memcpy below in the presence of failures?
 	// The best approach is to use shadow-update.
 	size_t minSize = (objSize < sz) ? objSize : sz;
-	memcpy (buf, ptr, minSize);
+	tx = _ITM_getTransaction();
+	_ITM_memcpyRtWt (tx, buf, ptr, minSize);
 
 	// Free the old block.
 	free_internal (ptr);
@@ -252,20 +256,28 @@ static void * realloc_internal (void * ptr, size_t sz)
 	return buf;
 }
 
+#endif
 
-extern "C" void * HOARD_REALLOC (void * ptr, size_t sz)
+__attribute__((tm_callable)) static void * prealloc_internal (void * ptr, size_t sz)
 {
-	return realloc_internal(ptr, sz);
+	printf("prealloc_internal(%p, %d)\n", ptr, sz);
+	//return GENERIC_PREALLOC(ptr, sz);
+}
+
+	
+extern "C" __attribute__((tm_callable))  void * prealloc (void * ptr, size_t sz)
+{
+	return prealloc_internal(ptr, sz);
 	//std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
 	//abort();
 }
 
-
+#if 0
 extern "C" void * HOARD_REALLOC_TXN (void * ptr, size_t sz)
 {
 	return realloc_internal(ptr, sz);
 }
-
+#endif
 
 extern "C" size_t HOARD_GET_USABLE_SIZE (void * ptr)
 {
@@ -279,3 +291,25 @@ extern "C" void malloc_stats (void)
   TheWrapper.TheAllocator()->stats();
 }
 #endif
+
+
+/* Transactional Wrappers for volatile memory allocator -- This should be part of MTM? */
+
+// TODO: Memory allocator should be implemented using commit/undo actions 
+// as described by Intel. Implementation should go into alloc_c.c
+// For transactions though that don't abort the following is enough.
+
+__attribute__((tm_wrapping(malloc))) void *malloc_txn(size_t sz) 
+{
+	return malloc(sz);
+}
+
+__attribute__((tm_wrapping(realloc))) void *realloc_txn(void *ptr, size_t sz) 
+{
+	return realloc(ptr, sz);
+}
+
+__attribute__((tm_wrapping(free))) void free_txn(void *ptr) 
+{
+	free(ptr);
+}

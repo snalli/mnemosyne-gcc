@@ -1,5 +1,13 @@
-#ifndef _DLMALLOC_H
-#define _DLMALLOC_H
+/*
+ * OBSOLETE: We no longer use the Doug Lea's based persistent allocator for 
+ * allocating chunks of memory larger than half of a superblock
+ * as we noticed some problems we couldn't fixed. 
+ * We instead use an allocator based on Rio Vista's heap.
+ *
+ */
+
+#ifndef _PDLMALLOC_H
+#define _PDLMALLOC_H
 
 #include <stdlib.h>
 

@@ -44,7 +44,7 @@ void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
   }                                                                            \
   for (i=0; i < size; i++) {                                                   \
     buf[i] = addr[i];                                                          \
-  }                                                                            \	
+  }                                                                            \
 }
 
 #define DEFINE_LOAD_BYTES(NAME)                                                \
@@ -103,7 +103,7 @@ void mtm_##NAME##_store_bytes(mtm_tx_t *tx,                                    \
   }                                                                            \
   for (i=0; i < size; i++) {                                                   \
     addr[i] = buf[i];                                                          \
-  }                                                                            \	
+  }                                                                            \
 }
 
 

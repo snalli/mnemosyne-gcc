@@ -16,6 +16,8 @@
 
 MNEMOSYNE_PERSISTENT TCBDB* bdb;
 
+//#define __tm_atomic 
+
 typedef struct {
   char itsData[128];
 } BigObject;
@@ -42,18 +44,21 @@ int main(int argc, char **argv)
 	
 	fprintf(stderr, "Filling out a tree of 7,000.\n");
 	/* store records */
-	for(i = 0; i < 7000; ++i)
+	for(i = 0; i < 37000; ++i)
 	{
-    BigObject o;
-    __tm_atomic tcbdbput(bdb, &i, sizeof(size_t), &o, sizeof(BigObject));
+    	BigObject o;
+	    __tm_atomic 
+		{
+			tcbdbput(bdb, &i, sizeof(size_t), &o, sizeof(BigObject));
+		}	
 	}
-	
+
   fprintf(stderr, "Running 1,000,000 updates on the tree.\n");
   struct timeval begin;
   gettimeofday(&begin, NULL);
   size_t x;
   for (x = 0; x < 1000000; ++x) {
-    size_t key = x % 7000;
+    size_t key = x % 37000;
     BigObject o;
       __tm_atomic tcbdbput(bdb, &key, sizeof(size_t), &o, sizeof(BigObject)); 
       __tm_atomic tcbdbout(bdb, &key, sizeof(size_t));

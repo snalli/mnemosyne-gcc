@@ -1,3 +1,13 @@
+/*
+ * OBSOLETE: We no longer use the Doug Lea's based persistent allocator for 
+ * allocating chunks of memory larger than half of a superblock
+ * as we noticed some problems we couldn't fixed. 
+ * We instead use an allocator based on Rio Vista's heap.
+ *
+ */
+
+
+
 /* 
   A version of malloc/free/realloc written by Doug Lea and released to the 
   public domain. 
@@ -291,7 +301,7 @@
 #endif
 #include <stdio.h>    /* needed for malloc_stats */
 
-#include "dlmalloc.h"
+#include "pdlmalloc.h"
 
 #define DLMALLOC_PHEAP_BASE 0xc00000000
 #define DLMALLOC_PHEAP_SIZE (512*1024*1024)

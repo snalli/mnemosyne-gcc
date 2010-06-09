@@ -244,7 +244,6 @@ pwb_write_internal(mtm_tx_t *tx,
 		assert(0);
 	}
 
-
 	/* Check whether access is to volatile or non-volatile memory */
 	if (((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
 	     (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))

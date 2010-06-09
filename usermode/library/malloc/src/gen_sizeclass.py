@@ -13,6 +13,10 @@ for i in range(len(sizeTable)):
     else:        
         threshold.append(t) 
 
+for i in range(len(sizeTable)):
+    print sizeTable[i], threshold[i]
+print
+
 # now print out the tables
 sys.stdout.write("size_t hoardHeap::_sizeTable[hoardHeap::SIZE_CLASSES]\n")
 sys.stdout.write("= {")

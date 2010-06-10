@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include "mtm_i.h"
+#include "config.h"
 #include "locks.h"
 #include "mode/wbetl/wbetl.h"
 #include "mode/pwb/tmlog.h"
@@ -120,7 +121,7 @@ init_global()
 #ifdef _M_STATS_BUILD	
 	/* Create a statistics manager if need to dynamically profile */
 	if (1) {
-		m_statsmgr_create(&mtm_statsmgr, "/tmp/mtm_stats");
+		m_statsmgr_create(&mtm_statsmgr, mtm_runtime_settings.stats_file);
 	}	
 #endif	
 

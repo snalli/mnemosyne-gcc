@@ -121,5 +121,5 @@ class Environment(SCons.Environment.Environment):
 		('M_PCM_CPUFREQ',            'CPU frequency in GHz used by the PCM emulation layer to calculate latencies', 
 			2500), 
 		('M_PCM_LATENCY_WRITE',      'Latency of a PCM write in nanoseconds. This latency is in addition to the DRAM latency.', 
-			2000), 
+			150), 
 	]

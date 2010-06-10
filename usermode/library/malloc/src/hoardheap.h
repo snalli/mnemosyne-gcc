@@ -392,7 +392,6 @@ superblock * hoardHeap::reuse (int sizeclass)
   persistentSuperblock *psb;
 
   if (_reusableSuperblocks == NULL) {
-	  std::cout << "_reusableSuperblocks == NULL" << std::endl;
     return NULL;
   }
 

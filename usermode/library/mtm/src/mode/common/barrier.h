@@ -29,6 +29,22 @@ typedef union convert_u {
   uint8_t b[sizeof(mtm_word_t)];
 } convert_t;
 
+#if 0
+# define DEFINE_LOAD_BYTES(NAME)                                               \
+   DEFINE_IDENTITY_LOAD_BYTES(NAME)
+
+# define DEFINE_STORE_BYTES(NAME)                                              \
+   DEFINE_IDENTITY_STORE_BYTES(NAME)
+#else
+# define DEFINE_LOAD_BYTES(NAME)                                               \
+   DEFINE_TM_LOAD_BYTES(NAME)
+
+# define DEFINE_STORE_BYTES(NAME)                                              \
+   DEFINE_TM_STORE_BYTES(NAME)
+
+#endif
+
+
 #define DEFINE_IDENTITY_LOAD_BYTES(NAME)                                       \
 void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
                              volatile uint8_t *addr,                           \
@@ -47,7 +63,7 @@ void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
   }                                                                            \
 }
 
-#define DEFINE_LOAD_BYTES(NAME)                                                \
+#define DEFINE_TM_LOAD_BYTES(NAME)                                             \
 void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
                              volatile uint8_t *addr,                           \
                              uint8_t *buf,                                     \
@@ -87,6 +103,7 @@ void mtm_##NAME##_load_bytes(mtm_tx_t *tx,                                     \
   }                                                                            \
 }
 
+
 #define DEFINE_IDENTITY_STORE_BYTES(NAME)                                      \
 void mtm_##NAME##_store_bytes(mtm_tx_t *tx,                                    \
                               volatile uint8_t *addr,                          \
@@ -107,7 +124,7 @@ void mtm_##NAME##_store_bytes(mtm_tx_t *tx,                                    \
 }
 
 
-#define DEFINE_STORE_BYTES(NAME)                                               \
+#define DEFINE_TM_STORE_BYTES(NAME)                                            \
 void mtm_##NAME##_store_bytes(mtm_tx_t *tx,                                    \
                               volatile uint8_t *addr,                          \
                               uint8_t *buf,                                    \

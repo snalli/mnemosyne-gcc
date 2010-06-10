@@ -216,7 +216,7 @@ CM = 'CM_SUICIDE'
 #   grow dynamically when they become full.
 ########################################################################
 
-RW_SET_SIZE = 16384
+RW_SET_SIZE = 32768
 
 ########################################################################
 # LOCK_ARRAY_LOG_SIZE (default=20): number of bits used for indexes in

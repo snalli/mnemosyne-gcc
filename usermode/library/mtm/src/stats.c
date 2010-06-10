@@ -56,7 +56,6 @@ m_statsmgr_create(m_statsmgr_t **statsmgrp, char *output_file)
 	if (*statsmgrp == NULL) {
 		return M_R_NOMEMORY;
 	}
-
 	(*statsmgrp)->output_file = output_file;
 	(*statsmgrp)->alloc_threadstat_num = 0;
 	(*statsmgrp)->alloc_threadstat_list_head = (*statsmgrp)->alloc_threadstat_list_tail = NULL;
@@ -182,7 +181,6 @@ stats_get_statset(m_chhash_t *stats_table,
 	m_chhash_key_t    key;
 	m_chhash_value_t  value;
 	m_stats_statset_t *statset;
-
 	key = (m_chhash_key_t) name;
 	if (m_chhash_lookup(stats_table, key, &value) == M_R_SUCCESS)
 	{
@@ -395,6 +393,7 @@ m_stats_print(m_statsmgr_t *statsmgr)
 	FILE                 *fout;
 
 	if (statsmgr->output_file) {
+		printf("OUTPUT STATS >> %s\n", statsmgr->output_file);
 		fout = fopen(statsmgr->output_file, "w");
 	} else {	
 		fout = stderr;

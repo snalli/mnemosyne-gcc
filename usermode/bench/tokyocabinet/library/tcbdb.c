@@ -2523,7 +2523,6 @@ static bool tcbdbcloseimpl(TCBDB *bdb){
    If successful, the return value is true, else, it is false. */
 static bool tcbdbputimpl(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz,
                          int dmode){
-  __tm_waiver fprintf(stderr, "Putting... ");
   assert(bdb && kbuf && ksiz >= 0);
   BDBLEAF *leaf = NULL;
   uint64_t hlid = bdb->hleaf;
@@ -2537,7 +2536,6 @@ static bool tcbdbputimpl(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbu
     if(!bdb->tran) tcbdbcacheadjust(bdb);
     return false;
   }
-  __tm_waiver fprintf(stderr, "halfway... ");
   int rnum = TCPTRLISTNUM(leaf->recs);
   if(rnum > bdb->lmemb || (rnum > 1 && leaf->size > bdb->lsmax)){
     if(hlid > 0 && hlid != tcbdbsearchleaf(bdb, kbuf, ksiz)) return false;

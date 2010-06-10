@@ -12,8 +12,9 @@ void _ITM_CALL_CONVENTION mtm_##PREFIX##_memcpy##VARIANT(mtm_tx_t *tx,         \
                                                    size_t size)                \
 {                                                                              \
   volatile uint8_t *saddr=((volatile uint8_t *) src);                          \
-  volatile uint8_t *daddr=dst;                                                 \
+  volatile uint8_t *daddr=((volatile uint8_t *) dst);                          \
   uint8_t buf[BUFSIZE];                                                        \
+                                                                               \
   if (size == 0) {                                                             \
     return;                                                                    \
   }	                                                                           \
@@ -30,9 +31,6 @@ void _ITM_CALL_CONVENTION mtm_##PREFIX##_memcpy##VARIANT(mtm_tx_t *tx,         \
   }                                                                            \
 }
 
-/* FIXME: a more efficient memmove should check for overlapping and avoid 
- * copying the overlapped region 
- */
 
 #define MEMMOVE_DEFINITION(PREFIX, VARIANT, READ, WRITE)                       \
 void _ITM_CALL_CONVENTION mtm_##PREFIX##_memmove##VARIANT(mtm_tx_t *tx,        \
@@ -40,23 +38,42 @@ void _ITM_CALL_CONVENTION mtm_##PREFIX##_memmove##VARIANT(mtm_tx_t *tx,        \
                                                     const void *src,           \
                                                     size_t size)               \
 {                                                                              \
-  volatile uint8_t *saddr=((volatile uint8_t *) src) +size;                    \
-  volatile uint8_t *daddr=dst+size;                                            \
+  volatile uint8_t *saddr=((volatile uint8_t *) src);                          \
+  volatile uint8_t *daddr=((volatile uint8_t *) dst);                          \
   uint8_t buf[BUFSIZE];                                                        \
+                                                                               \
   if (size == 0) {                                                             \
     return;                                                                    \
   }	                                                                           \
-  /* Backward non-destructive copying */                                       \
-  while (size>BUFSIZE) {                                                       \
-    mtm_##PREFIX##_load_bytes(tx, saddr-BUFSIZE, buf, BUFSIZE);                \
-    mtm_##PREFIX##_store_bytes(tx, daddr-BUFSIZE, buf, BUFSIZE);               \
-    saddr -= BUFSIZE;                                                          \
-    daddr -= BUFSIZE;                                                          \
-    size -= BUFSIZE;                                                           \
-  }	                                                                           \
-  if (size > 0) {                                                              \
-    mtm_##PREFIX##_load_bytes(tx, saddr-size, buf, size);                      \
-    mtm_##PREFIX##_store_bytes(tx, daddr-size, buf, size);                     \
+  if (saddr < daddr && daddr < saddr + size) {                                 \
+    /* Destructive overlap...have to copy backwards */                         \
+    saddr=((volatile uint8_t *) src) +size;                                    \
+    daddr=((volatile uint8_t *) dst) +size;                                    \
+    while (size>BUFSIZE) {                                                     \
+      mtm_##PREFIX##_load_bytes(tx, saddr-BUFSIZE, buf, BUFSIZE);              \
+      mtm_##PREFIX##_store_bytes(tx, daddr-BUFSIZE, buf, BUFSIZE);             \
+      saddr -= BUFSIZE;                                                        \
+      daddr -= BUFSIZE;                                                        \
+      size -= BUFSIZE;                                                         \
+    }	                                                                       \
+    if (size > 0) {                                                            \
+      mtm_##PREFIX##_load_bytes(tx, saddr-size, buf, size);                    \
+      mtm_##PREFIX##_store_bytes(tx, daddr-size, buf, size);                   \
+    }                                                                          \
+  } else {                                                                     \
+    saddr=((volatile uint8_t *) src);                                          \
+    daddr=((volatile uint8_t *) dst);                                          \
+    while (size>BUFSIZE) {                                                     \
+      mtm_##PREFIX##_load_bytes(tx, saddr, buf, BUFSIZE);                      \
+      mtm_##PREFIX##_store_bytes(tx, daddr, buf, BUFSIZE);                     \
+      saddr += BUFSIZE;                                                        \
+      daddr += BUFSIZE;                                                        \
+      size -= BUFSIZE;                                                         \
+    }	                                                                       \
+    if (size > 0) {                                                            \
+      mtm_##PREFIX##_load_bytes(tx, saddr, buf, size);                         \
+      mtm_##PREFIX##_store_bytes(tx, daddr, buf, size);                        \
+    }                                                                          \
   }                                                                            \
 }
 

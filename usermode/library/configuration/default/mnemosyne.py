@@ -22,4 +22,4 @@ M_PCM_CPUFREQ = 2500
 #   latency is in addition to the DRAM latency.
 ########################################################################
 
-M_PCM_LATENCY_WRITE = 2000
+M_PCM_LATENCY_WRITE = 150

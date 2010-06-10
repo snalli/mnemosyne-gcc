@@ -478,7 +478,7 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
-	
+
 	/* Check whether access is to volatile or non-volatile memory */
 	if (((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
 	     (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))

@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <itm.h>
 #include "vistaheap.h"
 
 /*
@@ -96,14 +97,17 @@ void* vistaheap_init(vistaheap* h, void* base, void *hardlimit, vistaheap* alloc
 {
 	int	i;
 
-	for (i = 0; i < NBUCKETS; i++)
+	for (i = 0; i < NBUCKETS; i++) {
 		h->bucketlists[i] = NULL;
+	}	
 	h->base = base;
 	h->limit = base;
 	h->hardlimit = hardlimit;
 	h->key = NULL;
 	h->nlist = NULL;
 	h->allocator = allocator;
+
+	return (void *) h;
 }
 
 /*
@@ -115,6 +119,7 @@ __attribute__((tm_pure))
 static int log2(int val)
 {
 	int	x, i;
+
 	for (x = 1, i = 0; val > x; x <<= 1, i++);
 	return i;
 }
@@ -142,7 +147,7 @@ static int pow2(int pow)
 __attribute__((tm_callable))
 void* morecore(vistaheap* h, int pages)
 {
-	long	len, offset;
+	long	len;
 	void*	result;
 
 	len = pages * EXTENDSIZE;
@@ -194,22 +199,41 @@ static nugget* nalloc(vistaheap* h)
 		 * Extend allocator by one page, and break it up
 		 * new page into nuggets. 
 		 */
-		nugget	*new, *mem;
+		nugget	*new, *mem, *local_mem;
 		int	i, chunks;
 
 		mem = (nugget*) morecore(h->allocator, 1);
 		if (mem == NULL) {
-			fprintf(stderr, "nalloc: morecore failed.\n");
+			__tm_waiver fprintf(stderr, "nalloc: morecore failed.\n");
 			return NULL;
 		}
-		chunks = EXTENDSIZE / sizeof(nugget);
-		for (i = 0; i < chunks; i++) {
-			new = &mem[i];
-			new->addr = NULL;
-			if (i == chunks - 1)
-				new->next = NULL;
-			else 
-				new->next = &mem[i+1];
+		/* 
+		 * HACK: Here we have a nice or ugly hack depending on the optical angle 
+		 * you view it. The call to 'morecore' above extends the pregion limits
+		 * which is done inside a transaction to ensure the atomicity of the
+		 * operation in case of failure (we are always called from the 
+		 * transactional path). Then the following block creates new nuggets
+		 * in the newly allocated region. Since the update of the region limits 
+		 * is done transactionally, there is no reason to include the following
+		 * inside the transaction. However there is a slight issue when running
+		 * the following code non-transactionally: variable 'mem' was written
+		 * transactionally, so we need to read it using the TM system to ensure
+		 * we read the correct version independently of the version management
+		 * done by the TM system.
+		 */
+		__tm_waiver 
+		{
+			_ITM_transaction *tx = _ITM_getTransaction();
+			_ITM_memcpyRtWn(tx, &local_mem, &mem, sizeof(nugget *));
+			chunks = EXTENDSIZE / sizeof(nugget);
+			for (i = 0; i < chunks; i++) {
+				new = &local_mem[i];
+				new->addr = NULL;
+				if (i == chunks - 1)
+					new->next = NULL;
+				else 
+					new->next = &mem[i+1];
+			}
 		}
 		h->nlist = mem;
 		
@@ -318,7 +342,7 @@ void vistaheap_free(vistaheap* h, void* p, int size)
 
 	n = nalloc(h);
 	if (n == NULL) {
-		fprintf(stderr, "vistaheap_free: nalloc failed.\n");
+		__tm_waiver fprintf(stderr, "vistaheap_free: nalloc failed.\n");
 		return;
 	}
 	bucket = log2(size);

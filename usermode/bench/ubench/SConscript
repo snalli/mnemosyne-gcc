@@ -24,7 +24,7 @@ Export('ubenchEnv')
 ubench_list = Split("""
                 sync
                 tmlog
-		hashtable
+		hashtable-mt
 		rawlog
                 """)
 

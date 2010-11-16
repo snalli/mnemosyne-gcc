@@ -17,6 +17,7 @@
 #include "ut_barrier.h"
 #include <db.h>
 #include "uthash.h"
+#include "keyset.h"
 
 //#define _DEBUG_THIS
 //#define _USE_RWLOCK
@@ -452,6 +453,7 @@ int mtm_init(void)
 	}
 	experiment_global_state = (void *) mtm_global;
 
+
 	/* populate the hash table */
 	for(i=0;i<num_keys;i++) {
 		{
@@ -490,6 +492,8 @@ typedef struct fixture_state_mtm_mix_s fixture_state_mtm_mix_t;
 struct fixture_state_mtm_mix_s {
 	unsigned int  seed;
 	char          buf[16384];
+	keyset_t      put_keyset;
+	keyset_t      del_keyset;
 };
 
 
@@ -503,6 +507,8 @@ void fixture_mtm_mix(void *arg)
 
 	fixture_state = (fixture_state_mtm_mix_t*) malloc(sizeof(fixture_state_mtm_mix_t));
 
+	init_keyset(&(fixture_state->put_keyset), num_keys, num_keys, 1);
+	init_keyset(&(fixture_state->del_keyset), num_keys, 0, 1);
 	args->fixture_state = (void *) fixture_state;
 }
 
@@ -649,7 +655,8 @@ void mtm_mix(void *arg)
 	int                       i;
 	int                       id;
 	int                       op;
-
+	keyset_t                  *put_keyset=&(fixture_state->put_keyset);
+	keyset_t                  *del_keyset=&(fixture_state->del_keyset);
 
 	/* 
 	 * Before start wondering why the code is duplicated  below, here is 

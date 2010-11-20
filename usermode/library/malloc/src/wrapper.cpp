@@ -115,7 +115,6 @@ static void * malloc_internal (size_t sz)
 		sz = 1;
 	}
 	//printf("pmalloc[START]: size = %d\n",  (int) sz);
-	return malloc(sz);
 
 	if (sz >= SUPERBLOCK_SIZE/2) {
 		/* Fall back to the standard persistent allocator. 
@@ -165,8 +164,6 @@ static void free_internal (void * ptr)
 {
 	static persistentHeap * persistentheap = getPersistentAllocator();
 
-	free(ptr);
-	return;
 	//printf("free: %p [%p - %p)\n",
 	//        ptr,
 	//        ((uintptr_t) persistentheap->getPersistentSegmentBase()),

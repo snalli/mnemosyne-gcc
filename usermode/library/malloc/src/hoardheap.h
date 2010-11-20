@@ -416,8 +416,6 @@ superblock * hoardHeap::reuse (int sizeclass)
     decStats (sb->getBlockSizeClass(),
 	      sb->getNumBlocks() - sb->getNumAvailable(),
 	      sb->getNumBlocks());
-
-
     sb->superblock::~superblock();
     
 	//FIXME: what to do with stats inc/dec? do I need to reflect those to the persistent superblock?
@@ -425,7 +423,20 @@ superblock * hoardHeap::reuse (int sizeclass)
 	assert(psb->isFree() == true); // persistent superblock must be free to change its sizeclass
 	int new_blksize = sizeFromClass(sizeclass);
 	psb->setBlockSize(new_blksize);
-    sb = new ((char *) sb) superblock (numBlocks(sizeclass), sizeclass, this, psb);
+
+	// BEGIN HACK
+	// Look at the hack note  under the persistentSuperblock constuctor to see why we reallocate
+	// memory. Original Hoard didn't do this.
+	char *buf;
+	unsigned long moreMemory;
+
+	moreMemory = hoardHeap::align(sizeof(superblock) + (hoardHeap::align (sizeof(block)) * numBlocks(sizeclass)));
+	// Get some memory from the process heap.
+	buf = (char *) hoardGetMemory (moreMemory);
+    //sb = new ((char *) sb) superblock (numBlocks(sizeclass), sizeclass, this, psb);
+    sb = new ((char *) buf) superblock (numBlocks(sizeclass), sizeclass, this, psb);
+	// END HACK
+
     psb->setSuperblock(sb);
 
     incStats (sizeclass,

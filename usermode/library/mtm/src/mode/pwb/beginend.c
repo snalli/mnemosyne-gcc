@@ -4,7 +4,6 @@
 #include "mode/common/rwset.h"
 #include "cm.h" 
 
-
 static inline 
 bool
 pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
@@ -74,10 +73,11 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		/* In the case when isolation is off, the write set contains entries 
 		 * that point to private pseudo-locks. */
 		w = modedata->w_set.entries;
+		int tempcnt=0;
 		for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {
-			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,v=%d)\n", tx,
+			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,m=%llx,v=%d)\n", tx,
 			                (unsigned long)modedata->start, (unsigned long)modedata->end,
-			                w->addr, (void *)w->value, (int)w->value, (int)w->version);
+			                w->addr, (void *)w->value, (int)w->value, (unsigned long long) w->mask, (int)w->version);
 			/* Write the value in this entry to memory (it will probably land in the cache; that's okay.) */
 			if (w->mask != 0) {
 				PCM_WB_STORE_ALIGNED_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
@@ -86,6 +86,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 				/* Flush the cacheline to persistent memory if this is the last entry in this line. */
 				if (w->next_cache_neighbor == NULL) {
 					PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
+					tempcnt++;
 				}
 # endif
 			/* Only drop lock for last covered address in write set */
@@ -93,6 +94,8 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 				ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
 			}	
 		}
+		//printf("w_set.nb_entries= %d\n", modedata->w_set.nb_entries);
+		//printf("cachelines flusthed= %d\n", tempcnt);
 # ifdef READ_LOCKED_DATA
 		/* Update instance number (becomes even) */
 		ATOMIC_STORE_REL(&tx->id, id + 2);
@@ -420,6 +423,13 @@ mtm_pwb_commitTransaction(mtm_tx_t *tx, _ITM_srcLocation *loc)
 	if (!trycommit_transaction(tx)) {
 		mtm_pwb_restart_transaction(tx, RESTART_VALIDATE_COMMIT);
 	}
+	if (tx->status == TX_COMMITTED) {
+		tx->status = TX_IDLE; //FIXME: Can we set IDLE here ? Don't others depend
+		                      // on seeing our state as TX_COMMITTED. For example, 
+		                      // do we need to quiesce first? TinySTM 1.0.0 has 
+		                      // quiescence support.
+	}							  
+
 	MTM_DEBUG_PRINT("==> mtm_pwb_commitTransaction(%p): DONE\n", tx);
 }
 

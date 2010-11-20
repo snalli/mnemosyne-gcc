@@ -18,13 +18,11 @@
 #include <itm.h>
 #include "ut_barrier.h"
 #include "hashtable.h"
-#include "keyset.h"
+#include "elemset.h"
 #include "mtm_mix.h"
 #include "common.h"
 
-//#define MNEMOSYNE_ATOMIC __transaction [[relaxed]]
 //#define MNEMOSYNE_ATOMIC
-
 
 typedef struct mtm_mix_stat_s {
 	int      num_ins;
@@ -40,8 +38,8 @@ typedef struct mtm_mix_stat_s {
 typedef struct mtm_mix_thread_state_s {
 	unsigned int   seed;
 	char           buf[16384];
-	keyset_t       keyset_ins;        /* the set of the keys inserted in the table */
-	keyset_t       keyset_del;        /* the set of the keys deleted from the table */
+	elemset_t      elemset_ins;        /* the set of the keys inserted in the table */
+	elemset_t      elemset_del;        /* the set of the keys deleted from the table */
 	int            keys_range_len;
 	int            keys_range_min;
 	int            keys_range_max;
@@ -78,22 +76,23 @@ void print_obj( void *obj )
 __attribute__((tm_callable))
 static unsigned int hash_from_key_fn( void *obj )
 {
+	//printf("obj = %p", obj);
+	//printf("\tkey = %u\n", ((object_t *)obj)->key);
 	return ((object_t *)obj)->key;
 }
 
 __attribute__((tm_callable))
 static int keys_equal_fn ( void *obj1, void *obj2 )
 {
-	_ITM_transaction *tx; 
-	tx = _ITM_getTransaction();
-	
+	//printf("equal1:obj1[%p, ... ]\n", ((object_t *)obj1));
+	//printf("equal2:obj2[%p, ... ]\n", ((object_t *)obj2));
+	//printf("equal1:[%u, ... ]\n", ((object_t *)obj1)->key);
+	//printf("equal2:[%u, ... ]\n", ((object_t *)obj2)->key);
 	if (((object_t *) obj1)->key == ((object_t *) obj2)->key) {
 		return 1;
 	}
 	return 0;
 }
-
-
 
 
 int mtm_mix_init(void *args)
@@ -108,14 +107,14 @@ int mtm_mix_init(void *args)
 
 	global_state = (mtm_mix_state_t *) malloc(sizeof(mtm_mix_state_t));
 
-
 	MNEMOSYNE_ATOMIC 
 	{
 		global_state->hashtable = (mtm_hashtable_t *) pmalloc(sizeof(mtm_hashtable_t));
 	}
-	global_state->hashtable->ht = create_hashtable(16*16384, hash_from_key_fn, keys_equal_fn);
+	//printf("hash_from_key_fn=%p\n",hash_from_key_fn);
+	//printf("keys_equal_fn=%p\n",keys_equal_fn);
+	global_state->hashtable->ht = create_hashtable((unsigned int)(2*(float) num_keys), hash_from_key_fn, keys_equal_fn);
 	ubench_desc.global_state = (void *) global_state;
-
 	/* Populate the hash table
 	 * 
 	 * We want to have a steady state experiment where deletes have the
@@ -127,6 +126,7 @@ int mtm_mix_init(void *args)
 	 * the experiment's execution.
 	 */
 
+#if 0
 	keys_range_len = 2*num_keys / num_threads;
 	for (i=0; i<num_threads; i++) {
 		keys_range_min = i*keys_range_len;
@@ -137,10 +137,25 @@ int mtm_mix_init(void *args)
 			}
 			obj->key = j;
 			memcpy(obj->value, global_state->hashtable->tmp_buf, vsize); 
-			hashtable_insert(0, global_state->hashtable->ht, obj, obj);
+			hashtable_insert(i, global_state->hashtable->ht, obj, obj);
 		}
-	}
+		for(j=keys_range_max-(keys_range_len/2); j<=keys_range_max; j++) {
+			if ((obj = (object_t*) pmalloc(sizeof(object_t) + vsize)) == NULL) {
+				INTERNAL_ERROR("Could not allocate memory.\n")
+			}
+			obj->key = j;
+			memcpy(obj->value, global_state->hashtable->tmp_buf, vsize); 
+			hashtable_insert(i, global_state->hashtable->ht, obj, obj);
+		}
+		for(j=keys_range_max-(keys_range_len/2); j<=keys_range_max; j++) {
+			object_t obj_key;
+			obj_key.key = j;
+			obj = hashtable_remove(i, global_state->hashtable->ht, &obj_key);
+			pfree(obj);
+		}
 
+	}
+#endif
 
 	return 0;
 }
@@ -162,22 +177,58 @@ int mtm_mix_thread_init(unsigned int tid)
 	object_t                  *obj;
 	object_t                  *iter;
 	int                       i;
+	int                       j;
 	int                       num_keys_per_thread;
 	mtm_mix_state_t           *global_state = (mtm_mix_state_t *) ubench_desc.global_state;
 	mtm_mix_stat_t            *stat;
+	int                       keys_range_min;
+	int                       keys_range_max;
+	int                       keys_range_len;
+
 
 	thread_state = (mtm_mix_thread_state_t*) malloc(sizeof(mtm_mix_thread_state_t));
 	ubench_desc.thread_state[tid] = thread_state;
 
-	thread_state->keys_range_len = num_keys_per_thread = (2*num_keys) / num_threads;
-	thread_state->keys_range_min = tid*num_keys_per_thread;
-	thread_state->keys_range_max = (tid+1)*num_keys_per_thread-1;
+	keys_range_len = thread_state->keys_range_len = num_keys_per_thread = (num_keys) / num_threads;
+	keys_range_min = thread_state->keys_range_min = tid*num_keys_per_thread;
+	keys_range_max = thread_state->keys_range_max = (tid+1)*num_keys_per_thread-1;
 
-#ifdef USE_KEYSET
-	assert(keyset_init(&thread_state->keyset_ins, num_keys_per_thread, tid)==0);
-	assert(keyset_init(&thread_state->keyset_del, num_keys_per_thread, tid)==0);
-	assert(keyset_fill(&thread_state->keyset_ins, thread_state->keys_range_min, thread_state->keys_range_max - (num_keys_per_thread/2))==0);
-	assert(keyset_fill(&thread_state->keyset_del, thread_state->keys_range_max-(num_keys_per_thread/2)+1, thread_state->keys_range_max)==0);
+#ifdef USE_ELEMSET
+	assert(elemset_init(&thread_state->elemset_ins, num_keys_per_thread, tid)==0);
+	assert(elemset_init(&thread_state->elemset_del, num_keys_per_thread, tid)==0);
+
+	/* Populate the hash table
+	 * 
+	 * We want to have a steady state experiment where deletes have the
+	 * same rate as inserts, and the number of elements in the table is
+	 * always num_keys.
+	 *
+	 * To achieve this, we have a range of keys [0, 2*num_keys-1], and 
+	 * only half of the keys are found in the hash table at anytime during
+	 * the experiment's execution.
+	 */
+
+	for(j=keys_range_min; j<=keys_range_max-(keys_range_len/2); j++) {
+		if ((obj = (object_t*) pmalloc(sizeof(object_t) + vsize)) == NULL) {
+			INTERNAL_ERROR("Could not allocate memory.\n")
+		}
+		obj->key = j;
+		hashtable_insert(tid, global_state->hashtable->ht, obj, obj);
+		elemset_put(&thread_state->elemset_ins, obj);
+		//printf("put_ins: %p\n", obj);
+		//printf("put_ins: key=%d\n", obj->key);
+	}
+
+	for(j=keys_range_max-(keys_range_len/2); j<=keys_range_max; j++) {
+		if ((obj = (object_t*) pmalloc(sizeof(object_t) + vsize)) == NULL) {
+			INTERNAL_ERROR("Could not allocate memory.\n")
+		}
+		obj->key = j;
+		elemset_put(&thread_state->elemset_del, obj);
+		//printf("put_del: %p\n", obj);
+		//printf("put_del: key=%d\n", obj->key);
+	}
+
 #endif	
 	stat = &(thread_state->stat);
 	stat->work_transactions = 0;
@@ -213,6 +264,8 @@ void __mtm_mix_print_stats(FILE *fout, int include_latency)
 	double                  throughput_get;
 	char                    prefix[] = "bench.stat";
 	char                    separator[] = "rj,40";
+	uint64_t                hashtable_footprint;
+	unsigned int            hashtable_num_entries;
 
 	mtm_mix_state_t         *global_state = (mtm_mix_state_t *) ubench_desc.global_state;
 	mtm_mix_stat_t          *thread_stat;
@@ -258,6 +311,12 @@ void __mtm_mix_print_stats(FILE *fout, int include_latency)
 		PRINT_NAMEVAL_U64(prefix, "avg_latency_get", avg_latency_get, "ns", separator);
 	}
 
+	hashtable_num_entries= hashtable_count(global_state->hashtable->ht);
+	hashtable_footprint  = hashtable_metadata_size(global_state->hashtable->ht);
+	PRINT_NAMEVAL_U64(prefix, "hashtable_metadata_size", hashtable_footprint/1024, "KB", separator);
+	hashtable_footprint += hashtable_num_entries * vsize;
+	PRINT_NAMEVAL_U64(prefix, "hashtable_footprint", hashtable_footprint/1024, "KB", separator);
+	PRINT_NAMEVAL_U64(prefix, "hashtable_count", hashtable_num_entries, "entries", separator);
 }
 
 
@@ -275,19 +334,18 @@ void mtm_mix_throughput_print_stats(FILE *fout)
 
 static inline 
 int 
-mtm_op_add(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
+mtm_op_add(unsigned int tid, mtm_hashtable_t *hashtable, object_t *obj, int lock)
 {
-	object_t     *obj;
-	int          i;
+	unsigned int key = obj->key;
 
+/*
+	printf("add: %p\n", obj);
+	printf("add: key=%d\n", obj->key);
+	printf("add: obj->value=%p\n", obj->value);
+	printf("add: vsize=%d\n", vsize);
+*/	
 	MNEMOSYNE_ATOMIC 
 	{
-		if ((obj = (object_t*) pmalloc(sizeof(object_t) + vsize)) == NULL) {
-			__tm_waiver {
-				INTERNAL_ERROR("Could not allocate memory.\n")
-			}	
-		}
-		obj->key = id;
 		//print_obj(obj);
 		//printf("mtm_op_add: key (via print_obj) = "); print_obj(obj);
 		//printf("mtm_op_add: id                  = %u\n", id); 
@@ -298,6 +356,7 @@ mtm_op_add(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
 		hashtable_insert(tid, hashtable->ht, obj, obj);
 		//assert(hashtable_search(hashtable->ht, obj) != NULL);
 	}
+	assert(obj->key == key);
 
 	return 0;
 }
@@ -305,21 +364,17 @@ mtm_op_add(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
 
 static inline 
 int 
-mtm_op_del(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
+mtm_op_del(unsigned int tid, mtm_hashtable_t *hashtable, object_t *obj, int lock)
 {
-	object_t     obj;
-	object_t     *obj_val;
-	object_t     *obj_key = &obj;
-	int          local_id = id;
-	int          i;
+	object_t *obj_val;
 
+/*
+	printf("del: %p\n", obj);
+	printf("del: key=%d\n", obj->key);
+*/	
 	MNEMOSYNE_ATOMIC 
 	{
-		obj_key->key = id;
-		obj_val = hashtable_remove(tid, hashtable->ht, obj_key);
-		if (obj_val) {
-			pfree(obj_val);
-		}
+		obj_val = hashtable_remove(tid, hashtable->ht, obj);
 	}	
 
 	return 0;
@@ -355,8 +410,8 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 	int                       j;
 	int                       op;
 	int                       id;
-	int                       del_id;
-	int                       ins_id;
+	object_t                  *del_obj;
+	object_t                  *ins_obj;
 	int                       found;
 	int                       keys_range_min;
 	int                       keys_range_max;
@@ -386,15 +441,15 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 			id = keys_range_min + rand_r(seedp) % keys_range_len;
 			switch(op) {
 				case OP_HASH_WRITE:
-	#ifdef USE_KEYSET
-					keyset_get_key_random(&thread_state->keyset_ins, &del_id);
-					keyset_get_key_random(&thread_state->keyset_del, &ins_id);
-					keyset_put_key(&thread_state->keyset_ins, ins_id);
-					keyset_put_key(&thread_state->keyset_del, del_id);
+	#ifdef USE_ELEMSET
+					elemset_get_random(&thread_state->elemset_ins, &del_obj);
+					elemset_get_random(&thread_state->elemset_del, &ins_obj);
+					elemset_put(&thread_state->elemset_ins, ins_obj);
+					elemset_put(&thread_state->elemset_del, del_obj);
 					if (measure_latency) {
 						start = gethrtime();
 					}
-					assert(mtm_op_del(tid, global_state->hashtable, del_id, 1) == 0);
+					assert(mtm_op_del(tid, global_state->hashtable, del_obj, 1) == 0);
 					if (measure_latency) {
 						asm_cpuid();
 						stop = gethrtime();
@@ -405,7 +460,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 					if (measure_latency) {
 						start = gethrtime();
 					}
-					assert(mtm_op_add(tid, global_state->hashtable, ins_id, 1) == 0);
+					assert(mtm_op_add(tid, global_state->hashtable, ins_obj, 1) == 0);
 					if (measure_latency) {
 						asm_cpuid();
 						stop = gethrtime();
@@ -449,6 +504,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 	#endif
 					break;
 				case OP_HASH_READ:
+/*				
 					if (measure_latency) {
 						start = gethrtime();
 					}
@@ -461,6 +517,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 					stat->num_get++;
 					work_transactions++;
 					break;
+*/					
 			}
 		}	
 		if (think) {

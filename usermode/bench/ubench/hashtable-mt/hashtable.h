@@ -3,6 +3,8 @@
 #ifndef __HASHTABLE_CWC22_H__
 #define __HASHTABLE_CWC22_H__
 
+#include <stdint.h>
+
 struct hashtable;
 
 /* Example of use:
@@ -60,6 +62,8 @@ struct hashtable;
  * #define insert_some hashtable_insert
  *
  */
+
+uint64_t hashtable_metadata_size(struct hashtable *h);
 
 /*****************************************************************************
  * create_hashtable

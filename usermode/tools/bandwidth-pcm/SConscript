@@ -1,0 +1,15 @@
+Import('toolsEnv')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+
+myEnv = toolsEnv.Clone()
+myEnv.Append(CPPPATH = ['#library/common'])
+myEnv.Append(CPPFLAGS = ' -D_GNU_SOURCE ')
+
+sources = Split("""
+                main.c
+                """)
+
+myEnv.Append(LIBS = [mcoreLibrary])
+myEnv.Append(LIBS = [mtmLibrary])
+myEnv.Program('bandwidth-pcm', sources)

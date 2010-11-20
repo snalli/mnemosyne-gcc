@@ -48,6 +48,7 @@ class persistentSuperblock {
 public:
 	enum { PERSISTENTSUPERBLOCK_SIZE = SUPERBLOCK_SIZE  };
 	enum { PERSISTENTBLOCK_MIN_SIZE = 8  };
+	enum { PERSISTENTBLOCK_MAX_SIZE = 8192  };
 	enum { BITMAP_SIZE = PERSISTENTSUPERBLOCK_SIZE / PERSISTENTBLOCK_MIN_SIZE  };
 	enum { BITMAP_ARRAY_ENTRY_SIZE_BITS = 8 * sizeof(uint64_t)  };
 	enum { BITMAP_ARRAY_ENTRY_MASK = -1  };
@@ -61,7 +62,15 @@ public:
 			PCM_NT_STORE(set, &_bitmap[i], 0);
 		}
 		PCM_NT_STORE(set, (volatile pcm_word_t *) &_pregion, (pcm_word_t) pregion); /* _pregion is a pointer, so it has a size of 64-bit on 64-bit systems */
-		PCM_NT_STORE(set, (volatile pcm_word_t *) &_blksize, (pcm_word_t) PERSISTENTBLOCK_MIN_SIZE);
+		//PCM_NT_STORE(set, (volatile pcm_word_t *) &_blksize, (pcm_word_t) PERSISTENTBLOCK_MIN_SIZE);
+
+		/* FIXME: We have an ugly hack:
+		 * When creating the persistentSuperblocks, we don't want to create them using the smallest
+		 * possible block size because this would allocate lots of memory to support the free lists
+		 * in the superblocks. Instead we assume the largest possible block size and when we reformat
+		 * the superblock we allocate the right amount of memory
+		 */
+		PCM_NT_STORE(set, (volatile pcm_word_t *) &_blksize, (pcm_word_t) PERSISTENTBLOCK_MAX_SIZE);
 		PCM_NT_FLUSH(set);
 	}
 

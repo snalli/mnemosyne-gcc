@@ -3,8 +3,8 @@
 
 #include "aux.h"
 
-#define USE_KEYSET
-//#undef  USE_KEYSET
+#define USE_ELEMSET
+//#undef  USE_ELEMSET
 
 #define USE_PER_THREAD_HASH_TABLE
 #undef  USE_PER_THREAD_HASH_TABLE
@@ -41,8 +41,10 @@ typedef enum {
 	UBENCH_UNKNOWN = -1,
 	UBENCH_MTM_MIX_LATENCY = 0,
 	UBENCH_MTM_MIX_THROUGHPUT = 1,
-	UBENCH_BDB_MIX_LATENCY = 2,
-	UBENCH_BDB_MIX_THROUGHPUT = 3,
+	UBENCH_MTM_MIX_LATENCY_THINK = 2,
+	UBENCH_MTM_MIX_THROUGHPUT_THINK = 3,
+	UBENCH_BDB_MIX_LATENCY = 4,
+	UBENCH_BDB_MIX_THROUGHPUT = 5,
 	num_of_benchs
 } ubench_t;
 
@@ -82,6 +84,11 @@ extern ut_barrier_t          start_timer_barrier;
 extern ut_barrier_t          start_ubench_barrier;
 extern volatile unsigned int short_circuit_terminate;
 extern ubench_desc_t         ubench_desc;
+
+
+#include <sys/types.h>
+#include <unistd.h>
+
 
 
 

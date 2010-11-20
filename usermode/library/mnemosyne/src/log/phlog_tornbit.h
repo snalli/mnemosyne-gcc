@@ -38,6 +38,18 @@
  *
  */
 
+/*
+ * FIXME: Tornbit currently appears to be working correctly and passing our 
+ *        tests. Developing it was quite painful mainly due to some
+ *        optimizations (to avoid branches), which is not clear whether 
+ *        they paid off. Thus, the author fills a simpler, more robust 
+ *        implementation with good performance should be possible. 
+ *        Reconsider a simpler implementation...
+ *        
+ *
+ */
+
+
 #ifndef _PHYSICAL_LOG_TORNBIT_H
 #define _PHYSICAL_LOG_TORNBIT_H
 
@@ -150,23 +162,23 @@ tornbit_write_buffer2log(pcm_storeset_t *set, m_phlog_tornbit_t *log)
 #ifdef _DEBUG_THIS		
 	printf("tornbit_write_buffer2log: log->tail = %llu\n", log->tail);	 
 #endif	
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+0)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[0]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+1)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[1]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+2)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[2]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+3)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[3]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+4)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[4]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+5)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[5]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+6)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[6]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+7)], 
-	                    log->tornbit | (pcm_word_t) log->buffer[7]);
 
+	PCM_SEQSTREAM_STORE_64B_FIRST_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+0)], 
+	                                   log->tornbit | (pcm_word_t) log->buffer[0]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+1)], 
+	                                  log->tornbit | (pcm_word_t) log->buffer[1]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+2)], 
+	                                  log->tornbit | (pcm_word_t) log->buffer[2]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+3)], 
+	                                  log->tornbit | (pcm_word_t) log->buffer[3]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+4)], 
+	                                  log->tornbit | (pcm_word_t) log->buffer[4]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+5)], 
+	                                  log->tornbit | (pcm_word_t) log->buffer[5]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+6)], 
+	                                  log->tornbit | (pcm_word_t) log->buffer[6]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+7)], 
+	                                  log->tornbit | (pcm_word_t) log->buffer[7]);
 
 	log->buffer_count=0;
 	log->tail = (log->tail+8) & (PHYSICAL_LOG_NUM_ENTRIES-1);

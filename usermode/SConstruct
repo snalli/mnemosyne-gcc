@@ -87,6 +87,12 @@ mallocLibrary = SConscript('library/malloc/SConscript', 'CommonObjects', variant
 mcoreLibrary = SConscript('library/mnemosyne/SConscript', 'CommonObjects', variant_dir = 'build/library/mnemosyne')
 mtmLibrary = SConscript('library/mtm/SConscript', variant_dir = 'build/library/mtm')
 
+toolsEnv = mainEnv.Clone()
+toolsEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+Export('toolsEnv')
+Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+SConscript('tools/SConscript', variant_dir = os.path.join('build', 'tools'))
+
 
 if mainEnv['BUILD_EXAMPLE'] != None:
 	examplesEnv = mainEnv.Clone()

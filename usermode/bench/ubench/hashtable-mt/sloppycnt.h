@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #define CACHELINE_SIZE    64
-#define NUM_CPUS          4
+#define NUM_CPUS          16
 #define RELEASE_THRESHOLD 16
 
 #define FOR_ALL_TYPES(ACTION,name)        \

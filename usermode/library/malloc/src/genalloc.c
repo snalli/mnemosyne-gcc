@@ -1,7 +1,7 @@
 #define GENERIC_PREGION_BASE          0xc00000000
 #define GENERIC_PREGION_METADATA_SIZE (1024*1024)
 #define GENERIC_PREGION_HOLE_SIZE     0
-#define GENERIC_PREGION_HEAP_SIZE     (512*1024*1024)
+#define GENERIC_PREGION_HEAP_SIZE     (256*1024*1024)
 
 /*
  * A single persistent region is allocated to store the two vistaheap_s 

@@ -14,20 +14,19 @@ struct mtm_user_action_s
 void
 mtm_useraction_runActions (mtm_user_action_t **list)
 {
-  mtm_user_action_t *a = *list;
+	mtm_user_action_t *a = *list;
 
-  if (a == NULL)
-    return;
-  *list = NULL;
+	if (a == NULL) {
+		return;
+	}	
+	*list = NULL;
 
-  do
-    {
-      mtm_user_action_t *n = a->next;
-      a->fn (a->arg);
-      free (a);
-      a = n;
-    }
-  while (a);
+	do {
+		mtm_user_action_t *n = a->next;
+		a->fn (a->arg);
+		free (a);
+		a = n;
+	} while (a);
 }
 
 

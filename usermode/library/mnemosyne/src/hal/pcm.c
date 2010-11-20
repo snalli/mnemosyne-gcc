@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <mmintrin.h>
 #include <list.h>
+#include <spinlock.h>
 #include "cuckoo_hash/PointerHashInline.h"
 #include "pcm_i.h"
 
@@ -81,6 +82,9 @@ unsigned int pcm_likelihood_store_blockwaits = 1000;
 
 /* Likelihood a cacheline has been evicted. */
 unsigned int pcm_likelihood_evicted_cacheline = 10000;  
+
+volatile arch_spinlock_t ticket_lock = {0};
+
 
 __thread pcm_storeset_t* _thread_pcm_storeset;
 

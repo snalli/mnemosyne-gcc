@@ -98,23 +98,22 @@ base_write_buffer2log(pcm_storeset_t *set, m_phlog_base_t *log)
 	 * Modulo arithmetic is implemented using the most efficient equivalent:
 	 * (log->tail + k) % PHYSICAL_LOG_NUM_ENTRIES == (log->tail + k) & (PHYSICAL_LOG_NUM_ENTRIES-1)
 	 */
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+0)], 
-	                    (pcm_word_t) log->buffer[0]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+1)], 
-	                    (pcm_word_t) log->buffer[1]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+2)], 
-	                    (pcm_word_t) log->buffer[2]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+3)], 
-	                    (pcm_word_t) log->buffer[3]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+4)], 
-	                    (pcm_word_t) log->buffer[4]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+5)], 
-	                    (pcm_word_t) log->buffer[5]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+6)], 
-	                    (pcm_word_t) log->buffer[6]);
-	PCM_SEQSTREAM_STORE(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+7)], 
-	                    (pcm_word_t) log->buffer[7]);
-
+	PCM_SEQSTREAM_STORE_64B_FIRST_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+0)], 
+	                                   (pcm_word_t) log->buffer[0]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+1)], 
+	                                  (pcm_word_t) log->buffer[1]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+2)], 
+	                                  (pcm_word_t) log->buffer[2]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+3)], 
+	                                  (pcm_word_t) log->buffer[3]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+4)], 
+	                                  (pcm_word_t) log->buffer[4]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+5)], 
+	                                  (pcm_word_t) log->buffer[5]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+6)], 
+	                                  (pcm_word_t) log->buffer[6]);
+	PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, (volatile pcm_word_t *) &log->nvphlog[(log->tail+7)], 
+	                                  (pcm_word_t) log->buffer[7]);
 	log->buffer_count=0;
 	log->tail = (log->tail+8) & (PHYSICAL_LOG_NUM_ENTRIES-1);
 }

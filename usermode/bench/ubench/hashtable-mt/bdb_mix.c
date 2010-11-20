@@ -14,7 +14,7 @@
 #include <sched.h>
 #include "ut_barrier.h"
 #include <db.h>
-#include "keyset.h"
+#include "elemset.h"
 #include "bdb_mix.h"
 #include "common.h"
 
@@ -37,8 +37,8 @@ typedef struct bdb_mix_thread_state_s {
 	DB             *dbp;
 	DB_ENV         *envp;
 	char           buf[16384];
-	keyset_t       keyset_ins;        /* the set of the keys inserted in the table */
-	keyset_t       keyset_del;        /* the set of the keys deleted from the table */
+	elemset_t      elemset_ins;        /* the set of the keys inserted in the table */
+	elemset_t      elemset_del;        /* the set of the keys deleted from the table */
 	int            keys_range_len;
 	int            keys_range_min;
 	int            keys_range_max;
@@ -215,18 +215,19 @@ int bdb_mix_init(void *args)
 	strcpy(global_state->file_name, file_name);
 	ubench_desc.global_state = (void *) global_state;
 
+#ifndef USE_ELEMSET
 	/* Populate the hash table
 	 * 
 	 * We want to have a steady state experiment where deletes have the
 	 * same rate as inserts, and the number of elements in the table is
-	 * always num_keys.
+	 * always num_keys/2.
 	 *
-	 * To achieve this, we have a range of keys [0, 2*num_keys-1], and 
+	 * To achieve this, we have a range of keys [0, num_keys-1], and 
 	 * only half of the keys are found in the hash table at anytime during
 	 * the experiment's execution.
 	 */
 
-	keys_range_len = 2*num_keys / num_threads;
+	keys_range_len = num_keys / num_threads;
 	for (i=0; i<num_threads; i++) {
 		keys_range_min = i*keys_range_len;
 		keys_range_max = (i+1)*keys_range_len-1;
@@ -234,6 +235,7 @@ int bdb_mix_init(void *args)
 			bdb_op_add(dbp, envp, j, buf);
 		}
 	}
+#endif
 
 	return 0;
 
@@ -289,13 +291,18 @@ int bdb_mix_fini(void *args)
 
 int bdb_mix_thread_init(unsigned int tid)
 {
+	char                      buf[16384];
 	bdb_mix_thread_state_t    *thread_state;
 	object_t                  *obj;
 	object_t                  *iter;
 	int                       i;
+	int                       j;
 	int                       num_keys_per_thread;
 	bdb_mix_state_t           *global_state = (bdb_mix_state_t *) ubench_desc.global_state;
 	bdb_mix_stat_t            *stat;
+	int                       keys_range_min;
+	int                       keys_range_max;
+	int                       keys_range_len;
 
 	thread_state = (bdb_mix_thread_state_t*) malloc(sizeof(bdb_mix_thread_state_t));
 	ubench_desc.thread_state[tid] = thread_state;
@@ -307,15 +314,47 @@ int bdb_mix_thread_init(unsigned int tid)
 #endif	
 	thread_state->envp = thread_state->dbp->get_env(thread_state->dbp);
 
-	thread_state->keys_range_len = num_keys_per_thread = (2*num_keys) / num_threads;
-	thread_state->keys_range_min = tid*num_keys_per_thread;
-	thread_state->keys_range_max = (tid+1)*num_keys_per_thread-1;
+	keys_range_len = thread_state->keys_range_len = num_keys_per_thread = (num_keys) / num_threads;
+	keys_range_min = thread_state->keys_range_min = tid*num_keys_per_thread;
+	keys_range_max = thread_state->keys_range_max = (tid+1)*num_keys_per_thread-1;
 
-#ifdef USE_KEYSET
-	assert(keyset_init(&thread_state->keyset_ins, num_keys_per_thread, tid)==0);
-	assert(keyset_init(&thread_state->keyset_del, num_keys_per_thread, tid)==0);
-	assert(keyset_fill(&thread_state->keyset_ins, thread_state->keys_range_min, thread_state->keys_range_max - (num_keys_per_thread/2))==0);
-	assert(keyset_fill(&thread_state->keyset_del, thread_state->keys_range_max-(num_keys_per_thread/2)+1, thread_state->keys_range_max)==0);
+#ifdef USE_ELEMSET
+	assert(elemset_init(&thread_state->elemset_ins, num_keys_per_thread, tid)==0);
+	assert(elemset_init(&thread_state->elemset_del, num_keys_per_thread, tid)==0);
+
+	/* Populate the hash table
+	 * 
+	 * We want to have a steady state experiment where deletes have the
+	 * same rate as inserts, and the number of elements in the table is
+	 * always num_keys/2.
+	 *
+	 * To achieve this, we have a range of keys [0, num_keys-1], and 
+	 * only half of the keys are found in the hash table at anytime during
+	 * the experiment's execution.
+	 */
+
+	for(j=keys_range_min; j<=keys_range_max-(keys_range_len/2)-1; j++) {
+		if ((obj = (object_t*) malloc(sizeof(object_t) + vsize)) == NULL) {
+			INTERNAL_ERROR("Could not allocate memory.\n")
+		}
+		obj->key = j;
+		bdb_op_add(thread_state->dbp, thread_state->envp, j, buf);
+		elemset_put(&thread_state->elemset_ins, obj);
+		//printf("put_ins: %p\n", obj);
+		//printf("put_ins: key=%d\n", obj->key);
+	}
+
+	for(j=keys_range_max-(keys_range_len/2); j<=keys_range_max; j++) {
+		if ((obj = (object_t*) malloc(sizeof(object_t) + vsize)) == NULL) {
+			INTERNAL_ERROR("Could not allocate memory.\n")
+		}
+		obj->key = j;
+		elemset_put(&thread_state->elemset_del, obj);
+		//printf("put_del: %p\n", obj);
+		//printf("put_del: key=%d\n", obj->key);
+	}
+
+
 #endif	
 	stat = &(thread_state->stat);
 	stat->work_transactions = 0;
@@ -534,6 +573,8 @@ void __bdb_mix_thread_main(unsigned int tid, int measure_latency)
 	int                       id;
 	int                       del_id;
 	int                       ins_id;
+	object_t                  *del_obj;
+	object_t                  *ins_obj;
 	int                       found;
 	int                       keys_range_min;
 	int                       keys_range_max;
@@ -556,11 +597,13 @@ void __bdb_mix_thread_main(unsigned int tid, int measure_latency)
 		id = keys_range_min + rand_r(seedp) % keys_range_len;
 		switch(op) {
 			case OP_HASH_WRITE:
-#ifdef USE_KEYSET
-				keyset_get_key_random(&thread_state->keyset_ins, &del_id);
-				keyset_get_key_random(&thread_state->keyset_del, &ins_id);
-				keyset_put_key(&thread_state->keyset_ins, ins_id);
-				keyset_put_key(&thread_state->keyset_del, del_id);
+#ifdef USE_ELEMSET
+				elemset_get_random(&thread_state->elemset_ins, &del_obj);
+				elemset_get_random(&thread_state->elemset_del, &ins_obj);
+				elemset_put(&thread_state->elemset_ins, ins_obj);
+				elemset_put(&thread_state->elemset_del, del_obj);
+				del_id=del_obj->key;
+				ins_id=ins_obj->key;
 				if (measure_latency) {
 					start = gethrtime();
 				}

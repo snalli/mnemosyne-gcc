@@ -70,7 +70,6 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 #endif	
 	data->ptmlog = (M_TMLOG_T *) data->ptmlog_dsc->log;
 
-
 	*datap = (mtm_mode_data_t *) data;
 
 	return M_R_SUCCESS;

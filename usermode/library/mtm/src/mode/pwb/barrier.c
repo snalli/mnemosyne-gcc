@@ -12,7 +12,6 @@
 #include "mode/pwb/rwset.c"
 
 
-
 /*
  * Extend snapshot range.
  */
@@ -82,6 +81,7 @@ w_entry_t* initialize_write_set_entry(w_entry_t* entry,
 	/* Add address to write set */
 	entry->addr = address;
 	entry->lock = lock;
+	entry->mask = 0x0;
 	mask_new_value(entry, address, value, mask);
 	entry->version = version;
 	entry->next = NULL;
@@ -230,20 +230,44 @@ pwb_write_internal(mtm_tx_t *tx,
 	int                 ret;
 	int                 access_is_nonvolatile;
 
-	MTM_DEBUG_PRINT("==> pwb_write(t=%p[%lu-%lu],a=%p,d=%p-%lu,m=0x%lx)\n", tx,
+	MTM_DEBUG_PRINT("==> pwb_write(t=%p[%lu-%lu],a=%p,d=%llX-%llu,m=0x%llX)\n", tx,
 	                (unsigned long)modedata->start,
 	                (unsigned long)modedata->end, 
 	                addr, 
-	                (void *)value, 
-	                (unsigned long)value,
-	                (unsigned long)mask);
-					
+	                (unsigned long long)value, 
+	                (unsigned long long)value,
+	                (unsigned long long)mask);
 	/* Check status */
 	//assert(tx->status == TX_ACTIVE);
 	if (tx->status != TX_ACTIVE) {
 		assert(0);
 	}
 
+#if 0
+/* ENABLES NULL BARRIERS */
+	{
+			mtm_word_t prev_value;
+			prev_value = ATOMIC_LOAD(addr);
+			if (mask == 0) {
+				return NULL;
+			}
+			if (mask != ~(mtm_word_t)0) {
+				value = (prev_value & ~mask) | (value & mask);
+			}	
+
+			/* 
+			 * Do eager version management for stack data because ICC does not
+			 * like lazy version management for stack.
+			 *
+			 * But if there could not be user initiated or concurrency control 
+			 * aborts then don't need to perform version management.
+			 */
+			ATOMIC_STORE(addr, value);
+			return NULL;
+	}
+#endif
+
+	
 	/* Check whether access is to volatile or non-volatile memory */
 	if (((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&
 	     (uintptr_t) addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))
@@ -301,6 +325,7 @@ pwb_write_internal(mtm_tx_t *tx,
 		}
 	}
 
+	
 #ifdef _M_STATS_BUILD
 	m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, writes, 1);
 #endif	
@@ -366,7 +391,8 @@ restart_no_load:
 					version = write_set_tail->version;  // Get version from previous write set entry (all
 					                                    // entries in linked list have same version)
 					w_entry_t* initialized_entry = initialize_write_set_entry(w, addr, value, mask, version, lock, access_is_nonvolatile);
-					
+
+	
 					// Add entry to the write set
 					insert_write_set_entry_after(initialized_entry, write_set_tail, tx, last_entry_in_same_cache_block);					
 					return initialized_entry;
@@ -470,7 +496,6 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 	w_entry_t           *w;
 	int                 ret;
 
-
 	MTM_DEBUG_PRINT("==> mtm_pwb_load(t=%p[%lu-%lu],a=%p)\n", tx, 
 	                (unsigned long)modedata->start,
 	                (unsigned long)modedata->end, 
@@ -478,6 +503,13 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
+
+#if 0
+/* ENABLES NULL BARRIERS */
+
+			value = ATOMIC_LOAD(addr);
+			return value;
+#endif
 
 	/* Check whether access is to volatile or non-volatile memory */
 	if (((uintptr_t) addr >= PSEGMENT_RESERVED_REGION_START &&

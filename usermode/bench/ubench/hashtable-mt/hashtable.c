@@ -60,6 +60,8 @@ unsigned_int_fetch_and_add_full (volatile unsigned int *p, unsigned int incr)
   return result;
 }
 
+
+
 /*****************************************************************************/
 struct hashtable *
 create_hashtable(unsigned int minsize,
@@ -94,6 +96,11 @@ create_hashtable(unsigned int minsize,
 	sloppycnt_uint32_init(&h->entrycount);
     h->hashfn       = hashf;
     h->eqfn         = eqf;
+	//printf("h=%p\n",h);
+	//printf("&h->entrycoun=%pt\n", &h->entrycount); fflush(stdout);
+	//printf("&(h->eqfn)=%p\n",&(h->eqfn));
+	//printf("h->hashfn=%p\n",h->hashfn);
+	//printf("h->eqfn=%p\n",h->eqfn);
     h->loadlimit    = (unsigned int) ceil(size * max_load_factor);
     return h;
 }
@@ -175,10 +182,11 @@ hashtable_expand(struct hashtable *h)
 }
 
 /*****************************************************************************/
+/* Not thread safe */
 unsigned int
 hashtable_count(struct hashtable *h)
 {
-    return sloppycnt_uint32_get(&h->entrycount);
+	return h->entrycount.global.cnt;
 }
 
 /*****************************************************************************/
@@ -189,6 +197,10 @@ hashtable_insert(int tid, struct hashtable *h, void *k, void *v)
     unsigned int index;
     struct entry *e;
 
+	//printf("[%d] hashtable_insert: \n", tid); fflush(stdout);
+	//printf("[%d] hashtable_insert: &h->entrycount=%p\n", tid, &h->entrycount); fflush(stdout);
+	//printf("[%d] hashtable_insert: h->eqfn=%p\n", tid, h->eqfn); fflush(stdout);
+	//printf("[%d] hashtable_insert: h->hashfn=%p\n", tid, h->hashfn); fflush(stdout);
 	sloppycnt_uint32_add(tid, &h->entrycount, 1);
     if (h->entrycount.global.cnt > h->loadlimit)
 	///if (unsigned_int_fetch_and_add_full (&h->entrycount, 1) > h->loadlimit)
@@ -215,9 +227,13 @@ hashtable_insert(int tid, struct hashtable *h, void *k, void *v)
     e->k = k;
     e->v = v;
 	m_txmutex_lock(&h->table_mutex[index]);
+	//printf("[%d] hashtable_insert: index=%d\n", tid, index); fflush(stdout);
+	//printf("[%d] hashtable_insert: e=%p\n", tid, e); fflush(stdout);
+	//printf("[%d] hashtable_insert: e->next=%p\n", tid, e->next); fflush(stdout);
     e->next = h->table[index];
     h->table[index] = e;
 	m_txmutex_unlock(&h->table_mutex[index]);
+	//printf("[%d] hashtable_insert: DONE\n", tid); fflush(stdout);
     return -1;
 }
 
@@ -244,9 +260,6 @@ hashtable_search(int tid, struct hashtable *h, void *k)
     while (NULL != e)
     {	
 		n++;
-		if (n==32000) {
-			printf("32000\n");
-		}
         /* Check hash value to short circuit heavier comparison */
         if ((hashvalue == e->h) && (h->eqfn(k, e->k))) { 
 			m_txmutex_unlock(&h->table_mutex[index]);
@@ -274,16 +287,29 @@ hashtable_remove(int tid, struct hashtable *h, void *k)
     void *v;
     unsigned int hashvalue, index;
 
+	//printf("[%d] hashtable_remove: \n", tid); fflush(stdout);
     hashvalue = hash(h,k);
+	/* FIXME: This assumes that tablelength does not change, which is true 
+	 * only when the table is not expanding. THis is okay for now as we don't
+	 * support table expansion.
+	 */
     index = indexFor(h->tablelength,hash(h,k));
 	m_txmutex_lock(&h->table_mutex[index]);
+	//printf("[%d] hashtable_remove: got lock: index=%d\n", tid, index); fflush(stdout);
     pE = &(h->table[index]);
     e = *pE;
     while (NULL != e)
     {
+		//printf("[%d] hashtable_remove: NEXT: e=%p\n", tid, e); fflush(stdout);
+		//printf("[%d] hashtable_remove: NEXT: e->k=%p\n", tid, e->k); fflush(stdout);
+		//printf("[%d] hashtable_remove: NEXT: k=%p\n", tid, k); fflush(stdout);
+		//print_obj(k);
+		//printf("[%d] hashtable_remove: NEXT: eqfn=%p\n", tid, h->eqfn); fflush(stdout);
+		//printf("[%d] hashtable_remove: NEXT: eqfn=%p\n", tid, h->eqfn(k, e->k)); fflush(stdout);
         /* Check hash value to short circuit heavier comparison */
         if ((hashvalue == e->h) && (h->eqfn(k, e->k)))
         {
+			//printf("[%d] hashtable_remove: FOUND\n", tid); fflush(stdout);
             *pE = e->next;
 			m_txmutex_unlock(&h->table_mutex[index]);
 			sloppycnt_uint32_sub(tid, &h->entrycount, 1);
@@ -293,13 +319,18 @@ hashtable_remove(int tid, struct hashtable *h, void *k)
             //freekey(e->k); // What the heck? This is not a clean API: the programmer 
 			                 // allocated it, therefore the programmer should be 
 							 // responsible deallocating it.
-            pfree(e);
+			//FIXME				 
+            //pfree(e);
+			//printf("[%d] hashtable_remove: FOUND...DONE\n", tid); fflush(stdout);
             return v;
         }
+		//printf("[%d] hashtable_remove: NEXT..\n", tid); fflush(stdout);
         pE = &(e->next);
         e = e->next;
+		//printf("[%d] hashtable_remove: NEXT...\n", tid); fflush(stdout);
     }
 	m_txmutex_unlock(&h->table_mutex[index]);
+	//printf("[%d] hashtable_remove: NOTFOUND...DONE\n", tid); fflush(stdout);
     return NULL;
 }
 
@@ -333,6 +364,22 @@ hashtable_destroy(struct hashtable *h, int free_values)
     pfree(h);
 }
 
+
+/*****************************************************************************/
+uint64_t hashtable_metadata_size(struct hashtable *h)
+{
+	unsigned int size = h->tablelength;
+	uint64_t     footprint;
+	unsigned int i=0;
+	unsigned int num_entries=0;
+
+	footprint  = 0; 
+	footprint += sizeof(struct hashtable);
+	footprint += sizeof(m_txmutex_t) * size;   /* mutex table */
+	footprint += sizeof(struct entry*) * size; /* table */
+	num_entries = hashtable_count(h);
+	footprint += num_entries * sizeof(struct entry);
+}
 /*
  * Copyright (c) 2002, Christopher Clark
  * All rights reserved.

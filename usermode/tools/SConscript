@@ -1,0 +1,24 @@
+import os
+
+Import('mallocLibrary')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('toolsEnv')
+
+toolsEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+
+if toolsEnv['BUILD_DEBUG'] == True:
+	toolsEnv.Append(CCFLAGS = ' -g')
+else:	
+	toolsEnv.Append(CCFLAGS = ' -O2')
+
+toolsEnv.Append(CCFLAGS = ' -m64 ')
+Export('toolsEnv')
+
+tools_list = Split("""
+		bandwidth-pcm
+                """)
+
+for tool in tools_list:
+	sconscript_path = tool + '/SConscript'
+	SConscript(sconscript_path)

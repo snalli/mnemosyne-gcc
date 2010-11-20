@@ -14,14 +14,24 @@
 #include <sched.h>
 #include "ut_barrier.h"
 #include <db.h>
-#include "keyset.h"
 #include "bdb_mix.h"
 #include "mtm_mix.h"
 #include "common.h"
 
-//#define MNEMOSYNE_ATOMIC __transaction [[relaxed]]
-//#define MNEMOSYNE_ATOMIC
+void print_vmstats(char *prefix) {
+	char filename[128];
+	pid_t pid;
+	FILE *fin;
+	char c;
 
+	pid = getpid();
+	sprintf(filename, "/proc/%d/stat", pid);
+	fin = fopen(filename, "r");
+	printf("%s\n", filename);
+	while ((c=fgetc(fin))!=EOF) {
+		printf("%c", c);
+	}
+}
 
 #define PAGE_SIZE                 4096
 #define PRIVATE_REGION_SIZE       (64*1024*PAGE_SIZE)
@@ -121,7 +131,6 @@ main(int argc, char *argv[])
 
 	while (1) {
 		static struct option long_options[] = {
-			{"system",  required_argument, 0, 's'},
 			{"ubench",  required_argument, 0, 'b'},
 			{"runtime",  required_argument, 0, 't'},
 			{"nthreads", required_argument, 0, 'n'},

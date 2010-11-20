@@ -304,7 +304,7 @@
 #include "pdlmalloc.h"
 
 #define DLMALLOC_PHEAP_BASE 0xc00000000
-#define DLMALLOC_PHEAP_SIZE (512*1024*1024)
+#define DLMALLOC_PHEAP_SIZE (2*1024*1024*1024)
 
 #ifdef __cplusplus
 extern "C" {

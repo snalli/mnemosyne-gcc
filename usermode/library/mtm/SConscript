@@ -57,18 +57,20 @@ CC_SRC = Split("""
                src/intelabi.c
                src/local.c
                src/mode/mode.c
-               src/mode/pwb/beginend.c
-               src/mode/pwb/memcpy.c
-               src/mode/pwb/memset.c
-               src/mode/pwb/pwb.c
-               src/mode/pwb/barrier.c
-	       src/mode/pwb/tmlog_base.c
-	       src/mode/pwb/tmlog_tornbit.c
-               src/mode/wbetl/barrier.c
-               src/mode/wbetl/beginend.c
-               src/mode/wbetl/memcpy.c
-               src/mode/wbetl/memset.c
-               src/mode/wbetl/wbetl.c
+               src/mode/common/common.c
+               src/mode/pwb-common/pwb.c
+               src/mode/pwbetl/beginend.c
+               src/mode/pwbetl/memcpy.c
+               src/mode/pwbetl/memset.c
+               src/mode/pwbetl/pwbetl.c
+               src/mode/pwbetl/barrier.c
+               src/mode/pwbnl/beginend.c
+               src/mode/pwbnl/memcpy.c
+               src/mode/pwbnl/memset.c
+               src/mode/pwbnl/pwbnl.c
+               src/mode/pwbnl/barrier.c
+	       src/mode/pwb-common/tmlog_base.c
+	       src/mode/pwb-common/tmlog_tornbit.c
                src/mode/serial/serial.c
                src/mtm.c
                src/retry.c

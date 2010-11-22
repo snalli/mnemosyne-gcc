@@ -59,8 +59,6 @@ class Environment(mnemosyne.Environment):
 			False),
 		('LOCK_IDX_SWAP',            'Tweak the hash function that maps addresses to locks so that consecutive addresses do not map to consecutive locks. This can avoid cache line invalidations for application that perform sequential memory accesses. The last byte of the lock index is swapped with the previous byte.',
 			True),
-		('ENABLE_ISOLATION',         'Turns on or off the isolation features of the transactions implemented here. Disabling isolation means that transactions are never aborted; they in fact are atomicity-only transactions. Once they commit, the result is guaranteed to write out to any persistent memory (or at least be redo-logged so the commit can finish on the next system or application restart).',
-			False),
 		('ALLOW_ABORTS',       'Allows transaction aborts. When disabled and combined with no-isolation, the TM system does not need to perform version management for volatile data.',
 			False),
 		('SYNC_TRUNCATION',          'Synchronously flushes the write set out of the HW cache and truncates the persistent log.',

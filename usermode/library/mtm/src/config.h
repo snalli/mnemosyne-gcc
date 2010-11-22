@@ -6,7 +6,7 @@
 
 #define FOREACH_RUNTIME_CONFIG_SETTING(ACTION, group, config, values)                        \
   ACTION(config, values, group, stats, bool, int, 0, CONFIG_NO_CHECK, 0)                     \
-  ACTION(config, values, group, force_mode, string, char *, "pwb", CONFIG_NO_CHECK, 0)       \
+  ACTION(config, values, group, force_mode, string, char *, "pwbnl", CONFIG_NO_CHECK, 0)     \
   ACTION(config, values, group, stats_file, string, char *, "mtm.stats", CONFIG_NO_CHECK, 0)
 
 

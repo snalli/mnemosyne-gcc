@@ -1,0 +1,4 @@
+#include "pwb_i.h"
+
+
+FORALL_MEMSET_VARIANTS(MEMSET_DEFINITION, pwbetl)

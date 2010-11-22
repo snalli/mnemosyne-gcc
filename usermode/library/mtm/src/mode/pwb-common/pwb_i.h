@@ -1,21 +1,29 @@
 /**
  * \file pwb_i.h
  *
- * \brief Private header file for write-back with encounter-time locking.
+ * \brief Private header file for write-back common header file.
  *
  */
 
-#ifndef _PWB_INTERNAL_H
-#define _PWB_INTERNAL_H
+#ifndef _PWB_COMMON_INTERNAL_IOK811_H
+#define _PWB_COMMON_INTERNAL_IOK811_H
 
 #include <pcm.h>
+#include <log.h>
+
 #include "mtm_i.h"
-#include "mode/pwb/locks.h"
-#include "mode/pwb/tmlog.h"
+#include "mode/vtable.h"
+#include "mode/vtable_macros.h"
+#include "local.h"
+#include "mode/pwb-common/locks.h"
+#include "mode/pwb-common/tmlog.h"
 
+//# undef MTM_DEBUG_PRINT
+//# define MTM_DEBUG_PRINT(...)               printf(__VA_ARGS__); fflush(NULL)
+//# define PRINT_DEBUG2(...)               printf(__VA_ARGS__); fflush(NULL)
 
-#undef  DESIGN
-#define DESIGN WRITE_BACK_ETL
+void ITM_NORETURN mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r);
+
 
 typedef struct mtm_pwb_r_entry_s      mtm_pwb_r_entry_t;
 typedef struct mtm_pwb_r_set_s        mtm_pwb_r_set_t;
@@ -93,4 +101,4 @@ struct mtm_pwb_mode_data_s
 	M_TMLOG_T       *ptmlog;     /**< The persistent tm log; this is to avoid dereferencing ptmlog_dsc in the fast path */
 };
 
-#endif /* _PWB_INTERNAL_H */
+#endif /* _PWB_COMMON_INTERNAL_IOK811_H */

@@ -153,5 +153,9 @@ void _ITM_CALL_CONVENTION mtm_##name##L##encoding (mtm_tx_t *tx, const type *ptr
 
 
 FOR_ALL_TYPES(DEFINE_LOG_BARRIER, local_)
-void  _ITM_CALL_CONVENTION mtm_local_LB (mtm_tx_t *tx, volatile const void *ptr, size_t len)
-{ log_arbitrarily (TXARGS ptr, len); }
+
+void _ITM_CALL_CONVENTION 
+mtm_local_LB (mtm_tx_t *tx, const void *ptr, size_t len)
+{ 
+	log_arbitrarily (TXARGS ptr, len); 
+}

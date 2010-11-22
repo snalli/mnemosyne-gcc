@@ -5,16 +5,6 @@
 ########################################################################
 
 
-########################################################################
-# ENABLE_ISOLATION: Turns on or off the isolation features of the 
-#   transactions implemented here. Disabling isolation means that 
-#   transactions are never aborted; they in fact are atomicity-only 
-#   transactions. Once they commit, the result is guaranteed to write
-#   out to any persistent memory (or at least be redo-logged so the 
-#   commit can finish on the next system or application restart).
-########################################################################
-
-ENABLE_ISOLATION = False
 
 ########################################################################
 # ALLOW_ABORTS: Allows transaction aborts. When disabled and 

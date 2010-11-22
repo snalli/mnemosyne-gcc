@@ -23,19 +23,19 @@
 
 #  undef FOREACH_OUTER_FUNCTION
 #  define FOREACH_OUTER_FUNCTION(ACTION, ...)                                            \
-    ACTION (void,     abortTransaction,     (mtm_tx_t *td,                       \
+    ACTION (void,     abortTransaction,     (mtm_tx_t *td,                               \
                                              _ITM_abortReason reason,                    \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (void,     rollbackTransaction,  (mtm_tx_t *td,                       \
+    ACTION (void,     rollbackTransaction,  (mtm_tx_t *td,                               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (void,     commitTransaction,    (mtm_tx_t *td,                       \
+    ACTION (void,     commitTransaction,    (mtm_tx_t *td,                               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (uint32_t, tryCommitTransaction, (mtm_tx_t *td,                       \
+    ACTION (bool,     tryCommitTransaction, (mtm_tx_t *td,                               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (void,     commitTransactionToId,(mtm_tx_t *td,                       \
+    ACTION (void,     commitTransactionToId,(mtm_tx_t *td,                               \
                                              const _ITM_transactionId tid,               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (uint32_t, beginTransaction,     (mtm_tx_t *td,                       \
+    ACTION (uint32_t, beginTransaction,     (mtm_tx_t *td,                               \
                                              uint32 __properties,                        \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
 

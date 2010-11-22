@@ -1,19 +1,8 @@
 #include <pcm.h>
 #include <log.h>
-#include <mtm_i.h>
-#include <mode/vtable.h>
-#include <mode/vtable_macros.h>
-#include <local.h>
-#include "mode/pwb/tmlog.h"
-#include "mode/pwb/barrier.h"
-#include "mode/pwb/beginend.h"
-#include "mode/pwb/memcpy.h"
-#include "mode/pwb/memset.h"
-#include "mode/pwb/pwb_i.h"
-#include "mode/pwb/rwset.c"
-#include "mode/common/memcpy.h"
-#include "mode/common/memset.h"
-#include "mode/common/rwset.h"
+
+#include "pwb_i.h"
+
 
 #ifndef RW_SET_SIZE
 #define RW_SET_SIZE (256*1024)
@@ -24,20 +13,21 @@
     ARG##function,
 
 
-mtm_vtable_t STR2 (mtm_pwb, _vtable) =
+mtm_vtable_t STR2 (mtm_pwbnl, _vtable) =
 {
-	FOREACH_OUTER_FUNCTION (DEFINE_VTABLE_MEMBER, mtm_pwb_)
-	_GEN_READ_BARRIERS_LIST (mtm_pwb_R, mtm_pwb_R, mtm_pwb_R, mtm_pwb_RfW)
-	_GEN_WRITE_BARRIERS_LIST (mtm_pwb_W, mtm_pwb_W, mtm_pwb_W)
-	_ITM_FOREACH_MEMCPY (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwb, _))
+	FOREACH_OUTER_FUNCTION (DEFINE_VTABLE_MEMBER, mtm_pwbnl_)
+	_GEN_READ_BARRIERS_LIST (mtm_pwbnl_R, mtm_pwbnl_R, mtm_pwbnl_R, mtm_pwbnl_RfW)
+	_GEN_WRITE_BARRIERS_LIST (mtm_pwbnl_W, mtm_pwbnl_W, mtm_pwbnl_W)
+	_ITM_FOREACH_MEMCPY (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwbnl, _))
 	_ITM_FOREACH_LOG_TRANSFER (DEFINE_VTABLE_MEMBER, mtm_local_)
-	_ITM_FOREACH_MEMSET (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwb, _))
-	_ITM_FOREACH_MEMMOVE (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwb, _))
+	_ITM_FOREACH_MEMSET (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwbnl, _))
+	_ITM_FOREACH_MEMMOVE (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwbnl, _))
 };
+
 
 /* Called by mtm_init_thread */
 m_result_t
-mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
+mtm_pwbnl_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 {
 	mtm_pwb_mode_data_t *data;
 
@@ -77,7 +67,7 @@ mtm_pwb_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 
 
 m_result_t
-mtm_pwb_destroy(mtm_mode_data_t *_data)
+mtm_pwbnl_destroy(mtm_mode_data_t *_data)
 {
 	mode_data_t *data = (mode_data_t *) _data;
 #ifdef EPOCH_GC

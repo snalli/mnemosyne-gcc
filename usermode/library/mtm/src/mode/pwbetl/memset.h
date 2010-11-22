@@ -1,0 +1,8 @@
+#ifndef _PWBETL_MEMSET_FGT124_H
+#define _PWBETL_MEMSET_FGT124_H
+
+#include "mode/common/memset.h"
+
+FORALL_MEMSET_VARIANTS(MEMSET_DECLARATION, pwbetl)
+
+#endif /* _PWBETL_MEMSET_FGT124_H */

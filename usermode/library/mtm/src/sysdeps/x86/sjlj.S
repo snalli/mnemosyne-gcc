@@ -1,9 +1,9 @@
-	.hidden	mtm_wbetl_beginTransaction_internal
-	.type	mtm_wbetl_beginTransaction,@function
+	.hidden	mtm_pwbnl_beginTransaction_internal
+	.type	mtm_pwbnl_beginTransaction,@function
 	.align	2,0x90
-	.global	mtm_wbetl_beginTransaction
-	.hidden	mtm_wbetl_beginTransaction
-mtm_wbetl_beginTransaction:
+	.global	mtm_pwbnl_beginTransaction
+	.hidden	mtm_pwbnl_beginTransaction
+mtm_pwbnl_beginTransaction:
 	mov	24(%rdi),%rax
 	mov	%rbx,8(%rax)
 	mov	%rbp,16(%rax)
@@ -18,15 +18,15 @@ mtm_wbetl_beginTransaction:
 	stmxcsr 64(%rax)
 	fnstcw  72(%rax)
 	fclex
-	jmp	mtm_wbetl_beginTransaction_internal	# Vector to the target routine.
+	jmp	mtm_pwbnl_beginTransaction_internal	# Vector to the target routine.
 
 
-	.hidden	mtm_pwb_beginTransaction_internal
-	.type	mtm_pwb_beginTransaction,@function
+	.hidden	mtm_pwbetl_beginTransaction_internal
+	.type	mtm_pwbetl_beginTransaction,@function
 	.align	2,0x90
-	.global	mtm_pwb_beginTransaction
-	.hidden	mtm_pwb_beginTransaction
-mtm_pwb_beginTransaction:
+	.global	mtm_pwbetl_beginTransaction
+	.hidden	mtm_pwbetl_beginTransaction
+mtm_pwbetl_beginTransaction:
 	mov	24(%rdi),%rax
 	mov	%rbx,8(%rax)
 	mov	%rbp,16(%rax)
@@ -41,8 +41,7 @@ mtm_pwb_beginTransaction:
 	stmxcsr 64(%rax)
 	fnstcw  72(%rax)
 	fclex
-	jmp	mtm_pwb_beginTransaction_internal	# Vector to the target routine.
-
+	jmp	mtm_pwbetl_beginTransaction_internal	# Vector to the target routine.
 
 
 	.type	mtm_longjmp,@function

@@ -1,16 +1,12 @@
-#include <stdio.h>
-#include <mnemosyne.h>
-#include <pcm.h>
+/**
+ * \file barrier-bits_i.h
+ *
+ * \brief Private header file for write-back barrier bits.
+ *
+ */
 
-// These two must come before all other includes; they define things like w_entry_t.
-#include "mtm_i.h"
-#include "mode/pwb/pwb_i.h"
-
-#include "cm.h"
-#include "mode/common/mask.h"
-#include "mode/pwb/barrier.h"
-#include "mode/pwb/rwset.c"
-
+#ifndef _PWB_COMMON_BARRIER_BITS_JKI671_H
+#define _PWB_COMMON_BARRIER_BITS_JKI671_H
 
 /*
  * Extend snapshot range.
@@ -220,7 +216,7 @@ pwb_write_internal(mtm_tx_t *tx,
                    mtm_word_t mask,
 		           int enable_isolation)
 {
-	assert(tx->mode == MTM_MODE_pwb);
+	assert(tx->mode == MTM_MODE_pwbnl || tx->mode == MTM_MODE_pwbetl);
 	mode_data_t         *modedata = (mode_data_t *) tx->modedata[tx->mode];
 	volatile mtm_word_t *lock;
 	mtm_word_t          l;
@@ -297,10 +293,10 @@ pwb_write_internal(mtm_tx_t *tx,
 			 * aborts then don't need to perform version management.
 			 */
 			if (enable_isolation) {
-				mtm_local_LB(tx, addr, sizeof(mtm_word_t));
+				mtm_local_LB(tx, (void *) addr, sizeof(mtm_word_t));
 			} else {
 #ifdef ALLOW_ABORTS
-				mtm_local_LB(tx, addr, sizeof(mtm_word_t));
+				mtm_local_LB(tx, (void *) addr, sizeof(mtm_word_t));
 #endif
 			}
 			ATOMIC_STORE(addr, value);
@@ -485,7 +481,7 @@ static inline
 mtm_word_t 
 pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 {
-	assert(tx->mode == MTM_MODE_pwb);
+	assert(tx->mode == MTM_MODE_pwbnl || tx->mode == MTM_MODE_pwbetl);
 	mode_data_t         *modedata = (mode_data_t *) tx->modedata[tx->mode];
 	volatile mtm_word_t *lock;
 	mtm_word_t          l;
@@ -502,6 +498,9 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 	                addr);
 
 	/* Check status */
+	if (tx->status != TX_ACTIVE) {
+		printf("%p, tx->status = %d\n", tx, tx->status);
+	}
 	assert(tx->status == TX_ACTIVE);
 
 #if 0
@@ -648,7 +647,7 @@ restart_no_load:
 #ifdef INTERNAL_STATS
 					tx->aborts_validate_read++;
 #endif /* INTERNAL_STATS */
-					mtm_pwb_restart_transaction (RESTART_VALIDATE_READ);
+					mtm_pwb_restart_transaction (tx, RESTART_VALIDATE_READ);
 				}
 				/* Verify that version has not been overwritten (read value has not
 				 * yet been added to read set and may have not been checked during
@@ -688,49 +687,4 @@ restart_no_load:
 }
 
 
-/*
- * Called by the CURRENT thread to store a word-sized value.
- */
-void 
-mtm_pwb_store(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value)
-{
-#ifdef ENABLE_ISOLATION
-	pwb_write_internal(tx, addr, value, ~(mtm_word_t)0, 1);
-#else
-	pwb_write_internal(tx, addr, value, ~(mtm_word_t)0, 0);
-#endif
-}
-
-
-/*
- * Called by the CURRENT thread to store part of a word-sized value.
- */
-void 
-mtm_pwb_store2(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value, mtm_word_t mask)
-{
-#ifdef ENABLE_ISOLATION
-	pwb_write_internal(tx, addr, value, mask, 1);
-#else	
-	pwb_write_internal(tx, addr, value, mask, 0);
-#endif
-}
-
-/*
- * Called by the CURRENT thread to load a word-sized value.
- */
-mtm_word_t 
-mtm_pwb_load(mtm_tx_t *tx, volatile mtm_word_t *addr)
-{
-#ifdef ENABLE_ISOLATION
-	return pwb_load_internal(tx, addr, 1);
-#else	
-	return pwb_load_internal(tx, addr, 0);
-#endif
-}
-
-
-DEFINE_LOAD_BYTES(pwb)
-DEFINE_STORE_BYTES(pwb)
-
-FOR_ALL_TYPES(DEFINE_READ_BARRIERS, pwb)
-FOR_ALL_TYPES(DEFINE_WRITE_BARRIERS, pwb)
+#endif /* _PWB_COMMON_BARRIER_BITS_JKI671_H */

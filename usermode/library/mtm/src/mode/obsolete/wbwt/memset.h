@@ -3,6 +3,6 @@
 
 #include "mode/common/memset.h"
 
-FORALL_MEMSET_VARIANTS(MEMSET_DECLARATION, pwb)
+FORALL_MEMSET_VARIANTS(MEMSET_DECLARATION, wbetl)
 
 #endif

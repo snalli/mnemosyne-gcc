@@ -4,8 +4,7 @@
 #include "mtm_i.h"
 #include "config.h"
 #include "locks.h"
-#include "mode/wbetl/wbetl.h"
-#include "mode/pwb/tmlog.h"
+#include "mode/pwb-common/tmlog.h"
 #include "sysdeps/x86/target.h"
 #include "stats.h"
 
@@ -192,6 +191,7 @@ TXTYPE
 mtm_init_thread(void)
 {
 	mtm_tx_t       *tx = mtm_get_tx();
+	mtm_mode_t     txmode;
 	pthread_attr_t attr;
 
 
@@ -233,13 +233,28 @@ mtm_init_thread(void)
 	mtm_##mode##_create(tx, &(tx->modedata[MTM_MODE_##mode]));
 	FOREACH_MODE(ACTION)
 #undef ACTION  
-	//tx->mode = MTM_MODE_wbetl;
-	//tx->vtable = defaultVtables->mtm_wbetl;
-	tx->mode = MTM_MODE_pwb;
-	tx->vtable = defaultVtables->mtm_pwb;
+
+	txmode = mtm_str2mode(mtm_runtime_settings.force_mode);
+
+	switch (txmode) {
+		case MTM_MODE_pwbnl:
+			printf("pwbnl\n");
+			tx->mode = MTM_MODE_pwbnl;
+			tx->vtable = defaultVtables->mtm_pwbnl;
+			break;
+		case MTM_MODE_pwbetl:
+			printf("pwbetl\n");
+			tx->mode = MTM_MODE_pwbetl;
+			tx->vtable = defaultVtables->mtm_pwbetl;
+			break;
+		default:
+			assert(0); /* unknown transaction mode */
+	}
+
 
 	/* Nesting level */
 	tx->nesting = 0;
+
 	///* Transaction-specific data */
 	//memset(tx->data, 0, MAX_SPECIFIC * sizeof(void *));
 #ifdef READ_LOCKED_DATA

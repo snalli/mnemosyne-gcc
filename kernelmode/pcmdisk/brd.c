@@ -22,20 +22,33 @@
 
 #include "pcm.h"
 
-#define SECTOR_SHIFT		9
-#define PAGE_SECTORS_SHIFT	(PAGE_SHIFT - SECTOR_SHIFT)
-#define PAGE_SECTORS		(1 << PAGE_SECTORS_SHIFT)
+#define SECTOR_SHIFT		      9
+#define PAGE_SECTORS_SHIFT	      (PAGE_SHIFT - SECTOR_SHIFT)
+#define PAGE_SECTORS		      (1 << PAGE_SECTORS_SHIFT)
 
-#define PCMDISK_MAJOR           240
+#define PCMDISK_MAJOR                 240
+#define PCMDISK_CONTROL_MAJOR         241
 
-#define CONFIG_BLK_DEV_PCM_COUNT 1 
-#define CONFIG_BLK_DEV_PCM_SIZE  1024*1024 /* KB */
+#define CONFIG_BLK_DEV_PCM_COUNT      1 
+#define CONFIG_BLK_DEV_PCM_SIZE       1024*1024 /* KB */
 
-#define PCMDISK_CRASH       32000
-#define PCMDISK_CRASH_RESET 32001
+#define PCMDISK_CRASH                 32000
+#define PCMDISK_CRASH_RESET           32001
+#define PCMDISK_SET_PCM_BANDWIDTH     32002
+#define PCMDISK_GET_PCM_BANDWIDTH     32003
+#define PCMDISK_SET_DRAM_BANDWIDTH  32004
+#define PCMDISK_GET_DRAM_BANDWIDTH  32005
+
+extern int PCM_BANDWIDTH_MB;
+extern int DRAM_BANDWIDTH_MB;
 
 static LIST_HEAD(brd_devices);
 static DEFINE_MUTEX(brd_devices_mutex);
+
+/* 
+ * User-space can control the block device driver via a character device driver.
+ */ 
+
 
 /*
  * Each block pcmdisk device has a radix_tree brd_pages of pages that stores
@@ -229,9 +242,9 @@ static void copy_to_brd(pcm_storeset_t *set,
 	}
 	dst = kmap_atomic(page, KM_USER1);
 	pcm_memcpy(set, dst + offset, src, copy);
-	//preempt_disable();
+	//////preempt_disable();
 	//memcpy(dst + offset, src, copy);
-	//preempt_enable();
+	//////preempt_enable();
 	kunmap_atomic(dst, KM_USER1);
 
 	/* If the PCM layer is in crash mode then don't perform any writes. */
@@ -248,9 +261,9 @@ static void copy_to_brd(pcm_storeset_t *set,
 
 		dst = kmap_atomic(page, KM_USER1);
 		pcm_memcpy(set, dst, src, copy);
-		//preempt_disable();
+		//////preempt_disable();
 		//memcpy(dst, src, copy);
-		//preempt_enable();
+		//////preempt_enable();
 		kunmap_atomic(dst, KM_USER1);
 	}
 }
@@ -388,8 +401,8 @@ static int brd_direct_access (struct block_device *bdev, sector_t sector,
 static int brd_ioctl(struct block_device *bdev, fmode_t mode,
 			unsigned int cmd, unsigned long arg)
 {
-	int error;
 	struct brd_device *brd = bdev->bd_disk->private_data;
+	int error;
 
 	if (cmd == PCMDISK_CRASH) {
 		list_for_each_entry(brd, &brd_devices, brd_list) {
@@ -404,7 +417,6 @@ static int brd_ioctl(struct block_device *bdev, fmode_t mode,
 		}	
 		return 0;
 	}
-
 
 	if (cmd != BLKFLSBUF)
 		return -ENOTTY;
@@ -572,6 +584,46 @@ static struct kobject *brd_probe(dev_t dev, int *part, void *data)
 	return kobj;
 }
 
+
+/* 
+ * The function operations of the character device driver controlling the 
+ * block device driver 
+ */ 
+static int pcmctrl_ioctl (struct inode *inode, struct file *filp,
+                          unsigned int cmd, unsigned long arg) 
+{
+
+	if (cmd == PCMDISK_SET_PCM_BANDWIDTH) {
+		PCM_BANDWIDTH_MB = arg;
+		printk(KERN_INFO "SET PCM bandwidth: %lu\n", arg);
+		return 0;
+	}
+
+	if (cmd == PCMDISK_GET_PCM_BANDWIDTH) {
+		printk(KERN_INFO "GET PCM bandwidth: %lu\n", PCM_BANDWIDTH_MB);
+		return PCM_BANDWIDTH_MB;
+	}
+
+	if (cmd == PCMDISK_SET_DRAM_BANDWIDTH) {
+		DRAM_BANDWIDTH_MB = arg;
+		printk(KERN_INFO "SET DRAM bandwidth: %lu\n", arg);
+		return 0;
+	}
+
+	if (cmd == PCMDISK_GET_DRAM_BANDWIDTH) {
+		printk(KERN_INFO "GET DRAM bandwidth: %lu\n", DRAM_BANDWIDTH_MB);
+		return DRAM_BANDWIDTH_MB;
+	}
+
+	return 0;
+}
+
+
+struct file_operations pcmctrl_fops = {
+	ioctl: pcmctrl_ioctl
+};
+
+
 static int __init brd_init(void)
 {
 	int i, nr;
@@ -611,6 +663,10 @@ static int __init brd_init(void)
 	if (register_blkdev(PCMDISK_MAJOR, "pcmdisk"))
 		return -EIO;
 
+	if (register_chrdev(PCMDISK_CONTROL_MAJOR, "pcm-ctrl", &pcmctrl_fops)) {
+		goto out_unregister_blockdev;
+	}
+
 	pcm_global_init();
 
 	for (i = 0; i < nr; i++) {
@@ -619,6 +675,8 @@ static int __init brd_init(void)
 			goto out_free;
 		list_add_tail(&brd->brd_list, &brd_devices);
 	}
+
+
 
 	/* point of no return */
 
@@ -636,6 +694,8 @@ out_free:
 		list_del(&brd->brd_list);
 		brd_free(brd);
 	}
+	unregister_chrdev(PCMDISK_CONTROL_MAJOR, "pcm-ctrl");
+out_unregister_blockdev:
 	unregister_blkdev(PCMDISK_MAJOR, "pcmdisk");
 	pcm_global_fini();
 
@@ -653,6 +713,7 @@ static void __exit brd_exit(void)
 		brd_del_one(brd);
 	}
 	pcm_global_fini();
+	unregister_chrdev(PCMDISK_CONTROL_MAJOR, "pcm-ctrl");
 	blk_unregister_region(MKDEV(PCMDISK_MAJOR, 0), range);
 	unregister_blkdev(PCMDISK_MAJOR, "pcmdisk");
 }

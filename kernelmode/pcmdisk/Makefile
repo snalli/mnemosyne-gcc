@@ -6,19 +6,31 @@ pcmdisk-objs = brd.o pcm.o
 KERNEL_VERSION := `uname -r`
 KERNEL_SOURCE := /lib/modules/$(KERNEL_VERSION)/build
 
-all: build_kernelmodule build_userapp
+SRCDIR=`pwd`
+OBJDIR=`pwd`/build
+
+all: create_build_dir build_kernelmodule build_userapp
 
 clean: clean_kernelmodule clean_userapp
 
+create_build_dir:
+	if test ! -d $(OBJDIR); then                             \
+		mkdir $(OBJDIR);                                 \
+		cp Makefile $(OBJDIR)/Makefile;                  \
+		ln -s $(SRCDIR)/brd.c $(OBJDIR)/brd.c;           \
+		ln -s $(SRCDIR)/pcm.c $(OBJDIR)/pcm.c;           \
+		ln -s $(SRCDIR)/pcm.h $(OBJDIR)/pcm.h;           \
+		ln -s $(SRCDIR)/userctrl.c $(OBJDIR)/userctrl.c; \
+	fi
 
+build_kernelmodule: 
+	make -C $(KERNEL_SOURCE)  M=$(OBJDIR) modules
 
-build_kernelmodule:
-	make -C $(KERNEL_SOURCE) M=`pwd` modules
 clean_kernelmodule:
-	make -C $(KERNEL_SOURCE) M=`pwd` clean
+	make -C $(KERNEL_SOURCE) M=$(OBJDIR) clean
 
 build_userapp:
-	gcc user_control.c -o user_control
+	gcc $(OBJDIR)/userctrl.c -o $(OBJDIR)/userctrl
 
 clean_userapp:
-	rm user_control
+	rm $(OBJDIR)/userctrl

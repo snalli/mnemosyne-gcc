@@ -2,19 +2,26 @@
 
 mountpoint="/mnt/pcmfs"
 pcmdevice0="/dev/pcm0"
+pcmctrldevice0="/dev/pcm0-ctrl"
+objdir="build"
 
 function mkfs {
 	if [ ! -b "$pcmdevice0" ]
 	then 
 	mknod $pcmdevice0 b 240 0
 	fi
-	/sbin/insmod pcmdisk.ko
+	if [ ! -b "$pcmctrldevice0" ]
+	then 
+	mknod $pcmctldevice0 c 241 0
+	chmod a+wr $pcmctldevice0
+	fi
+	/sbin/insmod $objdir/pcmdisk.ko
 	/sbin/mke2fs -m 0 /dev/pcm0
 	if [ ! -d "$mountpoint" ]
 	then 
 	mkdir $mountpoint
 	fi
-	mount /dev/pcm0 /mnt/pcmfs
+	mount /dev/pcm0 /mnt/pcmfs -o noatime,nodiratime
 	chmod a+wr /mnt/pcmfs
 }
 

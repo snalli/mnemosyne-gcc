@@ -20,7 +20,7 @@
 #define PCM_CPUFREQ 2500LLU /* GHz */
 
 /* PCM write latency*/
-#define PCM_LATENCY_WRITE 2000 /* ns */
+#define PCM_LATENCY_WRITE 150 /* ns */
 
 /* 
  * Stores may block wait to find space in the cache (write buffer is full and 
@@ -83,6 +83,7 @@
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 
+#define gethrtime       asm_rdtsc
 
 /* Public types */
 

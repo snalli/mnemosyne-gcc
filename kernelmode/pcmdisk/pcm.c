@@ -9,6 +9,11 @@ typedef uint64_t cacheline_bitmask_t;
 typedef struct cacheline_s cacheline_t;
 typedef struct cacheline_crash_cdf_s cacheline_crash_cdf_t;
 
+/* PCM write bandwidth */
+int PCM_BANDWIDTH_MB = 1200;
+
+/* DRAM system peak bandwidth */
+int DRAM_BANDWIDTH_MB = 6000;
 
 /* 
  * The CDF that there will be a partial crash after we write the N first bytes
@@ -41,6 +46,7 @@ struct pcm_global_s {
 
 struct pcm_s {
 	spinlock_t        lock;
+	spinlock_t        bwlock; /* bandwidth model lock */
 	struct kmem_cache *storeset_cache;
 	struct kmem_cache *cacheline_cache;
 	uint32_t          count;
@@ -273,6 +279,7 @@ pcm_init(pcm_t **pcmp)
 	pcm->mode = MODE_NORMAL;
 	INIT_LIST_HEAD(&pcm->pcm_storeset_list);
 	spin_lock_init(&pcm->lock);
+	spin_lock_init(&pcm->bwlock);
 	printk(KERN_INFO "pcm_init: DONE: pcm=%p\n", pcm);
 
 	*pcmp = pcm;
@@ -740,6 +747,14 @@ pcm_nt_flush_emulate_crash(pcm_storeset_t *set)
 	set->in_crash_emulation_code = 0;
 }
 
+#if 0
+/* 
+ * Deprecated pcm_memcpy_internal
+ *
+ * Uses old bandwidth model.
+ *
+ */
+
 static
 void *
 pcm_memcpy_internal(pcm_storeset_t *set, void *dst, const void *src, size_t n, int use_stream_writes)
@@ -802,10 +817,82 @@ pcm_memcpy_internal(pcm_storeset_t *set, void *dst, const void *src, size_t n, i
 	}
 	return dst;
 }
+#endif
+
+static inline void asm_sse_write_block64(uintptr_t *addr, pcm_word_t *val)
+{
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[0]): "r" (val[0]));
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[1]): "r" (val[1]));
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[2]): "r" (val[2]));
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[3]): "r" (val[3]));
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[4]): "r" (val[4]));
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[5]): "r" (val[5]));
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[6]): "r" (val[6]));
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[7]): "r" (val[7]));
+}
+
+static
+void *
+pcm_memcpy_internal(pcm_storeset_t *set, void *dst, const void *src, size_t n)
+{
+	volatile uint8_t *saddr=((volatile uint8_t *) src);
+	volatile uint8_t *daddr=dst;
+	uint8_t          offset;
+ 	pcm_word_t       *val;
+	size_t           size = n;
+	int              extra_latency;
+	pcm_hrtime_t     start;
+	pcm_hrtime_t     stop;
+	pcm_hrtime_t     duration;
+	double           throughput;
+
+	if (size == 0) {
+		return dst;
+	}
+
+	start = gethrtime();
+	/* First write the new data. */
+	while(size >= sizeof(pcm_word_t) * 8) {
+		val = ((pcm_word_t *) saddr);
+		asm_sse_write_block64((uintptr_t *) daddr, val);
+		saddr+=8*sizeof(pcm_word_t);
+		daddr+=8*sizeof(pcm_word_t);
+		size-=8*sizeof(pcm_word_t);
+	}
+	if (size > 0) {
+		/* Ugly hack: asm_sse_write_block64 requires a 64 bytes size value. We move
+		 * back a few bytes to form a block of 64 bytes.
+		 */ 
+		offset = 64 - size;
+		saddr-=offset;
+		daddr-=offset;
+		val = ((pcm_word_t *) saddr);
+		asm_sse_write_block64((uintptr_t *) daddr, val);
+
+	}
+
+	size = n;
+
+	/* Now make sure data is flushed out */
+	asm_mfence();
+#ifdef PCM_EMULATE_LATENCY
+	extra_latency = (int) size * (1-(float) (((float) PCM_BANDWIDTH_MB)/1000)/(((float) DRAM_BANDWIDTH_MB)/1000))/(((float)PCM_BANDWIDTH_MB)/1000);
+	spin_lock(&(set->pcm->bwlock));
+	emulate_latency_ns(extra_latency);
+	spin_unlock(&(set->pcm->bwlock));
+	asm_cpuid();
+#endif
+	stop = gethrtime();
+	duration = stop - start;
+	throughput = 1000*((double) size) / ((double) CYCLE2NS(duration));
+	//printk(KERN_INFO "throughput: %d\n", (int) throughput);
+
+	return dst;
+}
 
 
 void *
 pcm_memcpy(pcm_storeset_t *set, void *dst, const void *src, size_t n) 
 {
-	return pcm_memcpy_internal(set, dst, src, n, 1);
+	return pcm_memcpy_internal(set, dst, src, n);
 }

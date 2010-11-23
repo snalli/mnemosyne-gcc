@@ -22,7 +22,6 @@ ubenchEnv.Append(LINKFLAGS = ' -T '+ ubenchEnv['MY_UTIL_DIR'] + '/linker_script_
 Export('ubenchEnv')
 
 ubench_list = Split("""
-                hashtable-mt
                 sync
                 tmlog
 		rawlog

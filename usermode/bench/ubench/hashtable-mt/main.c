@@ -55,11 +55,14 @@ ubench_desc_t         ubench_desc;
 
 static void run(void* arg);
 
+/* nolock versions rely on memory transactions for isolation */
 ubench_functions_t ubenchs[] = {
 	{ "mtm_mix_latency",          mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_latency_thread_main, mtm_mix_latency_print_stats },
 	{ "mtm_mix_throughput",       mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_throughput_thread_main, mtm_mix_throughput_print_stats },
 	{ "mtm_mix_latency_think",    mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_latency_think_thread_main, mtm_mix_latency_print_stats },
 	{ "mtm_mix_throughput_think", mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_throughput_think_thread_main, mtm_mix_throughput_print_stats },
+	{ "mtm_mix_latency_nolock",   mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_latency_thread_main_nolock, mtm_mix_latency_print_stats },
+	{ "mtm_mix_throughput_nolock",mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_throughput_thread_main_nolock, mtm_mix_throughput_print_stats },
 	{ "bdb_mix_latency",          bdb_mix_init, bdb_mix_fini, bdb_mix_thread_init, bdb_mix_thread_fini, bdb_mix_latency_thread_main, bdb_mix_latency_print_stats },
 	{ "bdb_mix_throughput",       bdb_mix_init, bdb_mix_fini, bdb_mix_thread_init, bdb_mix_thread_fini, bdb_mix_throughput_thread_main, bdb_mix_throughput_print_stats },
 };
@@ -219,6 +222,16 @@ main(int argc, char *argv[])
 
 	ubench_desc.iterations_per_chunk = 1024;
 
+	/* 
+	 * Setting the transaction mode via environment variable should be okay
+	 * as MTM is initialized later at the first transactional thread. 
+	 */
+	if (ubench_to_run == UBENCH_MTM_MIX_LATENCY_NOLOCK || 
+	    ubench_to_run == UBENCH_MTM_MIX_THROUGHPUT_NOLOCK)
+	{
+		setenv("MTM_FORCE_MODE", "pwbetl", 1);
+	}
+
 	/* initialize the experiment */
 	if (ubench_init(NULL) != 0) {
 		goto err;
@@ -253,7 +266,6 @@ main(int argc, char *argv[])
 	if (ubench_fini(NULL) != 0) {
 		goto err;
 	}
-
 
 	return 0;
 err:

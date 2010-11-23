@@ -175,7 +175,7 @@ m_stats_statset_init(m_stats_statset_t *statset,
 static
 m_result_t
 stats_get_statset(m_chhash_t *stats_table,
-                  char *name, 
+                  const char *name, 
                   m_stats_statset_t **statsetp)
 {
 	m_chhash_key_t    key;

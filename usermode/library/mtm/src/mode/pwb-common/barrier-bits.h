@@ -324,6 +324,11 @@ pwb_write_internal(mtm_tx_t *tx,
 	
 #ifdef _M_STATS_BUILD
 	m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, writes, 1);
+	if (access_is_nonvolatile) {
+		m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, nvwrites, 1);
+	} else {
+		m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, vwrites, 1);
+	}
 #endif	
 
 	/* Get reference to lock */
@@ -381,6 +386,11 @@ restart_no_load:
 				} else {
 #ifdef _M_STATS_BUILD
 					m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, writes_distinct, 1);
+					if (access_is_nonvolatile) {
+						m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, nvwrites_distinct, 1);
+					} else {
+						m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, vwrites_distinct, 1);
+					}
 #endif					
 					// Build a new write set entry
 					w = &modedata->w_set.entries[modedata->w_set.nb_entries];
@@ -471,6 +481,11 @@ restart_no_load:
 		insert_write_set_entry_after(initialized_entry, write_set_tail, tx, NULL);					
 #ifdef _M_STATS_BUILD
 		m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, writes_distinct, 1);
+		if (access_is_nonvolatile) {
+			m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, nvwrites_distinct, 1);
+		} else {
+			m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, vwrites_distinct, 1);
+		}
 #endif		
 		return w;
 	}

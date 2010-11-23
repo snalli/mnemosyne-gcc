@@ -1,51 +1,87 @@
 #include "mtm_i.h"
 #include "useraction.h"
 
+#define USERACTION_LIST_SIZE 8
+
+typedef struct mtm_user_action_s      mtm_user_action_t;
+
 struct mtm_user_action_s
 {
-  struct mtm_user_action_s *next;
-  _ITM_userCommitFunction  fn;
-  void                     *arg;
+	_ITM_userCommitFunction  fn;
+	void                     *arg;
+};
+
+struct mtm_user_action_list_s
+{
+	mtm_user_action_t *array;
+	int               nb_entries;      /* Number of entries */
+	int               size;            /* Size of array */
 };
 
 
 
-
-void
-mtm_useraction_runActions (mtm_user_action_t **list)
+int
+mtm_useraction_list_alloc(mtm_user_action_list_t **listp)
 {
-	mtm_user_action_t *a = *list;
+	mtm_user_action_list_t *list;
 
-	if (a == NULL) {
-		return;
-	}	
-	*list = NULL;
+	list = (mtm_user_action_list_t *) malloc (sizeof(mtm_user_action_list_t));
+	
+	if (list) {
+		list->array = (mtm_user_action_t *) realloc(NULL, sizeof(mtm_user_action_t) * USERACTION_LIST_SIZE);
+		list->size = USERACTION_LIST_SIZE;
+		*listp = list;
+		return 0;
+	}
 
-	do {
-		mtm_user_action_t *n = a->next;
-		a->fn (a->arg);
-		free (a);
-		a = n;
-	} while (a);
+	listp = NULL;
+	return -1;
+}
+
+
+int
+mtm_useraction_list_free(mtm_user_action_list_t **listp)
+{
+	assert(listp != NULL);
+
+	mtm_user_action_list_t *list = *listp;
+	
+	if (list) {
+		free (list->array);
+		free (list);
+	}
+	*listp = NULL;
+
+	return 0;
+}
+
+
+
+int
+mtm_useraction_clear(mtm_user_action_list_t *list)
+{
+	assert(list != NULL);
+
+	list->nb_entries = 0;
+
+	return 0;
 }
 
 
 void
-mtm_useraction_freeActions (mtm_user_action_t **list)
+mtm_useraction_list_run (mtm_user_action_list_t *list, int reverse)
 {
-  mtm_user_action_t *a = *list;
+	mtm_user_action_t *action;
+	int               i;
 
-  if (a == NULL)
-    return;
-  *list = NULL;
-
-  do
-    {
-      mtm_user_action_t *n = a->next;
-      free (a);
-      a = n;
-    }
-  while (a);
+	for (i=0; i<list->nb_entries; i++) {
+		if (reverse) {
+			action = &list->array[list->nb_entries - i - 1];
+		} else {	
+			action = &list->array[i];
+		}
+		action->fn (action->arg);
+	}
 }
 
 
@@ -55,13 +91,17 @@ mtm_useraction_addUserCommitAction(mtm_tx_t * tx,
                                    _ITM_transactionId tid, 
                                    void *arg)
 {
-  mtm_user_action_t *a;
+	mtm_user_action_list_t *list = tx->commit_action_list;
+	mtm_user_action_t      *action;
 
-  a = malloc (sizeof (*a));
-  a->next = tx->commit_actions;
-  a->fn = fn;
-  a->arg = arg;
-  tx->commit_actions = a;
+	if (list->nb_entries == list->size) {
+		list->size *= 2;
+		list->array = (mtm_user_action_t *) realloc(list->array, sizeof(mtm_user_action_t) * list->size);
+	}
+
+	action = &list->array[list->nb_entries++];
+	action->fn = fn;
+	action->arg = arg;
 }
 
 
@@ -70,11 +110,15 @@ mtm_useraction_addUserUndoAction(mtm_tx_t * tx,
                                  const _ITM_userUndoFunction fn, 
                                  void *arg)
 {
-  mtm_user_action_t *a;
+	mtm_user_action_list_t *list = tx->undo_action_list;
+	mtm_user_action_t      *action;
 
-  a = malloc (sizeof (*a));
-  a->next = tx->undo_actions;
-  a->fn = fn;
-  a->arg = arg;
-  tx->undo_actions = a;
+	if (list->nb_entries == list->size) {
+		list->size *= 2;
+		list->array = (mtm_user_action_t *) realloc(list->array, sizeof(mtm_user_action_t) * list->size);
+	}
+
+	action = &list->array[list->nb_entries++];
+	action->fn = fn;
+	action->arg = arg;
 }

@@ -344,17 +344,25 @@ mtm_op_add(unsigned int tid, mtm_hashtable_t *hashtable, object_t *obj, int lock
 	printf("add: obj->value=%p\n", obj->value);
 	printf("add: vsize=%d\n", vsize);
 */	
-	MNEMOSYNE_ATOMIC 
-	{
-		//print_obj(obj);
-		//printf("mtm_op_add: key (via print_obj) = "); print_obj(obj);
-		//printf("mtm_op_add: id                  = %u\n", id); 
-		//printf("mtm_op_add: key                 = %u\n", obj->key); 
-		//printf("mtm_op_add: key (via print_obj) = "); print_obj(obj);
-		//printf("mtm_op_add: obj = %p\n", obj);
-		memcpy(obj->value, hashtable->tmp_buf, vsize); 
-		hashtable_insert(tid, hashtable->ht, obj, obj);
-		//assert(hashtable_search(hashtable->ht, obj) != NULL);
+	if (lock) {
+		MNEMOSYNE_ATOMIC 
+		{
+			//print_obj(obj);
+			//printf("mtm_op_add: key (via print_obj) = "); print_obj(obj);
+			//printf("mtm_op_add: id                  = %u\n", id); 
+			//printf("mtm_op_add: key                 = %u\n", obj->key); 
+			//printf("mtm_op_add: key (via print_obj) = "); print_obj(obj);
+			//printf("mtm_op_add: obj = %p\n", obj);
+			memcpy(obj->value, hashtable->tmp_buf, vsize); 
+			hashtable_insert(tid, hashtable->ht, obj, obj);
+			//assert(hashtable_search(hashtable->ht, obj) != NULL);
+		}
+	} else {
+		MNEMOSYNE_ATOMIC 
+		{
+			memcpy(obj->value, hashtable->tmp_buf, vsize); 
+			hashtable_insert_nolock(tid, hashtable->ht, obj, obj);
+		}
 	}
 	assert(obj->key == key);
 
@@ -372,10 +380,17 @@ mtm_op_del(unsigned int tid, mtm_hashtable_t *hashtable, object_t *obj, int lock
 	printf("del: %p\n", obj);
 	printf("del: key=%d\n", obj->key);
 */	
-	MNEMOSYNE_ATOMIC 
-	{
-		obj_val = hashtable_remove(tid, hashtable->ht, obj);
-	}	
+	if (lock) {
+		MNEMOSYNE_ATOMIC 
+		{
+			obj_val = hashtable_remove(tid, hashtable->ht, obj);
+		}	
+	} else {
+		MNEMOSYNE_ATOMIC 
+		{
+			obj_val = hashtable_remove_nolock(tid, hashtable->ht, obj);
+		}	
+	}
 
 	return 0;
 }
@@ -390,7 +405,13 @@ mtm_op_get(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
 	object_t     *obj_key = &obj;
 
 	obj_key->key = id;
-	obj_val = hashtable_search(tid, hashtable->ht, obj_key);
+	if (lock) {
+		obj_val = hashtable_search(tid, hashtable->ht, obj_key);
+	} else {	
+		MNEMOSYNE_ATOMIC {
+			obj_val = hashtable_search_nolock(tid, hashtable->ht, obj_key);
+		}
+	}	
 	if (obj_val) {
 		//printf("mtm_op_get: %d: FOUND\n", id);
 		return 1;
@@ -401,7 +422,7 @@ mtm_op_get(unsigned int tid, mtm_hashtable_t *hashtable, int id, int lock)
 
 
 static inline
-void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
+void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think, int lock)
 {
  	unsigned int              iterations_per_chunk = ubench_desc.iterations_per_chunk;
 	mtm_mix_thread_state_t*   thread_state = ubench_desc.thread_state[tid];
@@ -423,9 +444,9 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 	struct timeval            work_stop_time;
 	uint64_t                  work_time;   /* in usec */
 	uint64_t                  think_time;  /* in usec */
-	mtm_mix_stat_t           *stat = &thread_state->stat;
-	mtm_mix_state_t          *global_state = (mtm_mix_state_t *) ubench_desc.global_state;
-	int                      block = 16;
+	mtm_mix_stat_t            *stat = &thread_state->stat;
+	mtm_mix_state_t           *global_state = (mtm_mix_state_t *) ubench_desc.global_state;
+	int                       block = 16;
 
 
 	keys_range_min = thread_state->keys_range_min;
@@ -449,7 +470,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 					if (measure_latency) {
 						start = gethrtime();
 					}
-					assert(mtm_op_del(tid, global_state->hashtable, del_obj, 1) == 0);
+					assert(mtm_op_del(tid, global_state->hashtable, del_obj, lock) == 0);
 					if (measure_latency) {
 						asm_cpuid();
 						stop = gethrtime();
@@ -460,7 +481,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 					if (measure_latency) {
 						start = gethrtime();
 					}
-					assert(mtm_op_add(tid, global_state->hashtable, ins_obj, 1) == 0);
+					assert(mtm_op_add(tid, global_state->hashtable, ins_obj, lock) == 0);
 					if (measure_latency) {
 						asm_cpuid();
 						stop = gethrtime();
@@ -474,7 +495,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 					 * Therefore we can't expect the ins/del to always succeed as some
 					 * other thread might jump in and remove or insert the object.
 					 */
-					found = (mtm_op_get(tid, global_state->hashtable, id, 1) == 1) ? 1 : 0;
+					found = (mtm_op_get(tid, global_state->hashtable, id, lock) == 1) ? 1 : 0;
 					stat->num_get++;
 					if (found) {
 						work_transactions++;
@@ -482,7 +503,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 						if (measure_latency) {
 							start = gethrtime();
 						}
-						assert(mtm_op_del(tid, global_state->hashtable, id, 1) == 0);
+						assert(mtm_op_del(tid, global_state->hashtable, id, lock) == 0);
 						if (measure_latency) {
 							asm_cpuid();
 							stop = gethrtime();
@@ -494,7 +515,7 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 						if (measure_latency) {
 							start = gethrtime();
 						}
-						assert(mtm_op_add(tid, global_state->hashtable, id, 1) == 0);
+						assert(mtm_op_add(tid, global_state->hashtable, id, lock) == 0);
 						if (measure_latency) {
 							asm_cpuid();
 							stop = gethrtime();
@@ -504,11 +525,14 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 	#endif
 					break;
 				case OP_HASH_READ:
-/*				
 					if (measure_latency) {
 						start = gethrtime();
 					}
-					mtm_op_get(tid, global_state->hashtable, id, 1);
+					/* 
+					 * mtm_op_get may not always succeed as the searched element 
+					 * might not be in the table.
+					 */
+					mtm_op_get(tid, global_state->hashtable, id, lock);
 					if (measure_latency) {
 						asm_cpuid();
 						stop = gethrtime();
@@ -517,7 +541,6 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 					stat->num_get++;
 					work_transactions++;
 					break;
-*/					
 			}
 		}	
 		if (think) {
@@ -534,20 +557,31 @@ void __mtm_mix_thread_main(unsigned int tid, int measure_latency, int think)
 
 void mtm_mix_latency_thread_main(unsigned int tid)
 {
-	__mtm_mix_thread_main(tid, 1, 0);
+	__mtm_mix_thread_main(tid, 1, 0, 1);
 }
 
 void mtm_mix_throughput_thread_main(unsigned int tid)
 {
-	__mtm_mix_thread_main(tid, 0, 0);
+	__mtm_mix_thread_main(tid, 0, 0, 1);
 }
 
 void mtm_mix_latency_think_thread_main(unsigned int tid)
 {
-	__mtm_mix_thread_main(tid, 1, 1);
+	__mtm_mix_thread_main(tid, 1, 1, 1);
 }
 
 void mtm_mix_throughput_think_thread_main(unsigned int tid)
 {
-	__mtm_mix_thread_main(tid, 0, 1);
+	__mtm_mix_thread_main(tid, 0, 1, 1);
+}
+
+/* nolock versions rely on memory transactions for isolation */
+void mtm_mix_latency_thread_main_nolock(unsigned int tid)
+{
+	__mtm_mix_thread_main(tid, 1, 0, 0);
+}
+
+void mtm_mix_throughput_thread_main_nolock(unsigned int tid)
+{
+	__mtm_mix_thread_main(tid, 0, 0, 0);
 }

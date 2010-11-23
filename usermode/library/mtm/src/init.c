@@ -238,12 +238,10 @@ mtm_init_thread(void)
 
 	switch (txmode) {
 		case MTM_MODE_pwbnl:
-			printf("pwbnl\n");
 			tx->mode = MTM_MODE_pwbnl;
 			tx->vtable = defaultVtables->mtm_pwbnl;
 			break;
 		case MTM_MODE_pwbetl:
-			printf("pwbetl\n");
 			tx->mode = MTM_MODE_pwbetl;
 			tx->vtable = defaultVtables->mtm_pwbetl;
 			break;
@@ -326,8 +324,8 @@ mtm_init_thread(void)
 		exit(1);
 	}	
 
-	tx->commit_actions = NULL;
-	tx->undo_actions = NULL;
+	mtm_useraction_list_alloc(&tx->commit_action_list);
+	mtm_useraction_list_alloc(&tx->undo_action_list);
 
 	tx->thread_num = __sync_add_and_fetch (&global_num, 1);
 #ifdef _M_STATS_BUILD	

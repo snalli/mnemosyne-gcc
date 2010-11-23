@@ -190,8 +190,10 @@ hashtable_count(struct hashtable *h)
 }
 
 /*****************************************************************************/
+__attribute__((tm_callable))
+static inline
 int
-hashtable_insert(int tid, struct hashtable *h, void *k, void *v)
+hashtable_insert_internal(int tid, struct hashtable *h, void *k, void *v, int thread_safe)
 {
     /* This method allows duplicate keys - but they shouldn't be used */
     unsigned int index;
@@ -201,7 +203,7 @@ hashtable_insert(int tid, struct hashtable *h, void *k, void *v)
 	//printf("[%d] hashtable_insert: &h->entrycount=%p\n", tid, &h->entrycount); fflush(stdout);
 	//printf("[%d] hashtable_insert: h->eqfn=%p\n", tid, h->eqfn); fflush(stdout);
 	//printf("[%d] hashtable_insert: h->hashfn=%p\n", tid, h->hashfn); fflush(stdout);
-	sloppycnt_uint32_add(tid, &h->entrycount, 1);
+	sloppycnt_uint32_add(tid, &h->entrycount, 1, thread_safe);
     if (h->entrycount.global.cnt > h->loadlimit)
 	///if (unsigned_int_fetch_and_add_full (&h->entrycount, 1) > h->loadlimit)
     {
@@ -226,20 +228,40 @@ hashtable_insert(int tid, struct hashtable *h, void *k, void *v)
 	//printf("hashtable_insert: tablelength = %u\n", h->tablelength);
     e->k = k;
     e->v = v;
-	m_txmutex_lock(&h->table_mutex[index]);
+	if (thread_safe) {
+		m_txmutex_lock(&h->table_mutex[index]);
+	}	
 	//printf("[%d] hashtable_insert: index=%d\n", tid, index); fflush(stdout);
 	//printf("[%d] hashtable_insert: e=%p\n", tid, e); fflush(stdout);
 	//printf("[%d] hashtable_insert: e->next=%p\n", tid, e->next); fflush(stdout);
     e->next = h->table[index];
     h->table[index] = e;
-	m_txmutex_unlock(&h->table_mutex[index]);
+	if (thread_safe) {
+		m_txmutex_unlock(&h->table_mutex[index]);
+	}	
 	//printf("[%d] hashtable_insert: DONE\n", tid); fflush(stdout);
     return -1;
 }
 
+int
+hashtable_insert(int tid, struct hashtable *h, void *k, void *v)
+{
+	return hashtable_insert_internal(tid, h, k, v, 1);
+}
+
+
+int
+hashtable_insert_nolock(int tid, struct hashtable *h, void *k, void *v)
+{
+	return hashtable_insert_internal(tid, h, k, v, 0);
+}
+
+
 /*****************************************************************************/
+__attribute__((tm_callable))
+static inline
 void * /* returns value associated with key */
-hashtable_search(int tid, struct hashtable *h, void *k)
+hashtable_search_internal(int tid, struct hashtable *h, void *k, int thread_safe)
 {
 	unsigned int n;
     struct entry *e;
@@ -255,14 +277,18 @@ hashtable_search(int tid, struct hashtable *h, void *k)
     e = h->table[index];
 	first_e = e;
 	//printf("hashtable_search: index = %u\n", index);
-	m_txmutex_lock(&h->table_mutex[index]);
+	if (thread_safe) {
+		m_txmutex_lock(&h->table_mutex[index]);
+	}	
 	n = 0;
     while (NULL != e)
     {	
 		n++;
         /* Check hash value to short circuit heavier comparison */
         if ((hashvalue == e->h) && (h->eqfn(k, e->k))) { 
-			m_txmutex_unlock(&h->table_mutex[index]);
+			if (thread_safe) {
+				m_txmutex_unlock(&h->table_mutex[index]);
+			}
 			return e->v;
 		}	
         e = e->next;
@@ -271,13 +297,32 @@ hashtable_search(int tid, struct hashtable *h, void *k)
 			abort();
 		}
     }
-	m_txmutex_unlock(&h->table_mutex[index]);
+	if (thread_safe) {
+		m_txmutex_unlock(&h->table_mutex[index]);
+	}	
     return NULL;
 }
 
-/*****************************************************************************/
+
 void * /* returns value associated with key */
-hashtable_remove(int tid, struct hashtable *h, void *k)
+hashtable_search(int tid, struct hashtable *h, void *k)
+{
+	return hashtable_search_internal(tid, h, k, 1);
+}
+
+
+void * /* returns value associated with key */
+hashtable_search_nolock(int tid, struct hashtable *h, void *k)
+{
+	return hashtable_search_internal(tid, h, k, 0);
+}
+
+
+/*****************************************************************************/
+__attribute__((tm_callable))
+static inline
+void * /* returns value associated with key */
+hashtable_remove_internal(int tid, struct hashtable *h, void *k, int thread_safe)
 {
     /* TODO: consider compacting the table when the load factor drops enough,
      *       or provide a 'compact' method. */
@@ -294,7 +339,9 @@ hashtable_remove(int tid, struct hashtable *h, void *k)
 	 * support table expansion.
 	 */
     index = indexFor(h->tablelength,hash(h,k));
-	m_txmutex_lock(&h->table_mutex[index]);
+	if (thread_safe) {
+		m_txmutex_lock(&h->table_mutex[index]);
+	}	
 	//printf("[%d] hashtable_remove: got lock: index=%d\n", tid, index); fflush(stdout);
     pE = &(h->table[index]);
     e = *pE;
@@ -311,8 +358,10 @@ hashtable_remove(int tid, struct hashtable *h, void *k)
         {
 			//printf("[%d] hashtable_remove: FOUND\n", tid); fflush(stdout);
             *pE = e->next;
-			m_txmutex_unlock(&h->table_mutex[index]);
-			sloppycnt_uint32_sub(tid, &h->entrycount, 1);
+			if (thread_safe) {
+				m_txmutex_unlock(&h->table_mutex[index]);
+			}	
+			sloppycnt_uint32_sub(tid, &h->entrycount, 1, thread_safe);
             //h->entrycount--;
 			///unsigned_int_fetch_and_add_full (&h->entrycount, (unsigned int) -1);
             v = e->v;
@@ -329,10 +378,27 @@ hashtable_remove(int tid, struct hashtable *h, void *k)
         e = e->next;
 		//printf("[%d] hashtable_remove: NEXT...\n", tid); fflush(stdout);
     }
-	m_txmutex_unlock(&h->table_mutex[index]);
+	if (thread_safe) {
+		m_txmutex_unlock(&h->table_mutex[index]);
+	}	
 	//printf("[%d] hashtable_remove: NOTFOUND...DONE\n", tid); fflush(stdout);
     return NULL;
 }
+
+
+void * /* returns value associated with key */
+hashtable_remove(int tid, struct hashtable *h, void *k)
+{
+	return hashtable_remove_internal(tid, h, k, 1);
+}
+
+
+void * /* returns value associated with key */
+hashtable_remove_nolock(int tid, struct hashtable *h, void *k)
+{
+	return hashtable_remove_internal(tid, h, k, 0);
+}
+
 
 /*****************************************************************************/
 /* destroy */

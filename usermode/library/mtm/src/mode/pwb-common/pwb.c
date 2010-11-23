@@ -12,6 +12,10 @@ mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r)
 	}	
 #endif
 
+	if (r == RESTART_REALLOCATE) {
+		assert(0 && "Currently we don't support extending the read/write set size");
+	}
+
 	rollback_transaction(tx);
 	cm_delay(tx);
 	mtm_decide_retry_strategy (r); 

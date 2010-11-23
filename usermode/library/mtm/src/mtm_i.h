@@ -173,6 +173,7 @@ extern int cm_threshold;
 #include "sysdeps/x86/target.h"
 #include "rwlock.h"
 #include "aatree.h"
+#include "useraction.h"
 #include "locks.h"
 #include "local.h"
 #include "stats.h"
@@ -213,54 +214,50 @@ typedef enum mtm_restart_reason
 /* This type is private to local.c.  */
 struct mtm_local_undo;
 
-/* This type is private to useraction.c.  */
-struct mtm_user_action;
-
-
 /* Transaction descriptor */
 struct mtm_tx_s {
-	uintptr_t           dummy1;           /* ICC expects to find the vtable pointer at offset 2*WORD_SIZE. */
-	uintptr_t           dummy2;
-	mtm_vtable_t        *vtable;          /* The dispatch table for the STM implementation currently in use. */
+	uintptr_t              dummy1;           /* ICC expects to find the vtable pointer at offset 2*WORD_SIZE. */
+	uintptr_t              dummy2;
+	mtm_vtable_t           *vtable;          /* The dispatch table for the STM implementation currently in use. */
 
-	mtm_jmpbuf_t        *tmp_jb_ptr;      /* Pointer to the temporary register checkpoint. This simplifies the assembly checkpoint code. */
-	mtm_jmpbuf_t        tmp_jb;           /* Temporary register checkpoint; this is where the assebly register checkpoint code will save the registers.  */
-	mtm_jmpbuf_t        jb;               /* Register checkpoint of this transaction. Keeping this separate from tmp_jb allows a nested transaction to transparently execute the assembly checkpoint code without destroying the active register checkpoint.  */
+	mtm_jmpbuf_t           *tmp_jb_ptr;      /* Pointer to the temporary register checkpoint. This simplifies the assembly checkpoint code. */
+	mtm_jmpbuf_t           tmp_jb;           /* Temporary register checkpoint; this is where the assebly register checkpoint code will save the registers.  */
+	mtm_jmpbuf_t           jb;               /* Register checkpoint of this transaction. Keeping this separate from tmp_jb allows a nested transaction to transparently execute the assembly checkpoint code without destroying the active register checkpoint.  */
 
-	mtm_mode_data_t     *modedata[MTM_NUM_MODES];
-	mtm_mode_t          mode;
-	mtm_word_t          status;           /* Transaction status (not read by other threads). */
+	mtm_mode_data_t        *modedata[MTM_NUM_MODES];
+	mtm_mode_t             mode;
+	mtm_word_t             status;           /* Transaction status (not read by other threads). */
 
-	uint32_t prop;                        /* The _ITM_codeProperties of this transaction as given by the compiler.  */
-	int                 nesting;          /* Nesting level. */
-	int                 can_extend;       /* Can this transaction be extended? */
-	_ITM_transactionId  id;               /* Instance number of the transaction */
-	int                 thread_num;
+	uint32_t               prop;             /* The _ITM_codeProperties of this transaction as given by the compiler.  */
+	int                    nesting;          /* Nesting level. */
+	int                    can_extend;       /* Can this transaction be extended? */
+	_ITM_transactionId     id;               /* Instance number of the transaction */
+	int                    thread_num;
 #ifdef CONFLICT_TRACKING
-	pthread_t           thread_id;        /* Thread identifier (immutable) */
+	pthread_t              thread_id;        /* Thread identifier (immutable) */
 #endif /* CONFLICT_TRACKING */
 #if CM == CM_DELAY || CM == CM_PRIORITY
-	volatile mtm_word_t  *c_lock;          /* Pointer to contented lock (cause of abort). */
+	volatile mtm_word_t    *c_lock;          /* Pointer to contented lock (cause of abort). */
 #endif /* CM == CM_DELAY || CM == CM_PRIORITY */
 #if CM == CM_BACKOFF
-	unsigned long        backoff;          /* Maximum backoff duration. */
-	unsigned long        seed;             /* RNG seed. */
+	unsigned long          backoff;          /* Maximum backoff duration. */
+	unsigned long          seed;             /* RNG seed. */
 #endif /* CM == CM_BACKOFF */
 #if CM == CM_PRIORITY
-	int                  priority;         /* Transaction priority */
-	int                  visible_reads;    /* Should we use visible reads? */
+	int                    priority;         /* Transaction priority */
+	int                    visible_reads;    /* Should we use visible reads? */
 #endif /* CM == CM_PRIORITY */
-	unsigned long        retries;          /* Number of consecutive aborts (retries) */
+	unsigned long          retries;          /* Number of consecutive aborts (retries) */
 
-	uintptr_t            stack_base;       /* Stack base address */
-	uintptr_t            stack_size;       /* Stack size */
-	mtm_local_undo_t     local_undo;       /* Data used by local.c for the local memory undo log.  */
-	mtm_word_t           *wb_table;        /* Private write-back table for use when isolation is off. */
-	pcm_storeset_t       *pcm_storeset;    /* PCM emulation bookkeeping structure */
-	m_stats_threadstat_t *threadstat;      /* Thread statistics */
-	m_stats_statset_t    *statset;         /* Per transaction instance statistics */
-	struct mtm_user_action_s *commit_actions;
-	struct mtm_user_action_s *undo_actions;
+	uintptr_t              stack_base;       /* Stack base address */
+	uintptr_t              stack_size;       /* Stack size */
+	mtm_local_undo_t       local_undo;       /* Data used by local.c for the local memory undo log.  */
+	mtm_word_t             *wb_table;        /* Private write-back table for use when isolation is off. */
+	pcm_storeset_t         *pcm_storeset;    /* PCM emulation bookkeeping structure */
+	m_stats_threadstat_t   *threadstat;      /* Thread statistics */
+	m_stats_statset_t      *statset;         /* Per transaction instance statistics */
+	mtm_user_action_list_t *commit_action_list;
+	mtm_user_action_list_t *undo_action_list;
 };
 
 

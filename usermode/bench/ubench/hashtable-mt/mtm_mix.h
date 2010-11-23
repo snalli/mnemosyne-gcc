@@ -11,4 +11,6 @@ void mtm_mix_latency_print_stats(FILE *);
 void mtm_mix_throughput_print_stats(FILE *);
 void mtm_mix_latency_think_thread_main(unsigned int);
 void mtm_mix_throughput_think_thread_main(unsigned int);
+void mtm_mix_latency_thread_main_nolock(unsigned int);
+void mtm_mix_throughput_thread_main_nolock(unsigned int);
 #endif

@@ -103,6 +103,10 @@ __attribute__((tm_callable))
 int 
 hashtable_insert(int cpuid, struct hashtable *h, void *k, void *v);
 
+__attribute__((tm_callable))
+int 
+hashtable_insert_nolock(int cpuid, struct hashtable *h, void *k, void *v);
+
 #define DEFINE_HASHTABLE_INSERT(fnname, keytype, valuetype) \
 int fnname (int cpuid, struct hashtable *h, keytype *k, valuetype *v) \
 { \
@@ -122,6 +126,10 @@ __attribute__((tm_callable))
 void *
 hashtable_search(int tid, struct hashtable *h, void *k);
 
+__attribute__((tm_callable))
+void *
+hashtable_search_nolock(int tid, struct hashtable *h, void *k);
+
 #define DEFINE_HASHTABLE_SEARCH(fnname, keytype, valuetype) \
 valuetype * fnname (struct hashtable *h, keytype *k) \
 { \
@@ -140,6 +148,10 @@ valuetype * fnname (struct hashtable *h, keytype *k) \
 __attribute__((tm_callable))
 void * /* returns value */
 hashtable_remove(int cpuid, struct hashtable *h, void *k);
+
+__attribute__((tm_callable))
+void * /* returns value */
+hashtable_remove_nolock(int cpuid, struct hashtable *h, void *k);
 
 #define DEFINE_HASHTABLE_REMOVE(fnname, keytype, valuetype) \
 valuetype * fnname (int cpuid, struct hashtable *h, keytype *k) \

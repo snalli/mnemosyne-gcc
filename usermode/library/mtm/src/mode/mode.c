@@ -30,3 +30,13 @@ mtm_str2mode(char *str)
 		}
 	}
 }
+
+
+char * 
+mtm_mode2str(mtm_mode_t mode)
+{
+	if (mode > MTM_MODE_none && mode < (int) MTM_NUM_MODES) {
+		return mtm_mode_str[mode];
+	}
+	return NULL;
+}

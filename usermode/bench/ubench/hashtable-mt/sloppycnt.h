@@ -50,20 +50,25 @@ ACTION (name,uint64_t,uint64)
   __attribute__((tm_callable))                                               \
   static inline                                                              \
   void sloppycnt_##typestr##_add(int cpuid,                                  \
-                                sloppycnt_##typestr##_t *sloppycnt,          \
-                                type val)                                    \
+                                 sloppycnt_##typestr##_t *sloppycnt,         \
+                                 type val,                                   \
+                                 int thread_safe)                            \
                                                                              \
   {                                                                          \
     if (sloppycnt->local[cpuid].cnt > val) {                                 \
 	  sloppycnt->local[cpuid].cnt -= val;                                    \
       return;                                                                \
 	}                                                                        \
-	__tm_waiver {                                                            \
-      pthread_mutex_lock(&sloppycnt->mutex);                                 \
-    }                                                                        \
-    sloppycnt->global.cnt += val;                                            \
-	__tm_waiver {                                                            \
-      pthread_mutex_unlock(&sloppycnt->mutex);                               \
+    if (thread_safe) {	                                                     \
+	  __tm_waiver {                                                          \
+        pthread_mutex_lock(&sloppycnt->mutex);                               \
+      }                                                                      \
+      sloppycnt->global.cnt += val;                                          \
+	  __tm_waiver {                                                          \
+        pthread_mutex_unlock(&sloppycnt->mutex);                             \
+      }                                                                      \
+    } else {                                                                 \
+      sloppycnt->global.cnt += val;                                          \
     }                                                                        \
   }
 
@@ -72,19 +77,25 @@ ACTION (name,uint64_t,uint64)
   __attribute__((tm_callable))                                               \
   static inline                                                              \
   void sloppycnt_##typestr##_sub(int cpuid,                                  \
-                                sloppycnt_##typestr##_t *sloppycnt,          \
-                                type val)                                    \
+                                 sloppycnt_##typestr##_t *sloppycnt,         \
+                                 type val,                                   \
+                                 int thread_safe)                            \
                                                                              \
   {                                                                          \
     sloppycnt->local[cpuid].cnt += val;                                      \
     if (sloppycnt->local[cpuid].cnt > RELEASE_THRESHOLD) {                   \
-	  __tm_waiver {                                                          \
-        pthread_mutex_lock(&sloppycnt->mutex);                               \
-      }                                                                      \
-	  sloppycnt->local[cpuid].cnt -= val;                                    \
-      sloppycnt->global.cnt -= val;                                          \
-	  __tm_waiver {                                                          \
-        pthread_mutex_unlock(&sloppycnt->mutex);                             \
+      if (thread_safe) {	                                                 \
+	    __tm_waiver {                                                        \
+          pthread_mutex_lock(&sloppycnt->mutex);                             \
+        }                                                                    \
+	    sloppycnt->local[cpuid].cnt -= val;                                  \
+        sloppycnt->global.cnt -= val;                                        \
+	    __tm_waiver {                                                        \
+          pthread_mutex_unlock(&sloppycnt->mutex);                           \
+        }                                                                    \
+	  } else {                                                               \
+	    sloppycnt->local[cpuid].cnt -= val;                                  \
+        sloppycnt->global.cnt -= val;                                        \
       }                                                                      \
 	}                                                                        \
   }

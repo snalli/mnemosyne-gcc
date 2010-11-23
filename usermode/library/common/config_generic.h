@@ -8,6 +8,14 @@
 #define CONFIG_RANGE_CHECK 1
 #define CONFIG_LIST_CHECK  2
 
+/* 
+ * The lookup functions return the value of a configuration variable based on 
+ * the following order: 
+ *  1) value of environment variable
+ *  2) value in configuration file
+ *  3) default value
+ */
+
 
 #define CONFIG_SETTING_LOOKUP(config, values, group, member, type_name, type,  \
                               default_val, validitycheck, args...)             \

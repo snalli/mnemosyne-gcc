@@ -208,8 +208,7 @@ rollback_transaction (mtm_tx_t *tx)
 		default:
 			assert(0);
 	}
-	mtm_useraction_freeActions (&tx->commit_actions);
-	mtm_useraction_runActions (&tx->undo_actions);
+	mtm_useraction_list_run (tx->undo_action_list, 1);
 
 	//FIXME: revert exceptions
 	/*
@@ -251,6 +250,8 @@ start:
 	
 	modedata->w_set.nb_entries = 0;
 	modedata->r_set.nb_entries = 0;
+	mtm_useraction_clear (tx->commit_action_list);
+	mtm_useraction_clear (tx->undo_action_list);
 
 	M_TMLOG_BEGIN(modedata->ptmlog);
 
@@ -329,8 +330,7 @@ trycommit_transaction (mtm_tx_t *tx, int enable_isolation)
 				assert(0);
 		}
 
-		mtm_useraction_freeActions (&tx->undo_actions);
-		mtm_useraction_runActions (&tx->commit_actions);
+		mtm_useraction_list_run (tx->commit_action_list, 0);
 
 		/* Set status (no need for CAS or atomic op) */
 		tx->status = TX_COMMITTED;

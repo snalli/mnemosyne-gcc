@@ -20,5 +20,6 @@ struct mtm_mode_data_s;
 typedef struct mtm_mode_data_s mtm_mode_data_t;
 
 mtm_mode_t mtm_str2mode(char *str);
+char *mtm_mode2str(mtm_mode_t mode);
 
 #endif

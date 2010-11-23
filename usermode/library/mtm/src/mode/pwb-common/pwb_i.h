@@ -18,9 +18,6 @@
 #include "mode/pwb-common/locks.h"
 #include "mode/pwb-common/tmlog.h"
 
-//# undef MTM_DEBUG_PRINT
-//# define MTM_DEBUG_PRINT(...)               printf(__VA_ARGS__); fflush(NULL)
-//# define PRINT_DEBUG2(...)               printf(__VA_ARGS__); fflush(NULL)
 
 void ITM_NORETURN mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r);
 
@@ -47,7 +44,7 @@ struct mtm_pwb_r_entry_s {
 
 /* Read set */
 struct mtm_pwb_r_set_s {                  
-  mtm_pwb_r_entry_t *entries;         /* Array of entries */
+  mtm_pwb_r_entry_t   *entries;         /* Array of entries */
   int                 nb_entries;       /* Number of entries */
   int                 size;             /* Size of array */
 };

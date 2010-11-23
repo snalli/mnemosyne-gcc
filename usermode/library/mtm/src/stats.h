@@ -28,6 +28,10 @@
   ACTION(aborts)                                                            \
   ACTION(writes)                                                            \
   ACTION(writes_distinct)                                                   \
+  ACTION(nvwrites)                                                          \
+  ACTION(nvwrites_distinct)                                                 \
+  ACTION(vwrites)                                                           \
+  ACTION(vwrites_distinct)                                                   
 
 
 #ifdef _M_STATS_BUILD

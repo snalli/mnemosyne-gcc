@@ -600,7 +600,7 @@ static int pcmctrl_ioctl (struct inode *inode, struct file *filp,
 	}
 
 	if (cmd == PCMDISK_GET_PCM_BANDWIDTH) {
-		printk(KERN_INFO "GET PCM bandwidth: %lu\n", PCM_BANDWIDTH_MB);
+		printk(KERN_INFO "GET PCM bandwidth: %d\n", PCM_BANDWIDTH_MB);
 		return PCM_BANDWIDTH_MB;
 	}
 
@@ -611,7 +611,7 @@ static int pcmctrl_ioctl (struct inode *inode, struct file *filp,
 	}
 
 	if (cmd == PCMDISK_GET_DRAM_BANDWIDTH) {
-		printk(KERN_INFO "GET DRAM bandwidth: %lu\n", DRAM_BANDWIDTH_MB);
+		printk(KERN_INFO "GET DRAM bandwidth: %d\n", DRAM_BANDWIDTH_MB);
 		return DRAM_BANDWIDTH_MB;
 	}
 

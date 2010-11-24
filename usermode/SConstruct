@@ -99,6 +99,11 @@ Export('toolsEnv')
 Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 SConscript('tool/SConscript', variant_dir = os.path.join('build', 'tool'))
 
+# Explicit dependencies that were built outside SCons
+mainEnv['EXPLICIT_DEPENDENCY'] = {}
+mainEnv['EXPLICIT_DEPENDENCY']['BDB_LIB'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/libdb.a')
+mainEnv['EXPLICIT_DEPENDENCY']['BDB_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/')
+
 
 if mainEnv['BUILD_EXAMPLE'] != None:
 	examplesEnv = mainEnv.Clone()

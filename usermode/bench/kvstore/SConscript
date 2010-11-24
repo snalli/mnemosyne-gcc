@@ -6,16 +6,6 @@ Import('mallocLibrary')
 kvstoreEnv = benchEnv.Clone() 
 kvstoreEnv.Append(CCFLAGS = ' -D_GNU_SOURCE ')
 kvstoreEnv.Append(CPPPATH = ['#library/common'])
-kvstoreEnv.Append(CPPPATH = ['/home/hvolos/workspace/db-4.8.26/build_unix'])
-
-#bdbLibrary = '/scratch/workspace/db-4.8.26/build_unix/libdb.a'
-#myEnv.Append(LINKFLAGS = '-Wl,--whole-archive /home/hvolos/workspace/db-4.8.26/build_unix/libdb.a -Wl,--no-whole-archive')
-
-#myEnv.Append(LIBS = [mcoreLibrary])
-#myEnv.Append(LIBS = [mtmLibrary])
-#myEnv.Append(LIBS = [mallocLibrary])
-#myEnv.Program('hashtable', sources)
-
 Export('kvstoreEnv')
 
 hashtableLibrary = SConscript('ht/SConscript')

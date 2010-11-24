@@ -34,5 +34,13 @@ author by e-mail to `hirarin@gmail.com'.
 Thanks.
 
 
+================================================================
+ADDED BY: Haris Volos
+================================================================
+
+The configure.in and configure scripts have been modified to 
+include Mnemosyne library directories.
+
+
 
 == END OF FILE ==

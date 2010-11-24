@@ -1,0 +1,31 @@
+import os
+
+Import('mallocLibrary')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('benchEnv')
+
+
+benchEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+benchEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
+benchEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
+
+if benchEnv['BUILD_DEBUG'] == True:
+	benchEnv.Append(CCFLAGS = ' -g')
+else:	
+	benchEnv.Append(CCFLAGS = ' -O2')
+
+benchEnv.Append(CCFLAGS = ' -m64 ')
+benchEnv.Append(LINKFLAGS = ' -T '+ benchEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+Export('benchEnv')
+
+if benchEnv['BUILD_BENCH'] == 'ALL':
+	bench_list = Split("""
+	                   kvstore
+	                   """)
+else:
+	bench_list = benchEnv['BUILD_BENCH'].split(',')
+
+for bench in bench_list:
+	sconscript_path = bench + '/SConscript'
+	SConscript(sconscript_path)

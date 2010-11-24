@@ -8,10 +8,9 @@ myEnv = kvstoreEnv.Clone()
 myEnv.Append(CCFLAGS = ' -D_GNU_SOURCE ')
 myEnv.Append(CPPPATH = ['#library/common'])
 myEnv.Append(CPPPATH = ['#bench/kvstore/ht'])
-myEnv.Append(CPPPATH = ['/home/hvolos/workspace/db-4.8.26/build_unix'])
 
-bdbLibrary = '/scratch/workspace/db-4.8.26/build_unix/libdb.a'
-myEnv.Append(LINKFLAGS = '-Wl,--whole-archive /home/hvolos/workspace/db-4.8.26/build_unix/libdb.a -Wl,--no-whole-archive')
+myEnv.Append(CPPPATH = [myEnv['EXPLICIT_DEPENDENCY']['BDB_INCLUDE'] )
+myEnv.Append(LINKFLAGS = '-Wl,--whole-archive %s -Wl,--no-whole-archive' % myEnv['EXPLICIT_DEPENDENCY']['BDB_LIB'])
 
 sources = Split("""
 		bdb_mix.c
@@ -24,5 +23,4 @@ myEnv.Append(LIBS = [mcoreLibrary])
 myEnv.Append(LIBS = [mtmLibrary])
 myEnv.Append(LIBS = [mallocLibrary])
 myEnv.Append(LIBS = [hashtableLibrary])
-
 myEnv.Program('kvdriver', sources)

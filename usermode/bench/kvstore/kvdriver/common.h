@@ -4,7 +4,6 @@
 #include "aux.h"
 
 #define USE_ELEMSET
-//#undef  USE_ELEMSET
 
 #define USE_PER_THREAD_HASH_TABLE
 #undef  USE_PER_THREAD_HASH_TABLE

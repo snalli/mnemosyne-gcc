@@ -2,6 +2,7 @@
 #define _COMMON_H_JIKAK1
 
 #include "aux.h"
+#include "ut_barrier.h"
 
 #define USE_ELEMSET
 
@@ -36,20 +37,6 @@ enum {
 	OP_HASH_WRITE = 1,
 };
 
-typedef enum {
-	UBENCH_UNKNOWN = -1,
-	UBENCH_MTM_MIX_LATENCY = 0,
-	UBENCH_MTM_MIX_THROUGHPUT = 1,
-	UBENCH_MTM_MIX_LATENCY_THINK = 2,
-	UBENCH_MTM_MIX_THROUGHPUT_THINK = 3,
-	UBENCH_MTM_MIX_LATENCY_NOLOCK = 4,
-	UBENCH_MTM_MIX_THROUGHPUT_NOLOCK = 5,
-	UBENCH_BDB_MIX_LATENCY = 6,
-	UBENCH_BDB_MIX_THROUGHPUT = 7,
-	num_of_benchs
-} ubench_t;
-
-
 typedef struct ubench_functions_s {
 	char *str;
 	int (*init)(void *);
@@ -71,14 +58,14 @@ typedef struct ubench_desc_s {
 
 
 extern char                  *prog_name;
-extern char                  *db_home_dir_prefix;
 extern int                   num_threads;
 extern int                   percent_read;
 extern int                   percent_write;
 extern int                   work_percent;
 extern int                   vsize;
 extern int                   num_keys;
-extern ubench_t              ubench_to_run;
+extern ubench_functions_t    ubenchs[];
+extern int                   ubench_to_run;
 extern unsigned long long    runtime;
 extern struct timeval        global_begin_time;
 extern ut_barrier_t          start_timer_barrier;

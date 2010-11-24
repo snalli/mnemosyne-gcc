@@ -1,6 +1,8 @@
 #ifndef _UT_BARRIER_H
 #define _UT_BARRIER_H
 
+#include <errno.h>
+
 /* Portable barrier implementation based on POSIX threads */
 
 #define UT_BARRIER_T       ut_barrier_t
@@ -21,7 +23,7 @@ struct ut_barrier_s {
 };
 
 
-int  
+static int  
 ut_barrier_init(ut_barrier_t *bp, int count)
 {  
 	int n;  
@@ -50,7 +52,7 @@ ut_barrier_init(ut_barrier_t *bp, int count)
 }  
   
 
-int  
+static int  
 ut_barrier_wait(register ut_barrier_t *bp) 
 {  
 	register struct _sb *sbp = bp->sbp;  
@@ -80,7 +82,7 @@ ut_barrier_wait(register ut_barrier_t *bp)
 }  
   
   
-int  
+static int  
 ut_barrier_destroy(ut_barrier_t *bp) {  
 	int n;  
 	int i;  

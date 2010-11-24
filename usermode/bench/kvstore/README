@@ -1,7 +1,7 @@
-bdb    : Berkeley DB
-tc     : TokyoCabinet
-ht     : C Hash Table by Christopher Clark, extended to support multiple 
-         threads.
-         <http://www.cl.cam.ac.uk/~cwc22/hashtable/>
+bdb      : Berkeley DB
+tc       : TokyoCabinet
+ht       : C Hash Table by Christopher Clark, extended to support multiple 
+           threads.
+           <http://www.cl.cam.ac.uk/~cwc22/hashtable/>
 
-driver : A front-end workload generator to drive the key-value stores
+kvdriver : A front-end workload generator to drive the key-value stores

@@ -69,7 +69,8 @@ int main(int argc, char **argv)
 	bdb = tcbdbnew();
 	
 	/* open the database */
-	if(!tcbdbopen(bdb, "/mnt/pcmfs/tc/casket.tcb", BDBOWRITER | BDBOCREAT)){
+	//if(!tcbdbopen(bdb, "/mnt/pcmfs/tc/casket.tcb", BDBOWRITER | BDBOCREAT)){
+	if(!tcbdbopen(bdb, "casket.tcb", BDBOWRITER | BDBOCREAT)){
 		ecode = tcbdbecode(bdb);
 		fprintf(stderr, "open error: %s\n", tcbdberrmsg(ecode));
 	}

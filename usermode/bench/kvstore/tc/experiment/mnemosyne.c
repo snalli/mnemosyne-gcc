@@ -16,6 +16,7 @@
 #include <mnemosyne.h>
 #include "keyset.h"
 
+
 MNEMOSYNE_PERSISTENT TCBDB* bdb;
 
 int OBJ_SIZE = 128;

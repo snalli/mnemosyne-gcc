@@ -18,6 +18,7 @@
 #include "bdb_mix.h"
 #include "common.h"
 
+char   *db_home_dir_prefix = "/mnt/pcmfs";
 
 static int bdb_op_add(DB *dbp, DB_ENV *envp, int id, char *buf);
 

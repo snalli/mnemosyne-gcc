@@ -13,9 +13,6 @@
 #include <assert.h>
 #include <sched.h>
 #include "ut_barrier.h"
-#include <db.h>
-#include "bdb_mix.h"
-#include "mtm_mix.h"
 #include "common.h"
 
 void print_vmstats(char *prefix) {
@@ -33,19 +30,15 @@ void print_vmstats(char *prefix) {
 	}
 }
 
-#define PAGE_SIZE                 4096
-#define PRIVATE_REGION_SIZE       (64*1024*PAGE_SIZE)
 
-
-char                  *prog_name = "hashtable";
-char                  *db_home_dir_prefix = "/mnt/pcmfs";
+char                  *prog_name = "kvdriver";
 int                   num_threads;
 int                   percent_read;
 int                   percent_write;
 int                   work_percent;
 int                   vsize;
 int                   num_keys;
-ubench_t              ubench_to_run;
+int                   ubench_to_run;
 unsigned long long    runtime;
 struct timeval        global_begin_time;
 ut_barrier_t          start_timer_barrier;
@@ -56,22 +49,13 @@ ubench_desc_t         ubench_desc;
 static void run(void* arg);
 
 /* nolock versions rely on memory transactions for isolation */
-ubench_functions_t ubenchs[] = {
-	{ "mtm_mix_latency",          mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_latency_thread_main, mtm_mix_latency_print_stats },
-	{ "mtm_mix_throughput",       mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_throughput_thread_main, mtm_mix_throughput_print_stats },
-	{ "mtm_mix_latency_think",    mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_latency_think_thread_main, mtm_mix_latency_print_stats },
-	{ "mtm_mix_throughput_think", mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_throughput_think_thread_main, mtm_mix_throughput_print_stats },
-	{ "mtm_mix_latency_nolock",   mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_latency_thread_main_nolock, mtm_mix_latency_print_stats },
-	{ "mtm_mix_throughput_nolock",mtm_mix_init, mtm_mix_fini, mtm_mix_thread_init, mtm_mix_thread_fini, mtm_mix_throughput_thread_main_nolock, mtm_mix_throughput_print_stats },
-	{ "bdb_mix_latency",          bdb_mix_init, bdb_mix_fini, bdb_mix_thread_init, bdb_mix_thread_fini, bdb_mix_latency_thread_main, bdb_mix_latency_print_stats },
-	{ "bdb_mix_throughput",       bdb_mix_init, bdb_mix_fini, bdb_mix_thread_init, bdb_mix_thread_fini, bdb_mix_throughput_thread_main, bdb_mix_throughput_print_stats },
-};
-
 
 
 static
 void usage(FILE *fout, char *name) 
 {
+	int i;
+
 	fprintf(fout, "usage:");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--ubench=MICROBENCHMARK_TO_RUN");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--runtime=RUNTIME_OF_EXPERIMENT_IN_SECONDS");
@@ -82,7 +66,11 @@ void usage(FILE *fout, char *name)
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--nkeys=KEY_SPACE");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--work=WORK_PERCENT");
 	fprintf(fout, "\nValid arguments:\n");
-	fprintf(fout, "  --ubench     [mtm_mix, bdb_mix]\n");
+	fprintf(fout, "  --ubench     [");
+	for (i=0; ubenchs[i].str != NULL; i++) {
+		printf("%s,", ubenchs[i].str);
+	}
+	printf("]\n");
 	fprintf(fout, "  --nthreads [1-%d]\n", MAX_NUM_THREADS);
 	exit(1);
 }
@@ -122,7 +110,7 @@ main(int argc, char *argv[])
 	void              (*ubench_print_stats)(FILE *);
 
 	/* Default values */
-	ubench_to_run = UBENCH_MTM_MIX_THROUGHPUT;
+	ubench_to_run = 0;
 	runtime = 30 * 1000 * 1000;
 	num_threads = 1;
 	percent_write = 100;
@@ -155,14 +143,14 @@ main(int argc, char *argv[])
      
 		switch (c) {
 			case 'b':
-				ubench_to_run = UBENCH_UNKNOWN;
-				for (i=0; i<num_of_benchs; i++) {
+				ubench_to_run = -1;
+				for (i=0; ubenchs[i].str != NULL; i++) {
 					if (strcmp(ubenchs[i].str, optarg) == 0) {
-						ubench_to_run = (ubench_t) i;
+						ubench_to_run = i;
 						break;
 					}
 				}
-				if (ubench_to_run == UBENCH_UNKNOWN) {
+				if (ubench_to_run == -1) {
 					usage(stderr, prog_name);
 				}
 				break;
@@ -226,11 +214,6 @@ main(int argc, char *argv[])
 	 * Setting the transaction mode via environment variable should be okay
 	 * as MTM is initialized later at the first transactional thread. 
 	 */
-	if (ubench_to_run == UBENCH_MTM_MIX_LATENCY_NOLOCK || 
-	    ubench_to_run == UBENCH_MTM_MIX_THROUGHPUT_NOLOCK)
-	{
-		setenv("MTM_FORCE_MODE", "pwbetl", 1);
-	}
 
 	/* initialize the experiment */
 	if (ubench_init(NULL) != 0) {

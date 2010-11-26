@@ -5,7 +5,7 @@
 
 #include "sloppycnt.h"
 #include "hashtable.h"
-#include "txmutex.h"
+#include "txlock.h"
 
 
 /*****************************************************************************/

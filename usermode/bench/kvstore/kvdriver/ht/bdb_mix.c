@@ -14,45 +14,19 @@
 #include <sched.h>
 #include "ut_barrier.h"
 #include <db.h>
+#include "mix-bits.h"
 #include "elemset.h"
 #include "bdb_mix.h"
 #include "common.h"
 
 char   *db_home_dir_prefix = "/mnt/pcmfs";
 
-static int bdb_op_add(DB *dbp, DB_ENV *envp, int id, char *buf);
 
-typedef struct bdb_mix_stat_s {
-	int      num_ins;
-	int      num_del;
-	int      num_get;
-	uint64_t total_latency_cycles_ins;
-	uint64_t total_latency_cycles_del;
-	uint64_t total_latency_cycles_get;
-	uint64_t work_transactions;
-} bdb_mix_stat_t;
-
-
-typedef struct bdb_mix_thread_state_s {
-	unsigned int   seed;
-	DB             *dbp;
-	DB_ENV         *envp;
-	char           buf[16384];
-	elemset_t      elemset_ins;        /* the set of the keys inserted in the table */
-	elemset_t      elemset_del;        /* the set of the keys deleted from the table */
-	int            keys_range_len;
-	int            keys_range_min;
-	int            keys_range_max;
-	bdb_mix_stat_t stat;
-} bdb_mix_thread_state_t;
-
-
-typedef struct bdb_mix_state_s {
-	DB                 *dbp[MAX_NUM_THREADS];
-	DB_ENV             *envp[MAX_NUM_THREADS];
-	char               file_name[128];
-	bdb_mix_stat_t     stat;
-} bdb_mix_state_t;
+typedef struct bdb_mix_global_state_s {
+	DB          *dbp;
+	DB_ENV      *envp;
+	char        file_name[128];
+} bdb_mix_global_state_t;
 
 
 typedef struct object_s {
@@ -118,33 +92,23 @@ open_db(DB **dbpp, const char *prog_name, const char *file_name,
 
 int bdb_mix_init(void *args)
 {
-	DB              *dbp = NULL;
-	DB_ENV          *envp = NULL;
-	bdb_mix_state_t *global_state = NULL;
-	int             ret;
-	int             ret_t;
-	u_int32_t       env_flags;
-	char            buf[16384];
-	int             i;
-	int             j;
-	const char      *file_name_prefix = "mydb.db";  /* Database file name */
-	char            file_name[128];
-	char            num_env;
-	char            num_db_per_env;
-	char            db_home_dir[128];
-	int             keys_range_min;
-	int             keys_range_max;
-	int             keys_range_len;
+	DB                     *dbp = NULL;
+	DB_ENV                 *envp = NULL;
+	mix_global_state_t     *mix_global_state = NULL;
+	bdb_mix_global_state_t *global_state = NULL;
+	int                    ret;
+	int                    ret_t;
+	u_int32_t              env_flags;
+	char                   buf[16384];
+	int                    j;
+	const char             *file_name_prefix = "mydb.db";  /* Database file name */
+	char                   file_name[128];
+	char                   num_env;
+	char                   num_db_per_env;
+	char                   db_home_dir[128];
 
-#ifdef USE_PER_THREAD_HASH_TABLE	
-	num_env = num_threads;
-	num_db_per_env = 1;
-#else
-	num_env = 1;
-	num_db_per_env = 1;
-#endif
-
-	global_state = (bdb_mix_state_t *) malloc(sizeof(bdb_mix_state_t));
+	global_state = (bdb_mix_global_state_t *) malloc(sizeof(bdb_mix_global_state_t));
+	mix_init(&mix_global_state, bdb_op_ins, bdb_op_del, bdb_op_get, (void *) global_state);
 
 	env_flags =
 	  DB_CREATE     |  /* Create the environment if it does not exist */ 
@@ -157,86 +121,60 @@ int bdb_mix_init(void *args)
 
 	env_flags |=  DB_INIT_LOCK;    /* Initialize the locking subsystem */
 
-	for (i=0; i<num_env; i++) {
-
-		/* Create the environment */
-		ret = db_env_create(&envp, 0);
-		if (ret != 0) {
-			fprintf(stderr, "Error creating environment handle: %s\n", db_strerror(ret));
-			goto err;
-		}
-
-		/*
-		 * Indicate that we want db to perform lock detection internally.
-		 * Also indicate that the transaction with the fewest number of
-		 * write locks will receive the deadlock notification in 
-		 * the event of a deadlock.
-		 */  
-		ret = envp->set_lk_detect(envp, DB_LOCK_MINWRITE);
-		if (ret != 0) {
-			fprintf(stderr, "Error setting lock detect: %s\n",
-				db_strerror(ret));
-			goto err;
-		}
-
-		ret = envp->set_cachesize(envp, 0, 512*1024*1024, 0);
-		if (ret != 0) {
-			goto err;
-		}
-
-		/* Now actually open the environment */
-		sprintf(db_home_dir, "%s/db.%d", db_home_dir_prefix, i);
-		mkdir(db_home_dir, S_IRWXU);
-		ret = envp->open(envp, db_home_dir, env_flags, 0);
-		if (ret != 0) {
-			fprintf(stderr, "Error opening environment: %s\n", db_strerror(ret));
-			goto err;
-		}
-
-		/*
-		 * If we had utility threads (for running checkpoints or 
-		 * deadlock detection, for example) we would spawn those
-		 * here. However, for a simple example such as this,
-		 * that is not required.
-		 */
-
-
-		/* Open the database */
-		sprintf(file_name, "%s.%d", file_name_prefix, i);
-		ret = open_db(&dbp, prog_name, file_name, envp, 0);
-		if (ret != 0) {
-			fprintf(stderr, "Error opening database: %s\n", db_strerror(ret));
-			goto err;
-		}
-
-		global_state->dbp[i] = dbp;
-		global_state->envp[i] = envp;
+	/* Create the environment */
+	ret = db_env_create(&envp, 0);
+	if (ret != 0) {
+		fprintf(stderr, "Error creating environment handle: %s\n", db_strerror(ret));
+		goto err;
 	}
 
-	strcpy(global_state->file_name, file_name);
-	ubench_desc.global_state = (void *) global_state;
+	/*
+	 * Indicate that we want db to perform lock detection internally.
+	 * Also indicate that the transaction with the fewest number of
+	 * write locks will receive the deadlock notification in 
+	 * the event of a deadlock.
+	 */  
+	ret = envp->set_lk_detect(envp, DB_LOCK_MINWRITE);
+	if (ret != 0) {
+		fprintf(stderr, "Error setting lock detect: %s\n",
+			db_strerror(ret));
+		goto err;
+	}
 
-#ifndef USE_ELEMSET
-	/* Populate the hash table
-	 * 
-	 * We want to have a steady state experiment where deletes have the
-	 * same rate as inserts, and the number of elements in the table is
-	 * always num_keys/2.
-	 *
-	 * To achieve this, we have a range of keys [0, num_keys-1], and 
-	 * only half of the keys are found in the hash table at anytime during
-	 * the experiment's execution.
+	ret = envp->set_cachesize(envp, 0, 512*1024*1024, 0);
+	if (ret != 0) {
+		goto err;
+	}
+
+	/* Now actually open the environment */
+	sprintf(db_home_dir, "%s/db", db_home_dir_prefix);
+	mkdir(db_home_dir, S_IRWXU);
+	ret = envp->open(envp, db_home_dir, env_flags, 0);
+	if (ret != 0) {
+		fprintf(stderr, "Error opening environment: %s\n", db_strerror(ret));
+		goto err;
+	}
+
+	/*
+	 * If we had utility threads (for running checkpoints or 
+	 * deadlock detection, for example) we would spawn those
+	 * here. However, for a simple example such as this,
+	 * that is not required.
 	 */
 
-	keys_range_len = num_keys / num_threads;
-	for (i=0; i<num_threads; i++) {
-		keys_range_min = i*keys_range_len;
-		keys_range_max = (i+1)*keys_range_len-1;
-		for(j=keys_range_min; j<=keys_range_max-(keys_range_len/2); j++) {
-			bdb_op_add(dbp, envp, j, buf);
-		}
+
+	/* Open the database */
+	sprintf(file_name, "%s", file_name_prefix);
+	ret = open_db(&dbp, prog_name, file_name, envp, 0);
+	if (ret != 0) {
+		fprintf(stderr, "Error opening database: %s\n", db_strerror(ret));
+		goto err;
 	}
-#endif
+
+	global_state->dbp = dbp;
+	global_state->envp = envp;
+
+	strcpy(global_state->file_name, file_name);
 
 	return 0;
 
@@ -247,127 +185,74 @@ err:
 
 int bdb_mix_fini(void *args)
 {
-	bdb_mix_state_t *global_state;
-	int          ret;
-	int          ret_t;
-	int          i;
-	int          num_env;
-	int          num_db_per_env;
-
-	global_state = (bdb_mix_state_t *) ubench_desc.global_state;
+	mix_global_state_t     *mix_global_state = (mix_global_state_t *) ubench_desc.global_state;
+	bdb_mix_global_state_t *global_state = (bdb_mix_global_state_t *) mix_global_state->data;
+	int                    ret;
+	int                    ret_t;
 
 	/* Close our database handle, if it was opened. */
-#ifdef USE_PER_THREAD_HASH_TABLE	
-	num_env = num_threads;
-	num_db_per_env = 1;
-#else
-	num_env = 1;
-	num_db_per_env = 1;
-#endif
-	for (i=0; i<num_env; i++) {
-		if (global_state->dbp[i] != NULL) {
-			ret_t = global_state->dbp[i]->close(global_state->dbp[i], 0);
-			if (ret_t != 0) {
-				fprintf(stderr, "%s database close failed: %s\n",
-					global_state->file_name, db_strerror(ret_t));
-				ret = ret_t;
-			}
-		}
 
-		//global_state->envp[i]->mutex_stat_print(global_state->envp[i], DB_STAT_ALL);
+	ret_t = global_state->dbp->close(global_state->dbp, 0);
+	if (ret_t != 0) {
+		fprintf(stderr, "%s database close failed: %s\n",
+			global_state->file_name, db_strerror(ret_t));
+		ret = ret_t;
+	}
 
-		/* Close our environment, if it was opened. */
-		if (global_state->envp[i] != NULL) {
-			ret_t = global_state->envp[i]->close(global_state->envp[i], 0);
-			if (ret_t != 0) {
-				fprintf(stderr, "environment close failed: %s\n", db_strerror(ret_t));
-				ret = ret_t;
-			}
-		}
+	/* Close our environment, if it was opened. */
+	ret_t = global_state->envp->close(global_state->envp, 0);
+	if (ret_t != 0) {
+		fprintf(stderr, "environment close failed: %s\n", db_strerror(ret_t));
+		ret = ret_t;
 	}
 
 	return 0;
 }
 
 
-int bdb_mix_thread_init(unsigned int tid)
+int 
+bdb_mix_create_elem(int id, void **elemp)
 {
-	char                      buf[16384];
-	bdb_mix_thread_state_t    *thread_state;
-	object_t                  *obj;
-	object_t                  *iter;
-	int                       i;
-	int                       j;
-	int                       num_keys_per_thread;
-	bdb_mix_state_t           *global_state = (bdb_mix_state_t *) ubench_desc.global_state;
-	bdb_mix_stat_t            *stat;
-	int                       keys_range_min;
-	int                       keys_range_max;
-	int                       keys_range_len;
+	object_t *obj;
 
-	thread_state = (bdb_mix_thread_state_t*) malloc(sizeof(bdb_mix_thread_state_t));
-	ubench_desc.thread_state[tid] = thread_state;
-
-#ifdef USE_PER_THREAD_HASH_TABLE	
-	thread_state->dbp = global_state->dbp[tid]; /* use per thread database */
-#else	
-	thread_state->dbp = global_state->dbp[0];   /* use common database */
-#endif	
-	thread_state->envp = thread_state->dbp->get_env(thread_state->dbp);
-
-	keys_range_len = thread_state->keys_range_len = num_keys_per_thread = (num_keys) / num_threads;
-	keys_range_min = thread_state->keys_range_min = tid*num_keys_per_thread;
-	keys_range_max = thread_state->keys_range_max = (tid+1)*num_keys_per_thread-1;
-
-#ifdef USE_ELEMSET
-	assert(elemset_init(&thread_state->elemset_ins, num_keys_per_thread, tid)==0);
-	assert(elemset_init(&thread_state->elemset_del, num_keys_per_thread, tid)==0);
-
-	/* Populate the hash table
-	 * 
-	 * We want to have a steady state experiment where deletes have the
-	 * same rate as inserts, and the number of elements in the table is
-	 * always num_keys/2.
-	 *
-	 * To achieve this, we have a range of keys [0, num_keys-1], and 
-	 * only half of the keys are found in the hash table at anytime during
-	 * the experiment's execution.
-	 */
-
-	for(j=keys_range_min; j<=keys_range_max-(keys_range_len/2)-1; j++) {
-		if ((obj = (object_t*) malloc(sizeof(object_t) + vsize)) == NULL) {
-			INTERNAL_ERROR("Could not allocate memory.\n")
-		}
-		obj->key = j;
-		bdb_op_add(thread_state->dbp, thread_state->envp, j, buf);
-		elemset_put(&thread_state->elemset_ins, obj);
-		//printf("put_ins: %p\n", obj);
-		//printf("put_ins: key=%d\n", obj->key);
+	if ((obj = (object_t*) malloc(sizeof(object_t) + vsize)) == NULL) {
+		INTERNAL_ERROR("Could not allocate memory.\n")
 	}
-
-	for(j=keys_range_max-(keys_range_len/2); j<=keys_range_max; j++) {
-		if ((obj = (object_t*) malloc(sizeof(object_t) + vsize)) == NULL) {
-			INTERNAL_ERROR("Could not allocate memory.\n")
-		}
-		obj->key = j;
-		elemset_put(&thread_state->elemset_del, obj);
-		//printf("put_del: %p\n", obj);
-		//printf("put_del: key=%d\n", obj->key);
-	}
-
-
-#endif	
-	stat = &(thread_state->stat);
-	stat->work_transactions = 0;
-	stat->num_ins = 0;
-	stat->num_del = 0;
-	stat->num_get = 0;
-	stat->total_latency_cycles_ins = 0;
-	stat->total_latency_cycles_del = 0;
-	stat->total_latency_cycles_get = 0;
+	obj->key = id;
+	*elemp = (void *) obj;
 
 	return 0;
 }
+
+
+
+int
+bdb_mix_thread_init(unsigned int tid)
+{
+	mix_global_state_t     *mix_global_state;
+	bdb_mix_global_state_t *global_state;
+	mix_thread_state_t     *thread_state;
+	void                   *elem;
+	int                    i;
+	int                    j;
+	int                    num_keys_per_thread;
+	mix_stat_t             *stat;
+
+	assert(mix_thread_init(tid, NULL, bdb_mix_create_elem, &thread_state)==0);
+
+	mix_global_state = (mix_global_state_t *) ubench_desc.global_state;
+	global_state = (bdb_mix_global_state_t *) mix_global_state->data;
+
+	/* Populate the hash table */
+
+	for (i=0; i<thread_state->elemset_ins.count; i++) {
+		elem = thread_state->elemset_ins.array[i];
+		bdb_op_ins(thread_state, elem, 0);
+	}
+
+	return 0;
+}
+
 
 int bdb_mix_thread_fini(unsigned int tid)
 {
@@ -375,97 +260,55 @@ int bdb_mix_thread_fini(unsigned int tid)
 }
 
 
-
-void __bdb_mix_print_stats(FILE *fout, int include_latency) 
+static inline
+void 
+__bdb_mix_print_stats(FILE *fout, int report_latency) 
 {
-	int                     i;
-	uint64_t                total_work_transactions = 0;
-	uint64_t                total_runtime = 0;
-	uint64_t                avg_runtime;
-	uint64_t                avg_latency_ins;
-	uint64_t                avg_latency_get;
-	uint64_t                avg_latency_del;
-	double                  throughput;
-	double                  throughput_ins;
-	double                  throughput_del;
-	double                  throughput_get;
 	char                    prefix[] = "bench.stat";
 	char                    separator[] = "rj,40";
+	uint64_t                hashtable_footprint;
+	unsigned int            hashtable_num_entries;
 
-	bdb_mix_state_t         *global_state = (bdb_mix_state_t *) ubench_desc.global_state;
-	bdb_mix_stat_t          *thread_stat;
-	bdb_mix_stat_t          total_stat;
-
-	total_stat.num_ins = 0;
-	total_stat.num_del = 0;
-	total_stat.num_get = 0;
-	total_stat.total_latency_cycles_ins = 0;
-	total_stat.total_latency_cycles_del = 0;
-	total_stat.total_latency_cycles_get = 0;
-	for (i=0; i<num_threads; i++) {
-		thread_stat = &(((bdb_mix_thread_state_t *) ubench_desc.thread_state[i])->stat);
-		total_work_transactions += thread_stat->work_transactions;
-		total_runtime += ubench_desc.thread_runtime[i];
-		total_stat.num_ins += thread_stat->num_ins;
-		total_stat.num_del += thread_stat->num_del;
-		total_stat.num_get += thread_stat->num_get;
-		total_stat.total_latency_cycles_ins += thread_stat->total_latency_cycles_ins;
-		total_stat.total_latency_cycles_del += thread_stat->total_latency_cycles_del;
-		total_stat.total_latency_cycles_get += thread_stat->total_latency_cycles_get;
-	}
-	avg_runtime = total_runtime/num_threads;
-	throughput = ((double) total_work_transactions) / ((double) avg_runtime);
-	throughput_ins = ((double) total_stat.num_ins) / ((double) avg_runtime);
-	throughput_del = ((double) total_stat.num_del) / ((double) avg_runtime);
-	throughput_get = ((double) total_stat.num_get) / ((double) avg_runtime);
-	avg_latency_ins = CYCLE2NS(mydiv(total_stat.total_latency_cycles_ins, total_stat.num_ins));
-	avg_latency_del = CYCLE2NS(mydiv(total_stat.total_latency_cycles_del, total_stat.num_del));
-	avg_latency_get = CYCLE2NS(mydiv(total_stat.total_latency_cycles_get, total_stat.num_get));
-
-	fprintf(fout, "STATISTICS\n");
-	fprintf(fout, "%s\n", EQUALSIGNS(60));
-	PRINT_NAMEVAL_U64(prefix, "runtime", avg_runtime/1000, "ms", separator);
-	PRINT_NAMEVAL_U64(prefix, "total_work_transactions", total_work_transactions, "ops", separator);
-	PRINT_NAMEVAL_DOUBLE(prefix, "throughput", throughput * 1000 * 1000, "ops/s", separator);
-	PRINT_NAMEVAL_DOUBLE(prefix, "throughput_ins", throughput_ins * 1000 * 1000, "ops/s", separator);
-	PRINT_NAMEVAL_DOUBLE(prefix, "throughput_del", throughput_del * 1000 * 1000, "ops/s", separator);
-	PRINT_NAMEVAL_DOUBLE(prefix, "throughput_get", throughput_get * 1000 * 1000, "ops/s", separator);
-	if (include_latency) {
-		PRINT_NAMEVAL_U64(prefix, "avg_latency_ins", avg_latency_ins, "ns", separator);
-		PRINT_NAMEVAL_U64(prefix, "avg_latency_del", avg_latency_del, "ns", separator);
-		PRINT_NAMEVAL_U64(prefix, "avg_latency_get", avg_latency_get, "ns", separator);
-	}
-
+	mix_print_stats(fout, report_latency);
 }
+
 
 void bdb_mix_latency_print_stats(FILE *fout) 
 {
 	__bdb_mix_print_stats(fout, 1);
 }
 
+
 void bdb_mix_throughput_print_stats(FILE *fout) 
 {
 	__bdb_mix_print_stats(fout, 0);
 }
 
-static int
-bdb_op_add(DB *dbp, DB_ENV *envp, int id, char *val)
+
+int
+bdb_op_ins(void *t, void *elem, int lock)
 {
-	int  ret;
-	int  ret_t;
-	DBT  key;
-	DBT  value;
-	char buf[16384];
-	int  retry_count = 0;
+	mix_global_state_t     *mix_global_state = (mix_global_state_t *) ubench_desc.global_state;
+	bdb_mix_global_state_t *global_state = (bdb_mix_global_state_t *) mix_global_state->data;
+	mix_thread_state_t     *thread_state = (mix_thread_state_t *) t;
+	DB_ENV                 *envp = global_state->envp;
+	DB                     *dbp = global_state->dbp;
+	object_t               *obj = (object_t *) elem;
+	int                    ret;
+	int                    ret_t;
+	DBT                    key;
+	DBT                    value;
+	char                   buf[16384];
+	int                    retry_count = 0;
+	unsigned int           id = obj->key; 
 
 	/* Prepare the DBTs */
 	memset(&key, 0, sizeof(DBT));
 	memset(&value, 0, sizeof(DBT));
 	key.data = &id;
-	key.size = sizeof(int);
+	key.size = sizeof(unsigned int);
 	value.data = buf;
 	value.size = vsize;
-	memcpy(buf, val, vsize); 
 
 
 	/*
@@ -483,9 +326,6 @@ retry:
 
 	if (ret != 0) {
 		envp->err(envp, ret, "Database put failed.");
-#ifdef _DEBUG_THIS	
-		envp->err(envp, ret, "Database put failed.");
-#endif		
 		goto err;
 	}
 	return 0;
@@ -495,18 +335,25 @@ err:
 }
 
 
-static int
-bdb_op_del(DB *dbp, DB_ENV *envp, int id, char *buf)
+int
+bdb_op_del(void *t, void *elem, int lock)
 {
-	int  ret;
-	DBT  key;
-	int  retry_count = 0;
+	mix_global_state_t     *mix_global_state = (mix_global_state_t *) ubench_desc.global_state;
+	bdb_mix_global_state_t *global_state = (bdb_mix_global_state_t *) mix_global_state->data;
+	mix_thread_state_t     *thread_state = (mix_thread_state_t *) t;
+	DB_ENV                 *envp = global_state->envp;
+	DB                     *dbp = global_state->dbp;
+	object_t               *obj = (object_t *) elem;
+	int                    ret;
+	DBT                    key;
+	int                    retry_count = 0;
+	unsigned int           id = obj->key; 
 
 	/* Prepare the DBTs */
 	memset(&key, 0, sizeof(DBT));
 
 	key.data = &id;
-	key.size = sizeof(int);
+	key.size = sizeof(unsigned int);
 
 	retry_count = 0;
 retry:
@@ -518,9 +365,6 @@ retry:
 
 	if (ret != 0) {
 		envp->err(envp, ret, "Database delete failed.");
-#ifdef _DEBUG_THIS	
-		envp->err(envp, ret, "Database delete failed.");
-#endif		
 		goto err;
 	}
 	return 0;
@@ -530,18 +374,27 @@ err:
 }
 
 
-static int
-bdb_op_get(DB *dbp, DB_ENV *envp, int id, char *buf)
+int
+bdb_op_get(void *t, void *elem, int lock)
 {
-    int  ret;
-    DBT  key;
-    DBT  value;
+	mix_global_state_t     *mix_global_state = (mix_global_state_t *) ubench_desc.global_state;
+	bdb_mix_global_state_t *global_state = (bdb_mix_global_state_t *) mix_global_state->data;
+	mix_thread_state_t     *thread_state = (mix_thread_state_t *) t;
+	DB_ENV                 *envp = global_state->envp;
+	DB                     *dbp = global_state->dbp;
+	object_t               *obj = (object_t *) elem;
+	int                    ret;
+	DBT                    key;
+	DBT                    value;
+	int                    retry_count = 0;
+	unsigned int           id = obj->key; 
+	char                   buf[16384];
 
 	/* Prepare the DBTs */
 	memset(&key, 0, sizeof(DBT));
 
 	key.data = &id;
-	key.size = sizeof(int);
+	key.size = sizeof(unsigned int);
 
 	value.data = buf;
 	value.ulen = vsize;
@@ -549,9 +402,7 @@ bdb_op_get(DB *dbp, DB_ENV *envp, int id, char *buf)
 
 	ret = dbp->get(dbp, NULL, &key, &value, 0);
 	if (ret != 0) {
-#ifdef _DEBUG_THIS	
 		envp->err(envp, ret, "Database get failed.");
-#endif		
 		goto err;
 	}
 	return 0;
@@ -561,126 +412,12 @@ err:
 }
 
 
-static inline
-void __bdb_mix_thread_main(unsigned int tid, int measure_latency)
-{
- 	unsigned int              iterations_per_chunk = ubench_desc.iterations_per_chunk;
-	bdb_mix_thread_state_t*   thread_state = ubench_desc.thread_state[tid];
-	unsigned int*             seedp = &thread_state->seed;
-	int                       i;
-	int                       op;
-	DB                        *dbp;
-	DB_ENV                    *envp;
-	int                       id;
-	int                       del_id;
-	int                       ins_id;
-	object_t                  *del_obj;
-	object_t                  *ins_obj;
-	int                       found;
-	int                       keys_range_min;
-	int                       keys_range_max;
-	int                       keys_range_len;
-	int                       work_transactions = 0;
-	uint64_t                  start;
-	uint64_t                  stop; 
-	bdb_mix_stat_t           *stat = &thread_state->stat;
-
-	dbp = thread_state->dbp;
-	envp = thread_state->envp;
-
-
-	keys_range_min = thread_state->keys_range_min;
-	keys_range_max = thread_state->keys_range_max;
-	keys_range_len = thread_state->keys_range_len;
-
-	for (i=0; i<iterations_per_chunk; i++) {
-		op = random_operation(seedp, percent_write);
-		id = keys_range_min + rand_r(seedp) % keys_range_len;
-		switch(op) {
-			case OP_HASH_WRITE:
-#ifdef USE_ELEMSET
-				elemset_get_random(&thread_state->elemset_ins, &del_obj);
-				elemset_get_random(&thread_state->elemset_del, &ins_obj);
-				elemset_put(&thread_state->elemset_ins, ins_obj);
-				elemset_put(&thread_state->elemset_del, del_obj);
-				del_id=del_obj->key;
-				ins_id=ins_obj->key;
-				if (measure_latency) {
-					start = gethrtime();
-				}
-				assert(bdb_op_del(dbp, envp, del_id, thread_state->buf) == 0);
-				if (measure_latency) {
-					asm_cpuid();
-					stop = gethrtime();
-					stat->total_latency_cycles_del += stop-start;
-				}
-				stat->num_del++;
-				
-				if (measure_latency) {
-					start = gethrtime();
-				}
-				assert(bdb_op_add(dbp, envp, ins_id, thread_state->buf) == 0);
-				if (measure_latency) {
-					asm_cpuid();
-					stop = gethrtime();
-					stat->total_latency_cycles_ins += stop-start;
-				}
-				stat->num_ins++;
-				work_transactions += 2;
-#else
-				found = (bdb_op_get(dbp, envp, id, thread_state->buf) == 0) ? 1 : 0;
-				if (found) {
-					work_transactions++;
-					stat->num_del++;
-					if (measure_latency) {
-						start = gethrtime();
-					}
-					assert(bdb_op_del(dbp, envp, id, thread_state->buf) == 0);
-					if (measure_latency) {
-						asm_cpuid();
-						stop = gethrtime();
-						stat->total_latency_cycles_del += stop-start;
-					}
-				} else {
-					stat->num_ins++;
-					work_transactions++;
-					if (measure_latency) {
-						start = gethrtime();
-					}
-					assert(bdb_op_add(dbp, envp, id, thread_state->buf) == 0); 
-					if (measure_latency) {
-						asm_cpuid();
-						stop = gethrtime();
-						stat->total_latency_cycles_ins += stop-start;
-					}
-				}
-#endif
-				break;
-			case OP_HASH_READ:
-				if (measure_latency) {
-					start = gethrtime();
-				}
-				bdb_op_get(dbp, envp, id, thread_state->buf);
-				if (measure_latency) {
-					asm_cpuid();
-					stop = gethrtime();
-					stat->total_latency_cycles_get += stop-start;
-				}
-				stat->num_get++;
-				work_transactions++;
-				break;
-		}
-	}
-	stat->work_transactions += work_transactions;
-}
-
-
 void bdb_mix_latency_thread_main(unsigned int tid)
 {
-	__bdb_mix_thread_main(tid, 1);
+	mix_thread_main(tid, 1, 0, 0);
 }
 
 void bdb_mix_throughput_thread_main(unsigned int tid)
 {
-	__bdb_mix_thread_main(tid, 0);
+	mix_thread_main(tid, 0, 0, 0);
 }

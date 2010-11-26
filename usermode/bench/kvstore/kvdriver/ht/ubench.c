@@ -14,5 +14,3 @@ ubench_functions_t ubenchs[] = {
 	{ "bdb_mix_throughput",       bdb_mix_init, bdb_mix_fini, bdb_mix_thread_init, bdb_mix_thread_fini, bdb_mix_throughput_thread_main, bdb_mix_throughput_print_stats },
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL},
 };
-
-

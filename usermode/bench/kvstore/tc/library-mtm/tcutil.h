@@ -35,7 +35,7 @@ __TCUTIL_CLINKAGEBEGIN
 #include <time.h>
 #include <limits.h>
 #include <math.h>
-#include <malloc/include/malloc.h>
+#include "malloc.h"
 
 
 

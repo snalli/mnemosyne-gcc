@@ -1,6 +1,7 @@
 #ifndef _COMMON_H_JIKAK1
 #define _COMMON_H_JIKAK1
 
+#include <stdio.h>
 #include "aux.h"
 #include "ut_barrier.h"
 
@@ -39,10 +40,10 @@ enum {
 
 typedef struct ubench_functions_s {
 	char *str;
-	int (*init)(void *);
-	int (*fini)(void *);
-	int (*thread_init)(unsigned int);
-	int (*thread_fini)(unsigned int);
+	int  (*init)(void *);
+	int  (*fini)(void *);
+	int  (*thread_init)(unsigned int);
+	int  (*thread_fini)(unsigned int);
 	void (*thread_main)(unsigned int);
 	void (*print_stats)(FILE *);
 } ubench_functions_t;
@@ -77,12 +78,31 @@ extern ubench_desc_t         ubench_desc;
 #include <sys/types.h>
 #include <unistd.h>
 
+static inline
+int
+ubench_str2index(char *str)
+{
+	int i;
 
+	for (i=0; ubenchs[i].str != NULL; i++) {
+		if (strcmp(ubenchs[i].str, str) == 0) {
+			return i;
+		}
+	}
+	return -1;
+}
 
+static inline
+int
+ubench_index2str(int index)
+{
+	return ubenchs[index].str;
+}
 
 
 static inline 
-int random_operation(unsigned int *seedp, int percent_write)
+int 
+random_operation(unsigned int *seedp, int percent_write)
 {
 	int n;
 

@@ -17,12 +17,13 @@ myEnv.Append(LIBS = [mcoreLibrary])
 myEnv.Append(LIBS = [mtmLibrary])
 myEnv.Append(LIBS = [mallocLibrary])
 
+mainObj = myEnv.Object('common/main.c')
+
 
 # Hashtable & BDB kvdriver
 
 htEnv = myEnv.Clone() 
 sources_ht = Split("""
-                   common/main.c
 		   ht/bdb_mix.c
 		   ht/mtm_mix.c
 		   ht/ubench.c
@@ -31,7 +32,7 @@ sources_ht = Split("""
 
 htEnv.Append(CPPPATH = ['#bench/kvstore/kvdriver/ht'])
 htEnv.Append(LIBS = [hashtableLibrary])
-htEnv.Program('kvdriver-ht', sources_ht)
+htEnv.Program('kvdriver-ht', sources_ht + mainObj)
 
 
 
@@ -40,18 +41,28 @@ htEnv.Program('kvdriver-ht', sources_ht)
 # We build a separate kvdriver for the two flavors of TokyoCabinet as 
 # we cannot link kvdriver to both TokyoCabinet libraries.
 
+
+
 sources_tc_base = Split("""
-		        bdb_mix.c
-                        main.c
-		        mtm_mix.c
+		        tc/ubench-base.c
+			tc/tc-base_mix.c
                         """)
 			
+
+tcbaseEnv = myEnv.Clone() 
+tcbaseEnv.Append(CPPPATH = myEnv['EXPLICIT_DEPENDENCY']['TC_BASE_INCLUDE'] )
+tcbaseEnv.Append(LINKFLAGS = '-Wl,--whole-archive %s -Wl,--no-whole-archive' % myEnv['EXPLICIT_DEPENDENCY']['TC_BASE_LIB'])
+tcbaseEnv.Append(LINKFLAGS = '-lbz2 -lz')
+tcbaseEnv.Program('kvdriver-tc-base', sources_tc_base + mainObj)
+
+
 sources_tc_mtm = Split("""
-	                bdb_mix.c
-                        main.c
-		        mtm_mix.c
+		        tc/ubench-mtm.c
+			tc/tc-mtm_mix.c
                         """)
 
-
-#myEnv.Program('kvdriver-tc-base', sources_tc_base)
-#myEnv.Program('kvdriver-tc-mtm', sources_tc_mtm)
+tcmtmEnv = myEnv.Clone() 
+tcmtmEnv.Append(CPPPATH = myEnv['EXPLICIT_DEPENDENCY']['TC_MTM_INCLUDE'] )
+tcmtmEnv.Append(LINKFLAGS = '-Wl,--whole-archive %s -Wl,--no-whole-archive' % myEnv['EXPLICIT_DEPENDENCY']['TC_MTM_LIB'])
+tcmtmEnv.Append(LINKFLAGS = '-lbz2 -lz')
+tcmtmEnv.Program('kvdriver-tc-mtm', sources_tc_mtm + mainObj)

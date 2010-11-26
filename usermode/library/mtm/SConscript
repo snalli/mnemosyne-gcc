@@ -75,6 +75,7 @@ CC_SRC = Split("""
                src/mtm.c
                src/retry.c
                src/stats.c
+               src/txlock.c
                src/useraction.c
                """)
 

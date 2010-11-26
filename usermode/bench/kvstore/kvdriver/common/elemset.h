@@ -48,7 +48,7 @@ err:
 
 
 static int 
-elemset_get_random(elemset_t *elemset, void **objp)
+elemset_del_random(elemset_t *elemset, void **objp)
 {
 	int  ret = 0;
 	int  index;
@@ -70,6 +70,26 @@ err:
 	return ret;
 }
 
+static int 
+elemset_get_random(elemset_t *elemset, void **objp)
+{
+	int  ret = 0;
+	int  index;
+	void *obj;
+
+	if (elemset->count == 0) {
+		ret = -1;
+		goto err;
+	}
+
+	index = rand_r(&elemset->seed) % elemset->count;
+	obj = elemset->array[index];
+	*objp = obj;
+
+	return 0;
+err:
+	return ret;
+}
 static
 void
 elemset_print(elemset_t *elemset)

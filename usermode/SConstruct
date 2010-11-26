@@ -104,6 +104,10 @@ mainEnv['EXPLICIT_DEPENDENCY'] = {}
 mainEnv['EXPLICIT_DEPENDENCY']['BDB_LIB'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/libdb.a')
 mainEnv['EXPLICIT_DEPENDENCY']['BDB_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/')
 
+mainEnv['EXPLICIT_DEPENDENCY']['TC_BASE_LIB'] = os.path.join(rootDir, 'bench/kvstore/tc/library-base/libtokyocabinet.a')
+mainEnv['EXPLICIT_DEPENDENCY']['TC_BASE_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/tc/library-base')
+mainEnv['EXPLICIT_DEPENDENCY']['TC_MTM_LIB'] = os.path.join(rootDir, 'bench/kvstore/tc/library-mtm/libtokyocabinet.a')
+mainEnv['EXPLICIT_DEPENDENCY']['TC_MTM_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/tc/library-mtm')
 
 if mainEnv['BUILD_EXAMPLE'] != None:
 	examplesEnv = mainEnv.Clone()

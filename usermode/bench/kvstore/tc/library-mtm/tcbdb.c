@@ -223,7 +223,9 @@ bool tcbdbsetmutex(TCBDB *bdb){
     bdb->mmtx = NULL;
     return false;
   }
-  return tchdbsetmutex(bdb->hdb);
+  return true;
+  //HARIS: No HDB to set the mutex for, right?
+  //return tchdbsetmutex(bdb->hdb);
 }
 
 
@@ -2101,7 +2103,9 @@ static BDBNODE *tcbdbnodenew(TCBDB *bdb, uint64_t heir){
 static BDBNODE *tcbdbnodeload(TCBDB *bdb, uint64_t id){
   assert(bdb && id > BDBNODEIDBASE);
   bool clk;
-  __tm_waiver BDBLOCKCACHE(bdb);
+  __tm_waiver {
+    clk = BDBLOCKCACHE(bdb);
+  }	  
   int rsiz;
   BDBNODE *node = (BDBNODE *)tcmapget3(bdb->nodec, &id, sizeof(id), &rsiz);
   assert(node);

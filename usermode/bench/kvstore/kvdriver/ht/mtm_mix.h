@@ -13,4 +13,7 @@ void mtm_mix_latency_think_thread_main(unsigned int);
 void mtm_mix_throughput_think_thread_main(unsigned int);
 void mtm_mix_latency_thread_main_nolock(unsigned int);
 void mtm_mix_throughput_thread_main_nolock(unsigned int);
+int  mtm_op_ins(void *t, void *elem, int lock);
+int  mtm_op_del(void *t, void *elem, int lock);
+int  mtm_op_get(void *t, void *elem, int lock);
 #endif

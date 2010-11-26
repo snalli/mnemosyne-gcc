@@ -1855,7 +1855,7 @@ MYDOCUMENTFILES="COPYING ChangeLog THANKS doc tokyocabinet.idl"
 MYPCFILES="tokyocabinet.pc"
 
 # Building flags
-MYCFLAGS="-std=c99 -Qtm_enabled -Wall -fpic -m64 -fsigned-char -O2 -I../../../../library/ -fno-omit-frame-pointer"
+MYCFLAGS="-std=c99 -Qtm_enabled -Wall -fpic -m64 -fsigned-char -O2 -I../../../../library/ -I../../../../library/malloc/include -I../../../../library/mtm/include -fno-omit-frame-pointer"
 MYCPPFLAGS="-I. -I\$(INCLUDEDIR) -I$HOME/include -I/usr/local/include"
 MYCPPFLAGS="$MYCPPFLAGS -DNDEBUG -D_GNU_SOURCE=1 -D_REENTRANT -D__EXTENSIONS__"
 MYLDFLAGS="-L. -L\$(LIBDIR) -L$HOME/lib -L/usr/local/lib -T ../../../../util/linker_script_persistent_segment_m64 -L../../../../build/library/malloc -lmalloc -L../../../../build/library/mnemosyne -lmnemosyne"

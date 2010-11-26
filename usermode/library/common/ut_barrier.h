@@ -2,6 +2,7 @@
 #define _UT_BARRIER_H
 
 #include <errno.h>
+#include <pthread.h>
 
 /* Portable barrier implementation based on POSIX threads */
 

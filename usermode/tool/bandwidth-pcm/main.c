@@ -32,7 +32,7 @@ void tool_storeseq_ram(int tid);
 
 typedef struct tool_functions_s {
 	char *str;
-	int (*tool)(unsigned int);
+	void (*tool)(int);
 } tool_functions_t;
 
 typedef uint64_t hrtime_t;
@@ -293,7 +293,7 @@ void bind_thread(int tid, int cpuid)
 
 
 
-int WriterSSE (void *ptr, unsigned long loops, unsigned long size, unsigned long value)
+int WriterSSE (char *ptr, unsigned long loops, unsigned long size, unsigned long value)
 {
 	unsigned long i;
 	unsigned long j;
@@ -305,6 +305,7 @@ int WriterSSE (void *ptr, unsigned long loops, unsigned long size, unsigned long
 			asm_sse_write_block64((void *) &ptr[i], value_array);
 		}
 	}
+	return 0;
 }
 
 
@@ -359,7 +360,7 @@ pcm_memcpy_internal_user(void *dst, const void *src, size_t n)
 	/* First write the new data. */
 	while(size >= sizeof(pcm_word_t) * 8) {
 		val = ((pcm_word_t *) saddr);
-		asm_sse_write_block64(daddr, val);
+		asm_sse_write_block64((uintptr_t *) daddr, (pcm_word_t *) val);
 		saddr+=8*sizeof(pcm_word_t);
 		daddr+=8*sizeof(pcm_word_t);
 		size-=8*sizeof(pcm_word_t);
@@ -372,7 +373,7 @@ pcm_memcpy_internal_user(void *dst, const void *src, size_t n)
 		saddr-=offset;
 		daddr-=offset;
 		val = ((pcm_word_t *) saddr);
-		asm_sse_write_block64(daddr, val);
+		asm_sse_write_block64((uintptr_t *) daddr, val);
 
 	}
 
@@ -415,7 +416,7 @@ void tool_memcpy(int tid)
 	posix_memalign((void **)&B, CACHELINE_SIZE, size);
 	memset(A, 0, size);
 	memset(B, 0, size);
-	fprintf(stderr, "T%d: Memory allocation: DONE\n");
+	fprintf(stderr, "T%d: Memory allocation: DONE\n", tid);
 
 	for (n=range_low; n<=range_high; n+=range_step) {
 		ut_barrier_wait(&global_barrier);
@@ -460,7 +461,7 @@ void tool_storeseq_internal(int tid, int emulate_idle_time)
 	posix_memalign((void **)&B, CACHELINE_SIZE, 64);
 	memset(A, 0, size);
 	memset(B, 0, 64);
-	fprintf(stderr, "T%d: Memory allocation: DONE\n");
+	fprintf(stderr, "T%d: Memory allocation: DONE\n", tid);
 
 	for (n=range_low; n<=range_high; n+=range_step) {
 		ut_barrier_wait(&global_barrier);
@@ -468,7 +469,7 @@ void tool_storeseq_internal(int tid, int emulate_idle_time)
 		start = gethrtime();
 		for (j=0; j<nloops;j++) {
 			for (k=0; k<n; k+=64) {
-				asm_sse_write_block64(&A[k], B);
+				asm_sse_write_block64((uintptr_t *) &A[k], (pcm_word_t *) B);
 				if (emulate_idle_time) { /* compiler will optimize out */
 					emulate_latency_ns(idle_time_ns);
 			        //for (i=0; i<100; i++) {
@@ -506,6 +507,7 @@ void *slave(void *arg)
 
 	bind_thread(tid, tid);
 	tools[tool_to_run].tool(tid);
+	return 0;
 }
 
 static

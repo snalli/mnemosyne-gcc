@@ -246,6 +246,21 @@
 
 #if TCUSEPTHREAD
 #include <pthread.h>
+#include "txlock.h"
+
+#define pthread_mutex_t            m_txmutex_t
+#define pthread_mutex_init(A, B)   m_txmutex_init(A)
+#define pthread_mutex_destroy(A)   m_txmutex_destroy(A)
+#define pthread_mutex_lock(A)      m_txmutex_lock(A)
+#define pthread_mutex_unlock(A)    m_txmutex_unlock(A)
+
+#define pthread_rwlock_t            m_txrwlock_t
+#define pthread_rwlock_init(A, B)   m_txrwlock_init(A)
+#define pthread_rwlock_destroy(A)   m_txrwlock_destroy(A)
+#define pthread_rwlock_wrlock(A)    m_txrwlock_wrlock(A)
+#define pthread_rwlock_rdlock(A)    m_txrwlock_rdlock(A)
+#define pthread_rwlock_unlock(A)    m_txrwlock_unlock(A)
+
 #if defined(_POSIX_PRIORITY_SCHEDULING)
 #include <sched.h>
 #endif

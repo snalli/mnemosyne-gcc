@@ -56,7 +56,7 @@ void usage(FILE *fout, char *name)
 {
 	int i;
 
-	fprintf(fout, "usage:");
+	fprintf(fout, "usage:\n");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--ubench=MICROBENCHMARK_TO_RUN");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--runtime=RUNTIME_OF_EXPERIMENT_IN_SECONDS");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--nthreads=NUMBER_OF_THREADS");
@@ -65,13 +65,14 @@ void usage(FILE *fout, char *name)
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--vsize=VALUE_SIZE");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--nkeys=KEY_SPACE");
 	fprintf(fout, "       %s   %s\n", WHITESPACE(strlen(name)), "--work=WORK_PERCENT");
-	fprintf(fout, "\nValid arguments:\n");
-	fprintf(fout, "  --ubench     [");
+	fprintf(fout, "\n");
+	fprintf(fout, "Valid arguments:\n");
+	fprintf(fout, "  --ubench    [");
 	for (i=0; ubenchs[i].str != NULL; i++) {
 		printf("%s,", ubenchs[i].str);
 	}
 	printf("]\n");
-	fprintf(fout, "  --nthreads [1-%d]\n", MAX_NUM_THREADS);
+	fprintf(fout, "  --nthreads  [1-%d]\n", MAX_NUM_THREADS);
 	exit(1);
 }
 
@@ -79,7 +80,7 @@ void print_configuration(FILE *fout)
 {
 	char *ubench_str = ubenchs[ubench_to_run].str;
 	char prefix[] = "bench.config";
-	char separator[] = " = ";
+	char separator[] = "rj,40";
 
 	fprintf(fout, "CONFIGURATION\n");
 	fprintf(fout, "%s\n", EQUALSIGNS(60));
@@ -143,14 +144,7 @@ main(int argc, char *argv[])
      
 		switch (c) {
 			case 'b':
-				ubench_to_run = -1;
-				for (i=0; ubenchs[i].str != NULL; i++) {
-					if (strcmp(ubenchs[i].str, optarg) == 0) {
-						ubench_to_run = i;
-						break;
-					}
-				}
-				if (ubench_to_run == -1) {
+				if ((ubench_to_run = ubench_str2index(optarg)) == -1) {
 					usage(stderr, prog_name);
 				}
 				break;
@@ -193,6 +187,7 @@ main(int argc, char *argv[])
 		}
 	}
 
+
 	if (percent_write + percent_read != 100) {
 		printf("Percentages must add to 100.\n");
 		exit(-1);	
@@ -217,6 +212,7 @@ main(int argc, char *argv[])
 
 	/* initialize the experiment */
 	if (ubench_init(NULL) != 0) {
+		fprintf(stderr, "Error initializing the experiment\n");
 		goto err;
 	}
 

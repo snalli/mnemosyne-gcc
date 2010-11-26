@@ -9,7 +9,6 @@ myEnv.Append(CPPPATH = ['#library/common'])
 
 sources = Split("""
 		hashtable.c
-		#library/common/txmutex.c
                 """)
 
 hashtableLibrary = myEnv.StaticLibrary('ht', sources)

@@ -121,6 +121,7 @@ main(int argc, char *argv[])
 	vsize = sizeof(word_t);
 
 
+	// TODO: Support passing specific options to a backend experiment 
 	while (1) {
 		static struct option long_options[] = {
 			{"ubench",  required_argument, 0, 'b'},

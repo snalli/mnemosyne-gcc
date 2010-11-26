@@ -201,10 +201,10 @@ mix_thread_main(unsigned int tid, int measure_latency, int think, int lock)
 					work_transactions += 2;
 					break;
 				case OP_HASH_READ:
+					elemset_get_random(&thread_state->elemset_ins, &get_elem);
 					if (measure_latency) {
 						start = gethrtime();
 					}
-					elemset_get_random(&thread_state->elemset_ins, &get_elem);
 					assert(op_get(thread_state, get_elem, lock) == 0);
 					if (measure_latency) {
 						asm_cpuid();
@@ -218,11 +218,11 @@ mix_thread_main(unsigned int tid, int measure_latency, int think, int lock)
 		}	
 		if (think) {
 			gettimeofday(&work_stop_time, NULL);
+			work_time = 1000000 * (work_stop_time.tv_sec - work_start_time.tv_sec) +
+			                       work_stop_time.tv_usec - work_start_time.tv_usec;
+			think_time = ((100 - work_percent) * work_time) / work_percent;
+			usleep(think_time);
 		}
-		work_time = 1000000 * (work_stop_time.tv_sec - work_start_time.tv_sec) +
-	                              work_stop_time.tv_usec - work_start_time.tv_usec;
-		think_time = ((100 - work_percent) * work_time) / work_percent;
-		usleep(think_time);
 	}
 	stat->work_transactions += work_transactions;
 }

@@ -31,7 +31,7 @@ tc_mix_init_internal(tc_mix_global_state_t *global_state)
 	}
 
 	sprintf(db_file, "%s/tc.tcb", db_home_dir_prefix);
-	if(!tcbdbopen(bdb, db_file, BDBOWRITER | BDBOCREAT)){
+	if(!tcbdbopen(bdb, db_file, BDBOREADER | BDBOWRITER | BDBOCREAT)){
 		ecode = tcbdbecode(bdb);
 		fprintf(stderr, "open error: %s\n", tcbdberrmsg(ecode));
 		return -1;

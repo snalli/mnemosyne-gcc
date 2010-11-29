@@ -1,0 +1,16 @@
+Import('kvstoreEnv')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('mallocLibrary')
+
+myEnv = kvstoreEnv.Clone() 
+myEnv.Append(CCFLAGS = ' -D_GNU_SOURCE ')
+myEnv.Append(CPPPATH = ['#library/common'])
+
+sources = Split("""
+		hashtable.c
+                """)
+
+hashtableLibrary = myEnv.StaticLibrary('ht', sources)
+
+Return('hashtableLibrary')

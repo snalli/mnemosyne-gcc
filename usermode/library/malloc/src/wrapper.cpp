@@ -93,8 +93,8 @@ extern "C" void * HOARD_MALLOC(size_t);
 extern "C" void * HOARD_MALLOC_TXN(size_t);
 extern "C" void   HOARD_FREE(void *);
 extern "C" void   HOARD_FREE_TXN(void *);
-//extern "C" void * HOARD_REALLOC(void *, size_t);
-//extern "C" void * HOARD_REALLOC_TXN(void *, size_t);
+extern "C" void * HOARD_REALLOC(void *, size_t);
+extern "C" void * HOARD_REALLOC_TXN(void *, size_t);
 extern "C" void * HOARD_CALLOC(size_t, size_t);
 extern "C" void * HOARD_MEMALIGN(size_t, size_t);
 extern "C" void * HOARD_VALLOC(size_t);
@@ -102,10 +102,10 @@ extern "C" size_t HOARD_GET_USABLE_SIZE(void *);
 
 __attribute__((tm_wrapping(HOARD_MALLOC))) void *HOARD_MALLOC_TXN(size_t);
 __attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
-//__attribute__((tm_wrapping(HOARD_REALLOC))) void *HOARD_REALLOC_TXN(void *, size_t);
+__attribute__((tm_wrapping(HOARD_REALLOC))) void *HOARD_REALLOC_TXN(void *, size_t);
 
 
-static void * malloc_internal (size_t sz)
+static void * pmalloc_internal (size_t sz)
 {
 	void                  *addr;
 	static persistentHeap *persistentheap = getPersistentAllocator();
@@ -135,14 +135,13 @@ static void * malloc_internal (size_t sz)
 
 extern "C" void * HOARD_MALLOC (size_t sz)
 {
-	return malloc_internal(sz);
-	//std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
-	//abort();
+	//FIXME Need to change the API to ensure atomicity of the allocation
+	return pmalloc_internal(sz);
 }
 
 extern "C" void * HOARD_MALLOC_TXN (size_t sz)
 {
-	return malloc_internal(sz);
+	return pmalloc_internal(sz);
 }
 
 extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)
@@ -216,13 +215,13 @@ extern "C" void * HOARD_VALLOC (size_t size)
 	return HOARD_MEMALIGN (hoardGetPageSize(), size);
 }
 
-#if 0
-static void * realloc_internal (void * ptr, size_t sz)
+
+static void * prealloc_internal (void * ptr, size_t sz)
 {
 	_ITM_transaction *tx;
 
 	if (ptr == NULL) {
-		return malloc_internal (sz);
+		return pmalloc_internal (sz);
 	}
 	if (sz == 0) {
 		free_internal (ptr);
@@ -238,13 +237,11 @@ static void * realloc_internal (void * ptr, size_t sz)
 	}
 
 	// Allocate a new block of size sz.
-	void * buf = malloc_internal (sz);
+	void * buf = pmalloc_internal (sz);
 
 	// Copy the contents of the original object
 	// up to the size of the new block.
 
-	// FIXME: how to guarantee atomicity of the memcpy below in the presence of failures?
-	// The best approach is to use shadow-update.
 	size_t minSize = (objSize < sz) ? objSize : sz;
 	tx = _ITM_getTransaction();
 	_ITM_memcpyRtWt (tx, buf, ptr, minSize);
@@ -256,28 +253,18 @@ static void * realloc_internal (void * ptr, size_t sz)
 	return buf;
 }
 
-#endif
-
-__attribute__((tm_callable)) static void * prealloc_internal (void * ptr, size_t sz)
-{
-	printf("prealloc_internal(%p, %d)\n", ptr, sz);
-	//return GENERIC_PREALLOC(ptr, sz);
-}
-
 	
-extern "C" __attribute__((tm_callable))  void * prealloc (void * ptr, size_t sz)
+extern "C" void * HOARD_REALLOC (void * ptr, size_t sz)
 {
 	return prealloc_internal(ptr, sz);
-	//std::cerr << "Called persistent memory allocator outside of transaction." << std::endl;
-	//abort();
 }
 
-#if 0
+
 extern "C" void * HOARD_REALLOC_TXN (void * ptr, size_t sz)
 {
-	return realloc_internal(ptr, sz);
+	return prealloc_internal(ptr, sz);
 }
-#endif
+
 
 extern "C" size_t HOARD_GET_USABLE_SIZE (void * ptr)
 {

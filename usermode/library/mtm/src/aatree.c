@@ -42,6 +42,7 @@ typedef struct aa_node
 #define R		1
 #define NIL		((aa_tree)&aa_nil)
 
+
 /* The code for rebalancing the tree is greatly simplified by never
    having to check for null pointers.  Instead, leaf node links point
    to this node, NIL, which points to itself.  */

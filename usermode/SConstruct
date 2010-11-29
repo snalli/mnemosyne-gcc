@@ -1,8 +1,13 @@
 import os
 from library.configuration import mnemosyne
 
-AddOption('--example',
+AddOption('--build-example',
            action="store", dest='selected_example',
+           type='string',
+           metavar='NAME',
+           help='build this example')
+AddOption('--build-bench',
+           action="store", dest='selected_bench',
            type='string',
            metavar='NAME',
            help='build this example')
@@ -67,6 +72,7 @@ mainEnv['BUILD_DEBUG'] = GetOption('build_debug')
 mainEnv['BUILD_STATS'] = GetOption('build_stats')
 mainEnv['BUILD_UBENCH'] = GetOption('build_ubench')
 mainEnv['BUILD_EXAMPLE'] = GetOption('selected_example')
+mainEnv['BUILD_BENCH'] = GetOption('selected_bench')
 mainEnv['BUILD_CONFIG_NAME'] = GetOption('config_name')
 if mainEnv['BUILD_CONFIG_NAME'] is None:
 	mainEnv['BUILD_CONFIG_NAME'] = 'default'
@@ -91,8 +97,17 @@ toolsEnv = mainEnv.Clone()
 toolsEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
 Export('toolsEnv')
 Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
-SConscript('tools/SConscript', variant_dir = os.path.join('build', 'tools'))
+SConscript('tool/SConscript', variant_dir = os.path.join('build', 'tool'))
 
+# Explicit dependencies that were built outside SCons
+mainEnv['EXPLICIT_DEPENDENCY'] = {}
+mainEnv['EXPLICIT_DEPENDENCY']['BDB_LIB'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/libdb.a')
+mainEnv['EXPLICIT_DEPENDENCY']['BDB_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/')
+
+mainEnv['EXPLICIT_DEPENDENCY']['TC_BASE_LIB'] = os.path.join(rootDir, 'bench/kvstore/tc/library-base/libtokyocabinet.a')
+mainEnv['EXPLICIT_DEPENDENCY']['TC_BASE_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/tc/library-base')
+mainEnv['EXPLICIT_DEPENDENCY']['TC_MTM_LIB'] = os.path.join(rootDir, 'bench/kvstore/tc/library-mtm/libtokyocabinet.a')
+mainEnv['EXPLICIT_DEPENDENCY']['TC_MTM_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/tc/library-mtm')
 
 if mainEnv['BUILD_EXAMPLE'] != None:
 	examplesEnv = mainEnv.Clone()
@@ -101,6 +116,12 @@ if mainEnv['BUILD_EXAMPLE'] != None:
 	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'examples'))
 
+if mainEnv['BUILD_BENCH'] != None:
+	benchEnv = mainEnv.Clone()
+	benchEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+	Export('benchEnv')
+	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+	SConscript('bench/SConscript', variant_dir = os.path.join('build', 'bench'))
 
 if mainEnv['BUILD_UBENCH'] == True:
 	ubenchEnv = mainEnv.Clone()

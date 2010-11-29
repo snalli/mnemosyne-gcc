@@ -1,0 +1,28 @@
+
+DEPENDENCIES
+============
+
+Part of this subtree is built using Make so you need to prepare those
+parts of the tree accordingly.
+
+
+BerkeleyDB 
+
+ 1) cd $USERMODE/bench/kvstore/bdb/build_unix
+ 2) ../dist/configure
+ 3) make
+
+TokyoCabinet
+
+ 1) cd $USERMODE/bench/kvstore/tc/library-base
+ 2) ./configure CC=icc --disable-shared
+ 3) cd $USERMODE/bench/kvstore/tc/library-mtm
+ 4) ./configure CC=icc --disable-shared
+
+ Note: Unfortunately, trying to config/build in another directory won't work
+ as TC's Makefile searches the local path for dependencies
+
+
+TODO:
+- Integrate Makefiles into Scons for a hassle-free built.
+  http://www.scons.org/wiki/RunningConfigureAndMake

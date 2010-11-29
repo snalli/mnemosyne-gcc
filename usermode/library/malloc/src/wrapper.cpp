@@ -50,6 +50,9 @@
 #include "genalloc.h"
 
 #include <itm.h>
+#include "txmutex.h"
+
+txmutex_t generic_pmalloc_txmutex = PTHREAD_MUTEX_INITIALIZER;
 
 //
 // Access exactly one instance of the global persistent heap
@@ -124,7 +127,9 @@ static void * pmalloc_internal (size_t sz)
 		 */
 		__tm_atomic 
 		{
+			txmutex_lock(&generic_pmalloc_txmutex);
 			addr = GENERIC_PMALLOC(sz);
+			txmutex_unlock(&generic_pmalloc_txmutex);
 		}
 	} else {
 		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);

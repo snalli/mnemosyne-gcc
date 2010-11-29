@@ -40,7 +40,9 @@ void persistentHeap::format()
 
 	if (!psegmentheader) {
 		psegmentheader = m_pmap((void *) PERSISTENTHEAP_HEADER_BASE, PERSISTENTSUPERBLOCK_NUM*sizeof(persistentSuperblock), PROT_READ|PROT_WRITE, 0);
-		psegment = m_pmap((void *)PERSISTENTHEAP_BASE, persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, PROT_READ|PROT_WRITE, 0);
+		assert(psegmentheader != (void *) -1);
+		psegment = m_pmap((void *)PERSISTENTHEAP_BASE, (uint64_t) persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, PROT_READ|PROT_WRITE, 0);
+		assert(psegment != (void *) -1);
 		for(i=0; i<PERSISTENTSUPERBLOCK_NUM; i++) { 
 			b = (void *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 			buf = (void *) ((uintptr_t) psegment + i*persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE);

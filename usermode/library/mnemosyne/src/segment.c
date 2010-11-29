@@ -109,7 +109,7 @@ verify_backing_stores(m_segtbl_t *segtbl)
 
 static
 int 
-create_backing_store(char *file, ssize_t size)
+create_backing_store(char *file, size_t size)
 {
 	int      fd;
 	ssize_t  roundup_size;
@@ -132,7 +132,7 @@ create_backing_store(char *file, ssize_t size)
 	 * Another way would be to bypass the file cache and use DIRECT I/O.
 	 */
 	roundup_size = SIZEOF_PAGES(size);
-	lseek(fd, roundup_size, SEEK_SET);
+	assert(lseek(fd, roundup_size, SEEK_SET) !=  (off_t) -1);
 	write(fd, buf, 1);
 	fsync(fd); /* make sure the file metadata is synced */
 	/* FIXME: sync directory as well to reflect the new file entry. */

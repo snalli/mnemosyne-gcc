@@ -88,7 +88,7 @@ int mtm_mix_init(void *args)
 	 * Since MTM has not been initialized yet, it is okay to do it
 	 * via the environment variable. 
 	 */
-	ubench_name = ubench_str2index(ubench_to_run);
+	ubench_name = ubench_index2str(ubench_to_run);
 	if (strcmp(ubench_name, "mtm_mix_latency_nolock") == 0 ||
 	    strcmp(ubench_name, "mtm_mix_throughput_nolock") == 0)
 	{

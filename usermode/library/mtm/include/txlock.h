@@ -1,5 +1,5 @@
-#ifndef _M_TXMUTEX_H_GHA983
-#define _M_TXMUTEX_H_GHA983
+#ifndef _M_TXLOCK_H_GHA983
+#define _M_TXLOCK_H_GHA983
 
 #undef pthread_mutex_t
 #undef pthread_mutex_init
@@ -25,7 +25,7 @@
 
 typedef pthread_mutex_t m_txmutex_t;
 
-void _ITM_CALL_CONVENTION *m_txmutex_unlock_commit_action(void *arg);
+void _ITM_CALL_CONVENTION m_txmutex_unlock_commit_action(void *arg);
 
 
 __attribute__((tm_pure))
@@ -94,7 +94,7 @@ int m_txmutex_unlock(m_txmutex_t *txmutex)
 
 typedef pthread_rwlock_t m_txrwlock_t;
 
-void _ITM_CALL_CONVENTION *m_txrwlock_unlock_commit_action(void *arg);
+void _ITM_CALL_CONVENTION m_txrwlock_unlock_commit_action(void *arg);
 
 
 __attribute__((tm_pure))

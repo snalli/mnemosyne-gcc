@@ -10,7 +10,7 @@ function mkfs {
 	then 
 	mknod $pcmdevice0 b 240 0
 	fi
-	if [ ! -b "$pcmctrldevice0" ]
+	if [ ! -c "$pcmctrldevice0" ]
 	then 
 	mknod $pcmctldevice0 c 241 0
 	chmod a+wr $pcmctldevice0

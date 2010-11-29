@@ -140,6 +140,8 @@ void pcm_nt_store_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr, 
 void pcm_nt_flush_emulate_crash(pcm_storeset_t *set);
 void *pcm_memcpy(pcm_storeset_t *set, void *dst, const void *src, size_t n);
 
+void pcm_stat_reset(pcm_t *pcm);
+void pcm_stat_print(pcm_t *pcm);
 
 /*
  * Helper functions.

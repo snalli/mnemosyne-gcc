@@ -30,14 +30,16 @@
 #define PCMDISK_CONTROL_MAJOR         241
 
 #define CONFIG_BLK_DEV_PCM_COUNT      1 
-#define CONFIG_BLK_DEV_PCM_SIZE       1024*1024 /* KB */
+#define CONFIG_BLK_DEV_PCM_SIZE       2*1024*1024 /* KB */
 
 #define PCMDISK_CRASH                 32000
 #define PCMDISK_CRASH_RESET           32001
 #define PCMDISK_SET_PCM_BANDWIDTH     32002
 #define PCMDISK_GET_PCM_BANDWIDTH     32003
-#define PCMDISK_SET_DRAM_BANDWIDTH  32004
-#define PCMDISK_GET_DRAM_BANDWIDTH  32005
+#define PCMDISK_SET_DRAM_BANDWIDTH    32004
+#define PCMDISK_GET_DRAM_BANDWIDTH    32005
+#define PCMDISK_RESET_STATISTICS      32006
+#define PCMDISK_PRINT_STATISTICS      32007
 
 extern int PCM_BANDWIDTH_MB;
 extern int DRAM_BANDWIDTH_MB;
@@ -592,6 +594,7 @@ static struct kobject *brd_probe(dev_t dev, int *part, void *data)
 static int pcmctrl_ioctl (struct inode *inode, struct file *filp,
                           unsigned int cmd, unsigned long arg) 
 {
+	struct brd_device *brd;
 
 	if (cmd == PCMDISK_SET_PCM_BANDWIDTH) {
 		PCM_BANDWIDTH_MB = arg;
@@ -612,6 +615,21 @@ static int pcmctrl_ioctl (struct inode *inode, struct file *filp,
 
 	if (cmd == PCMDISK_GET_DRAM_BANDWIDTH) {
 		printk(KERN_INFO "GET DRAM bandwidth: %d\n", DRAM_BANDWIDTH_MB);
+		return DRAM_BANDWIDTH_MB;
+	}
+
+	if (cmd == PCMDISK_RESET_STATISTICS) {
+		list_for_each_entry(brd, &brd_devices, brd_list) {
+			pcm_stat_reset(brd->pcm);
+		}	
+
+		return DRAM_BANDWIDTH_MB;
+	}
+
+	if (cmd == PCMDISK_PRINT_STATISTICS) {
+		list_for_each_entry(brd, &brd_devices, brd_list) {
+			pcm_stat_print(brd->pcm);
+		}	
 		return DRAM_BANDWIDTH_MB;
 	}
 

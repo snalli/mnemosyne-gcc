@@ -347,5 +347,8 @@ m_tmlog_tornbit_report_stats(m_log_dsc_t *log_dsc)
 	m_phlog_tornbit_t *phlog = &(tmlog->phlog_tornbit);
 
 	printf("PRINT TORNBIT STATS\n");
-	printf("wait_for_trunc: %llu\n", phlog->stat_wait_for_trunc);
+	printf("wait_for_trunc               : %llu\n", phlog->stat_wait_for_trunc);
+	if (phlog->stat_wait_for_trunc > 0) {
+		printf("AVG(stat_wait_time_for_trunc): %llu\n", phlog->stat_wait_time_for_trunc / phlog->stat_wait_for_trunc);
+	}
 }

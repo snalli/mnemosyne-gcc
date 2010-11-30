@@ -23,7 +23,7 @@ m_logtrunc_init(m_logmgr_t *mgr)
 {
 	logmgr = mgr;
 	pthread_cond_init(&(logmgr->logtrunc_cond), NULL);
-	pthread_create (&(logmgr->logtrunc_thread), NULL, &log_truncation_main, (void *) 0);
+	//pthread_create (&(logmgr->logtrunc_thread), NULL, &log_truncation_main, (void *) 0);
 
 	return M_R_SUCCESS;
 }
@@ -107,13 +107,20 @@ log_truncation_main (void *arg)
 
 	set = pcm_storeset_get();
 
+/*
+ * In the past, we tried to periodically wake-up and truncate the logs
+ * but for the workloads we tried this didn't work well. Instead, we
+ * now continuously loop and check for logs to truncate 
+ */
+
+#if 0
 	pthread_mutex_lock(&(logmgr->mutex));
 
 	while (1) {
 		gettimeofday(&tp, NULL);
 		ts.tv_sec = tp.tv_sec;
 		ts.tv_nsec = tp.tv_usec * 1000; 
-		ts.tv_sec += 1; /* sleep time */
+		ts.tv_sec += 1; // sleep time 
 		pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
 		pthread_mutex_unlock(&(logmgr->mutex));
 		pthread_mutex_lock(&(logmgr->mutex));
@@ -122,6 +129,13 @@ log_truncation_main (void *arg)
 	}	
 
 	pthread_mutex_unlock(&(logmgr->mutex));
+#endif
+
+	while (1) {
+		pthread_mutex_lock(&(logmgr->mutex));
+		truncate_logs(set, 0);
+		pthread_mutex_unlock(&(logmgr->mutex));
+	}	
 
 	return 0;
 }
@@ -133,5 +147,6 @@ log_truncation_main (void *arg)
 m_result_t
 m_logtrunc_truncate(pcm_storeset_t *set)
 {
-	return truncate_logs(set, 1);
+	assert(0 && "m_logtrunc_truncate no longer used");
+	//return truncate_logs(set, 1);
 }

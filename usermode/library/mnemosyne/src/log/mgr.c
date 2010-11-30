@@ -194,11 +194,7 @@ m_result_t
 m_logmgr_fini(void)
 {
 #ifdef _M_STATS_BUILD
-	m_log_dsc_t       *log_dsc;
-
-	list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
-		log_dsc->ops->report_stats(log_dsc);
-	}
+	m_logmgr_stat_print();
 #endif
 
 	return M_R_SUCCESS;
@@ -424,4 +420,19 @@ m_logmgr_free_log(m_log_dsc_t *log_dsc)
 {
 	//TODO
 	return M_R_SUCCESS;
+}
+
+void
+m_logmgr_stat_print()
+{
+	FILE *fout = stdout;
+
+	m_log_dsc_t       *log_dsc;
+
+	fprintf(fout, "PER LOG STATISTICS\n");
+	list_for_each_entry(log_dsc, &(logmgr->active_logs_list), list) {
+		log_dsc->ops->report_stats(log_dsc);
+	}
+	fprintf(fout, "\n");
+	fprintf(fout, "TRUNCATION THREAD STATISTICS\n");
 }

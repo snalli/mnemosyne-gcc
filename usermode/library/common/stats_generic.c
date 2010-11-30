@@ -3,6 +3,13 @@
  *
  * \brief Statistics collector implementation.
  *
+ * FIXME: This statistics collector was meant to be as generic as possible
+ * but it seems that it didn't live up to its promise. This is because the 
+ * logic is based on the logic of the statistics collector used in the 
+ * transaction statistics collector used by MTM. For the future, we would 
+ * like to implement a more extensible statistics collector similar to the
+ * one used by Solaris kstat provider.
+ *
  */
 
 #include <stdbool.h>

@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <result.h>
 #include <list.h>
+#include "hrtime.h"
 #include "../hal/pcm_i.h"
 
 #ifdef __cplusplus
@@ -111,6 +112,7 @@ m_result_t m_logmgr_alloc_log(pcm_storeset_t *set, int type, uint64_t flags, m_l
 m_result_t m_logmgr_free_log(m_log_dsc_t *log_dsc);
 m_result_t m_logmgr_do_recovery(pcm_storeset_t *set);
 m_result_t m_logtrunc_truncate(pcm_storeset_t *set);
+void m_logmgr_stat_print();
 
 
 
@@ -137,6 +139,34 @@ do {                                                                          \
         (phlog)->stat_wait_for_trunc++;                                       \
         m_logtrunc_truncate(set);                                             \
     }                                                                         \
+} while (0);
+
+
+#define PHLOG_WRITE_ASYNCTRUNC(logtype, set, phlog, val)                       \
+do {                                                                           \
+	hrtime_t __start;                                                          \
+	hrtime_t __end;                                                            \
+    if (m_phlog_##logtype##_write(set, (phlog), (val)) != M_R_SUCCESS) {       \
+        (phlog)->stat_wait_for_trunc++;                                        \
+        __start = hrtime_cycles();                                             \
+        while (m_phlog_##logtype##_write(set, (phlog), (val)) != M_R_SUCCESS); \
+        __end = hrtime_cycles();                                               \
+	    phlog->stat_wait_time_for_trunc += (HRTIME_CYCLE2NS(__end - __start)); \
+    }                                                                          \
+} while (0);
+
+
+#define PHLOG_FLUSH_ASYNCTRUNC(logtype, set, phlog)                            \
+do {                                                                           \
+	hrtime_t __start;                                                          \
+	hrtime_t __end;                                                            \
+    if (m_phlog_##logtype##_flush(set, (phlog)) != M_R_SUCCESS) {              \
+        (phlog)->stat_wait_for_trunc++;                                        \
+        __start = hrtime_cycles();                                             \
+        while (m_phlog_##logtype##_flush(set, (phlog)) != M_R_SUCCESS);        \
+        __end = hrtime_cycles();                                               \
+	    phlog->stat_wait_time_for_trunc += (HRTIME_CYCLE2NS(__end - __start)); \
+    }                                                                          \
 } while (0);
 
 

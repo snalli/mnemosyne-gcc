@@ -32,9 +32,15 @@ m_tmlog_tornbit_write(pcm_storeset_t *set, m_tmlog_tornbit_t *tmlog, uintptr_t a
 {
 	m_phlog_tornbit_t *phlog_tornbit = &(tmlog->phlog_tornbit);
 
+# ifdef	SYNC_TRUNCATION
 	PHLOG_WRITE(tornbit, set, phlog_tornbit, (pcm_word_t) addr);
 	PHLOG_WRITE(tornbit, set, phlog_tornbit, (pcm_word_t) val);
 	PHLOG_WRITE(tornbit, set, phlog_tornbit, (pcm_word_t) mask);
+# else
+	PHLOG_WRITE_ASYNCTRUNC(tornbit, set, phlog_tornbit, (pcm_word_t) addr);
+	PHLOG_WRITE_ASYNCTRUNC(tornbit, set, phlog_tornbit, (pcm_word_t) val);
+	PHLOG_WRITE_ASYNCTRUNC(tornbit, set, phlog_tornbit, (pcm_word_t) mask);
+# endif
 
 	return M_R_SUCCESS;
 }
@@ -54,10 +60,15 @@ m_tmlog_tornbit_commit(pcm_storeset_t *set, m_tmlog_tornbit_t *tmlog, uint64_t s
 {
 	m_phlog_tornbit_t *phlog_tornbit = &(tmlog->phlog_tornbit);
 
+# ifdef	SYNC_TRUNCATION
 	PHLOG_WRITE(tornbit, set, phlog_tornbit, (pcm_word_t) XACT_COMMIT_MARKER);
 	PHLOG_WRITE(tornbit, set, phlog_tornbit, (pcm_word_t) sqn);
 	PHLOG_FLUSH(tornbit, set, phlog_tornbit);
-
+# else
+	PHLOG_WRITE_ASYNCTRUNC(tornbit, set, phlog_tornbit, (pcm_word_t) XACT_COMMIT_MARKER);
+	PHLOG_WRITE_ASYNCTRUNC(tornbit, set, phlog_tornbit, (pcm_word_t) sqn);
+	PHLOG_FLUSH_ASYNCTRUNC(tornbit, set, phlog_tornbit);
+# endif
 	return M_R_SUCCESS;
 }
 
@@ -68,10 +79,15 @@ m_tmlog_tornbit_abort(pcm_storeset_t *set, m_tmlog_tornbit_t *tmlog, uint64_t sq
 {
 	m_phlog_tornbit_t *phlog_tornbit = &(tmlog->phlog_tornbit);
 
+# ifdef	SYNC_TRUNCATION
 	PHLOG_WRITE(tornbit, set, phlog_tornbit, (pcm_word_t) XACT_ABORT_MARKER);
 	PHLOG_WRITE(tornbit, set, phlog_tornbit, (pcm_word_t) sqn);
 	PHLOG_FLUSH(tornbit, set, phlog_tornbit);
-
+# else
+	PHLOG_WRITE_ASYNCTRUNC(tornbit, set, phlog_tornbit, (pcm_word_t) XACT_ABORT_MARKER);
+	PHLOG_WRITE_ASYNCTRUNC(tornbit, set, phlog_tornbit, (pcm_word_t) sqn);
+	PHLOG_FLUSH_ASYNCTRUNC(tornbit, set, phlog_tornbit);
+# endif
 
 	return M_R_SUCCESS;
 }

@@ -98,7 +98,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 			}	
 		}
 		//printf("w_set.nb_entries= %d\n", modedata->w_set.nb_entries);
-		//printf("cachelines flusthed= %d\n", tempcnt);
+		//printf("cachelines flushed= %d\n", tempcnt);
 # ifdef READ_LOCKED_DATA
 		/* Update instance number (becomes even) */
 		ATOMIC_STORE_REL(&tx->id, id + 2);

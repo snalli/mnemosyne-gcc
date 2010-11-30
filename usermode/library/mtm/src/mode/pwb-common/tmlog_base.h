@@ -38,10 +38,15 @@ m_tmlog_base_write(pcm_storeset_t *set,
 {
 	m_phlog_base_t *phlog_base = &(tmlog->phlog_base);
 
+# ifdef	SYNC_TRUNCATION
 	PHLOG_WRITE(base, set, phlog_base, (pcm_word_t) addr);
 	PHLOG_WRITE(base, set, phlog_base, (pcm_word_t) val);
 	PHLOG_WRITE(base, set, phlog_base, (pcm_word_t) mask);
-
+# else
+	PHLOG_WRITE_ASYNCTRUNC(base, set, phlog_base, (pcm_word_t) addr);
+	PHLOG_WRITE_ASYNCTRUNC(base, set, phlog_base, (pcm_word_t) val);
+	PHLOG_WRITE_ASYNCTRUNC(base, set, phlog_base, (pcm_word_t) mask);
+# endif
 	return M_R_SUCCESS;
 }
 
@@ -60,10 +65,15 @@ m_tmlog_base_commit(pcm_storeset_t *set, m_tmlog_base_t *tmlog, uint64_t sqn)
 {
 	m_phlog_base_t *phlog_base = &(tmlog->phlog_base);
 
+# ifdef	SYNC_TRUNCATION
 	PHLOG_WRITE(base, set, phlog_base, (pcm_word_t) XACT_COMMIT_MARKER);
 	PHLOG_WRITE(base, set, phlog_base, (pcm_word_t) sqn);
 	PHLOG_FLUSH(base, set, phlog_base);
-
+# else
+	PHLOG_WRITE_ASYNCTRUNC(base, set, phlog_base, (pcm_word_t) XACT_COMMIT_MARKER);
+	PHLOG_WRITE_ASYNCTRUNC(base, set, phlog_base, (pcm_word_t) sqn);
+	PHLOG_FLUSH_ASYNCTRUNC(base, set, phlog_base);
+# endif
 	return M_R_SUCCESS;
 }
 
@@ -74,10 +84,15 @@ m_tmlog_base_abort(pcm_storeset_t *set, m_tmlog_base_t *tmlog, uint64_t sqn)
 {
 	m_phlog_base_t *phlog_base = &(tmlog->phlog_base);
 
+# ifdef	SYNC_TRUNCATION
 	PHLOG_WRITE(base, set, phlog_base, (pcm_word_t) XACT_ABORT_MARKER);
 	PHLOG_WRITE(base, set, phlog_base, (pcm_word_t) sqn);
 	PHLOG_FLUSH(base, set, phlog_base);
-
+# else
+	PHLOG_WRITE_ASYNCTRUNC(base, set, phlog_base, (pcm_word_t) XACT_ABORT_MARKER);
+	PHLOG_WRITE_ASYNCTRUNC(base, set, phlog_base, (pcm_word_t) sqn);
+	PHLOG_FLUSH_ASYNCTRUNC(base, set, phlog_base);
+# endif
 	return M_R_SUCCESS;
 }
 

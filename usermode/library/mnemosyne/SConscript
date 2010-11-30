@@ -19,6 +19,9 @@ if buildEnv['BUILD_DEBUG'] == True:
 else:
 	buildEnv.Append(CCFLAGS = ' -O2')
 
+if buildEnv['BUILD_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
+
 # For common source files we need to manually specify the object creation rules 
 # to avoid getting the following error:
 #   scons: warning: Two different environments were specified for target ... 

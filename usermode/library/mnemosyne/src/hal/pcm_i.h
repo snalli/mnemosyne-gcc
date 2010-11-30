@@ -641,7 +641,6 @@ PCM_SEQSTREAM_STORE_64B(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word
 	set->seqstream_write_TS_index |= 1;
 #endif
 }
-#define PCM_BANDWIDTH_MB         1200
 #define RAM_SYSTEM_PEAK_BANDWIDTH_MB 6000
 
 
@@ -654,7 +653,7 @@ PCM_SEQSTREAM_FLUSH(pcm_storeset_t *set)
 #endif	
 
 #ifdef M_PCM_EMULATE_LATENCY
-	int          pcm_bandwidth_MB = PCM_BANDWIDTH_MB;
+	int          pcm_bandwidth_MB = M_PCM_BANDWIDTH_MB;
 	int          ram_system_peak_bandwidth_MB = RAM_SYSTEM_PEAK_BANDWIDTH_MB;
 	int          size;
 	pcm_hrtime_t handicap_latency;

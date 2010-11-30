@@ -343,5 +343,12 @@ m_tmlog_base_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 m_result_t 
 m_tmlog_base_report_stats(m_log_dsc_t *log_dsc)
 {
+	m_tmlog_base_t *tmlog = (m_tmlog_base_t *) log_dsc->log;
+	m_phlog_base_t *phlog = &(tmlog->phlog_base);
 
+	printf("PRINT BASE STATS\n");
+	printf("wait_for_trunc               : %llu\n", phlog->stat_wait_for_trunc);
+	if (phlog->stat_wait_for_trunc > 0) {
+		printf("AVG(stat_wait_time_for_trunc): %llu\n", phlog->stat_wait_time_for_trunc / phlog->stat_wait_for_trunc);
+	}	
 }

@@ -2,7 +2,7 @@
 
 mountpoint="/mnt/pcmfs"
 pcmdevice0="/dev/pcm0"
-pcmctrldevice0="/dev/pcm0-ctrl"
+pcmctldevice0="/dev/pcm0-ctl"
 objdir="build"
 
 function mkfs {
@@ -10,7 +10,7 @@ function mkfs {
 	then 
 	mknod $pcmdevice0 b 240 0
 	fi
-	if [ ! -c "$pcmctrldevice0" ]
+	if [ ! -c "$pcmctldevice0" ]
 	then 
 	mknod $pcmctldevice0 c 241 0
 	chmod a+wr $pcmctldevice0

@@ -20,7 +20,7 @@ create_build_dir:
 		ln -s $(SRCDIR)/brd.c $(OBJDIR)/brd.c;           \
 		ln -s $(SRCDIR)/pcm.c $(OBJDIR)/pcm.c;           \
 		ln -s $(SRCDIR)/pcm.h $(OBJDIR)/pcm.h;           \
-		ln -s $(SRCDIR)/userctrl.c $(OBJDIR)/userctrl.c; \
+		ln -s $(SRCDIR)/pcmdiskctl.c $(OBJDIR)/pcmdiskctl.c; \
 	fi
 
 build_kernelmodule: 
@@ -30,7 +30,7 @@ clean_kernelmodule:
 	make -C $(KERNEL_SOURCE) M=$(OBJDIR) clean
 
 build_userapp:
-	gcc $(OBJDIR)/userctrl.c -o $(OBJDIR)/userctrl
+	gcc $(OBJDIR)/pcmdiskctl.c -o $(OBJDIR)/pcmdiskctl
 
 clean_userapp:
-	rm $(OBJDIR)/userctrl
+	rm $(OBJDIR)/pcmdiskctl

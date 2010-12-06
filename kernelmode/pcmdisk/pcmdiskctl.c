@@ -155,9 +155,9 @@ main(int argc, char **argv)
 	int  i;
 	int  c;
 	int  val;
-	char *prog_name = "userctrl";
+	char *prog_name = "userctl";
 
-	r = fd = open("/dev/pcm0-ctrl", O_RDWR);
+	r = fd = open("/dev/pcm0-ctl", O_RDWR);
 	if (r <0) {
 		printf("%s\n", strerror(errno));
 		goto err;

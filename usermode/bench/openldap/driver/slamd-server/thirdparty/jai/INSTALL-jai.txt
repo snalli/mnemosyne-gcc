@@ -1,0 +1,470 @@
+JavaTM Advanced Imaging API v1.1.2_01 Installation
+
+Contents
+
+   * System Requirements
+   * Download Instructions
+   * Installation Instructions
+        o Solaris Operating Environment Installation Instructions
+        o CLASSPATH Installation Instructions for Solaris/Linux
+        o Microsoft Windows Operating Environment Installation Instructions
+        o Linux Operating Environment Installation Instructions
+        o Sample Demos Installation Instructions
+        o Automatic Installation Instructions
+   * After Java Advanced Imaging is Installed
+   * Updating CLASSPATH, PATH, and LD_LIBRARY_PATH
+   * Uninstall Instructions
+   * Permisson-Related Issues
+
+System Requirements:
+
+   * For the SolarisTM operating environment:
+        o Solaris operating environment 2.6 or subsequent compatible
+          version.
+        o JavaTM 2 platform, Standard Edition, v1.3.0 or later. (v1.3.1 or
+          later for the JavaTM Plug-In.)
+        o At least 14M bytes of free disk space for the SPARC edition, or at
+          least 6M bytes of free disk space for the X86 platform.
+        o Optionally, an additional 6M bytes of free disk space for the
+          sample code and images
+        o An additional 10M bytes may be needed temporarily during the
+          installation process
+   * For the LinuxTM operating system:
+        o Red Hat 6.2 or subsequent compatible version. See
+          JavaTM 2 SDK 1.3.1 for Linux Installation Notes
+          for more information on JVM system requirements for Linux.
+        o JavaTM 2 platform, Standard Edition, v1.3.0 or later.
+        o At least 6M bytes of free disk space.
+        o Optionally, an additional 6M bytes of free disk space for the
+          sample code and images
+        o An additional 10M bytes may be needed temporarily during the
+          installation process
+   * For Microsoft Windows:
+        o Windows 95, 98, ME, NT 4.0, 2000 or XP.
+        o JavaTM 2 platform, Standard Edition, v1.3.0 or later. (v1.3.1 or
+          later for the JavaTM Plug-In.)
+        o At least 7M bytes of free disk space
+        o Optionally, an additional 6M bytes of free disk space for the
+          sample code and images
+        o An additional 10M bytes may be needed temporarily during the
+          installation process
+
+Download Instructions
+
+Using your browser, download the appropriate executable(s) or tar.gz files
+from the download page to the location where you want to temporarily store
+them.
+
+The download has been broken into two archives for convenience. The first
+archive contains the JAI library itself and is required in order to run JAI.
+The second archive contains sample code and images that may optionally be
+downloaded in order to demonstrate some of the functionality of JAI.
+
+Installation Instructions
+
+   * Solaris Operating Environment Installation Instructions
+
+     For the SPARC edition, the download files are:
+        o jai-1_1_2_01-lib-solaris-sparc-jdk.bin
+        o jai-1_1_2_01-lib-solaris-sparc-jre.bin
+        o jai-1_1_2_01-lib-solaris-sparc.tar.gz
+     For the Intel edition, they are:
+        o jai-1_1_2_01-lib-solaris-i586-jdk.bin
+        o jai-1_1_2_01-lib-solaris-i586-jre.bin
+        o jai-1_1_2_01-lib-solaris-i586.tar.gz
+     Assuming:
+
+          $JDK       is the path into the jdk1.3 (or a higher version),
+          $downloaddir  is the directory into which you downloaded the .bin files.
+
+     To install the JDK version for Solaris:
+        o If you are on a SPARC-based system, run the commands:
+
+          % cd $JDK
+          % chmod u+x $downloaddir/jai-1_1_2_01-lib-solaris-sparc-jdk.bin
+          % $downloaddir/jai-1_1_2_01-lib-solaris-sparc-jdk.bin
+
+        o If you are on an Intel-based system, run the commands:
+
+          % cd $JDK
+          % chmod u+x $downloaddir/jai-1_1_2_01-lib-solaris-i586-jdk.bin
+          % $downloaddir/jai-1_1_2_01-lib-solaris-i586-jdk.bin
+
+     You may answer 'yes' to any questions about replacing files. You may
+     delete the jai-1_1_2_01-*.bin files after you are done with the
+     extraction.
+
+     IMPORTANT: If you do not "cd" to the JDK1.3 (or higher version)
+     directory before performing the extraction, then JAI will not work
+     correctly. You may also need appropriate write permissions into the JDK
+     directory in order to install.
+
+     To install the JRE version for Solaris:
+
+           % cd $JRE         ($JRE is the path into jre1.3 or later version.)
+
+        o If you are on a SPARC-based system, run the commands:
+
+          % chmod u+x $downloaddir/jai-1_1_2_01-lib-solaris-sparc-jre.bin
+          % $downloaddir/jai-1_1_2_01-lib-solaris-sparc-jre.bin
+
+        o If you are on an Intel-based system, run the commands:
+
+          % chmod u+x $downloaddir/jai-1_1_2_01-lib-solaris-i586-jre.bin
+          % $downloaddir/jai-1_1_2_01-lib-solaris-i586-jre.bin
+
+     To view an html page containing an (JAI or other optional package)
+     applet, the Java Plug-in must also be registered with the browser as
+     described at
+     http://java.sun.com/j2se/1.4.2/install-solaris.html#plugin.
+
+     IMPORTANT: If you do not "cd" to the JRE1.3 (or higher version)
+     directory before performing the extraction, then JAI will not work
+     correctly. You may also need appropriate write permissions into the JRE
+     directory in order to install.
+
+   * CLASSPATH Installation Instructions for Solaris/Linux Platforms
+
+     The tar.gz downloads are installations which do not check for the JDK
+     or the JRE and install into a directory called jai-1_1_2_01 by default.
+     CLASSPATH needs to be set to point to the jar files in this directory.
+
+     Assuming:
+
+          $PLATFORM   is the specific platform (solaris-sparc/solaris-i586/linux-i586)
+
+          $JAIDIR is the directory into which the JAI files are to be
+          installed
+     To install, change directories to $JAIDIR, unzip, untar, and set
+     CLASSPATH as follows:
+
+          % cd $JAIDIR
+          % gunzip -c $downloaddir/jai-1_1_2_01-lib-($PLATFORM).tar.gz | tar xf -
+
+     Set CLASSPATH as follows:
+
+          % setenv JAIHOME $JAIDIR/jai-1_1_2_01/lib
+          % setenv CLASSPATH $JAIHOME/jai_core.jar:$JAIHOME/jai_codec.jar:$JAIHOME/mlibwrapper_jai.jar:$CLASSPATH
+          % setenv LD_LIBRARY_PATH .:$JAIHOME:$CLASSPATH
+
+   * Microsoft Windows Installation Instructions
+
+     The downloaded objects are executable files. In Microsoft Windows, they
+     are .exe files:
+        o jai-1_1_2_01-lib-windows-i586.exe
+        o jai-1_1_2_01-lib-windows-i586-jre.exe
+        o jai-1_1_2_01-lib-windows-i586-jdk.exe
+     To install the library files, double-click on the
+     jai-1_1_2_01-lib-windows-i586.exe icon and follow the directions. This
+     will install the library files into a default location C:\jai-1_1_2_01
+     without any check for the JDK or the JRE
+
+     To install the JRE version, double-click on the
+     jai-1_1_2_01-lib-windows-i586-jre.exe icon and follow the directions.
+
+     To install the JDK version, double-click on the
+     jai-1_1_2_01-lib-windows-i586-jdk.exe icon and follow the directions.
+
+     You may delete the jai-1_1_2_01-*.exe files after you are done with the
+     extraction.
+
+     IMPORTANT: The executable will try to install JAI within the latest JDK
+     (or JRE) version that it finds. If you need to install and use JAI
+     within another JDK (or JRE) version on disk, please make sure you enter
+     a valid JDK directory when prompted.
+
+   * Linux Installation Instructions
+
+     The downloaded files are:
+        o jai-1_1_2_01-lib-linux-i586-jdk.bin
+        o jai-1_1_2_01-lib-linux-i586-jre.bin
+        o jai-1_1_2_01-lib-linux-i586.tar.gz
+     To install the JDK version for Linux, assuming:
+
+          $JDK       is the path into the jdk1.3 (or a higher version),
+          $downloaddir  is the directory into which you downloaded the .bin files.
+
+     Run the following commands:
+
+          % cd $JDK
+          % chmod u+x $downloaddir/jai-1_1_2_01-lib-linux-i586-jdk.bin
+          % $downloaddir/jai-1_1_2_01-lib-linux-i586-jdk.bin
+
+     IMPORTANT: If you do not "cd" to the JDK1.3 (or higher version)
+     directory before performing the extraction, then JAI will not work
+     correctly. You may also need appropriate write permissions into the JDK
+     directory in order to install.
+
+     To install the JRE version for Linux, try
+
+           % cd $JRE         ($JRE is the path into jre1.3 or later version.)
+           % chmod u+x $downloaddir/jai-1_1_2_01-lib-linux-i586-jre.bin
+           % $downloaddir/jai-1_1_2_01-lib-linux-i586-jre.bin
+
+     IMPORTANT: If you do not "cd" to the JRE1.3 (or higher version)
+     directory before performing the extraction, then JAI will not work
+     correctly. You may also need appropriate write permissions into the JRE
+     directory in order to install.
+
+   * Sample Demos Installation Instructions
+
+     The downloaded files are:
+        o jai-1_1_2-Unix-sample.tar.gz
+        o jai-1_1_2-windows-i586-sample.exe
+
+
+     If you wish to install the sample files on Solaris/Linux, run the
+     command:
+
+     % gunzip -c $downloaddir/jai-1_1_2-Unix-sample.tar.gz | tar xf -
+
+     On Windows: double-click on the jai-1_1_2-windows-i586-sample.exe icon
+     and follow the directions.
+
+   * Automatic Installation of JAI
+
+     JavaTM Plug-in Technology establishes a connection between popular
+     browsers and the JavaTM platform. The JavaTM Plug-in 1.4.2. Developer
+     Guide discusses how to use the JavaTM Plug-in Component to enable
+     applets in browsers. One of the capabilities provided by JavaTM Plug-in
+     (JPI) is JavaTM extension deployment. The JPI installs or replaces the
+     Java extensions (such as JAI) in your browser with an updated version.
+     If a user's browser runs a Java program requiring an Optional Package,
+     the JPI can be made to automatically download and run the Optional
+     Package's installer. For more information please refer to the detailed
+     instructions on how to deploy an applet which may deploy an Optional
+     Package such as JAI.
+
+     A JPI auto-installation download bundle for JAI is provided for each of
+     the supported platforms:
+
+        Platform             Download Bundle                 Contents
+      solaris-sparcjai-1_1_2_01-solaris-sparc-jar.zip jai_solaris-sparc.jar
+      solaris-i586 jai-1_1_2_01-solaris-i586-jar.zip  jai_solaris-i586.jar
+      linux-i586   jai-1_1_2_01-linux-i586-jar.zip    jai_linux-i586.jar
+      windows-i586 jai-1_1_2_01-windows-i586-jar.zip  jai_windows-i586.jar
+
+     Each bundle is a Zip archive containing a signed JAI extension jar file
+     which in turn contains a JAI JRE installer. The Implementation-URL
+     attribute of the manifest of the applet jar file must refer to this
+     signed jar file. Thus developers of applets which use auto-installation
+     of JAI must unpack the Zip archive and place the jar file contained
+     therein at the location specified by the Implementation-URL attribute
+     of their applet jar file's Manifest. For example, the applet jar file's
+     manifest might look like this
+
+     Extension-List: jai_core
+     jai_core-Extension-Name: javax.media.jai
+     jai_core-Specification-Version: 1.1-mr
+     jai_core-Implementation-Version: 1.1.2_01
+     jai_core-Implementation-Vendor-Id: com.sun
+     jai_core-Implementation-URL: http://mydomain.com/jai_solaris-sparc.jar
+
+     if the solaris-sparc auto-installation jar file was being used and was
+     located at the top level of the http://mydomain.com server.
+
+     Note that the version of the JPI specified by an applet must match the
+     version of JPI installed in the browser. Note also that installation
+     will not succeed if the user does not have write permission for the JPI
+     installation location. See also (Updating CLASSPATH, PATH, and
+     LD_LIBRARY_PATH) for information related to the usage of the correct
+     version of JPI.
+
+     After Java Advanced Imaging is installed
+
+     Java Advanced Imaging will be installed under the $JDK directory with
+     the following files:
+      COPYRIGHT-jai.txt                            Copyright notice.
+      INSTALL-jai.txt                              Installation
+                                                   instructions (this file)
+      UNINSTALL-jai                                UnInstall executable
+      LICENSE-jai.txt                              License agreement.
+      README-jai.txt                               Useful release
+                                                   information.
+      jre/lib/ext/jai_core.jar                     JAR file containing core
+                                                   JAI class files.
+      jre/lib/ext/jai_codec.jar                    JAR file containing JAI
+                                                   class files for image
+                                                   I/O.
+      jre/lib/ext/mlibwrapper_jai.jar              mediaLib JNI interfaces.
+      jre/lib/sparc/libmlib_jai.so                 mediaLib JNI shared
+                                                   libraries, C version.
+                                                   (Solaris operating
+                                                   environment, SPARC
+                                                   edition.)
+      jre/lib/sparc/cpu/sparcv9+vis/libmlib_jai.so mediaLib JNI shared
+                                                   libraries, VIS version.
+                                                   (Solaris operating
+                                                   environment, SPARC
+                                                   edition only.)
+      jre/lib/sparc/cpu/sparcv9+vis2/libmlib_jai.somediaLib JNI shared
+                                                   libraries, VIS2 version.
+
+                                                   (Solaris operating
+                                                   environment, SPARC
+                                                   edition only.)
+      jre/lib/i386/libmlib_jai.so                  mediaLib JNI shared
+                                                   libraries, C version.
+                                                   (Solaris operating
+                                                   environment, Intel
+                                                   edition.)
+      jre/lib/i386/libmlib_jai.so                  mediaLib JNI shared
+                                                   libraries, C version.
+                                                   (Linux operating
+                                                   environment)
+      jre/bin/mlib_jai.dll                         mediaLib JNI DLL
+                                                   libraries, C version.
+                                                   (Microsoft Windows
+                                                   operating environment)
+      jre/bin/mlib_jai_mmx.dll                     mediaLib JNI DLL
+                                                   libraries, MMX version.
+                                                   (Microsoft Windows
+                                                   operating environment)
+      jre/bin/checkmmx.exe                         A utility to detect
+                                                   whether MMX is available
+                                                   or not.
+                                                   (Microsoft Windows
+                                                   operating environment)
+
+     If the sample archive has been installed, the following files will also
+     be installed:
+      jai_demos/jai/*               Sample source code, classfiles, README,
+                                    makefile, etc.
+      jai_demos/jai/runjai*.sh      Solaris operating environment -
+                                    Shell scripts to run the sample
+                                    programs.
+      jai_demos/jai/runjai*.bat     Microsoft Windows -
+                                    Batch files to run the sample programs.
+      jai_demos/jai/codec/*         Codec sample source code, class files,
+                                    makefile, etc.
+      jai_demos/jai/codec/runjai.sh Solaris operating environment -
+                                    Shell script to run the codec sample
+                                    program.
+      jai_demos/jai/codec/runjai.batMicrosoft Windows -
+                                    Batch file to run the codec sample
+                                    program.
+      jai_demos/jai/images/*.*      Sample images in BMP, GIF, FlashPIX,
+                                    JPEG, PNG, PGM, PPM and TIFF formats.
+      jai_demos/jmf/*               Source code to process movie frames
+                                    from JMF, README, etc.
+      jai_demos/jmf/runjmfdemo.sh   Solaris operating environment -
+                                    Shell script to run the jmf demo.
+      jai_demos/medical/*           Medical image demo source code, class
+                                    files, README, etc
+      jai_demos/medical/images/*    Medical image demo icons
+      jai_demos/mpv/*               Multi-Panel Viewer demo source code,
+                                    class files, README, etc
+      jai_demos/network/*           Network imaging demo source code, class
+                                    files, README, policy file, etc
+      jai_demos/network/run*.bat    Microsoft Windows -
+                                    Batch files to run the demo
+      jai_demos/network/run*.sh     Solaris operating environment
+                                    Shell script to run the demo & kill the
+                                    server
+      jai_demos/network/server/*    Network imaging demo server side source
+                                    code,
+                                    class files, README, policy file, etc
+
+     Read the top-level README-jai.txt file for information on what is in
+     this release of Java Advanced Imaging.
+
+     Updating CLASSPATH, PATH, and LD_LIBRARY_PATH
+
+     If JAI is installed as part of the Java 2 SDK's Java Runtime
+     Environment, no CLASSPATH or LD_LIBRARY_PATH settings are required.
+     When you encounter problems running JAI applications, it is most likely
+     that you are not running the correct version of java (jdk). Check with
+     the command "java -version" on Solaris or at Dos prompt. If needed, set
+     the PATH correctly to use the correct version of JDK or JRE as
+     follows.
+
+     For Solaris:
+
+     % setenv PATH $JDK/bin:$PATH;    or
+     % setenv PATH $JRE/bin:$PATH
+
+     The Java Plug-in must also be registered with the browser as described
+     at http://java.sun.com/j2se/1.4.2/install-solaris.html#plugin. Note:
+     The plugin used should be v1.3.1 or higher
+
+     For Windows:
+
+     A point to be noted on the Windows platform is that the Java2 SDK 1.3,
+     by default, installs Java into both the JDK location:
+
+     c:\jdk1.3
+
+     and into the JRE location:
+
+     C:\Program Files\JavaSoft\jre\1.3
+
+     Additionally, a shortcut to java.exe is installed in the WINNT/System32
+     (for NT systems) or Windows/System (for Windows 95 and 98) directory.
+
+     Developers need to be aware of this when working with the Java 2 SDK.
+     Unless the path to the 1.3 SDK jre\bin and bin directories is placed in
+     the PATH environment variable in the same order, ahead of the system
+     directory, the SDK's java.exe will not be executed. Any extensions
+     (such as JAI) that are installed into the SDK but not into the JRE will
+     not be found during program execution. The same applies to higher
+     versions of the JDK.
+
+     To set PATH environment variable, you may need to edit autoexec.bat on
+     Windows 98/95. For other Windows systems, try click
+     Start-Settings-ControlPanel, then double click on System. Choose
+     Environment. Under System Variables, click on Path, and update its
+     value to put
+
+            c:\Program Files\JavaSoft\jre\1.3\bin;     or
+            c:\jdk1.3\jre\bin;     or
+            c:\jdk1.3\bin;
+
+     ahead of others. Note that ";" is used to separate from other values.
+     To double check, open a DOS command prompt and use "set" or "set path"
+     to view the PATH environment variable.
+
+     If you have used the CLASSPATH install into arbitrary location for
+     Windows, then you will also need to set your CLASSPATH variable to
+     point to each of the jai jar files in your installed directory
+
+     Uninstall Instructions
+
+        o Solaris/Linux Operating Environment
+
+               % cd $JDK
+
+               where $JDK is the path into the jdk1.3 (or a higher version)
+               directory, where JAI was installed.
+
+               % chmod u+x UNINSTALL-jai
+               % ./UNINSTALL-jai
+
+        o Microsoft Windows Operating Environment
+               You would need to go to the Control Panel and double-click on
+               Add/Remove Programs. Find the listing for Java Advanced
+               Imaging 1.1.2_01 and click on Add/Remove. This should
+               uninstall the library for you.
+
+     Permission-Related Issues
+
+        o Run Applets with MediaLib-Enabled
+
+               On the Solaris platform, the following permission has to be
+               added in the file java.policy located at $JRE/lib/security:
+
+               permission java.io.FilePermission "/usr/bin/uname",
+               "execute";
+
+               For the other platforms, the mediaLib version is enabled by
+               default .
+        o File Permission for Decoding in Applets
+
+               When FileCacheSeekableStream is used, either explicitly or
+               implicitly, the permissions for the default temporary-file
+               directory (defined by the system property "java.io.tmpdir")
+               are necessary.  That is, add the following line into the
+               proper policy file:
+
+               permission java.io.FilePermission ${java.io.tmpdir}/*,
+               "read,write,delete";
+

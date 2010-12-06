@@ -156,7 +156,7 @@ mix_thread_main(unsigned int tid, int measure_latency, int think, int lock)
 	int                       (*op_ins)(void *, void *, int);
 	int                       (*op_del)(void *, void *, int);
 	int                       (*op_get)(void *, void *, int);
-	int                       block = 16;
+	int                       block = 512;
 
 	op_ins = global_state->op_ins;
 	op_del = global_state->op_del;
@@ -221,6 +221,7 @@ mix_thread_main(unsigned int tid, int measure_latency, int think, int lock)
 			work_time = 1000000 * (work_stop_time.tv_sec - work_start_time.tv_sec) +
 			                       work_stop_time.tv_usec - work_start_time.tv_usec;
 			think_time = ((100 - work_percent) * work_time) / work_percent;
+			m_logtrunc_signal();
 			usleep(think_time);
 		}
 	}

@@ -1,0 +1,304 @@
+# This SLAMD script attempts to simulate the load that SiteMinder places on
+# the directory server.
+#
+# Many of the settings should be specified as script arguments.  The script
+# arguments that may be used are:
+#
+# host        -- The hostname for the directory server.
+# port        -- The port number for the directory server.
+# binddn      -- The DN to use to bind to the directory.  The default is to
+#                bind anonymously.
+# bindpw      -- The password to use to bind to the directory.  The default
+#                is to bind anonymously.
+# base        -- The location of the user entries in the directory.
+# attr1       -- The name of the first attribute to retrieve.
+# attr2       -- The name of the second attribute to retrieve.
+# attr3       -- The name of the third attribute to retrieve.
+# loginidattr -- The name of the attribute to use for the login ID.  The
+#                default is "uid".
+# loginidmin  -- The minimum numeric value that should be included in filters
+#                to find user entries.
+# loginidmax  -- The maximum numeric value that should be included in filters
+#                to find user entries.
+# modattr     -- The name of the attribute to modify.  If this is blank, then
+#                no modification will be performed.
+# ldapstats   -- Indicates whether to keep per-operation statistics regarding
+#                interaction with the directory server.
+
+
+# Make the LDAP data types available for use.
+use com.sun.slamd.scripting.ldap.LDAPAttributeVariable;
+use com.sun.slamd.scripting.ldap.LDAPConnectionVariable;
+use com.sun.slamd.scripting.ldap.LDAPEntryVariable;
+use com.sun.slamd.scripting.ldap.LDAPModificationVariable;
+use com.sun.slamd.scripting.ldap.LDAPModificationSetVariable;
+
+
+# Define the variables that we will use.
+variable boolean            doMod;
+variable boolean            keepLDAPStats;
+variable IncrementalTracker authAttempts;
+variable IncrementalTracker authSuccesses;
+variable int                loginIDMin;
+variable int                loginIDMax;
+variable int                port;
+variable int                randomID;
+variable int                resultCode;
+variable LDAPConnection     conn;
+variable LDAPEntry          entry;
+variable LDAPModification   mod;
+variable string             attr1;
+variable string             attr1Filter;
+variable string             attr2;
+variable string             attr2Filter;
+variable string             attr3;
+variable string             attr3Filter;
+variable string             bindDN;
+variable string             bindPW;
+variable string             filterBase;
+variable string             host;
+variable string             loginIDAttr;
+variable string             message;
+variable string             modAttr;
+variable string             searchBase;
+variable string             searchFilter;
+variable string             statsStr;
+variable string             userDN;
+variable StringArray        returnOC;
+variable StringArray        returnAttr1;
+variable StringArray        returnAttr2;
+variable StringArray        returnAttr3;
+variable TimeTracker        authTimer;
+
+
+# Read the values of all the configuration arguments.
+host          = script.getScriptArgument("host", "");
+port          = script.getScriptIntArgument("port", 389);
+bindDN        = script.getScriptArgument("binddn", "");
+bindPW        = script.getScriptArgument("bindpw", "");
+searchBase    = script.getScriptArgument("base", "");
+loginIDAttr   = script.getScriptArgument("loginidattr", "");
+loginIDMin    = script.getScriptIntArgument("loginidmin", 1);
+loginIDMax    = script.getScriptIntArgument("loginidmax", 1);
+modAttr       = script.getScriptArgument("modattr", "");
+attr1         = script.getScriptArgument("attr1", "1.1");
+attr2         = script.getScriptArgument("attr2", "1.1");
+attr3         = script.getScriptArgument("attr3", "1.1");
+statsStr      = script.getScriptArgument("ldapstats", "true");
+
+
+# Initialize the stat trackers.
+authAttempts.setDisplayName("Attempted Authentications");
+authSuccesses.setDisplayName("Successful Authentications");
+authTimer.setDisplayName("Authentication Time (ms)");
+
+
+# Determine whether we should perform the modification.
+if modAttr.equals("", false)
+begin
+  doMod = false;
+end;
+else begin
+  doMod = true;
+end;
+
+
+# Generate a base filter to which we will append the random value.
+filterBase = "(";
+filterBase = filterBase.append(loginIDAttr);
+filterBase = filterBase.append("=");
+
+
+# Generate filters to retrieve each of the three user-specified attributes.
+attr1Filter = "(";
+attr1Filter = attr1Filter.append(attr1);
+attr1Filter = attr1Filter.append("=*)");
+
+attr2Filter = "(";
+attr2Filter = attr1Filter.append(attr2);
+attr2Filter = attr1Filter.append("=*)");
+
+attr3Filter = "(";
+attr3Filter = attr1Filter.append(attr3);
+attr3Filter = attr1Filter.append("=*)");
+
+
+# Specify the attributes to retrieve and create filters for the
+# attributes.
+returnOC.addValue("objectClass");
+returnAttr1.addValue(attr1);
+returnAttr2.addValue(attr2);
+returnAttr3.addValue(attr3);
+
+
+# Enable stat trackers for LDAP operations.
+keepLDAPStats = statsStr.equals("true", true);
+if keepLDAPStats
+begin
+  conn.enableAttemptedOperationCounters();
+  conn.enableSuccessfulOperationCounters();
+  conn.enableFailedOperationCounters();
+  conn.enableOperationTimers();
+end;
+
+
+# Start the stat trackers.
+authAttempts.startTracker();
+authSuccesses.startTracker();
+authTimer.startTracker();
+
+
+# Establish the connection that will be used for all the work.  if the
+# connection attempt fails, then exit with an error.
+resultCode = conn.connect(host, port, bindDN, bindPW);
+if resultCode.notEqual(conn.success())
+begin
+  message = "Unable to connect.  Result code was:  ";
+  message = message.append(resultCode.toString());
+  script.logMessage(message);
+  script.exitWithError();
+end;
+
+
+# Create a loop that will last for the duration of the job.
+while script.shouldNotStop()
+begin
+  # Increment the attempt counter and start the auth timer.
+  authAttempts.increment();
+  authTimer.startTimer();
+
+
+  # Generate a random number to use in the search filter and then
+  # construct the filter.
+  randomID = script.randomInt(loginIDMin, loginIDMax);
+  searchFilter = filterBase.append(randomID.toString());
+  searchFilter = searchFilter.append(")");
+
+
+  # Perform the search to find the user's entry,
+  resultCode = conn.search(searchBase, conn.scopeSub(), searchFilter,
+                           returnOC);
+  if resultCode.equals(conn.success())
+  begin
+    entry = conn.nextEntry();
+    if entry.notNull()
+    begin
+      userDN = entry.getDN();
+
+
+      # Perform a search to retrieve the objectClass attribute.
+      resultCode = conn.search(userDN, conn.scopeBase(), "(objectClass=*)",
+                               returnOC);
+      if resultCode.equals(conn.success())
+      begin
+        entry = conn.nextEntry();
+        while entry.notNull()
+        begin
+          entry = conn.nextEntry();
+        end;
+      end;
+
+
+      # Perform a search to retrieve attr1.
+      resultCode = conn.search(userDN, conn.scopeBase(), attr1Filter,
+                               returnAttr1);
+      if resultCode.equals(conn.success())
+      begin
+        entry = conn.nextEntry();
+        while entry.notNull()
+        begin
+          entry = conn.nextEntry();
+        end;
+      end;
+
+
+      # Perform a search to retrieve attr2.
+      resultCode = conn.search(userDN, conn.scopeBase(), attr2Filter,
+                               returnAttr2);
+      if resultCode.equals(conn.success())
+      begin
+        entry = conn.nextEntry();
+        while entry.notNull()
+        begin
+          entry = conn.nextEntry();
+        end;
+      end;
+
+
+      # Perform a search to retrieve attr1.
+      resultCode = conn.search(userDN, conn.scopeBase(), attr1Filter,
+                               returnAttr1);
+      if resultCode.equals(conn.success())
+      begin
+        entry = conn.nextEntry();
+        while entry.notNull()
+        begin
+          entry = conn.nextEntry();
+        end;
+      end;
+
+
+      # Perform the modification.
+      if doMod
+      begin
+        mod.assign(mod.modTypeReplace(), modAttr, script.randomString(80));
+        conn.modify(userDN, mod);
+      end;
+
+
+      # Perform a search to retrieve attr1.
+      resultCode = conn.search(userDN, conn.scopeBase(), attr1Filter,
+                               returnAttr1);
+      if resultCode.equals(conn.success())
+      begin
+        entry = conn.nextEntry();
+        while entry.notNull()
+        begin
+          entry = conn.nextEntry();
+        end;
+      end;
+
+
+      # Perform a search to retrieve attr1.
+      resultCode = conn.search(userDN, conn.scopeBase(), attr1Filter,
+                               returnAttr1);
+      if resultCode.equals(conn.success())
+      begin
+        entry = conn.nextEntry();
+        while entry.notNull()
+        begin
+          entry = conn.nextEntry();
+        end;
+      end;
+
+
+      # Perform a search to retrieve attr3.
+      resultCode = conn.search(userDN, conn.scopeBase(), attr3Filter,
+                               returnAttr3);
+      if resultCode.equals(conn.success())
+      begin
+        entry = conn.nextEntry();
+        while entry.notNull()
+        begin
+          entry = conn.nextEntry();
+        end;
+      end;
+
+
+      # Increment the success counter and stop the auth timer.
+      authSuccesses.increment();
+      authTimer.stopTimer();
+    end;
+  end;
+end;
+
+
+# Close the connection to the directory server.
+conn.disconnect();
+
+
+# Stop the stat trackers.
+authAttempts.stopTracker();
+authSuccesses.stopTracker();
+authTimer.stopTracker();
+

@@ -33,7 +33,7 @@
 #define BDBDEFBNUM     32749             // default bucket number
 #define BDBDEFAPOW     8                 // default alignment power
 #define BDBDEFFPOW     10                // default free block pool power
-#define BDBDEFLCNUM    1024              // default number of leaf cache
+#define BDBDEFLCNUM    (32*1024)              // default number of leaf cache
 #define BDBDEFNCNUM    512               // default number of node cache
 #define BDBDEFLSMAX    16384             // default maximum size of each leaf
 #define BDBMINLSMAX    512               // minimum maximum size of each leaf

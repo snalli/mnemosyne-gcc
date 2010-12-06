@@ -1,0 +1,94 @@
+<!--
+ !                             Sun Public License
+ !
+ ! The contents of this file are subject to the Sun Public License Version
+ ! 1.0 (the "License").  You may not use this file except in compliance with
+ ! the License.  A copy of the License is available at http://www.sun.com/
+ !
+ ! The Original Code is the SLAMD Distributed Load Generation Engine.
+ ! The Initial Developer of the Original Code is Neil A. Wilson.
+ ! Portions created by Neil A. Wilson are Copyright (C) 2004-2010.
+ ! Some preexisting portions Copyright (C) 2002-2006 Sun Microsystems, Inc.
+ ! All Rights Reserved.
+ !
+ ! Contributor(s):  Neil A. Wilson
+ ! -->
+<project name="SLAMD" basedir="." default="compile">
+  <description>
+    This build script can be used to compile extensions for use with SLAMD.
+    This includes job classes, optimization algorithms, resource monitors,
+    load variance algorithms, and scripting language extensions.  Simply place
+    the source files in the appropriate file structure under the src directory
+    and use Ant to compile and/or deploy it.
+  </description>
+
+
+
+  <!-- Define a number of constants for use in the build process -->
+  <property name="srcdir"   location="src"                                 />
+  <property name="builtdir" location="built"                               />
+  <property name="pkgdir"   location="package"                             />
+  <property name="classdir" location="../../webapps/slamd/WEB-INF/classes" />
+  <property name="libdir"   location="../../webapps/slamd/WEB-INF/lib"     />
+
+
+
+  <!-- The "clean" target, which removes all build files -->
+  <target name="clean"
+        description="Clean up any files generated during the build process.">
+    <delete dir="${builtdir}" />
+    <delete dir="${pkgdir}"   />
+  </target>
+
+
+
+  <!-- Build the source files -->
+  <target name="compile" depends="clean"
+        description="Compile the source files">
+    <mkdir dir="${builtdir}" />
+
+    <javac srcdir="${srcdir}" destdir="${builtdir}">
+      <classpath>
+        <fileset dir="${libdir}">
+          <include name="**/*.jar" />
+        </fileset>
+
+        <fileset file="${classdir}" />
+      </classpath>
+    </javac>
+  </target>
+
+
+
+  <!-- Create a JAR file containing the compiled classes, optionally
+       making it a job pack and specifying a set of jobs to register -->
+  <target name="package" depends="compile"
+        description="Generate a JAR file containing the compiled classes">
+    <mkdir dir="${pkgdir}" />
+
+    <loadfile srcFile="register-jobs" property="registerjobs"
+          failOnError="false" />
+    <condition property="registerjobs" value="">
+      <not>
+        <isset property="registerjobs" />
+      </not>
+    </condition>
+
+    <jar destFile="${pkgdir}/package.jar" basedir="${builtdir}" index="true">
+      <manifest>
+        <attribute name="Register-Jobs" value="${registerjobs}" />
+      </manifest>
+    </jar>
+  </target>
+
+
+
+  <!-- Deploy the compiled files into the classes directory structure -->
+  <target name="deploy" depends="compile"
+        description="Copy the compiled classes into the classes directory">
+    <copy todir="${classdir}">
+      <fileset dir="${builtdir}" />
+    </copy>
+  </target>
+</project>
+

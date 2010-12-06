@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!DOCTYPE web-app
+    PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN"
+    "http://java.sun.com/j2ee/dtds/web-app_2_2.dtd">
+
+<web-app>
+
+  <servlet>
+    <servlet-name>slamd</servlet-name>
+    <servlet-class>com.slamd.admin.AdminServlet</servlet-class>
+    <!-- Uncomment this code if you wish to run this instance of the
+         SLAMD server in read-only mode -->
+    <!--
+      <init-param>
+        <param-name>read_only</param-name>
+        <param-value>1</param-value>
+      </init-param>
+      <init-param>
+        <param-name>restricted_read_only</param-name>
+        <param-value>0</param-value>
+      </init-param>
+      <init-param>
+        <param-name>search_in_read_only</param-name>
+        <param-value>0</param-value>
+      </init-param>
+      <init-param>
+        <param-name>hide_sensitive_info</param-name>
+        <param-value>0</param-value>
+      </init-param>
+    -->
+    <!-- Uncomment this code if you wish to have the link to the
+         status page appear at the top of the navigation sidebar
+         rather than at the bottom -->
+    <!--
+      <init-param>
+        <param-name>show_status_first</param-name>
+        <param-value>1</param-value>
+      </init-param>
+    -->
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+
+  <!-- Uncomment this section if you want to enable the getfile servlet,
+       which makes it possible to use the same name to access multiple files.
+       This is useful for jobs that accept a file URL argument but each
+       client should be given a different file.
+       NOTE:  You also need to uncomment the corresponding servlet-mapping
+       definition below to make this work.  -->
+  <!--
+    <servlet>
+      <servlet-name>getfile</servlet-name>
+      <servlet-class>com.slamd.misc.GetFile</servlet-class>
+      <init-param>
+        <param-name>file_directory</param-name>
+        <param-value>/***/CHANGE/***/THIS/***</param-value>
+      </init-param>
+    </servlet>
+  -->
+
+  <servlet-mapping>
+    <servlet-name>slamd</servlet-name>
+    <url-pattern>/</url-pattern>
+  </servlet-mapping>
+
+  <!-- Uncomment this section if you want to enable the getfile servlet,
+       which makes it possible to use the same name to access multiple files.
+       This is useful for jobs that accept a file URL argument but each
+       client should be given a different file.
+       NOTE:  You also need to uncomment the corresponding servlet definition
+       above to make this work.  -->
+  <!--
+    <servlet-mapping>
+      <servlet-name>getfile</servlet-name>
+      <url-pattern>/getfile</url-pattern>
+    </servlet-mapping>
+  -->
+
+  <!-- Uncomment this section if you want to use LDAP-based access control
+       in the SLAMD administrative interface.  You will also need to
+       uncomment the realm information inside the SLAMD context definition
+       in the conf/server.xml file. -->
+  <!--
+    <security-constraint>
+      <web-resource-collection>
+        <web-resource-name>Entire Application</web-resource-name>
+        <url-pattern>*</url-pattern>
+      </web-resource-collection>
+      <auth-constraint>
+        <role-name>*</role-name>
+      </auth-constraint>
+    </security-constraint>
+
+    <login-config>
+      <auth-method>BASIC</auth-method>
+      <realm-name>SLAMD Web Interface</realm-name>
+    </login-config>
+  -->
+
+</web-app>
+

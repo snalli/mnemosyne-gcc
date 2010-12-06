@@ -1,0 +1,28 @@
+# This SLAMD script performs a basic HTTP GetRate
+
+# Make the HTTP data types available for use.
+use com.sun.slamd.scripting.http.HTTPClientVariable;
+use com.sun.slamd.scripting.http.HTTPRequestVariable;
+use com.sun.slamd.scripting.http.HTTPResponseVariable;
+
+
+# Define the variables we will use.
+variable string         url;
+variable int            statusCode;
+variable HTTPClient     httpClient;
+variable HTTPRequest    request;
+variable HTTPResponse   response;
+
+url.assign(script.getScriptArgument("url", "http://slamd.example.com:8080/slamd/"));
+httpClient.setFollowRedirects(true);
+httpClient.setBlindTrust(true);
+httpClient.enableStatistics();
+request.assign( url );         
+
+# Loop forever.  This will be automatically stopped when the stop time has
+# arrived or the job has been run for the maximum allowed duration.
+while script.shouldNotStop()
+begin
+    response = httpClient.sendRequest(request);
+end;
+

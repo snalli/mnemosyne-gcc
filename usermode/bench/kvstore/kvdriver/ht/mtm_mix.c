@@ -292,11 +292,9 @@ mtm_op_get(void *t, void *elem, int lock)
 		}
 	}	
 	if (obj_val) {
-		//printf("mtm_op_get: %d: FOUND\n", id);
-		return 1;
+		return 0;
 	}
-		//printf("mtm_op_get: %d: NOT FOUND\n", id);
-	return 0;
+	return -1;
 }
 
 

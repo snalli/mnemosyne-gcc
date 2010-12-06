@@ -63,6 +63,7 @@
 #include "../hal/pcm_i.h"
 #include "log_i.h"
 
+uint64_t load_nt_word(void *addr);
 
 #undef _DEBUG_THIS 
 //#define _DEBUG_THIS 1
@@ -355,6 +356,7 @@ m_phlog_tornbit_flush(pcm_storeset_t *set, m_phlog_tornbit_t *log)
  * The stable part is the one that has made it to SCM memory.
  *
  */
+#if  0
 static inline
 m_result_t
 m_phlog_tornbit_read(m_phlog_tornbit_t *log, uint64_t *valuep)
@@ -393,7 +395,50 @@ m_phlog_tornbit_read(m_phlog_tornbit_t *log, uint64_t *valuep)
 #endif		
 	return M_R_FAILURE;
 }
+#else
 
+static inline
+m_result_t
+m_phlog_tornbit_read(m_phlog_tornbit_t *log, uint64_t *valuep)
+{
+	uint64_t value;
+	uint64_t tmp;
+
+#ifdef _DEBUG_THIS		
+	printf("log_read: %lu %lu %lu\n", log->read_index, (uint64_t) log->read_remainder_nbits, log->stable_tail);
+#endif
+	/* Are there any stable data to read? */
+	if (log->read_index != log->stable_tail && 
+	    log->read_index + 1 != log->stable_tail) 
+	{
+#ifdef _DEBUG_THIS		
+		printf("[%04lu]: 0x%016llX\n", log->read_index, ~TORN_MASK & log->nvphlog[log->read_index]);
+#endif		
+		tmp = load_nt_word(&log->nvphlog[log->read_index]);
+		value = (~TORN_MASK & tmp) >> log->read_remainder_nbits;
+		log->read_index = (log->read_index + 1) & (PHYSICAL_LOG_NUM_ENTRIES - 1);
+#ifdef _DEBUG_THIS		
+		printf("[%04lu]: 0x%016llX\n", log->read_index, ~TORN_MASK & log->nvphlog[log->read_index]);
+#endif		
+		tmp = load_nt_word(&log->nvphlog[log->read_index]);
+		value |= tmp << (63 - log->read_remainder_nbits);
+		log->read_remainder_nbits = (log->read_remainder_nbits + 1) & (64 - 1);
+		if (log->read_remainder_nbits == 63) {
+			log->read_index = (log->read_index + 1) & (PHYSICAL_LOG_NUM_ENTRIES - 1);
+			log->read_remainder_nbits = 0;
+		}
+		*valuep = value;
+#ifdef _DEBUG_THIS		
+		printf("\t read value: 0x%016lX\n", value);
+#endif		
+		return M_R_SUCCESS;
+	}
+#ifdef _DEBUG_THIS		
+	printf("NO DATA\n");
+#endif		
+	return M_R_FAILURE;
+}
+#endif
 
 /**
  * \brief Checks whether there is a stable part of the log to read. 

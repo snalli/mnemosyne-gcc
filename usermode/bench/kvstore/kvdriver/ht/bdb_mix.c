@@ -141,7 +141,16 @@ int bdb_mix_init(void *args)
 		goto err;
 	}
 
-	ret = envp->set_cachesize(envp, 0, 512*1024*1024, 0);
+	ret = envp->set_lk_max_locks(envp, 10000);
+	if (ret != 0) {
+		goto err;
+	}
+	ret = envp->set_lk_max_objects(envp, 10000);
+	if (ret != 0) {
+		goto err;
+	}
+
+	ret = envp->set_cachesize(envp, 0, 1024*1024*1024, 0);
 	if (ret != 0) {
 		goto err;
 	}
@@ -400,7 +409,13 @@ bdb_op_get(void *t, void *elem, int lock)
 	value.ulen = vsize;
 	value.flags = DB_DBT_USERMEM; 
 
+retry:
 	ret = dbp->get(dbp, NULL, &key, &value, 0);
+	if (ret == DB_LOCK_DEADLOCK) {
+		retry_count++;
+		goto retry;
+	}
+
 	if (ret != 0) {
 		envp->err(envp, ret, "Database get failed.");
 		goto err;

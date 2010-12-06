@@ -102,6 +102,8 @@ struct m_logmgr_s {
 	/* log truncation */
 	pthread_cond_t   logtrunc_cond;
 	pthread_t        logtrunc_thread;
+	uint64_t         trunc_time;
+	uint64_t         trunc_count;
 };
 
 

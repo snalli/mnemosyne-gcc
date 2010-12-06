@@ -1,0 +1,115 @@
+# This SLAMD script simulates the Mindcraft Extranet Scenario
+# http://www.mindcraft.com/whitepapers/ctv5/index.html
+#
+# The Extranet Scenario simulates customers or suppliers logging into a private 
+# Web site and obtaining information they are authorized to receive. It measures
+# the combination of one user authentication and 10 authorizations for access to
+# resources (these 11 Extranet operations constitute one Extranet sequence). The
+# Extranet Scenario, because it uses a more realistic mix of operations than the
+# Login Scenario, provides a better basis for comparing access control and 
+# identity management solutions. 
+#
+# In this test, we simply do a 0 page extranet and 10 authorizations
+#
+# Valid Parameters:
+# authenticationUrl=URL of the Identity Server Login Services
+# authorizationUrl=URL[1:100]; of the protected resource
+# iterations=100000 - number of iterations to perform  REMEMBER to divide by (clients * threads)!
+# uid=UID, where UID could be sequential(user[1:10000000]), or random (user[1-1000000])
+# password=password where password is a static value (or you could modify the script)
+
+
+
+# Make the HTTP data types available for use.
+use com.sun.slamd.scripting.http.HTTPClientVariable;
+use com.sun.slamd.scripting.http.HTTPRequestVariable;
+use com.sun.slamd.scripting.http.HTTPResponseVariable;
+
+
+# Define the variables we will use.
+variable string         authenticationUrl;
+variable ValuePattern   authorizationUrl;
+variable int            iterations;
+variable int            iterationCounter;
+variable int            authzCounter;
+variable ValuePattern   uid;
+variable string         password;
+variable int            statusCode;
+variable HTTPClient     httpClient;
+variable HTTPRequest    request;
+variable HTTPResponse    response;
+variable IncrementalTracker extranetAttempts;
+variable IncrementalTracker authzAttempts;
+variable CategoricalTracker extranetResults;
+variable TimeTracker        extranetTimer;
+
+
+# Initialize the stat trackers.
+extranetAttempts.setDisplayName("Mindcraft Extranet Transactions");
+authzAttempts.setDisplayName("Authorization Requests");
+extranetResults.setDisplayName("Authorization Results");
+extranetTimer.setDisplayName("ExtranetTransaction Time (ms)");
+    
+
+# Specify the host, port, uid, and password.
+authenticationUrl.assign(script.getScriptArgument("authenticationUrl", "http://ips-perf1.red.iplanet.com:58080/amserver/UI/Login"));
+authorizationUrl.assign(script.getScriptArgument("authorizationUrl", "http://ips-perf1.red.iplanet.com:58080/index[1:10].html"));
+iterations.assign(script.getScriptIntArgument("iterations", 10));
+uid.assign(script.getScriptArgument("uid", "user[1:10]"));
+password.assign(script.getScriptArgument("password", "password"));
+httpClient.setBlindTrust(true);
+
+# Start the stat trackers.
+extranetAttempts.startTracker();
+authzAttempts.startTracker();
+extranetResults.startTracker();
+extranetTimer.startTracker();
+
+
+# Run the up to number of iterations.   
+
+iterationCounter = 0;
+while  iterationCounter.lessThan(iterations)
+begin
+
+    if script.shouldStop()
+        break;
+
+    httpClient.setFollowRedirects(true);    
+    request.assign("POST", authenticationUrl);
+    request.addParameter("Login.Token1",uid.nextValue());
+    request.addParameter("Login.Token2",password);
+    request.addParameter("goto",authorizationUrl.nextValue());
+    request.setHeader("Content-Type", "application/x-www-form-urlencoded");          
+    extranetAttempts.increment();            
+    extranetTimer.startTimer();
+    response = httpClient.sendRequest( request );
+    statusCode.assign(response.getStatusCode());
+    extranetResults.increment(statusCode.toString());
+    httpClient.setFollowRedirects(false);
+    
+    authzCounter = 0;
+    while  authzCounter.lessThan(9)
+    begin
+        authzAttempts.increment();
+        request.assign(authorizationUrl.nextValue());
+        response = httpClient.sendRequest( request );
+        statusCode.assign(response.getStatusCode());
+        extranetResults.increment(statusCode.toString());
+        authzCounter.increment();
+    end;
+
+    extranetTimer.stopTimer();
+    httpClient.clearCookies();
+    iterationCounter.increment();
+    
+end;
+
+
+# Stop the stat trackers.
+extranetAttempts.stopTracker();
+authzAttempts.stopTracker();
+extranetResults.stopTracker();
+extranetTimer.stopTracker();
+
+

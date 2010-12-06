@@ -1,0 +1,82 @@
+define suffix=dc=example,dc=com
+define maildomain=example.com
+define numusers=10000
+
+branch: [suffix]
+aci: (targetattr!="userPassword")(version 3.0; acl "Anonymous access"; allow (read,search,compare) userdn="ldap:///anyone";)
+aci: (targetattr != "nsroledn || aci || nsLookThroughLimit || nsSizeLimit || nsTimeLimit || nsIdleTimeout || passwordPolicySubentry ")(version 3.0; acl "Allow self entry modification except for nsroledn, aci, resource limit attributes, and passwordPolicySubentry"; allow (write)userdn ="ldap:///self";)
+aci: (targetattr = "*")(version 3.0; acl "Configuration Administrator"; allow (all) userdn = "ldap:///uid=admin, ou=Administrators, ou=TopologyManagement, o=NetscapeRoot";) aci: (targetattr ="*")(version 3.0;acl "Configuration Administrators Group";allow (all) (groupdn = "ldap:///cn=Configuration Administrators, ou=Groups, ou=TopologyManagement, o=NetscapeRoot");)
+aci: (targetattr ="*")(version 3.0;acl "Directory Administrators Group";allow (all) (groupdn = "ldap:///ou=Directory Administrators, [suffix]");)
+
+branch: ou=People,[suffix]
+subordinateTemplate: person:[numusers]
+aci: (targetattr ="userpassword || telephonenumber || facsimiletelephonenumber")(version 3.0;acl "Allow self entry modification";allow (write)(userdn = "ldap:///self");)
+aci: (targetattr !="cn || sn || uid")(targetfilter ="(ou=Accounting)")(version 3.0;acl "Accounting Managers Group Permissions";allow (write)(groupdn = "ldap:///cn=Accounting Managers,ou=groups,[suffix]");)
+aci: (targetattr !="cn || sn || uid")(targetfilter ="(ou=Human Resources)")(version 3.0;acl "HR Group Permissions";allow (write)(groupdn = "ldap:///cn=HR Managers,ou=groups,[suffix]");)
+aci: (targetattr !="cn ||sn || uid")(targetfilter ="(ou=Product Testing)")(version 3.0;acl "QA Group Permissions";allow (write)(groupdn = "ldap:///cn=QA Managers,ou=groups,[suffix]");)
+aci: (targetattr !="cn || sn || uid")(targetfilter ="(ou=Product Development)")(version 3.0;acl "Engineering Group Permissions";allow (write)(groupdn = "ldap:///cn=PD Managers,ou=groups,[suffix]");)
+
+template: person
+rdnAttr: uid
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+givenName: <first>
+sn: <last>
+cn: {givenName} {sn}
+initials: {givenName:1}{sn:1}
+uid: user.<sequential:1>
+mail: {uid}@[maildomain]
+userPassword: password
+telephoneNumber: <random:telephone>
+homePhone: <random:telephone>
+pager: <random:telephone>
+mobile: <random:telephone>
+employeeNumber: <sequential:1>
+street: <random:numeric:5> <file:streets> Street
+l: <file:cities>
+st: <file:states>
+postalCode: <random:numeric:5>
+postalAddress: {cn}${street}${l}, {st}  {postalCode}
+description: This is the description for {cn}.
+
+template: certificatePerson
+rdnAttr: uid
+extends: person
+userCertificate:: <random:base64:975>
+
+template: messaging52person
+rdnAttr: uid
+extends: person
+objectClass: inetUser
+objectClass: inetMailUser
+objectClass: inetLocalMailRecipient
+objectClass: userPresenceProfile
+mailAlternateAddress: {givenName}_{sn}@[maildomain]
+mailDeliveryOption: mailbox
+mailHost: mail.example.com
+mailQuota: -1
+mailMsgQuota: -1
+inetUserStatus: active
+mailUserStatus: active
+
+template: ADperson
+rdnAttr: cn
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+givenName: <first>
+sn: <last>
+cn: {givenName} {sn}
+name: {cn}
+displayName: {cn}
+initials: {givenName:1}{sn:1}
+sAMAccountName: {givenName:1}{sn}
+countryCode: 0
+userPrincipalName: {sAMAccountName}@[maildomain]
+unicodePwd:: <base64:UnicodeLittleUnmarked:"<random:alphanumeric:8>">
+telephoneNumber: <random:telephone>
+userAccountControl: 512
+

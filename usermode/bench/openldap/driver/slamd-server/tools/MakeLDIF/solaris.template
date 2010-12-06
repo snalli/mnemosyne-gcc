@@ -1,0 +1,81 @@
+define suffix=dc=example,dc=com
+define numusers=1000
+
+branch: [suffix]
+aci: (targetattr!="userPassword")(version 3.0; acl "Anonymous access"; allow (read,search,compare) userdn="ldap:///anyone";)
+aci: (targetattr != "nsroledn || aci || nsLookThroughLimit || nsSizeLimit || nsTimeLimit || nsIdleTimeout || passwordPolicySubentry ")(version 3.0; acl "Allow self entry modification except for nsroledn, aci, resource limit attributes, and passwordPolicySubentry"; allow (write)userdn ="ldap:///self";)
+aci: (targetattr = "*")(version 3.0; acl "Configuration Administrator"; allow (all) userdn = "ldap:///uid=admin, ou=Administrators, ou=TopologyManagement, o=NetscapeRoot";)
+aci: (targetattr ="*")(version 3.0;acl "Configuration Administrators Group";allow (all) (groupdn = "ldap:///cn=Configuration Administrators, ou=Groups, ou=TopologyManagement, o=NetscapeRoot");)
+aci: (targetattr ="*")(version 3.0;acl "Directory Administrators Group";allow (all) (groupdn = "ldap:///ou=Directory Administrators, [suffix]");)
+
+branch: ou=People,[suffix]
+subordinateTemplate: solarisUser:[numusers]
+aci: (targetattr ="userpassword || telephonenumber || facsimiletelephonenumber")(version 3.0;acl "Allow self entry modification";allow (write)(userdn = "ldap:///self");)
+aci: (targetattr !="cn || sn || uid")(targetfilter ="(ou=Accounting)")(version 3.0;acl "Accounting Managers Group Permissions";allow (write)(groupdn = "ldap:///cn=Accounting Managers,ou=groups,[suffix]");)
+aci: (targetattr !="cn || sn || uid")(targetfilter ="(ou=Human Resources)")(version 3.0;acl "HR Group Permissions";allow (write)(groupdn = "ldap:///cn=HR Managers,ou=groups,[suffix]");)
+aci: (targetattr !="cn ||sn || uid")(targetfilter ="(ou=Product Testing)")(version 3.0;acl "QA Group Permissions";allow (write)(groupdn = "ldap:///cn=QA Managers,ou=groups,[suffix]");)
+aci: (targetattr !="cn || sn || uid")(targetfilter ="(ou=Product Development)")(version 3.0;acl "Engineering Group Permissions";allow (write)(groupdn = "ldap:///cn=PD Managers,ou=groups,[suffix]");)
+
+branch: ou=group,[suffix]
+
+branch: ou=rpc,[suffix]
+
+branch: ou=protocols,[suffix]
+
+branch: ou=networks,[suffix]
+
+branch: ou=netgroup,[suffix]
+
+branch: ou=aliases,[suffix]
+
+branch: ou=hosts,[suffix]
+subordinateTemplate: solarisHost:254
+
+branch: ou=services,[suffix]
+
+branch: ou=ethers,[suffix]
+
+branch: ou=profile,[suffix]
+subordinateTemplate: proxyagent:1
+
+branch: ou=printers,[suffix]
+
+branch: automountMapName=auto_home,[suffix]
+
+branch: automountMapName=auto_direct,[suffix]
+
+branch: automountMapName=auto_master,[suffix]
+
+branch: automountMapName=auto_shared,[suffix]
+
+template: proxyagent
+rdnAttr: cn
+objectClass: top
+objectClass: person
+cn: proxyagent
+sn: proxyagent
+userPassword: password
+
+template: solarisUser
+rdnAttr: uid
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: user.<sequential:1>
+cn: {uid}
+uidNumber: <sequential:1000>
+gidNumber: 1
+homeDirectory: /home/{uid}
+loginShell: <list:/usr/bin/sh,/usr/bin/ksh,/usr/bin/csh,/usr/bin/bash,/usr/bin/tcsh>
+userPassword: password
+shadowFlag: 0
+
+template: solarisHost
+rdnAttr: cn+ipHostNumber
+objectClass: top
+objectClass: device
+objectClass: ipHost
+cn: host-192-168-1-<sequential:1>
+ipHostNumber: 192.168.1.<sequential:1>
+

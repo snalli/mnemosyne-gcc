@@ -14,6 +14,27 @@
 #include <result.h>
 #include "phlog_tornbit.h"
 #include "hal/pcm_i.h"
+#include <smmintrin.h>
+
+
+uint64_t load_nt_word(void *addr)
+{
+	union {
+		__m128i x;
+		char b[16];
+	} u;
+
+	uintptr_t aladdr;
+	uintptr_t offset;
+
+	aladdr = ((uintptr_t) addr) & ~0xF;
+	offset = ((uintptr_t) addr) & 0xF;
+
+	u.x = _mm_stream_load_si128((__m128i *) aladdr);
+
+	return *((uint64_t *) &u.b[offset]);
+}	
+
 
 
 /**

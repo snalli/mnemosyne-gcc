@@ -44,10 +44,12 @@
 #include "log.h"
 #endif
 
+//FIXME: enum types are signed, so they can't store integer larger than 2G-1
+// thus overflowing when having 2G heap
 enum {PERSISTENTHEAP_HEADER_BASE = 0xa00000000};
 enum {PERSISTENTHEAP_BASE = 0xb00000000};
 enum {PERSISTENTSUPERBLOCK_NUM = (128*1024)};
-enum {PERSISTENTHEAP_SIZE = PERSISTENTSUPERBLOCK_NUM * SUPERBLOCK_SIZE};
+#define PERSISTENTHEAP_SIZE ((uint64_t) PERSISTENTSUPERBLOCK_NUM * SUPERBLOCK_SIZE)
 
 class persistentHeap : public hoardHeap {
 

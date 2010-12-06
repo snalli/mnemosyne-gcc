@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
+#include <sched.h>
 #include "log_i.h"
 #include "logtrunc.h"
 #include "hal/pcm_i.h"
@@ -101,11 +102,21 @@ static
 void *
 log_truncation_main (void *arg)
 {
-	struct timeval    tp;
-	struct timespec   ts;
-	pcm_storeset_t    *set;
+	struct timeval     start_time;
+	struct timeval     stop_time;
+	struct timeval     tp;
+	struct timespec    ts;
+	pcm_storeset_t     *set;
+	unsigned long long measured_time;
 
 	set = pcm_storeset_get();
+
+	cpu_set_t          cpu_set;
+
+	CPU_ZERO(&cpu_set);
+	CPU_SET(1 % 4, &cpu_set);
+	sched_setaffinity(0, 4, &cpu_set);
+
 
 /*
  * In the past, we tried to periodically wake-up and truncate the logs
@@ -113,29 +124,40 @@ log_truncation_main (void *arg)
  * now continuously loop and check for logs to truncate 
  */
 
-#if 0
+	/* reset trunc statistics */
+	logmgr->trunc_count=0;									 
+	logmgr->trunc_time = 0;									 
+#if 1
 	pthread_mutex_lock(&(logmgr->mutex));
 
 	while (1) {
 		gettimeofday(&tp, NULL);
 		ts.tv_sec = tp.tv_sec;
 		ts.tv_nsec = tp.tv_usec * 1000; 
-		ts.tv_sec += 1; // sleep time 
+		ts.tv_sec += 10; // sleep time 
 		pthread_cond_timedwait(&logmgr->logtrunc_cond, &logmgr->mutex, &ts);
-		pthread_mutex_unlock(&(logmgr->mutex));
-		pthread_mutex_lock(&(logmgr->mutex));
+		//pthread_mutex_unlock(&(logmgr->mutex));
+		//pthread_mutex_lock(&(logmgr->mutex));
 
+		gettimeofday(&start_time, NULL);
 		truncate_logs(set, 0);
+		gettimeofday(&stop_time, NULL);
+		measured_time = 1000000 * (stop_time.tv_sec - start_time.tv_sec) +
+		                                     stop_time.tv_usec - start_time.tv_usec;
+		logmgr->trunc_count++;									 
+		logmgr->trunc_time += measured_time;									 
 	}	
 
 	pthread_mutex_unlock(&(logmgr->mutex));
 #endif
 
+#if 0
 	while (1) {
 		pthread_mutex_lock(&(logmgr->mutex));
 		truncate_logs(set, 0);
 		pthread_mutex_unlock(&(logmgr->mutex));
 	}	
+#endif
 
 	return 0;
 }
@@ -149,4 +171,13 @@ m_logtrunc_truncate(pcm_storeset_t *set)
 {
 	assert(0 && "m_logtrunc_truncate no longer used");
 	//return truncate_logs(set, 1);
+}
+
+
+m_result_t
+m_logtrunc_signal()
+{
+	// We don't worry about lost signals, as if the signal is lost, then 
+	// the async trunc thread was already truncating the log 
+	pthread_cond_signal(&logmgr->logtrunc_cond);
 }

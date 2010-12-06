@@ -4,6 +4,8 @@
 #include "mode/common/rwset.h"
 #include "cm.h" 
 
+//#define PRINT_DEBUG printf
+//#define MTM_DEBUG_PRINT printf
 
 static inline 
 bool
@@ -20,8 +22,8 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 	mtm_word_t  id;
 #endif /* READ_LOCKED_DATA */
 
-	PRINT_DEBUG("==> mtm_commit(%p[%lu-%lu])\n", tx, 
-	            (unsigned long)modedata->start, (unsigned long)modedata->end);
+	PRINT_DEBUG("==> mtm_commit(%p[%lu-%lu] nest_level:%d-->%d)\n", tx, 
+	            (unsigned long)modedata->start, (unsigned long)modedata->end, tx->nesting, tx->nesting-1);
 
 	/* Check status */
 	assert(tx->status == TX_ACTIVE);
@@ -186,7 +188,17 @@ pwb_rollback(mtm_tx_t *tx)
 	/* Set status (no need for CAS or atomic op) */
 	tx->status = TX_ABORTED;
 
-	/* Reset nesting level */
+	/* 
+	 * Reset nesting level 
+	 * 
+	 * CAUTION!!! Original TinySTM sets nesting to zero because on rollback 
+	 * it restarts the transaction at the begin_transaction call. Intel STM
+	 * does not make a call into begin_transaction call, so we need to be 
+	 * careful to ensure that nesting value equals 1 to represent transactional 
+	 * nesting. We do this later at prepare_transaction which is called before
+	 * restart. We don't do this here because pwb_rollback may also be called 
+	 * due to a user initiated abort.
+	 */
 	tx->nesting = 0;
 
 }
@@ -259,6 +271,7 @@ start:
 	gc_set_epoch(modedata->start);
 #endif /* EPOCH_GC */
 
+	tx->nesting = 1;
 	tx->status = TX_ACTIVE;	/* Set status (no need for CAS or atomic op) */
 	                        /* FIXME: TinySTM 1.0.0 uses atomic op when
 	                         * using the modular contention manager */							
@@ -274,7 +287,8 @@ beginTransaction_internal (mtm_tx_t *tx,
 {
 	assert(tx->mode == MTM_MODE_pwbnl || MTM_MODE_pwbetl);
 
-	MTM_DEBUG_PRINT("==> mtm_pwb_beginTransaction(%p)\n", tx);
+	MTM_DEBUG_PRINT("==> mtm_pwb_beginTransaction(%p) nest_level: %d-->%d\n", tx,
+	                tx->nesting, tx->nesting+1);
 
 	/* Increment nesting level */
 	if (tx->nesting++ > 0) {

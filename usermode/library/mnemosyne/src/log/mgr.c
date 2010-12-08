@@ -197,7 +197,7 @@ m_logmgr_fini(void)
 	m_logmgr_stat_print();
 	printf("total_trunc_time  %llu (ns)\n", logmgr->trunc_time);
 	printf("total_trunc_count %llu\n", logmgr->trunc_count);
-	if (total_trunc_count>0) {
+	if (logmgr->trunc_count>0) {
 		printf("avg_trunc_time    %llu (ns)\n", logmgr->trunc_time/logmgr->trunc_count);
 	}	
 #endif

@@ -25,6 +25,7 @@ m_log_ops_t tmlog_tornbit_ops = {
 	m_tmlog_tornbit_report_stats,
 };
 
+#define FLUSH_CACHELINE_ONCE
 
 /* Print debug messages */
 #undef _DEBUG_THIS
@@ -38,6 +39,30 @@ m_log_ops_t tmlog_tornbit_ops = {
   printf("tail       : %lu\n", tmlog->phlog_tornbit.tail);        \
   printf("head       : %lu\n", tmlog->phlog_tornbit.head);        \
   printf("read_index : %lu\n", tmlog->phlog_tornbit.read_index);
+
+void PointerHash_removeKey_noshrink(PointerHash *self, void *k)
+{
+	PointerHashRecord *r;
+	
+	r = PointerHash_record1_(self, k);	
+	if(r->k == k)
+	{
+		r->k = 0x0;
+		r->v = 0x0;
+		self->keyCount --;
+		return;
+	}
+	
+	r = PointerHash_record2_(self, k);
+	if(r->k == k)
+	{
+		r->k = 0x0;
+		r->v = 0x0;
+		self->keyCount --;
+		return;
+	}
+}
+
 
 m_result_t 
 m_tmlog_tornbit_alloc(m_log_dsc_t *log_dsc)
@@ -178,6 +203,7 @@ m_tmlog_tornbit_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	for(i = 0; i < ((PointerHash *) tmlog->flush_set)->size; i++) {
 		PointerHashRecord *r = PointerHashRecords_recordAt_(((PointerHash *) tmlog->flush_set)->records, i);
 		if (block_addr = (uintptr_t) r->k) {
+			//PointerHash_removeKey_noshrink((PointerHash *) tmlog->flush_set, (void *) block_addr);
 			PointerHash_removeKey_((PointerHash *) tmlog->flush_set, (void *) block_addr);
 			PCM_WB_FLUSH(set, (volatile pcm_word_t *) block_addr);
 		}
@@ -326,7 +352,6 @@ m_tmlog_tornbit_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 				assert(m_phlog_tornbit_read(&(tmlog->phlog_tornbit), &value) == M_R_SUCCESS);
 				assert(m_phlog_tornbit_read(&(tmlog->phlog_tornbit), &mask) == M_R_SUCCESS);
 				if (mask!=0) {
-					printf("%p\n", addr);
 					PCM_WB_STORE_ALIGNED_MASKED(set, (volatile pcm_word_t *) addr, value, mask);
 					PCM_WB_FLUSH(set, (volatile pcm_word_t *) addr);
 				}	

@@ -31,7 +31,8 @@
   ACTION(nvwrites)                                                          \
   ACTION(nvwrites_distinct)                                                 \
   ACTION(vwrites)                                                           \
-  ACTION(vwrites_distinct)                                                   
+  ACTION(vwrites_distinct)                                                  \
+  ACTION(wbflush)                                                            
 
 
 #ifdef _M_STATS_BUILD

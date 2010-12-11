@@ -641,7 +641,7 @@ PCM_SEQSTREAM_STORE_64B(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word
 	set->seqstream_write_TS_index |= 1;
 #endif
 }
-#define RAM_SYSTEM_PEAK_BANDWIDTH_MB 6000
+#define RAM_SYSTEM_PEAK_BANDWIDTH_MB 7000
 
 
 static inline

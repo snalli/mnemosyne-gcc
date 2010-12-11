@@ -23,6 +23,7 @@ if benchEnv['BUILD_BENCH'] == 'ALL':
 	bench_list = Split("""
 	                   kvstore
 			   stl
+			   ubench
 	                   """)
 else:
 	bench_list = benchEnv['BUILD_BENCH'].split(',')

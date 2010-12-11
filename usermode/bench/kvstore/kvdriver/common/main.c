@@ -234,6 +234,7 @@ main(int argc, char *argv[])
 	
 	print_configuration(stdout);
 	ubench_print_stats(stdout);
+	fini_global(); /* report MTM statistics */
 
 	for (i=0; i<num_threads; i++) {
 		if (ubench_thread_fini) {

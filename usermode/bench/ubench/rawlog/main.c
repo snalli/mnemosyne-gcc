@@ -106,12 +106,12 @@ void usage(char *name)
 	printf("usage: %s   %s\n", name                    , "--system=SYSTEM_TO_USE");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--ubench=MICROBENCHMARK_TO_RUN");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--runtime=RUNTIME_OF_EXPERIMENT_IN_SECONDS");
-	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--threads=NUMBER_OF_THREADS");
+	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--nthreads=NUMBER_OF_THREADS");
 	printf("       %s   %s\n", WHITESPACE(strlen(name)), "--nwrites=NUMBER_OF_WRITES_PER_TRANSACTION");
 	printf("\nValid arguments:\n");
 	printf("  --ubench     [base|tornbit]\n");
 	printf("  --system     [rawlog]\n");
-	printf("  --numthreads [1-%d]\n", MAX_NUM_THREADS);
+	printf("  --nthreads [1-%d]\n", MAX_NUM_THREADS);
 	exit(1);
 }
 
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
 			{"system",  required_argument, 0, 's'},
 			{"ubench",  required_argument, 0, 'b'},
 			{"runtime",  required_argument, 0, 'r'},
-			{"threads", required_argument, 0, 't'},
+			{"nthreads", required_argument, 0, 't'},
 			{"nwrites", required_argument, 0, 'n'},
 			{0, 0, 0, 0}
 		};
@@ -240,6 +240,8 @@ main(int argc, char *argv[])
 	printf("total_writes      %llu\n", total_iterations * num_writes);
 	printf("throughput_its    %f (iterations/s) \n", throughput_its * 1000 * 1000);
 	printf("throughput_writes %f (ops/s) \n", throughput_writes * 1000 * 1000);
+	printf("throughput        %f (B/s) \n", throughput_writes * 1000 * 1000 * 8 );
+	printf("throughput        %f (MB/s) \n", throughput_writes * 1000 * 1000 * 8 /(1024*1024));
 
 	return 0;
 }

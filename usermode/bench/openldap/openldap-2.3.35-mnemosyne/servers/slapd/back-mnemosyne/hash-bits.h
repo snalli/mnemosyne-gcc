@@ -107,7 +107,8 @@ static int hashtable_put(hashtable_t *hashtable, datum_t *k, datum_t *v, int fla
 				pfree(p->value_data);
 				p->value_data = (char *) pmalloc(v->size);
 				p->value_size = v->size;
-				memcpy_nolog(p->value_data, v->data, v->size);
+				//memcpy_nolog(p->value_data, v->data, v->size);
+				memcpy(p->value_data, v->data, v->size);
 				return 0;
 			} else {
 				return -1;
@@ -119,7 +120,8 @@ static int hashtable_put(hashtable_t *hashtable, datum_t *k, datum_t *v, int fla
 		memcpy(r->key_data, k->data, k->size);
 		r->value_data = (char *) pmalloc(v->size);
 		r->value_size = v->size;
-		memcpy_nolog(r->value_data, v->data, v->size);
+		//memcpy_nolog(r->value_data, v->data, v->size);
+		memcpy(r->value_data, v->data, v->size);
 		HASH_ADD(hh, hashtable->ht, key_data, r->key_size, r);
 	}
 

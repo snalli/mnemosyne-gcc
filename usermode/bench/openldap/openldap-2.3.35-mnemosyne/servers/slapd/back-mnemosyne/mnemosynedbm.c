@@ -47,6 +47,8 @@
 #include "hash-bits.h"
 #include "list.h"
 
+#include "stat.h"
+
 void
 mnemosynedbm_datum_free( MNEMOSYNEDBM mnemosynedbm, Datum data )
 {
@@ -200,19 +202,36 @@ volatile int a;
 int
 mnemosynedbm_store( MNEMOSYNEDBM mnemosynedbm, Datum key, Datum value, int flags )
 {
-	int     rc;
-	datum_t _key;
-	datum_t _value;
+	int                rc;
+	datum_t            _key;
+	datum_t            _value;
+	struct timeval     start_time;
+	struct timeval     lock_time;
+	struct timeval     stop_time;
+	unsigned long long store_time;
+	unsigned long long lockwait_time;
+
+	gettimeofday(&start_time, NULL);
 
 	MNEMOSYNEDBM_WLOCK;
+
+	gettimeofday(&lock_time, NULL);
 
 	_key.data = key.data;
 	_key.size = key.size;
 	_value.data = value.data;
 	_value.size = value.size;
 	rc = hashtable_put(mnemosynedbm, &_key, &_value, flags);
+	gettimeofday(&stop_time, NULL);
 
 	MNEMOSYNEDBM_WUNLOCK;
+
+	lockwait_time = 1000000 * (lock_time.tv_sec - start_time.tv_sec) +
+                  lock_time.tv_usec - start_time.tv_usec;
+	store_time = 1000000 * (stop_time.tv_sec - lock_time.tv_sec) +
+                  stop_time.tv_usec - lock_time.tv_usec;
+	slapd_stats_mdbm_store(store_time, stop_time);
+	slapd_stats_mdbm_store_lockwait(lockwait_time, stop_time);
 
 	return( rc );
 }

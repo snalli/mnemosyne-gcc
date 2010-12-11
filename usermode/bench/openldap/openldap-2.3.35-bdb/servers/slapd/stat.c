@@ -13,6 +13,10 @@ void slapd_stats_init()
 	for (i=0; i<TIME_SLOT_NUM; i++) {
 		slapd_stats.op_add_latency_sum[i] = 0;
 		slapd_stats.op_add_count[i] = 0;
+		slapd_stats.mdbm_store_latency_sum[i] = 0;
+		slapd_stats.mdbm_store_count[i] = 0;
+		slapd_stats.mdbm_store_lockwait_latency_sum[i] = 0;
+		slapd_stats.mdbm_store_lockwait_count[i] = 0;
 	}
 	gettimeofday(&stats_init_time, NULL);
 }
@@ -38,6 +42,33 @@ void slapd_stats_op_add(unsigned long long latency_us, struct timeval curtime)
 	slapd_stats.op_add_count[curslot] += 1;
 }
 
+void slapd_stats_mdbm_store(unsigned long long latency_us, struct timeval curtime)
+{
+	int curslot;
+	
+	curslot = time2slot(curtime);
+	if (curslot > TIME_SLOT_NUM) {
+		return;
+	}
+	
+	slapd_stats.mdbm_store_latency_sum[curslot] += latency_us;
+	slapd_stats.mdbm_store_count[curslot] += 1;
+}
+
+
+void slapd_stats_mdbm_store_lockwait(unsigned long long latency_us, struct timeval curtime)
+{
+	int curslot;
+	
+	curslot = time2slot(curtime);
+	if (curslot > TIME_SLOT_NUM) {
+		return;
+	}
+	
+	slapd_stats.mdbm_store_lockwait_latency_sum[curslot] += latency_us;
+	slapd_stats.mdbm_store_lockwait_count[curslot] += 1;
+}
+
 static void stats_print(FILE *fout) {
 	unsigned long long tmp;
 	int                i;
@@ -46,6 +77,16 @@ static void stats_print(FILE *fout) {
 		if (slapd_stats.op_add_count[i]) {
 			tmp = slapd_stats.op_add_latency_sum[i]/slapd_stats.op_add_count[i];
 			fprintf(fout, "slot %d: op_add_avg_latency = %llu (us)\n", i, tmp);
+
+		}
+		if (slapd_stats.mdbm_store_count[i]) {
+			tmp = slapd_stats.mdbm_store_latency_sum[i]/slapd_stats.mdbm_store_count[i];
+			fprintf(fout, "slot %d: mdbm_store_avg_latency = %llu (us)\n", i, tmp);
+
+		}
+		if (slapd_stats.mdbm_store_lockwait_count[i]) {
+			tmp = slapd_stats.mdbm_store_lockwait_latency_sum[i]/slapd_stats.mdbm_store_lockwait_count[i];
+			fprintf(fout, "slot %d: mdbm_store_lockwait_avg_latency = %llu (us)\n", i, tmp);
 
 		}
 	}

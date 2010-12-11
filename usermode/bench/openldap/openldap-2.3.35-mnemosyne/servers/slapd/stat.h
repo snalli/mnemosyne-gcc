@@ -11,6 +11,10 @@
 typedef struct {
 	unsigned long long op_add_latency_sum[TIME_SLOT_NUM];
 	unsigned long long op_add_count[TIME_SLOT_NUM];
+	unsigned long long mdbm_store_latency_sum[TIME_SLOT_NUM];
+	unsigned long long mdbm_store_count[TIME_SLOT_NUM];
+	unsigned long long mdbm_store_lockwait_latency_sum[TIME_SLOT_NUM];
+	unsigned long long mdbm_store_lockwait_count[TIME_SLOT_NUM];
 } slapd_stats_t; 
 
 
@@ -19,5 +23,7 @@ extern slapd_stats_t slapd_stats;
 void slapd_stats_init();
 void slapd_stats_fini();
 void slapd_stats_op_add(unsigned long long latency_us, struct timeval curtime);
+void slapd_stats_mdbm_store(unsigned long long latency_us, struct timeval curtime);
+void slapd_stats_mdbm_store_lockwait(unsigned long long latency_us, struct timeval curtime);
 
 #endif /* _SLAPD_STATS_HAR182_H */

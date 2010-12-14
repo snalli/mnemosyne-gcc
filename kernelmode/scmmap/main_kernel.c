@@ -30,7 +30,9 @@
 #include "scmmap.h"
 #include "scmmap-userkernel.h"
 #include "index.h"
+#include "hrtime.h"
 
+#define MEASURE_TIME
 
 
 static struct proc_dir_entry *procfs_dir_scm;
@@ -181,10 +183,13 @@ int reconstruct_pages(void)
 	struct page            *page;
 	struct inode           *inode;
 	pgoff_t                offset;
-
+	hrtime_t               start_time;
+	hrtime_t               stop_time;
+	hrtime_t               stop_time2;
 
 	for (i=0; i<scmpage_mapping_index->mappings_max_n; i++) {
 		if ((scm_mapping = scmpage_mapping_index->array[i])) {
+			start_time = hrtime_cycles();
 			sb = user_get_super((dev_t) scm_mapping->dev);
 			if (IS_ERR_OR_NULL(sb)) {
 				printk(KERN_INFO "[%s] no superblock for device 0x%lx\n", MODULE_NAME, scm_mapping->dev);
@@ -207,6 +212,7 @@ int reconstruct_pages(void)
 			printk(KERN_INFO "RECONSTRUCT: inode->i_generation = %u\n", inode->i_generation);
 			printk(KERN_INFO "RECONSTRUCT: inode->i_mapping = %p\n", inode->i_mapping);
 #endif
+			stop_time2 = hrtime_cycles();
 retry_find:		
 			page = find_lock_page (address_space, offset);
 			if (!page) {
@@ -222,6 +228,12 @@ retry_find:
 				printk(KERN_INFO "RECONSTRUCT: page         = %p\n", page);
 #endif				
 			}	
+			stop_time = hrtime_cycles();
+#ifdef MEASURE_TIME			
+			printk(KERN_INFO "RECONSTRUCT: page read  = %llu\n", HRTIME_CYCLE2NS(stop_time2 - start_time));
+			printk(KERN_INFO "RECONSTRUCT: page load latency  = %llu\n", HRTIME_CYCLE2NS(stop_time - stop_time2));
+			printk(KERN_INFO "RECONSTRUCT: page total latency  = %llu\n", HRTIME_CYCLE2NS(stop_time - start_time));
+#endif
 		}
 	}
 

@@ -282,10 +282,17 @@ static
 m_result_t
 do_recovery(pcm_storeset_t *set, m_logmgr_t *mgr)
 {
-	m_log_dsc_t       *log_dsc;
-	m_log_dsc_t       *log_dsc_tmp;
-	m_log_dsc_t       *log_dsc_to_recover;
-	struct list_head  recovery_list;
+	m_log_dsc_t        *log_dsc;
+	m_log_dsc_t        *log_dsc_tmp;
+	m_log_dsc_t        *log_dsc_to_recover;
+	struct list_head   recovery_list;
+	unsigned int       nlogfragments_recovered;
+#ifdef _M_STATS_BUILD
+	struct timeval     start_time;
+	struct timeval     stop_time;
+	unsigned long long op_time;
+#endif
+
 
 	/* 
 	 * First collect all logs which are to be recovered and prepare
@@ -303,10 +310,15 @@ do_recovery(pcm_storeset_t *set, m_logmgr_t *mgr)
 		}
 	}
 
+#ifdef _M_STATS_BUILD
+	gettimeofday(&start_time, NULL);
+#endif
+
 	/* 
 	 * Find the next log to recover, recover it, update its recovery
 	 * order, and repeat until there are no more logs to recover.
 	 */
+	nlogfragments_recovered = 0;
 	do {
 		log_dsc_to_recover = NULL; 
 		list_for_each_entry(log_dsc, &recovery_list, list) {
@@ -327,12 +339,23 @@ do_recovery(pcm_storeset_t *set, m_logmgr_t *mgr)
 			assert(log_dsc_to_recover->ops->recovery_prepare_next);
 			log_dsc_to_recover->ops->recovery_do(set, log_dsc_to_recover);
 			log_dsc_to_recover->ops->recovery_prepare_next(set, log_dsc_to_recover);
+			nlogfragments_recovered++;
 		}	
 	} while(log_dsc_to_recover);
 
 	/* Make the recovered logs available for reuse */
 	list_splice(&recovery_list, &(mgr->free_logs_list));
 
+#ifdef _M_STATS_BUILD
+	gettimeofday(&stop_time, NULL);
+#endif
+#ifdef _M_STATS_BUILD
+	gettimeofday(&stop_time, NULL);
+	op_time = 1000000 * (stop_time.tv_sec - start_time.tv_sec) +
+	                     stop_time.tv_usec - start_time.tv_usec;
+	fprintf(stderr, "log_recovery_latency    = %llu (us)\n", op_time);
+	fprintf(stderr, "nlogfragments_recovered = %u \n", nlogfragments_recovered);
+#endif
 	return M_R_SUCCESS;
 }
 

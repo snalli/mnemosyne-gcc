@@ -381,6 +381,9 @@ restart_no_load:
 					/* Extend write set (invalidate pointers to write set entries => abort and reallocate) */
 					modedata->w_set.size *= 2;
 					modedata->w_set.reallocate = 1;
+#ifdef _M_STATS_BUILD
+					m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 					#ifdef INTERNAL_STATS
 						tx->aborts_reallocate++;
 					#endif
@@ -421,6 +424,9 @@ restart_no_load:
 				goto restart_no_load;
 			case CM_RESTART_LOCKED:
 				/* Abort */
+#ifdef _M_STATS_BUILD
+				m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 #ifdef INTERNAL_STATS
 				tx->aborts_locked_write++;
 #endif /* INTERNAL_STATS */
@@ -441,6 +447,9 @@ restart_no_load:
 					/* Not much we can do: abort */
 					/* Abort caused by invisible reads */
 					cm_visible_read(tx);
+#ifdef _M_STATS_BUILD
+					m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 #ifdef INTERNAL_STATS
 					tx->aborts_validate_write++;
 #endif /* INTERNAL_STATS */
@@ -454,6 +463,9 @@ restart_no_load:
 			/* Extend write set (invalidate pointers to write set entries => abort and reallocate) */
 			modedata->w_set.size *= 2;
 			modedata->w_set.reallocate = 1;
+#ifdef _M_STATS_BUILD
+			m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 # ifdef INTERNAL_STATS
 			tx->aborts_reallocate++;
 # endif /* INTERNAL_STATS */
@@ -637,6 +649,9 @@ restart_no_load:
 				goto restart_no_load;
 			case CM_RESTART_LOCKED:
 				/* Abort */
+#ifdef _M_STATS_BUILD
+				m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 #ifdef INTERNAL_STATS
 				tx->aborts_locked_write++;
 #endif /* INTERNAL_STATS */
@@ -662,6 +677,9 @@ restart_no_load:
 					/* Not much we can do: abort */
 					/* Abort caused by invisible reads */
 					cm_visible_read(tx);
+#ifdef _M_STATS_BUILD
+					m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 #ifdef INTERNAL_STATS
 					tx->aborts_validate_read++;
 #endif /* INTERNAL_STATS */

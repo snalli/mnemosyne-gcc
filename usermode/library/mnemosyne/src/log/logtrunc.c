@@ -24,8 +24,11 @@ m_logtrunc_init(m_logmgr_t *mgr)
 {
 	logmgr = mgr;
 	pthread_cond_init(&(logmgr->logtrunc_cond), NULL);
-	//pthread_create (&(logmgr->logtrunc_thread), NULL, &log_truncation_main, (void *) 0);
-
+	//FIXME: Don't create asynchronous trunc thread when doing synchronous truncations
+	//FIXME: SYNC_TRUNCATION preprocessor flag is not passed here
+#if 1
+	pthread_create (&(logmgr->logtrunc_thread), NULL, &log_truncation_main, (void *) 0);
+#endif
 	return M_R_SUCCESS;
 }
 

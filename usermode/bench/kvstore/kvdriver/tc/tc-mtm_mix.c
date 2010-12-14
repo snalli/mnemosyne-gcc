@@ -38,8 +38,21 @@ int tc_mtm_mix_init(void *args)
 	global_state = (tc_mix_global_state_t *) malloc(sizeof(tc_mix_global_state_t));
 	mix_init(&mix_global_state, tc_mtm_op_ins, tc_mtm_op_del, tc_mtm_op_get, (void *) global_state);
 
-	return tc_mix_init_internal(global_state);
+	return tc_mix_init_internal(global_state, 1);
 }
+
+
+int tc_mtm_mix_init_etl(void *args)
+{
+	mix_global_state_t     *mix_global_state = NULL;
+	tc_mix_global_state_t  *global_state = NULL;
+
+	global_state = (tc_mix_global_state_t *) malloc(sizeof(tc_mix_global_state_t));
+	mix_init(&mix_global_state, tc_mtm_op_ins, tc_mtm_op_del, tc_mtm_op_get, (void *) global_state);
+
+	return tc_mix_init_internal(global_state, 0);
+}
+
 
 
 int 
@@ -56,6 +69,7 @@ tc_mtm_op_ins(void *t, void *elem, int lock)
 	MNEMOSYNE_ATOMIC {
 		//printf("[%d] INSERT %d\n", thread_state->tid, obj->key);
 		if (tcbdbput(bdb, &(obj->key), sizeof(int), &(obj->value), vsize) == false) {
+			return 0;
 			return -1;
 		}
 	}
@@ -77,6 +91,7 @@ tc_mtm_op_del(void *t, void *elem, int lock)
 		//printf("[%d] REMOVE %p\n", thread_state->tid, obj);
 		//printf("[%d] REMOVE %d\n", thread_state->tid, obj->key);
 		if (tcbdbout(bdb, &(obj->key), sizeof(int)) == false) {
+			return 0;
 			return -1;
 		}
 	}
@@ -95,10 +110,11 @@ tc_mtm_op_get(void *t, void *elem, int lock)
 	object_t               *obj = (object_t *) elem;
 	int                    vs;
 
-	if (tcbdbget(bdb, &(obj->key), sizeof(int), &vs) == false) {
-		return -1;
+	MNEMOSYNE_ATOMIC {
+		if (tcbdbget(bdb, &(obj->key), sizeof(int), &vs) == false) {
+			return -1;
+		}
 	}
-
 	return 0;
 }
 
@@ -112,4 +128,27 @@ void tc_mix_latency_thread_main(unsigned int tid)
 void tc_mix_throughput_thread_main(unsigned int tid)
 {
 	mix_thread_main(tid, 0, 0, 1);
+}
+
+void tc_mix_latency_think_thread_main(unsigned int tid)
+{
+	mix_thread_main(tid, 1, 1, 1);
+}
+
+
+void tc_mix_throughput_think_thread_main(unsigned int tid)
+{
+	mix_thread_main(tid, 0, 1, 1);
+}
+
+
+void tc_mix_latency_etl_thread_main(unsigned int tid)
+{
+	mix_thread_main(tid, 1, 0, 0);
+}
+
+
+void tc_mix_throughput_etl_thread_main(unsigned int tid)
+{
+	mix_thread_main(tid, 0, 0, 0);
 }

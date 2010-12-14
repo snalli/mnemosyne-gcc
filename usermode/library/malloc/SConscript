@@ -22,6 +22,9 @@ if buildEnv['BUILD_DEBUG'] == True:
 else:
 	CCFLAGS= ' -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
 
+if buildEnv['BUILD_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
+
 CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fpic -fno-omit-frame-pointer'
 CCFLAGS = CCFLAGS + ' -m64 '
 

@@ -36,7 +36,7 @@ int tc_base_mix_init(void *args)
 	global_state = (tc_mix_global_state_t *) malloc(sizeof(tc_mix_global_state_t));
 	mix_init(&mix_global_state, tc_base_op_ins, tc_base_op_del, tc_base_op_get, (void *) global_state);
 
-	return tc_mix_init_internal(global_state);
+	return tc_mix_init_internal(global_state, 1);
 }
 
 

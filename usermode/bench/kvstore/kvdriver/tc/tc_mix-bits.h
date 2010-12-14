@@ -17,7 +17,7 @@ typedef struct object_s {
 
 static inline
 int 
-tc_mix_init_internal(tc_mix_global_state_t *global_state)
+tc_mix_init_internal(tc_mix_global_state_t *global_state, int use_tc_locks)
 {
 	TCBDB                  *bdb;
 	char                   db_file[128];
@@ -25,10 +25,13 @@ tc_mix_init_internal(tc_mix_global_state_t *global_state)
 
 	/* open the database */
 	bdb = global_state->bdb = tcbdbnew();
-	if(!tcbdbsetmutex(bdb)){
-		fprintf(stderr, "Error: tcbdbsetmutex\n");
-		return -1;
+	if (use_tc_locks) {
+		if(!tcbdbsetmutex(bdb)){
+			fprintf(stderr, "Error: tcbdbsetmutex\n");
+			return -1;
+		}
 	}
+
 
 	sprintf(db_file, "%s/tc.tcb", db_home_dir_prefix);
 	if(!tcbdbopen(bdb, db_file, BDBOREADER | BDBOWRITER | BDBOCREAT)){
@@ -42,6 +45,7 @@ tc_mix_init_internal(tc_mix_global_state_t *global_state)
 
 int tc_mix_fini(void *args)
 {
+	fini_global();
 	return 0;
 }
 

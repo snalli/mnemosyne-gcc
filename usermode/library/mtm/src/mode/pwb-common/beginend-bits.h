@@ -41,6 +41,9 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		if (t >= VERSION_MAX) {
 #ifdef ROLLOVER_CLOCK
 			/* Abort: will reset the clock on next transaction start or delete */
+#ifdef _M_STATS_BUILD
+			m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 # ifdef INTERNAL_STATS
 			tx->aborts_rollover++;
 # endif /* INTERNAL_STATS */
@@ -57,6 +60,9 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 				/* Cannot commit */
 				/* Abort caused by invisible reads. */
 				cm_visible_read(tx);
+#ifdef _M_STATS_BUILD
+				m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, aborts, 1);
+#endif					
 #ifdef INTERNAL_STATS
 				tx->aborts_validate_commit++;
 #endif /* INTERNAL_STATS */
@@ -78,7 +84,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		/* In the case when isolation is off, the write set contains entries 
 		 * that point to private pseudo-locks. */
 		w = modedata->w_set.entries;
-		int tempcnt=0;
+		int wbflush_cnt=0;
 		for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {
 			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,m=%llx,v=%d)\n", tx,
 			                (unsigned long)modedata->start, (unsigned long)modedata->end,
@@ -88,19 +94,39 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 				PCM_WB_STORE_ALIGNED_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
 			}	
 # ifdef	SYNC_TRUNCATION
-				/* Flush the cacheline to persistent memory if this is the last entry in this line. */
-				if (w->next_cache_neighbor == NULL) {
+			/* Flush the cacheline to persistent memory if this is the last entry in this cache line. */
+			if (w->next_cache_neighbor == NULL) {
+				/* If isolation is enabled, then the write set may contain non-persistent 
+				 * writes as well. Need to filter those out as we don't need to flush them 
+				 * out of the cache.
+				 * FIXME: Would it be better if we had marked them as non-persistent and
+				 *        avoid the bounds checking?
+				 */
+				if (enable_isolation) {
+					if (((uintptr_t) w->addr >= PSEGMENT_RESERVED_REGION_START &&
+						 (uintptr_t) w->addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))
+					{
+						/* access is persistent -- flush */
+						PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
+						wbflush_cnt++;
+					}
+				} else {
 					PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
-					tempcnt++;
+					wbflush_cnt++;
 				}
+			}	
 # endif
 			/* Only drop lock for last covered address in write set */
 			if (w->next == NULL) {
 				ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
 			}	
 		}
+		
+#ifdef _M_STATS_BUILD
+		m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, wbflush, wbflush_cnt);
+#endif		
 		//printf("w_set.nb_entries= %d\n", modedata->w_set.nb_entries);
-		//printf("cachelines flushed= %d\n", tempcnt);
+		//printf("cachelines flushed= %d\n", wbflush_cnt);
 # ifdef READ_LOCKED_DATA
 		/* Update instance number (becomes even) */
 		ATOMIC_STORE_REL(&tx->id, id + 2);
@@ -145,6 +171,9 @@ pwb_rollback(mtm_tx_t *tx)
 
 	/* Mark the transaction in the persistent log as aborted. */
 	M_TMLOG_ABORT(tx->pcm_storeset, modedata->ptmlog, 0);
+# ifdef	SYNC_TRUNCATION
+	M_TMLOG_TRUNCATE_SYNC(tx->pcm_storeset, modedata->ptmlog);
+# endif
 
 	/* Drop locks */
 	i = modedata->w_set.nb_entries;

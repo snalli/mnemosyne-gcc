@@ -89,8 +89,8 @@ int mtm_mix_init(void *args)
 	 * via the environment variable. 
 	 */
 	ubench_name = ubench_index2str(ubench_to_run);
-	if (strcmp(ubench_name, "mtm_mix_latency_nolock") == 0 ||
-	    strcmp(ubench_name, "mtm_mix_throughput_nolock") == 0)
+	if (strcmp(ubench_name, "mtm_mix_latency_etl") == 0 ||
+	    strcmp(ubench_name, "mtm_mix_throughput_etl") == 0)
 	{
 		setenv("MTM_FORCE_MODE", "pwbetl", 1);
 	}
@@ -318,13 +318,13 @@ void mtm_mix_throughput_think_thread_main(unsigned int tid)
 	mix_thread_main(tid, 0, 1, 1);
 }
 
-/* nolock versions rely on memory transactions for isolation */
-void mtm_mix_latency_thread_main_nolock(unsigned int tid)
+/* etl versions rely on memory transactions for isolation */
+void mtm_mix_latency_thread_main_etl(unsigned int tid)
 {
 	mix_thread_main(tid, 1, 0, 0);
 }
 
-void mtm_mix_throughput_thread_main_nolock(unsigned int tid)
+void mtm_mix_throughput_thread_main_etl(unsigned int tid)
 {
 	mix_thread_main(tid, 0, 0, 0);
 }

@@ -24,6 +24,11 @@ void
 do_global_init(void)
 {
 	pcm_storeset_t* pcm_storeset;
+#ifdef _M_STATS_BUILD
+	struct timeval     start_time;
+	struct timeval     stop_time;
+	unsigned long long op_time;
+#endif
 
 	if (mnemosyne_initialized) {
 		return;
@@ -34,9 +39,18 @@ do_global_init(void)
 	pthread_mutex_lock(&global_init_lock);
 	if (!mnemosyne_initialized) {
 		mcore_config_init();
+#ifdef _M_STATS_BUILD
+		gettimeofday(&start_time, NULL);
+#endif
 		m_segmentmgr_init();
 		mnemosyne_initialized = 1;
 		mnemosyne_reincarnation_callback_execute_all();
+#ifdef _M_STATS_BUILD
+		gettimeofday(&stop_time, NULL);
+		op_time = 1000000 * (stop_time.tv_sec - start_time.tv_sec) +
+		                     stop_time.tv_usec - start_time.tv_usec;
+		fprintf(stderr, "reincarnation_latency = %llu (us)\n", op_time);
+#endif
 		m_logmgr_init(pcm_storeset);
 		M_WARNING("Initialize\n");
 	}	

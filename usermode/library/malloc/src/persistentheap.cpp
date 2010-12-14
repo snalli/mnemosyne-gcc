@@ -1,3 +1,4 @@
+#include <sys/time.h>
 #include <mnemosyne.h>
 #include <stdint.h>
 #include <sys/mman.h>
@@ -56,12 +57,21 @@ void persistentHeap::format()
 // For every persistent superblock create a superblock that higher layers can use
 void persistentHeap::scavenge()
 {
+#ifdef _M_STATS_BUILD
+	struct timeval     start_time;
+	struct timeval     stop_time;
+	unsigned long long op_time;
+#endif
+
 	int                  i;
 	int                  sizeclass;
 	int                  blksize;
 	persistentSuperblock *psb;
 	superblock           *sb;
 
+#ifdef _M_STATS_BUILD
+	gettimeofday(&start_time, NULL);
+#endif
 	for(i=0; i<PERSISTENTSUPERBLOCK_NUM; i++) { 
 		psb = (persistentSuperblock *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 		blksize = psb->getBlockSize();
@@ -79,7 +89,13 @@ void persistentHeap::scavenge()
 		std::cout << "  ->numAvailable: " << sb->getNumAvailable() << std::endl;
 		std::cout << "  ->getFullness: " << sb->getFullness() << std::endl;
 #endif		
-	}	
+	}
+#ifdef _M_STATS_BUILD
+	gettimeofday(&stop_time, NULL);
+	op_time = 1000000 * (stop_time.tv_sec - start_time.tv_sec) +
+	                     stop_time.tv_usec - start_time.tv_usec;
+	printf("persistent_heap_scavenge_latency = %llu (us)\n", op_time);
+#endif
 }
 
 

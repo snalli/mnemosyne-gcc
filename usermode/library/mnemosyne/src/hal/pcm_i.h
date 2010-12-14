@@ -431,6 +431,13 @@ PCM_WB_FLUSH(pcm_storeset_t *set, volatile pcm_word_t *addr)
 	pcm_wb_flush_emulate_crash(set, addr);
 #endif
 
+	/* 
+	 * Need mfence first to ensure that previous stores are included 
+	 * in the write-back 
+	 * But as this interface is used by transactions that may have many
+	 * clflush we required them to have issued the mfence themselves
+	 * otherwise we would unnecessarily issue multiple mfences
+	 */
 #ifdef M_PCM_EMULATE_LATENCY
 	{
 #ifdef HAS_RDTSCP
@@ -447,12 +454,12 @@ PCM_WB_FLUSH(pcm_storeset_t *set, volatile pcm_word_t *addr)
 		asm_clflush(addr); 	
 		emulate_latency_ns(M_PCM_LATENCY_WRITE);
 #endif		
-		asm_mfence();
+		asm_mfence(); 
 	}	
 
 #else /* !M_PCM_EMULATE_LATENCY */ 
 	asm_clflush(addr); 	
-	asm_mfence();
+	asm_mfence(); 
 #endif /* !M_PCM_EMULATE_LATENCY */ 
 
 }

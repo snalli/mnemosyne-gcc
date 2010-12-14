@@ -20,8 +20,8 @@
 #ifndef MAP_SCM
 #define MAP_SCM 0x80000
 #endif
-//#define MAP_PERSISTENT MAP_SCM
-#define MAP_PERSISTENT 0
+#define MAP_PERSISTENT MAP_SCM
+//#define MAP_PERSISTENT 0
 
 
 /** Persistent segment table entry flags */

@@ -2,8 +2,8 @@ obj-m += scmmap.o
 scmmap-objs := main_kernel.o index.o
 
 PWD    := $(shell pwd)
-#KDIR    := $(PWD)/../linux-2.6.33
-KDIR    := /home/hvolos/workspace/linux/linux-2.6.33
+KDIR    := $(PWD)/../linux-2.6.33
+#KDIR    := /home/hvolos/workspace/linux/linux-2.6.33
 
 all: kernelmodule user
 

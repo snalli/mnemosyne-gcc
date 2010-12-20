@@ -1,0 +1,11 @@
+This Paxos implementation is based on the YFS implementation 
+provided by queba via GIT. Many thanks to queba!!!
+
+YFS implementation:
+
+https://github.com/queba/yfs
+https://github.com/queba/yfs.git
+
+YFS specification:
+
+http://pdos.csail.mit.edu/6.824/labs/

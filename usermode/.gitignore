@@ -11,3 +11,4 @@ cscope.out
 /bench/paxos
 /library/src/mtm/mode/wbwt/
 /examples/atomic/
+/dep/libevent-2.0.10/build

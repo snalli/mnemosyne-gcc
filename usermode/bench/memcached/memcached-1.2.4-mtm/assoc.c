@@ -25,6 +25,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include "mnemosyne.h"
+#include "mtm.h"
+#include "malloc.h"
 
 /*
  * Since the hash function does bit manipulation, it needs to know
@@ -476,8 +479,10 @@ static bool expanding = false;
 static unsigned int expand_bucket = 0;
 
 void assoc_init(void) {
+	void *ptr;
     unsigned int hash_size = hashsize(hashpower) * sizeof(void*);
-    primary_hashtable = malloc(hash_size);
+    fprintf(stderr, "assoc_init: hash_size = %d\n", hash_size);
+    primary_hashtable = pmalloc(hash_size);
     if (! primary_hashtable) {
         fprintf(stderr, "Failed to init hashtable.\n");
         exit(EXIT_FAILURE);
@@ -533,7 +538,7 @@ static item** _hashitem_before (const char *key, const size_t nkey) {
 /* grows the hashtable to the next power of 2. */
 static void assoc_expand(void) {
     old_hashtable = primary_hashtable;
-
+	assert(0); // expand hashtable allocated in persistent heap
     primary_hashtable = calloc(hashsize(hashpower + 1), sizeof(void *));
     if (primary_hashtable) {
         if (settings.verbose > 1)

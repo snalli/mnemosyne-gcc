@@ -52,6 +52,11 @@ std *
 #endif
 #endif
 
+/* Haris: Linux complains that IOV_MAX is not defined */
+#ifndef IOV_MAX
+# define IOV_MAX 1024
+#endif
+
 /* FreeBSD 4.x doesn't have IOV_MAX exposed. */
 #ifndef IOV_MAX
 #if defined(__FreeBSD__) || defined(__APPLE__)

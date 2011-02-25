@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include "malloc.h"
 
 #define POWER_SMALLEST 1
 #define POWER_LARGEST  200
@@ -187,7 +188,7 @@ static int do_slabs_newslab(const unsigned int id) {
 
     if (grow_slab_list(id) == 0) return 0;
 
-    ptr = malloc((size_t)len);
+    ptr = pmalloc((size_t)len);
     if (ptr == 0) return 0;
 
     memset(ptr, 0, (size_t)len);
@@ -214,7 +215,7 @@ void *do_slabs_alloc(const size_t size) {
     if (mem_limit && mem_malloced + size > mem_limit)
         return 0;
     mem_malloced += size;
-    return malloc(size);
+    return pmalloc(size);
 #endif
 
     /* fail unless we have space at the end of a recently allocated page,
@@ -253,7 +254,7 @@ void do_slabs_free(void *ptr, const size_t size) {
 
 #ifdef USE_SYSTEM_MALLOC
     mem_malloced -= size;
-    free(ptr);
+    pfree(ptr);
     return;
 #endif
 

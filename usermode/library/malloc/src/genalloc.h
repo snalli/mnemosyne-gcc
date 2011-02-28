@@ -30,6 +30,7 @@ TM_CALLABLE void*  GENERIC_PMEMALIGN(size_t alignment, size_t bytes);
 TM_CALLABLE void*  GENERIC_PVALLOC(size_t bytes);
 TM_CALLABLE void   GENERIC_PMALLOC_STATS();
 TM_CALLABLE size_t GENERIC_PGET_USABLE_SIZE(void* mem);
+TM_CALLABLE size_t generic_objsize(void *ptr);
 
 #ifdef __cplusplus
 } /* end of extern "C" */

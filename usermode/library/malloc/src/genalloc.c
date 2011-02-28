@@ -92,17 +92,36 @@ _init(void)
 	volatile_init_done = 1;
 }
 
+struct header_s {
+	size_t sz;
+};
+
+
+size_t generic_objsize(void *ptr)
+{
+	struct header_s* header_ptr;
+	header_ptr = (struct header_s *) ((char *)ptr - sizeof(struct header_s));
+	return header_ptr->sz;
+}
+
 
 void *
 generic_pmalloc(size_t sz)
 {
+	void *ptr;
+	struct header_s* header_ptr;
 	_init();
-	return vistaheap_malloc(vistaheap_main, sz);
+	/* HACK: Vistaheap does not track size so we track it in a header ourselves */
+	ptr = vistaheap_malloc(vistaheap_main, sz + sizeof(struct header_s));
+	header_ptr = (struct header_s *) ptr;
+	header_ptr->sz = sz;
+	return (void *) ((char *) ptr + sizeof(struct header_s));
 }
 
 
 void 
 generic_pfree(void *ptr)
 {
-	//TODO: size should be argument as well
+	//TODO
+	//
 }

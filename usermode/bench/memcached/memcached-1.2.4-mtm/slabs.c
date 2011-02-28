@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "malloc.h"
+#include "pmalloc.h"
 
 #define POWER_SMALLEST 1
 #define POWER_LARGEST  200
@@ -162,11 +162,12 @@ static void slabs_preallocate (const unsigned int maxslabs) {
 }
 #endif
 
+__attribute__((tm_callable))
 static int grow_slab_list (const unsigned int id) {
     slabclass_t *p = &slabclass[id];
     if (p->slabs == p->list_size) {
         size_t new_size =  (p->list_size != 0) ? p->list_size * 2 : 16;
-        void *new_list = realloc(p->slab_list, new_size * sizeof(void *));
+        void *new_list = PREALLOC(p->slab_list, new_size * sizeof(void *));
         if (new_list == 0) return 0;
         p->list_size = new_size;
         p->slab_list = new_list;
@@ -174,6 +175,7 @@ static int grow_slab_list (const unsigned int id) {
     return 1;
 }
 
+__attribute__((tm_callable))
 static int do_slabs_newslab(const unsigned int id) {
     slabclass_t *p = &slabclass[id];
 #ifdef ALLOW_SLABS_REASSIGN
@@ -188,7 +190,7 @@ static int do_slabs_newslab(const unsigned int id) {
 
     if (grow_slab_list(id) == 0) return 0;
 
-    ptr = pmalloc((size_t)len);
+    ptr = PMALLOC((size_t)len);
     if (ptr == 0) return 0;
 
     memset(ptr, 0, (size_t)len);
@@ -215,7 +217,7 @@ void *do_slabs_alloc(const size_t size) {
     if (mem_limit && mem_malloced + size > mem_limit)
         return 0;
     mem_malloced += size;
-    return pmalloc(size);
+    return PMALLOC(size);
 #endif
 
     /* fail unless we have space at the end of a recently allocated page,
@@ -254,13 +256,13 @@ void do_slabs_free(void *ptr, const size_t size) {
 
 #ifdef USE_SYSTEM_MALLOC
     mem_malloced -= size;
-    pfree(ptr);
+    PFREE(ptr);
     return;
 #endif
 
     if (p->sl_curr == p->sl_total) { /* need more space on the free list */
         int new_size = (p->sl_total != 0) ? p->sl_total * 2 : 16;  /* 16 is arbitrary */
-        void **new_slots = realloc(p->slots, new_size * sizeof(void *));
+        void **new_slots = PREALLOC(p->slots, new_size * sizeof(void *));
         if (new_slots == 0)
             return;
         p->slots = new_slots;
@@ -287,19 +289,22 @@ char* do_slabs_stats(int *buflen) {
 
             slabs = p->slabs;
             perslab = p->perslab;
-
-            bufcurr += sprintf(bufcurr, "STAT %d:chunk_size %u\r\n", i, p->size);
-            bufcurr += sprintf(bufcurr, "STAT %d:chunks_per_page %u\r\n", i, perslab);
-            bufcurr += sprintf(bufcurr, "STAT %d:total_pages %u\r\n", i, slabs);
-            bufcurr += sprintf(bufcurr, "STAT %d:total_chunks %u\r\n", i, slabs*perslab);
-            bufcurr += sprintf(bufcurr, "STAT %d:used_chunks %u\r\n", i, slabs*perslab - p->sl_curr);
-            bufcurr += sprintf(bufcurr, "STAT %d:free_chunks %u\r\n", i, p->sl_curr);
-            bufcurr += sprintf(bufcurr, "STAT %d:free_chunks_end %u\r\n", i, p->end_page_free);
+			__tm_waiver {
+	            bufcurr += sprintf(bufcurr, "STAT %d:chunk_size %u\r\n", i, p->size);
+    	        bufcurr += sprintf(bufcurr, "STAT %d:chunks_per_page %u\r\n", i, perslab);
+        	    bufcurr += sprintf(bufcurr, "STAT %d:total_pages %u\r\n", i, slabs);
+            	bufcurr += sprintf(bufcurr, "STAT %d:total_chunks %u\r\n", i, slabs*perslab);
+	            bufcurr += sprintf(bufcurr, "STAT %d:used_chunks %u\r\n", i, slabs*perslab - p->sl_curr);
+    	        bufcurr += sprintf(bufcurr, "STAT %d:free_chunks %u\r\n", i, p->sl_curr);
+        	    bufcurr += sprintf(bufcurr, "STAT %d:free_chunks_end %u\r\n", i, p->end_page_free);
+			}	
             total++;
         }
     }
-    bufcurr += sprintf(bufcurr, "STAT active_slabs %d\r\nSTAT total_malloced %llu\r\n", total, (unsigned long long)mem_malloced);
-    bufcurr += sprintf(bufcurr, "END\r\n");
+	__tm_waiver {
+	    bufcurr += sprintf(bufcurr, "STAT active_slabs %d\r\nSTAT total_malloced %llu\r\n", total, (unsigned long long)mem_malloced);
+    	bufcurr += sprintf(bufcurr, "END\r\n");
+	}	
     *buflen = bufcurr - buf;
     return buf;
 }

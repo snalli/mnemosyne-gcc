@@ -44,6 +44,7 @@ std *
 #include <time.h>
 #include <assert.h>
 #include <limits.h>
+#include "tm.h"
 
 #ifdef HAVE_MALLOC_H
 /* OpenBSD has a malloc.h, but warns to use stdlib.h instead */
@@ -126,6 +127,7 @@ static int *buckets = 0; /* bucket->generation array for a managed instance */
  * unix time. Use the fact that delta can't exceed one month (and real time value can't
  * be that low).
  */
+__attribute__((tm_callable))
 static rel_time_t realtime(const time_t exptime) {
     /* no. of seconds in 30 days - largest possible delta exptime */
 
@@ -160,12 +162,15 @@ static void stats_init(void) {
 }
 
 static void stats_reset(void) {
-    STATS_LOCK();
-    stats.total_items = stats.total_conns = 0;
-    stats.get_cmds = stats.set_cmds = stats.get_hits = stats.get_misses = stats.evictions = 0;
-    stats.bytes_read = stats.bytes_written = 0;
-    stats_prefix_clear();
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC 
+	{
+    	stats.total_items = stats.total_conns = 0;
+	    stats.get_cmds = stats.set_cmds = stats.get_hits = stats.get_misses = stats.evictions = 0;
+    	stats.bytes_read = stats.bytes_written = 0;
+	    stats_prefix_clear();
+	}	
+    //STATS_UNLOCK();
 }
 
 static void settings_init(void) {
@@ -193,6 +198,7 @@ static void settings_init(void) {
 
 /* returns true if a deleted item's delete-locked-time is over, and it
    should be removed from the namespace */
+__attribute__((tm_callable))
 static bool item_delete_lock_over (item *it) {
     assert(it->it_flags & ITEM_DELETED);
     return (current_time >= it->exptime);
@@ -341,9 +347,11 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
             return NULL;
         }
 
-        STATS_LOCK();
-        stats.conn_structs++;
-        STATS_UNLOCK();
+        //STATS_LOCK();
+		TM_ATOMIC {
+        	stats.conn_structs++;
+		}
+        //STATS_UNLOCK();
     }
 
     if (settings.verbose > 1) {
@@ -388,10 +396,12 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
         return NULL;
     }
 
-    STATS_LOCK();
-    stats.curr_conns++;
-    stats.total_conns++;
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+	    stats.curr_conns++;
+    	stats.total_conns++;
+	}	
+    //STATS_UNLOCK();
 
     return c;
 }
@@ -465,9 +475,11 @@ static void conn_close(conn *c) {
         conn_free(c);
     }
 
-    STATS_LOCK();
-    stats.curr_conns--;
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+    	stats.curr_conns--;
+	}
+    //STATS_UNLOCK();
 
     return;
 }
@@ -769,9 +781,11 @@ static void complete_nread(conn *c) {
     int comm = c->item_comm;
     int ret;
 
-    STATS_LOCK();
-    stats.set_cmds++;
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+	    stats.set_cmds++;
+	}	
+    //STATS_UNLOCK();
 
     if (strncmp(ITEM_data(it) + it->nbytes - 2, "\r\n", 2) != 0) {
         out_string(c, "CLIENT_ERROR bad data chunk");
@@ -1017,7 +1031,8 @@ static void process_stat(conn *c, token_t *tokens, const size_t ntokens) {
         getrusage(RUSAGE_SELF, &usage);
 #endif /* !WIN32 */
 
-        STATS_LOCK();
+        //STATS_LOCK();
+		TM_ATOMIC {
         pos += sprintf(pos, "STAT pid %u\r\n", pid);
         pos += sprintf(pos, "STAT uptime %u\r\n", now);
         pos += sprintf(pos, "STAT time %ld\r\n", now + stats.started);
@@ -1043,7 +1058,8 @@ static void process_stat(conn *c, token_t *tokens, const size_t ntokens) {
         pos += sprintf(pos, "STAT limit_maxbytes %llu\r\n", (uint64_t) settings.maxbytes);
         pos += sprintf(pos, "STAT threads %u\r\n", settings.num_threads);
         pos += sprintf(pos, "END");
-        STATS_UNLOCK();
+		}
+        //STATS_UNLOCK();
         out_string(c, temp);
         return;
     }
@@ -1205,11 +1221,13 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
             nkey = key_token->length;
 
             if(nkey > KEY_MAX_LENGTH) {
-                STATS_LOCK();
-                stats.get_cmds   += stats_get_cmds;
-                stats.get_hits   += stats_get_hits;
-                stats.get_misses += stats_get_misses;
-                STATS_UNLOCK();
+                //STATS_LOCK();
+				TM_ATOMIC {
+        	        stats.get_cmds   += stats_get_cmds;
+	                stats.get_hits   += stats_get_hits;
+                	stats.get_misses += stats_get_misses;
+				}
+                //STATS_UNLOCK();
                 out_string(c, "CLIENT_ERROR bad command line format");
                 return;
             }
@@ -1250,11 +1268,13 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
 
                   suffix = suffix_from_freelist();
                   if (suffix == NULL) {
-                    STATS_LOCK();
-                    stats.get_cmds   += stats_get_cmds;
-                    stats.get_hits   += stats_get_hits;
-                    stats.get_misses += stats_get_misses;
-                    STATS_UNLOCK();
+                    //STATS_LOCK();
+					TM_ATOMIC {
+                    	stats.get_cmds   += stats_get_cmds;
+                    	stats.get_hits   += stats_get_hits;
+                    	stats.get_misses += stats_get_misses;
+					}
+                    //STATS_UNLOCK();
                     out_string(c, "SERVER_ERROR out of memory");
                     return;
                   }
@@ -1331,11 +1351,13 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
         c->msgcurr = 0;
     }
 
-    STATS_LOCK();
-    stats.get_cmds   += stats_get_cmds;
-    stats.get_hits   += stats_get_hits;
-    stats.get_misses += stats_get_misses;
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+	    stats.get_cmds   += stats_get_cmds;
+    	stats.get_hits   += stats_get_hits;
+	    stats.get_misses += stats_get_misses;
+	}
+    //STATS_UNLOCK();
 
     return;
 }
@@ -1847,9 +1869,11 @@ static int try_read_udp(conn *c) {
                    0, &c->request_addr, &c->request_addr_size);
     if (res > 8) {
         unsigned char *buf = (unsigned char *)c->rbuf;
-        STATS_LOCK();
-        stats.bytes_read += res;
-        STATS_UNLOCK();
+        //STATS_LOCK();
+		TM_ATOMIC {
+	        stats.bytes_read += res;
+		}
+        //STATS_UNLOCK();
 
         /* Beginning of UDP packet is the request ID; save it. */
         c->request_id = buf[0] * 256 + buf[1];
@@ -1916,9 +1940,11 @@ static int try_read_network(conn *c) {
 
         res = read(c->sfd, c->rbuf + c->rbytes, c->rsize - c->rbytes);
         if (res > 0) {
-            STATS_LOCK();
-            stats.bytes_read += res;
-            STATS_UNLOCK();
+            //STATS_LOCK();
+			TM_ATOMIC {
+	            stats.bytes_read += res;
+			}	
+            //STATS_UNLOCK();
             gotdata = 1;
             c->rbytes += res;
             continue;
@@ -1994,9 +2020,11 @@ static int transmit(conn *c) {
 
         res = sendmsg(c->sfd, m, 0);
         if (res > 0) {
-            STATS_LOCK();
-            stats.bytes_written += res;
-            STATS_UNLOCK();
+            //STATS_LOCK();
+			TM_ATOMIC {
+	            stats.bytes_written += res;
+			}	
+            //STATS_UNLOCK();
 
             /* We've written some of the data. Remove the completed
                iovec entries from the list of pending writes. */
@@ -2114,9 +2142,11 @@ static void drive_machine(conn *c) {
             /*  now try reading from the socket */
             res = read(c->sfd, c->ritem, c->rlbytes);
             if (res > 0) {
-                STATS_LOCK();
-                stats.bytes_read += res;
-                STATS_UNLOCK();
+                //STATS_LOCK();
+				TM_ATOMIC {
+	                stats.bytes_read += res;
+				}
+                //STATS_UNLOCK();
                 c->ritem += res;
                 c->rlbytes -= res;
                 break;
@@ -2160,9 +2190,11 @@ static void drive_machine(conn *c) {
             /*  now try reading from the socket */
             res = read(c->sfd, c->rbuf, c->rsize > c->sbytes ? c->sbytes : c->rsize);
             if (res > 0) {
-                STATS_LOCK();
-                stats.bytes_read += res;
-                STATS_UNLOCK();
+                //STATS_LOCK();
+				TM_ATOMIC {
+	                stats.bytes_read += res;
+				}	
+                //STATS_UNLOCK();
                 c->sbytes -= res;
                 break;
             }
@@ -2518,7 +2550,7 @@ static void delete_handler(const int fd, const short which, void *arg) {
 }
 
 /* Call run_deferred_deletes instead of this. */
-void do_run_deferred_deletes(void)
+__attribute__((tm_callable)) void do_run_deferred_deletes(void)
 {
     int i, j = 0;
 

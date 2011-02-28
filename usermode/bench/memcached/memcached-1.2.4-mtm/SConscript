@@ -1,0 +1,38 @@
+Import('memcachedEnv')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('mallocLibrary')
+
+myEnv = memcachedEnv.Clone() 
+myEnv.Append(CCFLAGS = ' -O2')
+
+myEnv.Append(CCFLAGS = ' -D_GNU_SOURCE -DHAVE_CONFIG_H')
+myEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+myEnv.Append(CPPPATH = ['#library/common'])
+myEnv.Append(CPPPATH = ['#bench/memcached/memcached-1.2.4-mtm'])
+
+#myEnv.Append(CPPPATH = myEnv['EXPLICIT_DEPENDENCY']['BDB_INCLUDE'] )
+#myEnv.Append(LINKFLAGS = '-Wl,--whole-archive %s -Wl,--no-whole-archive' % myEnv['EXPLICIT_DEPENDENCY']['BDB_LIB'])
+
+myEnv.Append(LIBS = [mcoreLibrary])
+myEnv.Append(LIBS = [mtmLibrary])
+myEnv.Append(LIBS = [mallocLibrary])
+
+
+# Hashtable & BDB kvdriver
+
+sources = Split("""
+		   assoc.c
+		   helper.c
+		   items.c
+		   memcached.c
+		   slabs.c
+		   stats.c
+		   thread.c
+                   """)
+
+
+#myEnv.Append(CPPPATH = ['#bench/kvstore/kvdriver/ht'])
+#myEnv.Append(LIBS = [hashtableLibrary])
+myEnv.Append(LIBS = ['event'])
+myEnv.Program('memcached', sources)

@@ -50,9 +50,9 @@
 #include "genalloc.h"
 
 #include <itm.h>
-#include "txmutex.h"
+#include "mtm/include/txlock.h"
 
-txmutex_t generic_pmalloc_txmutex = PTHREAD_MUTEX_INITIALIZER;
+m_txmutex_t generic_pmalloc_txmutex = PTHREAD_MUTEX_INITIALIZER;
 
 //
 // Access exactly one instance of the global persistent heap
@@ -120,6 +120,7 @@ static void * pmalloc_internal (size_t sz)
 	//printf("pmalloc[START]: size = %d\n",  (int) sz);
 
 	if (sz >= SUPERBLOCK_SIZE/2) {
+		//printf("pmalloc.vista[START]: size = %d\n",  (int) sz);
 		/* Fall back to the standard persistent allocator. 
 		 * Begin a new atomic block to force the compiler to fall through down the TM 
 		 * instrumented path. Actually we are already in the transactional path so
@@ -127,11 +128,15 @@ static void * pmalloc_internal (size_t sz)
 		 */
 		__tm_atomic 
 		{
-			txmutex_lock(&generic_pmalloc_txmutex);
+			// FIXME: We don't need the lock as we execute with isolation on
+			// We should make the library work properly when transactions don't provide
+			// isolation.
+			//m_txmutex_lock(&generic_pmalloc_txmutex); 
 			addr = GENERIC_PMALLOC(sz);
-			txmutex_unlock(&generic_pmalloc_txmutex);
+			//m_txmutex_unlock(&generic_pmalloc_txmutex);
 		}
 	} else {
+		//printf("pmalloc.hoard[START]: size = %d\n",  (int) sz);
 		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
 	}
 	//printf("pmalloc[DONE]: addr=%p,  size = %d\n",  addr, (int) sz);
@@ -224,6 +229,9 @@ extern "C" void * HOARD_VALLOC (size_t size)
 static void * prealloc_internal (void * ptr, size_t sz)
 {
 	_ITM_transaction *tx;
+	static persistentHeap * persistentheap = getPersistentAllocator();
+
+	//printf("prealloc[START]: ptr = %p, size = %d\n",  ptr, (int) sz);
 
 	if (ptr == NULL) {
 		return pmalloc_internal (sz);
@@ -233,12 +241,23 @@ static void * prealloc_internal (void * ptr, size_t sz)
 	return NULL;
 	}
 
-	// If the existing object can hold the new size,
-	// just return it.
-	size_t objSize = threadHeap::objectSize (ptr);
+	size_t objSize;
+	/* If object allocated from the Hoard heap then check whether there
+	 * the existing object can hold the new size
+	 */
+	if ((uintptr_t) ptr >= ((uintptr_t) persistentheap->getPersistentSegmentBase()) &&
+	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
+	{
 
-	if (objSize >= sz) {
-		return ptr;
+		// If the existing object can hold the new size,
+		// just return it.
+		objSize = persistentHeap::objectSize (ptr);
+
+		if (objSize >= sz) {
+			return ptr;
+		}
+	} else {
+		objSize = generic_objsize(ptr);
 	}
 
 	// Allocate a new block of size sz.

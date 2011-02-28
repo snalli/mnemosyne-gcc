@@ -13,6 +13,8 @@
 #include <string.h>
 #include <time.h>
 #include <assert.h>
+#include "helper.h"
+#include "tm.h"
 
 /* Forward Declarations */
 static void item_link_q(item *it);
@@ -70,6 +72,7 @@ uint64_t get_cas_id() {
  *
  * Returns the total size of the header.
  */
+__attribute__((tm_pure))
 static size_t item_make_header(const uint8_t nkey, const int flags, const int nbytes,
                      char *suffix, uint8_t *nsuffix) {
     /* suffix is defined at 40 chars elsewhere.. */
@@ -112,9 +115,11 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
         for (search = tails[id]; tries > 0 && search != NULL; tries--, search=search->prev) {
             if (search->refcount == 0) {
                if (search->exptime == 0 || search->exptime > current_time) {
-                       STATS_LOCK();
-                       stats.evictions++;
-                       STATS_UNLOCK();
+                       //STATS_LOCK();
+					   TM_ATOMIC {
+                       	stats.evictions++;
+					   }
+                       //STATS_UNLOCK();
                 }
                 do_item_unlink(search);
                 break;
@@ -136,7 +141,7 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
     it->it_flags = 0;
     it->nkey = nkey;
     it->nbytes = nbytes;
-    strcpy(ITEM_key(it), key);
+    txc_libc_strcpy(ITEM_key(it), key);
     it->exptime = exptime;
     memcpy(ITEM_suffix(it), suffix, (size_t)nsuffix);
     it->nsuffix = nsuffix;
@@ -169,6 +174,7 @@ bool item_size_ok(const size_t nkey, const int flags, const int nbytes) {
                                         prefix, &nsuffix)) != 0;
 }
 
+__attribute__((tm_callable))
 static void item_link_q(item *it) { /* item is the new head */
     item **head, **tail;
     /* always true, warns: assert(it->slabs_clsid <= LARGEST_ID); */
@@ -187,6 +193,7 @@ static void item_link_q(item *it) { /* item is the new head */
     return;
 }
 
+__attribute__((tm_callable))
 static void item_unlink_q(item *it) {
     item **head, **tail;
     /* always true, warns: assert(it->slabs_clsid <= LARGEST_ID); */
@@ -217,11 +224,13 @@ int do_item_link(item *it) {
     it->time = current_time;
     assoc_insert(it);
 
-    STATS_LOCK();
-    stats.curr_bytes += ITEM_ntotal(it);
-    stats.curr_items += 1;
-    stats.total_items += 1;
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+    	stats.curr_bytes += ITEM_ntotal(it);
+	    stats.curr_items += 1;
+    	stats.total_items += 1;
+	}	
+    //STATS_UNLOCK();
 
     /* Allocate a new CAS ID on link. */
     it->cas_id = get_cas_id();
@@ -234,10 +243,12 @@ int do_item_link(item *it) {
 void do_item_unlink(item *it) {
     if ((it->it_flags & ITEM_LINKED) != 0) {
         it->it_flags &= ~ITEM_LINKED;
-        STATS_LOCK();
-        stats.curr_bytes -= ITEM_ntotal(it);
-        stats.curr_items -= 1;
-        STATS_UNLOCK();
+        //STATS_LOCK();
+		TM_ATOMIC {
+        	stats.curr_bytes -= ITEM_ntotal(it);
+        	stats.curr_items -= 1;
+		}
+        //STATS_UNLOCK();
         assoc_delete(ITEM_key(it), it->nkey);
         item_unlink_q(it);
         if (it->refcount == 0) item_free(it);
@@ -296,7 +307,7 @@ char *do_item_cachedump(const unsigned int slabs_clsid, const unsigned int limit
         len = snprintf(temp, sizeof(temp), "ITEM %s [%d b; %lu s]\r\n", ITEM_key(it), it->nbytes - 2, it->exptime + stats.started);
         if (bufcurr + len + 6 > memlimit)  /* 6 is END\r\n\0 */
             break;
-        strcpy(buffer + bufcurr, temp);
+        txc_libc_strcpy(buffer + bufcurr, temp);
         bufcurr += len;
         shown++;
         it = it->next;
@@ -383,6 +394,7 @@ char* do_item_stats_sizes(int *bytes) {
 
 /** returns true if a deleted item's delete-locked-time is over, and it
     should be removed from the namespace */
+__attribute__((tm_callable))
 bool item_delete_lock_over (item *it) {
     assert(it->it_flags & ITEM_DELETED);
     return (current_time >= it->exptime);

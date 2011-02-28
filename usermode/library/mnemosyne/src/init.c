@@ -69,7 +69,9 @@ do_global_fini(void)
 	if (mnemosyne_initialized) {
 		m_logmgr_fini();
 		m_segmentmgr_fini();
+		mtm_fini_global();
 		mnemosyne_initialized = 1;
+
 		M_WARNING("Shutdown\n");
 	}	
 	pthread_mutex_unlock(&global_init_lock);

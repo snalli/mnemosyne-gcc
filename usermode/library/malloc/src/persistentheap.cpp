@@ -186,3 +186,20 @@ void persistentHeap::free (void * ptr)
 		sb->upUnlock();
 	}
 }
+
+size_t persistentHeap::objectSize (void * ptr) 
+{
+	// Find the superblock pointer.
+	uintptr_t psb_index = ((uintptr_t) ptr - (uintptr_t) psegment) / persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE;
+	persistentSuperblock *psb = (persistentSuperblock *) ((uintptr_t) psegmentheader + psb_index * sizeof(persistentSuperblock));
+	int blksize = psb->getBlockSize();
+	uintptr_t block_index = (((uintptr_t) ptr - (uintptr_t) psegment) % persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE) / blksize;
+	superblock *sb = psb->getSuperblock();
+	assert (sb);
+	assert (sb->isValid());
+  
+  // Return the size.
+  return sizeFromClass (sb->getBlockSizeClass());
+}
+
+

@@ -238,10 +238,10 @@ conn *do_conn_from_freelist();
 bool do_conn_add_to_freelist(conn *c);
 char *do_suffix_from_freelist();
 bool do_suffix_add_to_freelist(char *s);
-char *do_defer_delete(item *item, time_t exptime);
-void do_run_deferred_deletes(void);
+__attribute__((tm_callable)) char *do_defer_delete(item *item, time_t exptime);
+__attribute__((tm_callable)) void do_run_deferred_deletes(void);
 char *do_add_delta(item *item, const bool incr, const int64_t delta, char *buf);
-int do_store_item(item *item, int comm);
+__attribute__((tm_callable)) int do_store_item(item *item, int comm);
 conn *conn_new(const int sfd, const int init_state, const int event_flags, const int read_buffer_size, const bool is_udp, struct event_base *base);
 
 
@@ -284,15 +284,15 @@ char *mt_item_cachedump(const unsigned int slabs_clsid, const unsigned int limit
 void  mt_item_flush_expired(void);
 item *mt_item_get_notedeleted(const char *key, const size_t nkey, bool *delete_locked);
 int   mt_item_link(item *it);
-void  mt_item_remove(item *it);
+__attribute__((tm_callable)) void  mt_item_remove(item *it);
 int   mt_item_replace(item *it, item *new_it);
 char *mt_item_stats(int *bytes);
 char *mt_item_stats_sizes(int *bytes);
 void  mt_item_unlink(item *it);
 void  mt_item_update(item *it);
 void  mt_run_deferred_deletes(void);
-void *mt_slabs_alloc(size_t size);
-void  mt_slabs_free(void *ptr, size_t size);
+__attribute__((tm_callable)) void *mt_slabs_alloc(size_t size);
+__attribute__((tm_callable)) void  mt_slabs_free(void *ptr, size_t size);
 int   mt_slabs_reassign(unsigned char srcid, unsigned char dstid);
 char *mt_slabs_stats(int *buflen);
 void  mt_stats_lock(void);

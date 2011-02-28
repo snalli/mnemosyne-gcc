@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "tm.h"
 
 /*
  * Stats are tracked on the basis of key prefixes. This is a simple
@@ -66,6 +67,7 @@ void stats_prefix_clear() {
  * in the list.
  */
 /*@null@*/
+__attribute__((tm_callable))
 static PREFIX_STATS *stats_prefix_find(const char *key) {
     PREFIX_STATS *pfs;
     uint32_t hashval;
@@ -116,15 +118,17 @@ static PREFIX_STATS *stats_prefix_find(const char *key) {
 void stats_prefix_record_get(const char *key, const bool is_hit) {
     PREFIX_STATS *pfs;
 
-    STATS_LOCK();
-    pfs = stats_prefix_find(key);
-    if (NULL != pfs) {
-        pfs->num_gets++;
-        if (is_hit) {
-            pfs->num_hits++;
-        }
-    }
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+		pfs = stats_prefix_find(key);
+		if (NULL != pfs) {
+			pfs->num_gets++;
+			if (is_hit) {
+				pfs->num_hits++;
+			}
+		}
+	}
+    //STATS_UNLOCK();
 }
 
 /*
@@ -133,12 +137,14 @@ void stats_prefix_record_get(const char *key, const bool is_hit) {
 void stats_prefix_record_delete(const char *key) {
     PREFIX_STATS *pfs;
 
-    STATS_LOCK();
-    pfs = stats_prefix_find(key);
-    if (NULL != pfs) {
-        pfs->num_deletes++;
-    }
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+		pfs = stats_prefix_find(key);
+		if (NULL != pfs) {
+			pfs->num_deletes++;
+		}
+	}
+    //STATS_UNLOCK();
 }
 
 /*
@@ -147,12 +153,14 @@ void stats_prefix_record_delete(const char *key) {
 void stats_prefix_record_set(const char *key) {
     PREFIX_STATS *pfs;
 
-    STATS_LOCK();
-    pfs = stats_prefix_find(key);
-    if (NULL != pfs) {
-        pfs->num_sets++;
-    }
-    STATS_UNLOCK();
+    //STATS_LOCK();
+	TM_ATOMIC {
+		pfs = stats_prefix_find(key);
+		if (NULL != pfs) {
+			pfs->num_sets++;
+		}
+	}
+    //STATS_UNLOCK();
 }
 
 /*
@@ -172,28 +180,30 @@ char *stats_prefix_dump(int *length) {
      * the per-prefix output with 20-digit values for all the counts,
      * plus space for the "END" at the end.
      */
-    STATS_LOCK();
-    size = strlen(format) + total_prefix_size +
-           num_prefixes * (strlen(format) - 2 /* %s */
-                           + 4 * (20 - 4)) /* %llu replaced by 20-digit num */
-                           + sizeof("END\r\n");
-    buf = malloc(size);
-    if (NULL == buf) {
-        perror("Can't allocate stats response: malloc");
-        STATS_UNLOCK();
-        return NULL;
-    }
+    //STATS_LOCK();
+		TM_ATOMIC {
+		size = strlen(format) + total_prefix_size +
+			   num_prefixes * (strlen(format) - 2 /* %s */
+							   + 4 * (20 - 4)) /* %llu replaced by 20-digit num */
+							   + sizeof("END\r\n");
+		buf = malloc(size);
+		if (NULL == buf) {
+			perror("Can't allocate stats response: malloc");
+			//STATS_UNLOCK();
+			return NULL;
+		}
 
-    pos = 0;
-    for (i = 0; i < PREFIX_HASH_SIZE; i++) {
-        for (pfs = prefix_stats[i]; NULL != pfs; pfs = pfs->next) {
-            pos += snprintf(buf + pos, size-pos, format,
-                           pfs->prefix, pfs->num_gets, pfs->num_hits,
-                           pfs->num_sets, pfs->num_deletes);
-        }
-    }
+		pos = 0;
+		for (i = 0; i < PREFIX_HASH_SIZE; i++) {
+			for (pfs = prefix_stats[i]; NULL != pfs; pfs = pfs->next) {
+				pos += snprintf(buf + pos, size-pos, format,
+							   pfs->prefix, pfs->num_gets, pfs->num_hits,
+							   pfs->num_sets, pfs->num_deletes);
+			}
+		}
+	}
 
-    STATS_UNLOCK();
+    //STATS_UNLOCK();
     memcpy(buf + pos, "END\r\n", 6);
 
     *length = pos + 5;

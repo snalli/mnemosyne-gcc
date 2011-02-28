@@ -24,6 +24,7 @@ if benchEnv['BUILD_BENCH'] == 'ALL':
 	                   kvstore
 			   stl
 			   ubench
+			   memcached
 	                   """)
 else:
 	bench_list = benchEnv['BUILD_BENCH'].split(',')

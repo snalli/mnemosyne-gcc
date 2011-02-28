@@ -1,0 +1,13 @@
+Import('benchEnv')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('mallocLibrary')
+
+memcachedEnv = benchEnv.Clone() 
+memcachedEnv.Append(CCFLAGS = ' -D_GNU_SOURCE ')
+memcachedEnv.Append(CPPPATH = ['#library/common'])
+memcachedEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+Export('memcachedEnv')
+
+SConscript('memcached-1.2.4-base/SConscript')
+SConscript('memcached-1.2.4-mtm/SConscript')

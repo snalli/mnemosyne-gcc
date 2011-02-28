@@ -27,7 +27,8 @@
 #include <assert.h>
 #include "mnemosyne.h"
 #include "mtm.h"
-#include "malloc.h"
+#include "pmalloc.h"
+#include "helper.h"
 
 /*
  * Since the hash function does bit manipulation, it needs to know
@@ -482,7 +483,7 @@ void assoc_init(void) {
 	void *ptr;
     unsigned int hash_size = hashsize(hashpower) * sizeof(void*);
     fprintf(stderr, "assoc_init: hash_size = %d\n", hash_size);
-    primary_hashtable = pmalloc(hash_size);
+    primary_hashtable = PMALLOC(hash_size);
     if (! primary_hashtable) {
         fprintf(stderr, "Failed to init hashtable.\n");
         exit(EXIT_FAILURE);
@@ -505,7 +506,7 @@ item *assoc_find(const char *key, const size_t nkey) {
 
     while (it) {
         if ((nkey == it->nkey) &&
-            (memcmp(key, ITEM_key(it), nkey) == 0)) {
+            (txc_libc_memcmp(key, ITEM_key(it), nkey) == 0)) {
             return it;
         }
         it = it->h_next;
@@ -536,13 +537,17 @@ static item** _hashitem_before (const char *key, const size_t nkey) {
 }
 
 /* grows the hashtable to the next power of 2. */
+__attribute__((tm_callable))
 static void assoc_expand(void) {
     old_hashtable = primary_hashtable;
 	assert(0); // expand hashtable allocated in persistent heap
     primary_hashtable = calloc(hashsize(hashpower + 1), sizeof(void *));
     if (primary_hashtable) {
-        if (settings.verbose > 1)
-            fprintf(stderr, "Hash table expansion starting\n");
+        if (settings.verbose > 1) {
+			__tm_waiver {
+	            fprintf(stderr, "Hash table expansion starting\n");
+			}	
+		}	
         hashpower++;
         expanding = true;
         expand_bucket = 0;
@@ -573,8 +578,11 @@ void do_assoc_move_next_bucket(void) {
         if (expand_bucket == hashsize(hashpower - 1)) {
             expanding = false;
             free(old_hashtable);
-            if (settings.verbose > 1)
-                fprintf(stderr, "Hash table expansion done\n");
+            if (settings.verbose > 1) {
+				__tm_waiver {
+	                fprintf(stderr, "Hash table expansion done\n");
+				}
+			}
         }
     }
 }

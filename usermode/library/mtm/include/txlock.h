@@ -15,6 +15,10 @@
 #undef pthread_rwlock_unlock
 
 
+//FIXME: These locks are not deadlock safe -- need to 
+//drop locks if can't get a lock to avoid deadlock
+//See Volos Transact 08
+
 #include <itm.h>
 #include <pthread.h>
 
@@ -68,6 +72,19 @@ int m_txmutex_lock(m_txmutex_t *txmutex)
 }
 
 
+void _ITM_CALL_CONVENTION m_txmutex_unlock_commit_action_local(void *arg)
+{
+	m_txmutex_t *txmutex = (m_txmutex_t *) arg;
+	pthread_mutex_t *mutex = (pthread_mutex_t *) txmutex;
+
+	//printf("[%d] COMMIT: MUTEX  UNLOCK %p\n", pthread_self(), mutex);
+	pthread_mutex_unlock(mutex);
+
+	return;
+}
+
+
+
 __attribute__((tm_pure))
 static inline 
 int m_txmutex_unlock(m_txmutex_t *txmutex)
@@ -80,7 +97,8 @@ int m_txmutex_unlock(m_txmutex_t *txmutex)
 
 	if (_ITM_inTransaction(td) > 0) {
 		DEBUG_PRINTF("[%d] DEFER: MUTEX  UNLOCK %p\n", pthread_self(), mutex);
-		_ITM_addUserCommitAction (td, m_txmutex_unlock_commit_action, 2, txmutex);
+		_ITM_addUserCommitAction (td, m_txmutex_unlock_commit_action_local, 2, txmutex);
+		//_ITM_addUserCommitAction (td, m_txmutex_unlock_commit_action_local, 2, txmutex);
 		ret = 0;
 	} else {
 		DEBUG_PRINTF("[%d] NOW  : MUTEX  UNLOCK %p\n", pthread_self(), mutex);

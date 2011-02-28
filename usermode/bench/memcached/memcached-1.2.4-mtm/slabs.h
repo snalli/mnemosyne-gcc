@@ -11,16 +11,16 @@ void slabs_init(const size_t limit, const double factor);
  * 0 means error: can't store such a large object
  */
 
-unsigned int slabs_clsid(const size_t size);
+__attribute__((tm_callable)) unsigned int slabs_clsid(const size_t size);
 
 /** Allocate object of given length. 0 on error */ /*@null@*/
-void *do_slabs_alloc(const size_t size);
+__attribute__((tm_callable)) void *do_slabs_alloc(const size_t size);
 
 /** Free previously allocated object */
-void do_slabs_free(void *ptr, size_t size);
+__attribute__((tm_callable)) void do_slabs_free(void *ptr, size_t size);
 
 /** Fill buffer with stats */ /*@null@*/
-char* do_slabs_stats(int *buflen);
+__attribute__((tm_callable)) char* do_slabs_stats(int *buflen);
 
 /* Request some slab be moved between classes
   1 = success

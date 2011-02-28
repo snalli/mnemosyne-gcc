@@ -127,6 +127,8 @@ public:
     return _psegmentBase;
   }
 
+  // Find out how large an allocated object is.
+  static size_t objectSize (void * ptr);
 private:
 
   // Hide the lock & unlock methods.

@@ -11,3 +11,4 @@ Export('memcachedEnv')
 
 SConscript('memcached-1.2.4-base/SConscript')
 SConscript('memcached-1.2.4-mtm/SConscript')
+SConscript('memcachedb-1.2.0/SConscript')

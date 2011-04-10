@@ -35,7 +35,7 @@ if buildEnv['BUILD_STATS'] == True:
 
 # Programs to generate VTable mappings to the Intel ABI.
 srcgen_sjlj = buildEnv.Program('generate_sjlj', 'tool/generate_sjlj.c')
-srcgen_vtable = buildEnv.Program('generate_vtable', 'tool/generate_vtable.c')
+srcgen_dtable = buildEnv.Program('generate_dtable', 'tool/generate_dtable.c')
 
 # For common source files we need to manually specify the object creation rules 
 # to avoid getting the following error:
@@ -73,7 +73,6 @@ CC_SRC = Split("""
 	       src/mode/pwb-common/tmlog_tornbit.c
                src/mode/serial/serial.c
                src/mtm.c
-               src/retry.c
                src/stats.c
                src/txlock.c
                src/useraction.c

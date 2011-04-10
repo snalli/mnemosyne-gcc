@@ -18,7 +18,9 @@ mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r)
 
 	rollback_transaction(tx);
 	cm_delay(tx);
-	mtm_decide_retry_strategy (r); 
+	/* TODO: decide whether to transition to a different execution mode 
+	 * after a restart. For example, transition to serial mode
+	 */
 
 	/* Reset field to restart transaction */
 	pwb_prepare_transaction(tx);

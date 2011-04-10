@@ -1,4 +1,4 @@
-/*!
+/**
  * \file
  * Implements the template-parameterized functions of the SinglyLinkedList class.
  *

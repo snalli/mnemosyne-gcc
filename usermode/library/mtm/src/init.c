@@ -146,7 +146,7 @@ mtm_init_global(void)
 	pthread_mutex_lock(&global_init_lock);
 	if (!mtm_initialized) {
 		init_global();
-		defaultVtables = &perfVtables;
+		default_dtable_group = &normal_dtable_group;
 		mtm_initialized = 1;
 	}	
 	pthread_mutex_unlock(&global_init_lock);
@@ -239,11 +239,11 @@ mtm_init_thread(void)
 	switch (txmode) {
 		case MTM_MODE_pwbnl:
 			tx->mode = MTM_MODE_pwbnl;
-			tx->vtable = defaultVtables->mtm_pwbnl;
+			tx->dtable = default_dtable_group->mtm_pwbnl;
 			break;
 		case MTM_MODE_pwbetl:
 			tx->mode = MTM_MODE_pwbetl;
-			tx->vtable = defaultVtables->mtm_pwbetl;
+			tx->dtable = default_dtable_group->mtm_pwbetl;
 			break;
 		default:
 			assert(0); /* unknown transaction mode */

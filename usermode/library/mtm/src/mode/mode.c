@@ -1,12 +1,20 @@
+/**
+ * \file mode.c
+ * \brief Transaction execution modes
+ *
+ * \author Haris Volos <hvolos@cs.wisc.edu>
+ *
+ */
+
 #include "mtm_i.h"
-#include "mode/vtable.h"
-#include "mode/vtable_macros.h"
+#include "mode/dtable.h"
+#include "mode/dtablegen.h"
 
-extern mtm_vtable_t STR2(mtm_pwbnl, _vtable);
-extern mtm_vtable_t STR2(mtm_pwbetl, _vtable);
+extern mtm_dtable_t mtm_pwbnl_dtable;
+extern mtm_dtable_t mtm_pwbetl_dtable;
 
-#define ACTION(mode) &mtm_##mode##_vtable,
-mtm_vtable_group_t perfVtables = { FOREACH_MODE (ACTION) };
+#define ACTION(mode) &mtm_##mode##_dtable,
+mtm_dtable_group_t normal_dtable_group = { FOREACH_MODE (ACTION) };
 
 #undef ACTION
 
@@ -16,7 +24,7 @@ char *mtm_mode_str[] = {
 };
 #undef ACTION
 
-mtm_vtable_group_t *defaultVtables = NULL;
+mtm_dtable_group_t *default_dtable_group = NULL;
 
 
 mtm_mode_t 

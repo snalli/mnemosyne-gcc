@@ -5,7 +5,7 @@ Import('mtmLibrary')
 myEnv = examplesEnv.Clone()
 
 sources = Split("""
-                main.c
+                main.cxx
                 """)
 
 myEnv.Append(LIBS = [mcoreLibrary])

@@ -2,7 +2,7 @@
  * \file intelabi.c
  *
  * \brief Implements the rest of the Intel ABI that is not exported via
- * the VTABLE.
+ * the dispatch table.
  */
 
 #include "mtm_i.h"
@@ -21,7 +21,7 @@ _ITM_versionCompatible (int version)
 const char * _ITM_CALL_CONVENTION
 _ITM_libraryVersion (void)
 {
-	return "Mnemosyne libitm" _ITM_VERSION;
+	return "Mnemosyne MTM" _ITM_VERSION;
 }
 
 
@@ -182,7 +182,7 @@ _ITM_changeTransactionMode(mtm_tx_t *td,
                            mtm_tx_tState __mode,
                            const _ITM_srcLocation * __loc)
 {
-	//FIXME
+	//TODO: Support compiler instructed switching of transaction execution mode
 	//assert (state == modeSerialIrrevocable);
 	//MTM_serialmode (false, true);
 }

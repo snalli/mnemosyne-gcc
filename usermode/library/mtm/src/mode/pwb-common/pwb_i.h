@@ -12,8 +12,8 @@
 #include <log.h>
 
 #include "mtm_i.h"
-#include "mode/vtable.h"
-#include "mode/vtable_macros.h"
+#include "mode/dtable.h"
+#include "mode/dtablegen.h"
 #include "local.h"
 #include "mode/pwb-common/locks.h"
 #include "mode/pwb-common/tmlog.h"

@@ -1,5 +1,5 @@
-#ifndef __MTM_I_H
-#define __MTM_I_H 
+#ifndef _MTM_I_H_819AKI 
+#define _MTM_I_H_819AKI 
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -113,7 +113,7 @@ struct mtm_tx *mtm_current_tx();
 
 #include <pcm.h>
 
-#include "mode/vtable.h"
+#include "mode/dtable.h"
 
 #if defined(CONFLICT_TRACKING) && ! defined(EPOCH_GC)
 # error "CONFLICT_TRACKING requires EPOCH_GC"
@@ -157,7 +157,7 @@ extern int cm_threshold;
 
 
 
-#define STR2(str1, str2) str1##str2
+#define STR2(str1, str2)                str1##str2
 #define XSTR(s)                         STR(s)
 #define STR(s)                          #s
 
@@ -172,7 +172,6 @@ extern int cm_threshold;
 #include "mode/mode.h"
 #include "sysdeps/x86/target.h"
 #include "rwlock.h"
-#include "aatree.h"
 #include "useraction.h"
 #include "locks.h"
 #include "local.h"
@@ -216,9 +215,9 @@ struct mtm_local_undo;
 
 /* Transaction descriptor */
 struct mtm_tx_s {
-	uintptr_t              dummy1;           /* ICC expects to find the vtable pointer at offset 2*WORD_SIZE. */
+	uintptr_t              dummy1;           /* ICC expects to find the dtable pointer at offset 2*WORD_SIZE. */
 	uintptr_t              dummy2;
-	mtm_vtable_t           *vtable;          /* The dispatch table for the STM implementation currently in use. */
+	mtm_dtable_t           *dtable;          /* The dispatch table for the active transaction mode. */
 
 	mtm_jmpbuf_t           *tmp_jb_ptr;      /* Pointer to the temporary register checkpoint. This simplifies the assembly checkpoint code. */
 	mtm_jmpbuf_t           tmp_jb;           /* Temporary register checkpoint; this is where the assebly register checkpoint code will save the registers.  */
@@ -354,7 +353,6 @@ extern void mtm_rollback_local (TXPARAM);
 extern void mtm_LB (mtm_tx_t *tx, const void *, size_t) _ITM_CALL_CONVENTION;
 
 extern void mtm_serialmode (bool, bool);
-extern void mtm_decide_retry_strategy (mtm_restart_reason);
 extern void mtm_restart_transaction (mtm_restart_reason) ITM_NORETURN;
 
 extern void mtm_alloc_record_allocation (void *, size_t, void (*)(void *));
@@ -530,4 +528,4 @@ static inline mtm_word_t mtm_get_clock()
 # pragma GCC visibility pop
 #endif
 
-#endif /* __MTM_I_H */
+#endif /* _MTM_I_H_819AKI */

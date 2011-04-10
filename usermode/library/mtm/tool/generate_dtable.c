@@ -3,17 +3,17 @@
  */
 
 /** 
- * \file generate_vtable.c
+ * \file generate_dtable.c
  *
  * \brief Generate an assembly file which contains the function call stubs.
  *
- * Using the same vtable indices as are used in the C structure declaration.
+ * Using the same dtable indices as are used in the C structure declaration.
  *
  */
 
 #include <stdio.h>
 #include <string.h>
-#include "mode/vtable_macros.h"
+#include "mode/dtablegen.h"
 
 #ifndef _BUILD64
 # if (defined (__x86_64__))
@@ -44,7 +44,7 @@ static void header (void)
     printf ("\t.equ PTR_SIZE,4\n");
 # endif
     printf ("\n"                /*  */
-            "\t.equ VTABLE_OFFSET, 2*PTR_SIZE\n");
+            "\t.equ DTABLE_OFFSET, 2*PTR_SIZE\n");
 }
 
 
@@ -61,7 +61,7 @@ static int arg_bytes (const char *args)
 {
     /* Count up the number of arguments, deduced from the number of separating commas. 
      * We know we don't have any void functions, since only functions which take txndesc_t *
-     * as a first argument are ever put in the vtable.
+     * as a first argument are ever put in the dtable.
      */
     int argcount = 1;
     int extra_stack = 0;
@@ -153,14 +153,14 @@ static void generate_stub (unsigned int offset, const char *function, const char
 
         if (strchr (ExtendedTypes, type) != 0)
         {
-            printf ("\tmov     VTABLE_OFFSET(%s),%s\n"  /*  */
+            printf ("\tmov     DTABLE_OFFSET(%s),%s\n"  /*  */
                     "\tjmp     * %d*PTR_SIZE(%s)\n", ARG2, R_ACC, idx, R_ACC);
             return;
         }
     }
 #  endif
 
-    printf ("\tmov     VTABLE_OFFSET(%s),%s\n"  /*  */
+    printf ("\tmov     DTABLE_OFFSET(%s),%s\n"  /*  */
             "\tjmp     * %d*PTR_SIZE(%s)\n", ARG1, R_ACC, idx, R_ACC);
 }
 
@@ -174,6 +174,6 @@ int main (int argc, char **argv)
 #define GENERATE_FUNCTION(result,function,args,ARG)        \
     generate_stub (offset, #function, #args, i++, ARG);
 
-    FOREACH_VTABLE_ENTRY (GENERATE_FUNCTION, "_ITM_");
+    FOREACH_DTABLE_ENTRY (GENERATE_FUNCTION, "_ITM_");
     trailer ();
 }

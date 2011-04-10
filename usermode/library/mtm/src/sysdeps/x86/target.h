@@ -4,7 +4,7 @@
  *
  * The two architectures supported herein are x86 (32-bit) and x86 (64-bit).
  *
- * \author Andres Jaan Tack <tack@cs.wisc.edu>
+ * \author Haris Volos <hvolos@cs.wisc.edu>
  */
 #ifndef TARGET_H_HBX9MKK6
 #define TARGET_H_HBX9MKK6

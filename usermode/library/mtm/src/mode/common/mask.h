@@ -1,10 +1,12 @@
-/*!
+/**
  * \file
  * Defines macros and functions related to the masking of written values at byte
  * granularity onto word-size snapshots of memory.
  *
- * \author Andres Jaan Tack
+ * \author Andres Jaan Tack <tack@cs.wisc.edu>
+ * \author Haris Volos <hvolos@cs.wisc.edu>
  */
+
 #ifndef MASK_H_4NASQJFA
 #define MASK_H_4NASQJFA
 

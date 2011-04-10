@@ -8,20 +8,19 @@
 #define RW_SET_SIZE (256*1024)
 #endif
 
-#undef DEFINE_VTABLE_MEMBER
-#define DEFINE_VTABLE_MEMBER(result, function, args, ARG)   \
-    ARG##function,
+#undef _DTABLE_MEMBER
+#define _DTABLE_MEMBER(result, function, args, ARG)   ARG##function,
 
 
-mtm_vtable_t STR2 (mtm_pwbnl, _vtable) =
+mtm_dtable_t mtm_pwbnl_dtable =
 {
-	FOREACH_OUTER_FUNCTION (DEFINE_VTABLE_MEMBER, mtm_pwbnl_)
-	_GEN_READ_BARRIERS_LIST (mtm_pwbnl_R, mtm_pwbnl_R, mtm_pwbnl_R, mtm_pwbnl_RfW)
-	_GEN_WRITE_BARRIERS_LIST (mtm_pwbnl_W, mtm_pwbnl_W, mtm_pwbnl_W)
-	_ITM_FOREACH_MEMCPY (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwbnl, _))
-	_ITM_FOREACH_LOG_TRANSFER (DEFINE_VTABLE_MEMBER, mtm_local_)
-	_ITM_FOREACH_MEMSET (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwbnl, _))
-	_ITM_FOREACH_MEMMOVE (DEFINE_VTABLE_MEMBER, STR2 (mtm_pwbnl, _))
+	FOREACH_ABI_FUNCTION      (_DTABLE_MEMBER, mtm_pwbnl_)
+	FOREACH_READ_BARRIER      (_DTABLE_MEMBER, mtm_pwbnl_)
+	FOREACH_WRITE_BARRIER     (_DTABLE_MEMBER, mtm_pwbnl_)
+	_ITM_FOREACH_MEMCPY       (_DTABLE_MEMBER, mtm_pwbnl_)
+	_ITM_FOREACH_LOG_TRANSFER (_DTABLE_MEMBER, mtm_local_)
+	_ITM_FOREACH_MEMSET       (_DTABLE_MEMBER, mtm_pwbnl_)
+	_ITM_FOREACH_MEMMOVE      (_DTABLE_MEMBER, mtm_pwbnl_)
 };
 
 

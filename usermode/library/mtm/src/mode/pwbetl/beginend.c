@@ -41,7 +41,7 @@ mtm_pwbetl_abortTransaction (mtm_tx_t *tx,
 		rollback_transaction (tx);
 		//pwb_fini (td);
 
-		/* FIXME: Currently we don't implement serial mode 
+		/* TODO: Implement serial mode to support irrevocable actions such as I/O
 		 *
 		 * if (tx->status & TX_SERIAL) {
 		 * 	mtm_rwlock_write_unlock (&mtm_serial_lock);
@@ -50,8 +50,8 @@ mtm_pwbetl_abortTransaction (mtm_tx_t *tx,
 		 * }
 		 */
 
-		/* FIXME: Currently we don't support true nesting, but only flatten
-		 *        nested transactions.
+		/* TODO: Implement true nesting. Currently we only flatten  nested 
+		 * transactions.
 		 * 
 		 * set_mtm_tx (tx->prev);     
 		 * free_tx (td, tx);

@@ -98,7 +98,7 @@ mtm_local_rollback (mtm_tx_t *tx)
 	char                   *buf;
 	uintptr_t              entryp;
 	void                   *addr;
-    uintptr_t              *sp = (uintptr_t *) tx->jb.spSave;
+    uintptr_t              *sp = (uintptr_t *) tx->jb.sp;
     uintptr_t              *current_sp = get_stack_pointer();
  
 	local_undo_entry = local_undo->last_entry;

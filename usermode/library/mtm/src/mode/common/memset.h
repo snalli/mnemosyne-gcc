@@ -3,7 +3,7 @@
 
 #define BUFSIZE (sizeof(mtm_word_t)*16)
 
-/* FIXME: need more efficient implementation */
+/* TODO: A more efficient implementation of memset */
 
 #define MEMSET_DEFINITION(PREFIX, VARIANT)                                     \
 void _ITM_CALL_CONVENTION mtm_##PREFIX##_memset##VARIANT(mtm_tx_t *tx,         \

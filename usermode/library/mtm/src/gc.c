@@ -1,4 +1,7 @@
 /*
+ * Source code is partially derived from TinySTM (license is attached)
+ *
+ *
  * File:
  *   gc.c
  * Author(s):

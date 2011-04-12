@@ -1,4 +1,4 @@
-/*!
+/**
  * \file
  * Defines constants and data structures matching the target architecture during compilation.
  *
@@ -6,6 +6,7 @@
  *
  * \author Haris Volos <hvolos@cs.wisc.edu>
  */
+
 #ifndef TARGET_H_HBX9MKK6
 #define TARGET_H_HBX9MKK6
 
@@ -25,30 +26,30 @@ typedef struct mtm_jmpbuf_s mtm_jmpbuf_t;
 #ifdef __x86_64__
 struct mtm_jmpbuf_s
 {
-	uint64_t spSave;
-	uint64_t rbxSave;
-	uint64_t rbpSave;
-	uint64_t r12Save;
-	uint64_t r13Save;
-	uint64_t r14Save;
-	uint64_t r15Save;
-	uint64_t abendPCSave;
-	uint32_t mxcsrSave;
-	uint32_t txnFlagsSave;      /*<< Transaction flags */
-	uint16_t fpcsrSave;
+	uint64_t sp;
+	uint64_t rbx;
+	uint64_t rbp;
+	uint64_t r12;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t abendPC;
+	uint32_t mxcsr;
+	uint32_t txn_flags;
+	uint16_t fpcsr;
 };
 #else
 struct mtm_jmpbuf_s
 {
-	uint32_t spSave;
-	uint32_t ebxSave;
-	uint32_t esiSave;
-	uint32_t ediSave;
-	uint32_t ebpSave;
-	uint32_t abendPCSave;
-	uint32_t mxcsrSave;
-	uint32_t txnFlagsSave;      /*<< Transaction flags */
-	uint16_t fpcsrSave;
+	uint32_t sp;
+	uint32_t ebx;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t ebp;
+	uint32_t abendPC;
+	uint32_t mxcsr;
+	uint32_t txn_flags;
+	uint16_t fpcsr;
 };
 #endif
 
@@ -123,4 +124,4 @@ get_stack_base()
 	return stack_base;
 }
 
-#endif /* end of include guard: TARGET_H_HBX9MKK6 */
+#endif /* TARGET_H_HBX9MKK6 */

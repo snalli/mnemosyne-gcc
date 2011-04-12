@@ -128,12 +128,17 @@ static void * pmalloc_internal (size_t sz)
 		 */
 		__tm_atomic 
 		{
-			// FIXME: We don't need the lock as we execute with isolation on
-			// We should make the library work properly when transactions don't provide
-			// isolation.
-			//m_txmutex_lock(&generic_pmalloc_txmutex); 
+			/* 
+			 * FIXME: We don't need the lock as we execute with isolation on
+			 * We should make the library work properly when transactions don't provide
+			 * isolation. A way to do it would be to use TXlocks:
+			 *
+			 *   m_txmutex_lock(&generic_pmalloc_txmutex); 
+			 *   addr = GENERIC_PMALLOC(sz);
+			 *   m_txmutex_unlock(&generic_pmalloc_txmutex);
+			 *
+			 */
 			addr = GENERIC_PMALLOC(sz);
-			//m_txmutex_unlock(&generic_pmalloc_txmutex);
 		}
 	} else {
 		//printf("pmalloc.hoard[START]: size = %d\n",  (int) sz);
@@ -145,7 +150,8 @@ static void * pmalloc_internal (size_t sz)
 
 extern "C" void * HOARD_MALLOC (size_t sz)
 {
-	//FIXME Need to change the API to ensure atomicity of the allocation
+	// FIXME: Change the API to ensure atomicity of the allocation as described 
+	// in the design document 
 	return pmalloc_internal(sz);
 }
 
@@ -306,10 +312,12 @@ extern "C" void malloc_stats (void)
 
 /* Transactional Wrappers for volatile memory allocator -- This should be part of MTM? */
 
-// TODO: Memory allocator should be implemented using commit/undo actions 
-// as described by Intel. Implementation should go into alloc_c.c
-// For transactions though that don't abort the following is enough.
-
+/* 
+ * TODO: Dynamic Memory allocator should be implemented using commit/undo 
+ * actions 
+ * as described by Intel. Implementation should go into alloc_c.c
+ * For transactions though that don't abort the following is enough.
+ */
 __attribute__((tm_wrapping(malloc))) void *malloc_txn(size_t sz) 
 {
 	return malloc(sz);

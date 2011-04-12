@@ -34,8 +34,6 @@
 #ifndef _PWB_COMMON_BARRIER_BITS_JKI671_H
 #define _PWB_COMMON_BARRIER_BITS_JKI671_H
 
-//#define PRINT_DEBUG printf
-//#define MTM_DEBUG_PRINT printf
 
 /*
  * Extend snapshot range.

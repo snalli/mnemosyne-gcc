@@ -32,7 +32,7 @@
 
 #define M_DEBUG_SEGMENT 1
 
-/* TODO: Properly define these MACROs to redirect to PCM layer */
+/* FIXME: Properly define these MACROs to redirect to PCM layer */
 #define PCM_STORE(addr, val) \
 do {                         \
    *addr = val;              \

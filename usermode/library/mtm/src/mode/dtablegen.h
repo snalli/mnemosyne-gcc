@@ -10,7 +10,9 @@
 #ifndef _DTABLEGEN_H_891AKL
 #define _DTABLEGEN_H_891AKL
 
-#include "itm.h"
+//#include <itm.h>
+//#include "itm.h"
+#include "mtm_i.h"
 
 
 #undef FOREACH_ABI_FUNCTION

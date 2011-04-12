@@ -7,7 +7,7 @@ Import('mainEnv')
 buildEnv = configuration.mcore.Environment(mainEnv)
 
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
-buildEnv.Append(CPPPATH = ['#library/mnemosyne/src'])
+buildEnv.Append(CPPPATH = ['#library/mcore/src'])
 buildEnv.Append(CCFLAGS = ' -D_GNU_SOURCE ')
 buildEnv.Append(LIBS = ['config', 'elf', 'pthread'])
 buildEnv.Append(CCFLAGS = ' -m64 ')
@@ -56,7 +56,7 @@ LOG_C_SRC = Split("""
 SRC = C_SRC + LOG_C_SRC + COMMON_OBJS
 
 if buildEnv['BUILD_LINKAGE'] == 'dynamic':
-	mcoreLibrary = buildEnv.SharedLibrary('mnemosyne', SRC)
+	mcoreLibrary = buildEnv.SharedLibrary('mcore', SRC)
 else:
-	mcoreLibrary = buildEnv.StaticLibrary('mnemosyne', SRC)
+	mcoreLibrary = buildEnv.StaticLibrary('mcore', SRC)
 Return('mcoreLibrary')

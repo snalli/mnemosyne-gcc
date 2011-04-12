@@ -42,12 +42,9 @@ mtm_pwbetl_abortTransaction (mtm_tx_t *tx,
 		//pwb_fini (td);
 
 		/* TODO: Implement serial mode to support irrevocable actions such as I/O
-		 *
-		 * if (tx->status & TX_SERIAL) {
-		 * 	mtm_rwlock_write_unlock (&mtm_serial_lock);
-		 * } else {
-		 * 	mtm_rwlock_read_unlock (&mtm_serial_lock);
-		 * }
+		 * 
+		 * mtm_rwlock_unlock (&mtm_serial_lock);
+		 * 
 		 */
 
 		/* TODO: Implement true nesting. Currently we only flatten  nested 

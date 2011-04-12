@@ -8,7 +8,7 @@
 #ifndef FILES_H_SSO60IIC
 #define FILES_H_SSO60IIC
 
-#include "mnemosyne_i.h"
+#include "mcore_i.h"
 #include "result.h"
 
 /*!

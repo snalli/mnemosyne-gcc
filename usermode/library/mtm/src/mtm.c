@@ -1,6 +1,9 @@
-/*!
- * \file
- * Implements global utilities which are required by the transactional functions of MTM.
+/**
+ * \file mtm.c
+ *
+ * \brief Implements global utilities which are required by the transactional 
+ * functions of MTM.
+ *
  */
 #include <mtm_i.h>
 
@@ -22,7 +25,5 @@ volatile mtm_word_t gclock;
 
 int vr_threshold;
 int cm_threshold;
-
-uint64_t mtm_spin_count_var = 1000;
 
 mtm_rwlock_t mtm_serial_lock;

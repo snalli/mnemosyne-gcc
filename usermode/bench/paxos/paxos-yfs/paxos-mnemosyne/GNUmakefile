@@ -8,7 +8,7 @@ LDFLAGS = -L. -L/usr/local/lib
 LDLIBS = -lpthread 
 LDLIBS += $(shell test -f `gcc -print-file-name=librt.so` && echo -lrt)
 LDLIBS += $(shell test -f `gcc -print-file-name=libdl.so` && echo -ldl)
-LDLIBS += $(MNEMOSYNE_BUILD)/library/mnemosyne/libmnemosyne.so
+LDLIBS += $(MNEMOSYNE_BUILD)/library/mcore/libmcore.so
 CC = g++
 CXX = g++
 

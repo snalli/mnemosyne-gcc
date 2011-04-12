@@ -82,19 +82,21 @@ rootDir = os.getcwd()
 mainEnv['MY_ROOT_DIR'] = rootDir
 mainEnv['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
 
-mainEnv['CC'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icc'
-mainEnv['CXX'] = '/opt/intel/Compiler/11.0/606/bin/intel64/icpc'
+mainEnv['ICC_DIR'] = '/opt/intel/Compiler/11.0/606/'
+
+mainEnv['CC'] = os.path.join(mainEnv['ICC_DIR'], 'bin/intel64/icc')
+mainEnv['CXX'] = os.path.join(mainEnv['ICC_DIR'],  'bin/intel64/icpc')
 
 
 Export('mainEnv')
 
 CommonObjects = SConscript('library/common/SConscript', variant_dir = 'build/library/common')
 mallocLibrary = SConscript('library/malloc/SConscript', 'CommonObjects', variant_dir = 'build/library/malloc')
-mcoreLibrary = SConscript('library/mnemosyne/SConscript', 'CommonObjects', variant_dir = 'build/library/mnemosyne')
+mcoreLibrary = SConscript('library/mcore/SConscript', 'CommonObjects', variant_dir = 'build/library/mcore')
 mtmLibrary = SConscript('library/mtm/SConscript', variant_dir = 'build/library/mtm')
 
 toolsEnv = mainEnv.Clone()
-toolsEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+toolsEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
 Export('toolsEnv')
 Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 SConscript('tool/SConscript', variant_dir = os.path.join('build', 'tool'))
@@ -111,21 +113,21 @@ mainEnv['EXPLICIT_DEPENDENCY']['TC_MTM_INCLUDE'] = os.path.join(rootDir, 'bench/
 
 if mainEnv['BUILD_EXAMPLE'] != None:
 	examplesEnv = mainEnv.Clone()
-	examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+	examplesEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
 	Export('examplesEnv')
 	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 	SConscript('examples/SConscript', variant_dir = os.path.join('build', 'examples'))
 
 if mainEnv['BUILD_BENCH'] != None:
 	benchEnv = mainEnv.Clone()
-	benchEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+	benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
 	Export('benchEnv')
 	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 	SConscript('bench/SConscript', variant_dir = os.path.join('build', 'bench'))
 
 if mainEnv['BUILD_UBENCH'] == True:
 	ubenchEnv = mainEnv.Clone()
-	ubenchEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+	ubenchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
 	Export('ubenchEnv')
 	Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
 	SConscript('bench/ubench/SConscript', variant_dir = os.path.join('build', 'bench', 'ubench'))

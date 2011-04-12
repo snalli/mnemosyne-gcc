@@ -1,3 +1,29 @@
+/**
+ * \file mtm_i.h
+ *
+ * \brief Definitions used internally by the STM implementation
+ *
+ */
+
+/*
+ * Source code is partially derived from TinySTM (license is attached)
+ *
+ * Author(s):
+ *   Pascal Felber <pascal.felber@unine.ch>
+ *
+ * Copyright (c) 2007-2009.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, version 2
+ * of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #ifndef _MTM_I_H_819AKI 
 #define _MTM_I_H_819AKI 
 
@@ -22,12 +48,37 @@ typedef float _Complex       _ITM_TYPE_CF;
 typedef double _Complex      _ITM_TYPE_CD;
 typedef long double _Complex _ITM_TYPE_CE;
 
-#ifndef MTM_TX_T_DEFINED
-#define MTM_TX_T_DEFINED
 typedef struct mtm_tx_s mtm_tx_t;
-#endif
+typedef mtm_tx_t _ITM_transaction;
 
 #include "itm.h"
+
+# ifndef __cplusplus
+#  define FOR_ALL_TYPES(ACTION,name)    \
+ACTION (name,uint8_t,U1)                \
+ACTION (name,uint16_t,U2)               \
+ACTION (name,uint32_t,U4)               \
+ACTION (name,uint64_t,U8)               \
+ACTION (name,float,F)                   \
+ACTION (name,double,D)                  \
+ACTION (name,long double,E)             \
+ACTION (name,__m64,M64)                 \
+ACTION (name,__m128,M128)               \
+ACTION (name,float _Complex,CF)         \
+ACTION (name,double _Complex,CD)        \
+ACTION (name,long double _Complex,CE)
+# else
+#  define FOR_ALL_TYPES(ACTION,name)    \
+ACTION (name,uint8_t,U1)                \
+ACTION (name,uint16_t,U2)               \
+ACTION (name,uint32_t,U4)               \
+ACTION (name,uint64_t,U8)               \
+ACTION (name,float,F)                   \
+ACTION (name,double,D)                  \
+ACTION (name,long double,E)             \
+ACTION (name,__m64,M64)                 \
+ACTION (name,__m128,M128)
+# endif
 
 #include <result.h>
 
@@ -99,14 +150,11 @@ struct mtm_tx *mtm_current_tx();
 #define CM_BACKOFF                      2
 #define CM_PRIORITY                     3
 
-//FIXME: make this part of the Scons configuration
-//#include "config.h"
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unwind.h>
+//#include <unwind.h>
 #include <pthread.h>
 
 #include <atomic.h>
@@ -193,9 +241,11 @@ enum {                                  /* Transaction status */
 };
 
 
-/* These values are given to mtm_restart_transaction and indicate the
-   reason for the restart.  The reason is used to decide what STM 
-   implementation should be used during the next iteration.  */
+/* 
+ * These values are given to mtm_restart_transaction and indicate the
+ * reason for the restart.  The reason is used to decide what STM 
+ * implementation should be used during the next iteration.  
+ */
 typedef enum mtm_restart_reason
 {
 	RESTART_REALLOCATE,
@@ -333,16 +383,11 @@ extern volatile mtm_word_t gclock;
 extern m_statsmgr_t *mtm_statsmgr;
 #endif
 
-/* The lock that provides access to serial mode.  Non-serialized transactions
-   acquire read locks; the serialized transaction aquires a write lock.  */
+/* 
+ * The lock that provides access to serial mode.  Non-serialized transactions
+ * acquire read locks; the serialized transaction aquires a write lock.
+ */
 extern mtm_rwlock_t mtm_serial_lock;
-
-
-/* An unscaled count of the number of times we should spin attempting to 
-   acquire locks before we block the current thread and defer to the OS.
-   This variable isn't used when the standard POSIX lock implementations
-   are used.  */
-extern uint64_t mtm_spin_count_var;
 
 extern uint32_t mtm_begin_transaction(uint32_t, const mtm_jmpbuf_t *);
 extern uint32_t mtm_longjmp (const mtm_jmpbuf_t *, uint32_t)

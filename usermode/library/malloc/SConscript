@@ -31,7 +31,7 @@ CCFLAGS = CCFLAGS + ' -m64 '
 buildEnv.Append(CCFLAGS = CCFLAGS)
 buildEnv.Append(CXXFLAGS = CCFLAGS)
 buildEnv.Append(CPPPATH = ['#library'])
-buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include'])
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 
 C_SRC = Split("""

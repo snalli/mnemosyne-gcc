@@ -15,7 +15,7 @@
 #include <debug.h>
 #include <result.h>
 /* Private local header files */
-#include "mnemosyne_i.h"
+#include "mcore_i.h"
 #include "files.h"
 #include "segment.h"
 #include "module.h"

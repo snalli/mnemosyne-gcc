@@ -144,7 +144,7 @@ typedef enum
     modeObstinate,         /**< Obstinate mode. Abort or retry are possible, but this transaction wins all contention fights. */
     modeOptimistic,        /**< Optimistic mode. Force transaction to run in optimistic mode. */
     modePessimistic,       /**< Pessimistic mode. Force transaction to run in pessimistic mode. */
-} mtm_tx_tState;
+} _ITM_transactionState;
 
 /*! Values to be passed to _ITM_abort*Transaction */
 typedef enum {
@@ -184,8 +184,8 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_finalizeThread(void);
 /*! Error reporting */
 _ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_error (const _ITM_srcLocation *, int errorCode));
 
-/* _ITM_getTransaction(void), _ITM_inTransaction(mtm_tx_t*), and
-   _ITM_getTransactionId(mtm_tx_t*) are in itmuser.h */
+/* _ITM_getTransaction(void), _ITM_inTransaction(_ITM_transaction*), and
+   _ITM_getTransactionId(_ITM_transaction*) are in itmuser.h */
 
 /*! Begin a transaction.
  * This function can return more than once (cf setjump). The result always tells the compiled
@@ -194,7 +194,7 @@ _ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_error (const _I
  * \param __src The source location.
  * \return A bit mask composed of values from _ITM_actions or-ed together.
  */
-_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_beginTransaction  (mtm_tx_t *td,
+_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_beginTransaction  (_ITM_transaction *td,
                                                                          uint32 __properties,
                                                                          const _ITM_srcLocation *__src);
 
@@ -206,7 +206,7 @@ _ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_beginTransaction  (mtm_tx_t 
  * \param __src The source location of the transaction.
  * 
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransaction     (mtm_tx_t *td,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransaction     (_ITM_transaction *td,
                                                                          const _ITM_srcLocation *__src);
 
 /*! Try to commit the innermost transaction. If the innermost transaction is also the outermost,
@@ -214,7 +214,7 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransaction     (mtm_tx_
  * \param __src The source location of the transaction.
  * 
  */
-_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_tryCommitTransaction  (mtm_tx_t *td,
+_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_tryCommitTransaction  (_ITM_transaction *td,
                                                                              const _ITM_srcLocation *__src);
 
 /*! Commit the to the nested transaction specifed by the first arugment.
@@ -222,7 +222,7 @@ _ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_tryCommitTransaction  (mtm_t
  * \param __src The source location of the catch block.
  * 
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId (mtm_tx_t *td,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId (_ITM_transaction *td,
                                                                          const _ITM_transactionId tid,
                                                                          const _ITM_srcLocation *__src);
 
@@ -234,7 +234,7 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId (mtm_tx_
  * \param __reason The reason for the abort.
  * \param __src The source location of the __tm_abort (if abort is called by the compiler).
  */
-_ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_abortTransaction(mtm_tx_t *td,
+_ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_abortTransaction(_ITM_transaction *td,
                                                                                   _ITM_abortReason __reason, 
                                                                                   const _ITM_srcLocation *__src));
 
@@ -246,7 +246,7 @@ _ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_abortTransactio
  */
 /*! Abort a transaction which may or may not be nested. Arguments and semantics as for abortOuterTransaction. */
 /* Will return if called with uplevelAbort, otherwise it longjumps */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(mtm_tx_t *td,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(_ITM_transaction *td,
                                                                       const _ITM_srcLocation *__src);
 
 /*! Register the thrown object to avoid undoing it, in case the transaction aborts and throws an exception
@@ -255,7 +255,7 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(mtm_tx_t *
  * \param __obj The base address of the thrown object.
  * \param __size The size of the object in bytes.
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(mtm_tx_t *td, const void *__obj, size_t __size);
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(_ITM_transaction *td, const void *__obj, size_t __size);
 
 /*! Enter an irrevocable mode.
  * If this function returns then execution is now in the new mode, however it's possible that
@@ -266,8 +266,8 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(mtm_tx_t 
  * \param __mode The new execution mode.
  * \param __src The source location.
  */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_changeTransactionMode (mtm_tx_t *td,
-                                                                         mtm_tx_tState __mode,
+_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_changeTransactionMode (_ITM_transaction *td,
+                                                                         _ITM_transactionState __mode,
                                                                          const _ITM_srcLocation * __loc);
 
 /* Support macros to generate the multiple data transfer functions we need. 
@@ -285,86 +285,57 @@ _ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_changeTransactionMode (mtm_tx_
  * to use this macro.
  */
 
-#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)         \
-GENERATE (ACTION, uint8,U1, __VA_ARGS__)                                       \
-GENERATE (ACTION, uint16,U2, __VA_ARGS__)                                      \
-GENERATE (ACTION, uint32,U4, __VA_ARGS__)                                      \
-GENERATE (ACTION, uint64,U8, __VA_ARGS__)                                      \
-GENERATE (ACTION, float,F, __VA_ARGS__)                                        \
-GENERATE (ACTION, double,D, __VA_ARGS__)                                       \
-GENERATE (ACTION, long double,E, __VA_ARGS__)                                  \
-GENERATE (ACTION, __m64,M64, __VA_ARGS__)                                      \
-GENERATE (ACTION, __m128,M128, __VA_ARGS__)                                    \
-GENERATE (ACTION, float _Complex, CF, __VA_ARGS__)                             \
-GENERATE (ACTION, double _Complex, CD, __VA_ARGS__)                            \
+#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)  \
+GENERATE (ACTION, uint8,U1, __VA_ARGS__)                              \
+GENERATE (ACTION, uint16,U2, __VA_ARGS__)                             \
+GENERATE (ACTION, uint32,U4, __VA_ARGS__)                             \
+GENERATE (ACTION, uint64,U8, __VA_ARGS__)                             \
+GENERATE (ACTION, float,F, __VA_ARGS__)                                 \
+GENERATE (ACTION, double,D, __VA_ARGS__)                                \
+GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
+GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
+GENERATE (ACTION, __m128,M128, __VA_ARGS__)                             \
+GENERATE (ACTION, float _Complex, CF, __VA_ARGS__)                      \
+GENERATE (ACTION, double _Complex, CD, __VA_ARGS__)                     \
 GENERATE (ACTION, long double _Complex, CE, __VA_ARGS__) 
 # else
-#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)         \
-GENERATE (ACTION, uint8,U1, __VA_ARGS__)                                       \
-GENERATE (ACTION, uint16,U2, __VA_ARGS__)                                      \
-GENERATE (ACTION, uint32,U4, __VA_ARGS__)                                      \
-GENERATE (ACTION, uint64,U8, __VA_ARGS__)                                      \
-GENERATE (ACTION, float,F, __VA_ARGS__)                                        \
-GENERATE (ACTION, double,D, __VA_ARGS__)                                       \
-GENERATE (ACTION, long double,E, __VA_ARGS__)                                  \
-GENERATE (ACTION, __m64,M64, __VA_ARGS__)                                      \
+#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)  \
+GENERATE (ACTION, uint8,U1, __VA_ARGS__)                              \
+GENERATE (ACTION, uint16,U2, __VA_ARGS__)                             \
+GENERATE (ACTION, uint32,U4, __VA_ARGS__)                             \
+GENERATE (ACTION, uint64,U8, __VA_ARGS__)                             \
+GENERATE (ACTION, float,F, __VA_ARGS__)                                 \
+GENERATE (ACTION, double,D, __VA_ARGS__)                                \
+GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
+GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
 GENERATE (ACTION, __m128,M128, __VA_ARGS__)
 # endif
 
-
-# ifndef __cplusplus
-#  define FOR_ALL_TYPES(ACTION,name)    \
-ACTION (name,uint8_t,U1)                \
-ACTION (name,uint16_t,U2)               \
-ACTION (name,uint32_t,U4)               \
-ACTION (name,uint64_t,U8)               \
-ACTION (name,float,F)                   \
-ACTION (name,double,D)                  \
-ACTION (name,long double,E)             \
-ACTION (name,__m64,M64)                 \
-ACTION (name,__m128,M128)               \
-ACTION (name,float _Complex,CF)         \
-ACTION (name,double _Complex,CD)        \
-ACTION (name,long double _Complex,CE)
-# else
-#  define FOR_ALL_TYPES(ACTION,name)    \
-ACTION (name,uint8_t,U1)                \
-ACTION (name,uint16_t,U2)               \
-ACTION (name,uint32_t,U4)               \
-ACTION (name,uint64_t,U8)               \
-ACTION (name,float,F)                   \
-ACTION (name,double,D)                  \
-ACTION (name,long double,E)             \
-ACTION (name,__m64,M64)                 \
-ACTION (name,__m128,M128)
-# endif
-
-
 # define _ITM_FOREACH_MEMCPY0(ACTION, NAME, ...)                                                            \
-ACTION (void, NAME##RnWt, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)           \
-ACTION (void, NAME##RnWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RnWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWn,   (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWt,   (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWn, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWt, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaRWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaWWn, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaWWt, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaWWtaR, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaWWtaW, (mtm_tx_t *, void *, const void *, size_t), __VA_ARGS__)
+ACTION (void, NAME##RnWt, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)           \
+ACTION (void, NAME##RnWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RnWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWn,   (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWt,   (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWn, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWt, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaRWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaWWn, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaWWt, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaWWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaWWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)
 
 #define _ITM_FOREACH_MEMCPY(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memcpy,__VA_ARGS__)
 
 #define _ITM_FOREACH_MEMMOVE(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memmove,__VA_ARGS__)
 
 # define _ITM_FOREACH_MEMSET(ACTION, ...)                                               \
-ACTION (void, memsetW, (mtm_tx_t *, void *, int, size_t), __VA_ARGS__)          \
-ACTION (void, memsetWaR, (mtm_tx_t *, void *, int, size_t), __VA_ARGS__)        \
-ACTION (void, memsetWaW, (mtm_tx_t *, void *, int, size_t), __VA_ARGS__)
+ACTION (void, memsetW, (_ITM_transaction *, void *, int, size_t), __VA_ARGS__)          \
+ACTION (void, memsetWaR, (_ITM_transaction *, void *, int, size_t), __VA_ARGS__)        \
+ACTION (void, memsetWaW, (_ITM_transaction *, void *, int, size_t), __VA_ARGS__)
 
 #define _ITM_FOREACH_SIMPLE_TRANSFER(ACTION,ARG)           \
     _ITM_FOREACH_SIMPLE_READ_TRANSFER(ACTION,ARG)          \
@@ -388,21 +359,21 @@ ACTION (void, memsetWaW, (mtm_tx_t *, void *, int, size_t), __VA_ARGS__)
 
 #  define _ITM_FOREACH_LOG_TRANSFER(ACTION,ARG)                         \
     _ITM_FOREACH_SIMPLE_LOG_TRANSFER(ACTION,ARG)                        \
-    ACTION(void, LB, (mtm_tx_t *, const void*, size_t), ARG)
+    ACTION(void, LB, (_ITM_transaction *, const void*, size_t), ARG)
 
 #  define _ITM_GENERATE_READ_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (result_type, R##encoding,   (mtm_tx_t *, const result_type *), ARG) \
-    ACTION (result_type, RaR##encoding, (mtm_tx_t *, const result_type *), ARG) \
-    ACTION (result_type, RaW##encoding, (mtm_tx_t *, const result_type *), ARG) \
-    ACTION (result_type, RfW##encoding, (mtm_tx_t *, const result_type *), ARG)         
+    ACTION (result_type, R##encoding,   (_ITM_transaction *, const result_type *), ARG) \
+    ACTION (result_type, RaR##encoding, (_ITM_transaction *, const result_type *), ARG) \
+    ACTION (result_type, RaW##encoding, (_ITM_transaction *, const result_type *), ARG) \
+    ACTION (result_type, RfW##encoding, (_ITM_transaction *, const result_type *), ARG)         
 
 #  define _ITM_GENERATE_WRITE_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (void, W##encoding,  (mtm_tx_t *, result_type *, result_type), ARG) \
-    ACTION (void, WaR##encoding,(mtm_tx_t *, result_type *, result_type), ARG) \
-    ACTION (void, WaW##encoding,(mtm_tx_t *, result_type *, result_type), ARG)
+    ACTION (void, W##encoding,  (_ITM_transaction *, result_type *, result_type), ARG) \
+    ACTION (void, WaR##encoding,(_ITM_transaction *, result_type *, result_type), ARG) \
+    ACTION (void, WaW##encoding,(_ITM_transaction *, result_type *, result_type), ARG)
 
 #  define _ITM_GENERATE_LOG_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (void, L##encoding,   (mtm_tx_t *, const result_type *), ARG) 
+    ACTION (void, L##encoding,   (_ITM_transaction *, const result_type *), ARG) 
 
 # define GENERATE_PROTOTYPE(result, function, args, ARG)    \
     _ITM_EXPORT extern result _ITM_CALL_CONVENTION _ITM_##function args;

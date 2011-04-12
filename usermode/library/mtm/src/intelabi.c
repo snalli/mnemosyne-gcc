@@ -179,7 +179,7 @@ _ITM_addUserUndoAction(mtm_tx_t * __td,
 
 void _ITM_CALL_CONVENTION
 _ITM_changeTransactionMode(mtm_tx_t *td,
-                           mtm_tx_tState __mode,
+                           _ITM_transactionState __mode,
                            const _ITM_srcLocation * __loc)
 {
 	//TODO: Support compiler instructed switching of transaction execution mode

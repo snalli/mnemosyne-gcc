@@ -6,7 +6,7 @@ Import('mtmLibrary')
 Import('benchEnv')
 
 
-benchEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/malloc/include']
 benchEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
 benchEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
 

@@ -1,26 +1,27 @@
-import sys
+import sys, os
 sys.path.append('%s/library' % (Dir('#').abspath))
 import configuration.mtm
 
 Import('mainEnv')  # read only -- clone if need to modify
 
 buildEnv = configuration.mtm.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
+
+# FIXME: Currently we use GCC to build the TM library because we rely on GCC 
+# atomic intrinsics such as __sync_add_and_fetch_4, which are not available
+# in the version of ICC we use. We would like to fix this issue.
+
 buildEnv['CC'] = 'gcc'
 buildEnv['CXX'] = 'g++'
+
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
-buildEnv.Append(CPPPATH = ['#library/mnemosyne/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include'])
 buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
-buildEnv.Append(CPPPATH = 'src/sysdeps/linux/x86')
 buildEnv.Append(CPPPATH = 'src/sysdeps/linux')
 buildEnv.Append(CPPPATH = 'src/sysdeps/x86')
-buildEnv.Append(CPPPATH = 'src/sysdeps/posix')
-buildEnv.Append(CPPPATH = 'src/sysdeps/generic')
 buildEnv.Append(CPPPATH = 'src')
 buildEnv.Append(CPPPATH = 'src/common')
-#buildEnv.Append(LINKFLAGS = ['-g', '-fPIC'])
-buildEnv.Append(LINKFLAGS = '-fpic')
+buildEnv.Append(LINKFLAGS = '-fpic')  # not sure why but -fPIC causes problems
 buildEnv.Append(CCFLAGS = ' -m64 ')
-#buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fPIC')
 buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fpic')
 
 if buildEnv['BUILD_DEBUG'] == True:
@@ -32,10 +33,6 @@ if buildEnv['BUILD_STATS'] == True:
 	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
 
 
-
-# Programs to generate VTable mappings to the Intel ABI.
-srcgen_sjlj = buildEnv.Program('generate_sjlj', 'tool/generate_sjlj.c')
-srcgen_dtable = buildEnv.Program('generate_dtable', 'tool/generate_dtable.c')
 
 # For common source files we need to manually specify the object creation rules 
 # to avoid getting the following error:
@@ -71,7 +68,6 @@ CC_SRC = Split("""
                src/mode/pwbnl/barrier.c
 	       src/mode/pwb-common/tmlog_base.c
 	       src/mode/pwb-common/tmlog_tornbit.c
-               src/mode/serial/serial.c
                src/mtm.c
                src/stats.c
                src/txlock.c
@@ -80,7 +76,6 @@ CC_SRC = Split("""
 
 CC_LINUX_SRC = Split("""
                      src/sysdeps/linux/rwlock.c
-                     src/sysdeps/linux/futex.c
                      """)
 
 S_SRC = Split("""src/sysdeps/x86/sjlj.S""")

@@ -74,7 +74,7 @@ typedef intptr_t  intptr;
 #ifndef _WINDOWS
   /* supress warnings on declare __attribute__(regparm(2)) function pointers
    */
-  //#pragma warning( disable : 1287 ) //FIXME: Why this warning???
+  #pragma warning( disable : 1287 )
 #endif
 
 #if (defined(_TM))
@@ -96,19 +96,12 @@ typedef intptr_t  intptr;
 #  define _ITM_CALL_CONVENTION __fastcall
 # else
     /*Assume GCC like behavior on other OSes */
-#  if (defined (__x86_64__))
-#   define _ITM_CALL_CONVENTION
-#  else
-#   define _ITM_CALL_CONVENTION __attribute__((regparm(2)))
-#  endif
+#  define _ITM_CALL_CONVENTION __attribute__((regparm(2)))
 # endif
 
-
-#ifndef MTM_TX_T_DEFINED
-#define MTM_TX_T_DEFINED
-struct mtm_tx_s;
-typedef struct mtm_tx_s mtm_tx_t;
-#endif
+//struct _ITM_transactionS;
+//! Opaque transaction descriptor.
+//typedef struct _ITM_transactionS _ITM_transaction;
 
 typedef void (_ITM_CALL_CONVENTION * _ITM_userUndoFunction)(void *);
 typedef void (_ITM_CALL_CONVENTION * _ITM_userCommitFunction)(void *);
@@ -127,14 +120,14 @@ typedef enum
 /*! \return A pointer to the current transaction descriptor.
  */
 TM_PURE
-extern mtm_tx_t * _ITM_CALL_CONVENTION _ITM_getTransaction (void);
+extern _ITM_transaction * _ITM_CALL_CONVENTION _ITM_getTransaction (void);
 
 /*! Is the code executing inside a transaction?
  * \param __td The transaction descriptor.
  * \return 1 if inside a transaction, 0 if outside a transaction.
  */
 TM_PURE
-extern _ITM_howExecuting _ITM_CALL_CONVENTION _ITM_inTransaction (mtm_tx_t * __td);
+extern _ITM_howExecuting _ITM_CALL_CONVENTION _ITM_inTransaction (_ITM_transaction * __td);
 
 /*! Get the thread number which the TM logging and statistics will be using. */
 TM_PURE 
@@ -147,7 +140,7 @@ extern int _ITM_CALL_CONVENTION _ITM_getThreadnum(void) ;
  * \param __arg The user argument to store in the log entry 
  */
 TM_PURE 
-extern void _ITM_CALL_CONVENTION _ITM_addUserCommitAction (mtm_tx_t * __td, 
+extern void _ITM_CALL_CONVENTION _ITM_addUserCommitAction (_ITM_transaction * __td, 
                                                        _ITM_userCommitFunction __commit,
                                                        _ITM_transactionId resumingTransactionId,
                                                        void * __arg);
@@ -158,7 +151,7 @@ extern void _ITM_CALL_CONVENTION _ITM_addUserCommitAction (mtm_tx_t * __td,
  * \param __arg The user argument to store in the log entry 
  */
 TM_PURE 
-extern void _ITM_CALL_CONVENTION _ITM_addUserUndoAction (mtm_tx_t * __td, 
+extern void _ITM_CALL_CONVENTION _ITM_addUserUndoAction (_ITM_transaction * __td, 
                                                        const _ITM_userUndoFunction __undo, void * __arg);
 
 /** A transaction Id for non-transactional code.  It is guaranteed to be less 
@@ -170,7 +163,7 @@ extern void _ITM_CALL_CONVENTION _ITM_addUserUndoAction (mtm_tx_t * __td,
     \param __td The transaction descriptor
  */
 TM_PURE 
-extern _ITM_transactionId _ITM_CALL_CONVENTION _ITM_getTransactionId(mtm_tx_t * __td);
+extern _ITM_transactionId _ITM_CALL_CONVENTION _ITM_getTransactionId(_ITM_transaction * __td);
 
 /*! A method to remove any references the library may be storing for a block of memory.
     \param __td The transaction descriptor
@@ -178,7 +171,7 @@ extern _ITM_transactionId _ITM_CALL_CONVENTION _ITM_getTransactionId(mtm_tx_t * 
     \param __size The size in bytes of the block of memory
  */
 TM_PURE
-extern void _ITM_CALL_CONVENTION _ITM_dropReferences (mtm_tx_t * __td, const void * __start, size_t __size);
+extern void _ITM_CALL_CONVENTION _ITM_dropReferences (_ITM_transaction * __td, const void * __start, size_t __size);
 
 /*! A method to print error from inside the transaction and exit
     \param errString The error description

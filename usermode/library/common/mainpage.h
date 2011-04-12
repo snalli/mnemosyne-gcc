@@ -61,7 +61,18 @@ Prerequisites (Linux):
 \li Intel C/C++ STM Compiler, Prototype Edition 3.0
 \li SCons: A software construction tool
 
-To build xCalls, first check out a copy with SVN. If you have commit access:
+Prepare the tree
+
+Copy $ICC_DIR/include/itm.h and $ICC_DIR/include/itmuser.h into 
+$MNEMOSYNE/library/mtm/src
+
+Then remove lines 102-104 from itmuser.h:
+
+\verbatim
+> struct _ITM_transactionS;
+> //! Opaque transaction descriptor.
+> typedef struct _ITM_transactionS _ITM_transaction;
+\endverbatim
 
 
 \verbatim
@@ -97,5 +108,11 @@ You may then install the library into the location of your choice $INSTALL_DIR:
 \endverbatim
 
 
+@section getting_started_building_linux Building Linux
+
+Modified version is necessary if you need mappings survive system reboot w/o fsync.
+If you don't care about system crashes then you can always issue an fsync and run
+mnemosyne on top of a vanilla kernel. You just need to build mnemosyne with flag blah blah 
+You can still run Mnemosyne without
 
  */

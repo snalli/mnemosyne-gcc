@@ -1,6 +1,6 @@
 /*!
  * \file
- * Defines types and function atttributes common throughout libmnemosyne sources.
+ * Defines types and function atttributes common throughout libmcore sources.
  * 
  * \author Haris Volos <hvolos@cs.wisc.edu>
  */

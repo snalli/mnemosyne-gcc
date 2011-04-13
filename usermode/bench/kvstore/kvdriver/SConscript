@@ -1,7 +1,7 @@
 Import('kvstoreEnv')
 Import('mcoreLibrary')
 Import('mtmLibrary')
-Import('mallocLibrary')
+Import('pmallocLibrary')
 Import('hashtableLibrary')
 
 myEnv = kvstoreEnv.Clone() 
@@ -15,7 +15,7 @@ myEnv.Append(LINKFLAGS = '-Wl,--whole-archive %s -Wl,--no-whole-archive' % myEnv
 
 myEnv.Append(LIBS = [mcoreLibrary])
 myEnv.Append(LIBS = [mtmLibrary])
-myEnv.Append(LIBS = [mallocLibrary])
+myEnv.Append(LIBS = [pmallocLibrary])
 
 mainObj = myEnv.Object('common/main.c')
 

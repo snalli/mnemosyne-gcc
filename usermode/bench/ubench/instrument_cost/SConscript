@@ -1,7 +1,7 @@
 Import('ubenchEnv')
 Import('mcoreLibrary')
 Import('mtmLibrary')
-Import('mallocLibrary')
+Import('pmallocLibrary')
 
 myEnv = ubenchEnv.Clone() 
 myEnv.Append(CPPPATH = ['#library/common'])
@@ -13,5 +13,5 @@ sources = Split("""
 
 myEnv.Append(LIBS = [mcoreLibrary])
 myEnv.Append(LIBS = [mtmLibrary])
-myEnv.Append(LIBS = [mallocLibrary])
+myEnv.Append(LIBS = [pmallocLibrary])
 myEnv.Program('instrument_cost', sources)

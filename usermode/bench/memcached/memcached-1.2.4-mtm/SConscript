@@ -1,7 +1,7 @@
 Import('memcachedEnv')
 Import('mcoreLibrary')
 Import('mtmLibrary')
-Import('mallocLibrary')
+Import('pmallocLibrary')
 
 myEnv = memcachedEnv.Clone() 
 myEnv.Append(CCFLAGS = ' -O2')
@@ -16,7 +16,7 @@ myEnv.Append(CPPPATH = ['#bench/memcached/memcached-1.2.4-mtm'])
 
 myEnv.Append(LIBS = [mcoreLibrary])
 myEnv.Append(LIBS = [mtmLibrary])
-myEnv.Append(LIBS = [mallocLibrary])
+myEnv.Append(LIBS = [pmallocLibrary])
 
 
 # Hashtable & BDB kvdriver

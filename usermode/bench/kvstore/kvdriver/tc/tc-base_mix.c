@@ -15,7 +15,7 @@
 #include <sched.h>
 #include <mnemosyne.h>
 #include <mtm.h>
-#include <malloc.h>
+#include <pmalloc.h>
 #include <itm.h>
 #include "tcutil.h"
 #include "tcbdb.h"

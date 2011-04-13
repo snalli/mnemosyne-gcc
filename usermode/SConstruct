@@ -91,14 +91,14 @@ mainEnv['CXX'] = os.path.join(mainEnv['ICC_DIR'],  'bin/intel64/icpc')
 Export('mainEnv')
 
 CommonObjects = SConscript('library/common/SConscript', variant_dir = 'build/library/common')
-mallocLibrary = SConscript('library/malloc/SConscript', 'CommonObjects', variant_dir = 'build/library/malloc')
+pmallocLibrary = SConscript('library/pmalloc/SConscript', 'CommonObjects', variant_dir = 'build/library/pmalloc')
 mcoreLibrary = SConscript('library/mcore/SConscript', 'CommonObjects', variant_dir = 'build/library/mcore')
 mtmLibrary = SConscript('library/mtm/SConscript', variant_dir = 'build/library/mtm')
 
 toolsEnv = mainEnv.Clone()
 toolsEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
 Export('toolsEnv')
-Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+Export('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
 SConscript('tool/SConscript', variant_dir = os.path.join('build', 'tool'))
 
 # Explicit dependencies that were built outside SCons

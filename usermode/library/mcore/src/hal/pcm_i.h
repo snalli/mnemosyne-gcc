@@ -420,6 +420,13 @@ PCM_WB_STORE_ALIGNED_MASKED(pcm_storeset_t *set,
 }
 
 
+static inline
+void
+PCM_WB_FENCE(pcm_storeset_t *set)
+{
+		asm_mfence(); 
+}
+
 /*
  * Flush the cacheline containing address addr.
  */

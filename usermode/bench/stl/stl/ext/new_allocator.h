@@ -33,7 +33,7 @@
 #include <new>
 #include <bits/functexcept.h>
 #include <bits/move.h>
-#include "malloc.h"
+#include "pmalloc.h"
 
 __attribute__((tm_callable))
 inline void* operator new(size_t block_size) {

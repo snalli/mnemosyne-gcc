@@ -103,6 +103,9 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		/* Make sure the persistent tm log is made stable */
 		M_TMLOG_COMMIT(tx->pcm_storeset, modedata->ptmlog, t);
 
+		/* Make sure previous stores are not reordered with the cl-flushes below */
+		PCM_WB_FENCE(tx->pcm_storeset);
+
 		/* Install new versions, drop locks and set new timestamp */
 		/* In the case when isolation is off, the write set contains entries 
 		 * that point to private pseudo-locks. */
@@ -360,15 +363,13 @@ beginTransaction_internal (mtm_tx_t *tx,
 
 	if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
 	{
-		// FIXME: Currently we don't implement serial mode 
-		//MTM_serialmode (true, true);
+		// TODO: Implement serial mode 
 		return (prop & pr_uninstrumentedCode
 		        ? a_runUninstrumentedCode : a_runInstrumentedCode);
 	}
 
 	if (enable_isolation) {
-		// FIXME: Currently we don't implement serial mode 
-		//mtm_rwlock_read_lock (&mtm_serial_lock);
+		// TODO: Implement serial mode 
 	}
 
 	return a_runInstrumentedCode | a_saveLiveVariables;

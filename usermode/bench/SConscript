@@ -1,12 +1,12 @@
 import os
 
-Import('mallocLibrary')
+Import('pmallocLibrary')
 Import('mcoreLibrary')
 Import('mtmLibrary')
 Import('benchEnv')
 
 
-benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/malloc/include']
+benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
 benchEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
 benchEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
 

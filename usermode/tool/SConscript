@@ -1,11 +1,11 @@
 import os
 
-Import('mallocLibrary')
+Import('pmallocLibrary')
 Import('mcoreLibrary')
 Import('mtmLibrary')
 Import('toolsEnv')
 
-toolsEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+toolsEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
 
 if toolsEnv['BUILD_DEBUG'] == True:
 	toolsEnv.Append(CCFLAGS = ' -g')

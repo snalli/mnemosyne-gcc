@@ -12,7 +12,7 @@
 
 #include <mnemosyne.h>
 #include <mtm.h>
-#include <malloc.h>
+#include <pmalloc.h>
 #include "txlock.h"
 
 //#define MNEMOSYNE_ATOMIC __transaction [[relaxed]]

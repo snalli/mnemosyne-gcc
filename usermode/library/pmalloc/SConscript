@@ -2,11 +2,11 @@ import os
 import sys
 import string
 sys.path.append('%s/library' % (Dir('#').abspath))
-import configuration.malloc
+import configuration.pmalloc
 
 Import('mainEnv')  # read only -- clone if need to modify
 
-buildEnv = configuration.malloc.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
+buildEnv = configuration.pmalloc.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
 
 OPTIMIZE_FLAG = '-fno-rtti -fno-exceptions -finline-functions'
 WARNINGS = '-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
@@ -59,8 +59,8 @@ SRC = C_SRC + CXX_SRC
 
 
 if buildEnv['BUILD_LINKAGE'] == 'dynamic':
-	mallocLibrary = buildEnv.SharedLibrary('malloc', SRC)
+	pmallocLibrary = buildEnv.SharedLibrary('pmalloc', SRC)
 else:
-	mallocLibrary = buildEnv.StaticLibrary('malloc', SRC)
+	pmallocLibrary = buildEnv.StaticLibrary('pmalloc', SRC)
 
-Return('mallocLibrary')
+Return('pmallocLibrary')

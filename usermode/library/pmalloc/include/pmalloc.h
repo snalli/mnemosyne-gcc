@@ -1,5 +1,5 @@
-#ifndef _MNEMOSYNE_MALLOC_H
-#define _MNEMOSYNE_MALLOC_H
+#ifndef _MNEMOSYNE_PMALLOC_H
+#define _MNEMOSYNE_PMALLOC_H
 
 #include <stdlib.h>
 

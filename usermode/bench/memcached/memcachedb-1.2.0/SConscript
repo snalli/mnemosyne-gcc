@@ -1,7 +1,7 @@
 Import('memcachedEnv')
 Import('mcoreLibrary')
 Import('mtmLibrary')
-Import('mallocLibrary')
+Import('pmallocLibrary')
 
 myEnv = memcachedEnv.Clone() 
 

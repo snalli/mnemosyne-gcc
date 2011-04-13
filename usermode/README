@@ -1,28 +1,36 @@
+OVERVIEW:
 
-DEPENDENCIES
-============
+New storage-class memory (SCM) technologies, such as phase-change memory, 
+STT-RAM, and memristors, promise user-level access to non-volatile storage 
+through regular memory instructions. These memory devices enable fast 
+user-mode access to persistence, allowing regular in-memory data structures 
+to survive system crashes.
 
-Part of this subtree is built using Make so you need to prepare those
-parts of the tree accordingly.
+Mnemosyne provides a simple interface for programming with persistent 
+memory. Mnemosyne addresses two challenges: how to create and manage such 
+memory, and how to ensure consistency in the presence of failures. Without 
+additional mechanisms, a system failure may leave data structures in SCM in 
+an invalid state, crashing the program the next time it starts.
+
+In Mnemosyne, programmers declare global persistent data with the keyword 
+persistent or allocate it dynamically. Mnemosyne provides primitives for 
+directly modifying persistent variables and supports consistent updates 
+through a lightweight transaction mechanism. Compared to past work on 
+disk-based persistent memory, Mnemosyne is much lighter weight, as it can 
+store data items as small as a word rather than a virtual memory page. In 
+tests emulating the performance characteristics of forthcoming SCMs, we 
+find that Mnemosyne provides a 20--280 percent performance increase for 
+small data sizes over alternative persistence strategies, such as 
+Berkeley DB or Boost serialization that are designed for disks.
 
 
-BerkeleyDB 
+BUILDING:
 
- 1) cd $USERMODE/bench/kvstore/bdb/build_unix
- 2) ../dist/configure
- 3) make
+TODO
 
-TokyoCabinet
+DOCUMENTATION:
 
- 1) cd $USERMODE/bench/kvstore/tc/library-base
- 2) ./configure CC=icc --disable-shared
- 3) cd $USERMODE/bench/kvstore/tc/library-mtm
- 4) ./configure CC=icc --disable-shared
+Running doxygen will create documentation under $MNEMOSYNE/usermode/doc/html
 
- Note: Unfortunately, trying to config/build in another directory won't work
- as TC's Makefile searches the local path for dependencies
+LICENSE:
 
-
-TODO:
-- Integrate Makefiles into Scons for a hassle-free built.
-  http://www.scons.org/wiki/RunningConfigureAndMake

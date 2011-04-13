@@ -1,6 +1,6 @@
 import os
 
-Import('mallocLibrary')
+Import('pmallocLibrary')
 Import('mcoreLibrary')
 Import('mtmLibrary')
 Import('benchEnv')

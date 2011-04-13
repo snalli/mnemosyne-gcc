@@ -45,8 +45,6 @@
 #include "persistentheap.h"
 #include "arch-specific.h"
 
-//#include "pdlmalloc.h"
-//#include "dlmalloc.h"
 #include "genalloc.h"
 
 #include <itm.h>
@@ -237,8 +235,6 @@ static void * prealloc_internal (void * ptr, size_t sz)
 	_ITM_transaction *tx;
 	static persistentHeap * persistentheap = getPersistentAllocator();
 
-	//printf("prealloc[START]: ptr = %p, size = %d\n",  ptr, (int) sz);
-
 	if (ptr == NULL) {
 		return pmalloc_internal (sz);
 	}
@@ -263,7 +259,7 @@ static void * prealloc_internal (void * ptr, size_t sz)
 			return ptr;
 		}
 	} else {
-		objSize = generic_objsize(ptr);
+		objSize = GENERIC_OBJSIZE(ptr);
 	}
 
 	// Allocate a new block of size sz.
@@ -310,13 +306,12 @@ extern "C" void malloc_stats (void)
 #endif
 
 
+
 /* Transactional Wrappers for volatile memory allocator -- This should be part of MTM? */
 
 /* 
  * TODO: Dynamic Memory allocator should be implemented using commit/undo 
- * actions 
- * as described by Intel. Implementation should go into alloc_c.c
- * For transactions though that don't abort the following is enough.
+ * actions as described by Intel. Implementation should go into MTM
  */
 __attribute__((tm_wrapping(malloc))) void *malloc_txn(size_t sz) 
 {

@@ -13,7 +13,6 @@
 
 #include "mtm_i.h"
 #include "mode/dtable.h"
-#include "mode/dtablegen.h"
 #include "local.h"
 #include "mode/pwb-common/locks.h"
 #include "mode/pwb-common/tmlog.h"

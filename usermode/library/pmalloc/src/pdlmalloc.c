@@ -1,11 +1,9 @@
-/*
- * OBSOLETE: We no longer use the Doug Lea's based persistent allocator for 
- * allocating chunks of memory larger than half of a superblock
- * as we noticed some problems we couldn't fixed. 
- * We instead use an allocator based on Rio Vista's heap.
+/**
+ * \file pdlmalloc.c
+ * 
+ * \brief A simple persistent memory allocator based on Doug Lea's malloc
  *
  */
-
 
 
 /* 
@@ -301,10 +299,11 @@
 #endif
 #include <stdio.h>    /* needed for malloc_stats */
 
+#include "genalloc.h"
 #include "pdlmalloc.h"
 
 #define DLMALLOC_PHEAP_BASE 0xc00000000
-#define DLMALLOC_PHEAP_SIZE (2*1024*1024*1024)
+#define DLMALLOC_PHEAP_SIZE (1024*1024*1024) /* Bytes */
 
 #ifdef __cplusplus
 extern "C" {
@@ -1234,6 +1233,13 @@ TM_CALLABLE Void_t* PDL_MEMALIGN(size_t alignment, size_t bytes)
   return chunk2mem(p);
 
 }
+
+size_t PDL_OBJSIZE(void *mem)
+{
+  mchunkptr  p  = mem2chunk(mem);
+  return p->size;
+}  
+
 
 
 /* Derivatives */

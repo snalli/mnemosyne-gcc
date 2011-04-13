@@ -1,7 +1,14 @@
-#define GENERIC_PREGION_BASE          0xc00000000
-#define GENERIC_PREGION_METADATA_SIZE (1024*1024)
-#define GENERIC_PREGION_HOLE_SIZE     0
-#define GENERIC_PREGION_HEAP_SIZE     (1024*1024*1024)
+/**
+ * \file vhalloc.c 
+ * 
+ * \brief A simple persistent memory allocator based on Vistaheap
+ *
+ */
+
+#define VHALLOC_PREGION_BASE          0xc00000000
+#define VHALLOC_PREGION_METADATA_SIZE (1024*1024)        /* Bytes */
+#define VHALLOC_PREGION_HOLE_SIZE     0
+#define VHALLOC_PREGION_HEAP_SIZE     (1024*1024*1024)   /* Bytes */
 
 /*
  * A single persistent region is allocated to store the two vistaheap_s 
@@ -33,10 +40,11 @@
 #include <pcm.h>
 #include "vistaheap.h"
 #include "genalloc.h"
+#include "vhalloc.h"
 
 
-__attribute__ ((section("PERSISTENT"))) int      generic_init_done = 0; 
-__attribute__ ((section("PERSISTENT"))) uint64_t generic_pregion = 0x0;
+__attribute__ ((section("PERSISTENT"))) int      vhalloc_init_done = 0; 
+__attribute__ ((section("PERSISTENT"))) uint64_t vhalloc_pregion = 0x0;
 
 static int       volatile_init_done = 0; 
 static vistaheap *vistaheap_main;
@@ -52,42 +60,42 @@ _init(void)
 	void           *heap_base;           
 	void           *heap_hardlimit;
 
-	if (generic_init_done) {
+	if (vhalloc_init_done) {
 		if (!volatile_init_done) {
-			vistaheap_main = (vistaheap *) generic_pregion;
-			vistaheap_nugget = (vistaheap *) (generic_pregion + sizeof(vistaheap));
+			vistaheap_main = (vistaheap *) vhalloc_pregion;
+			vistaheap_nugget = (vistaheap *) (vhalloc_pregion + sizeof(vistaheap));
 			volatile_init_done = 1;
 		}	
 		return;
 	}
 
-	if (generic_pregion == 0x0) {
+	if (vhalloc_pregion == 0x0) {
 		size = sizeof(vistaheap) * 2 + 
-			   GENERIC_PREGION_METADATA_SIZE + 
-			   GENERIC_PREGION_HOLE_SIZE + 
-			   GENERIC_PREGION_HEAP_SIZE;
+			   VHALLOC_PREGION_METADATA_SIZE + 
+			   VHALLOC_PREGION_HOLE_SIZE + 
+			   VHALLOC_PREGION_HEAP_SIZE;
 	    TM_WAIVER {
-			generic_pregion = (uint64_t) m_pmap((void *) GENERIC_PREGION_BASE, size, PROT_READ|PROT_WRITE, 0);
+			vhalloc_pregion = (uint64_t) m_pmap((void *) VHALLOC_PREGION_BASE, size, PROT_READ|PROT_WRITE, 0);
 		}	
-		if ((void *) generic_pregion == (void *) -1) {
+		if ((void *) vhalloc_pregion == (void *) -1) {
 			TM_WAIVER {
 				abort();
 			}	
 		}
 	}
 
-	vistaheap_main = (vistaheap *) generic_pregion;
-	vistaheap_nugget = (vistaheap *) (generic_pregion + sizeof(vistaheap));
-	metadata_base = (void *) (generic_pregion + sizeof(vistaheap)*2);
-	metadata_hardlimit = (void *) (((uintptr_t) metadata_base) + GENERIC_PREGION_METADATA_SIZE);
-	heap_base = (void *) (((uintptr_t) metadata_hardlimit) + GENERIC_PREGION_HOLE_SIZE);
-	heap_hardlimit = (void *) (((uintptr_t) heap_base) + GENERIC_PREGION_HEAP_SIZE);
+	vistaheap_main = (vistaheap *) vhalloc_pregion;
+	vistaheap_nugget = (vistaheap *) (vhalloc_pregion + sizeof(vistaheap));
+	metadata_base = (void *) (vhalloc_pregion + sizeof(vistaheap)*2);
+	metadata_hardlimit = (void *) (((uintptr_t) metadata_base) + VHALLOC_PREGION_METADATA_SIZE);
+	heap_base = (void *) (((uintptr_t) metadata_hardlimit) + VHALLOC_PREGION_HOLE_SIZE);
+	heap_hardlimit = (void *) (((uintptr_t) heap_base) + VHALLOC_PREGION_HEAP_SIZE);
 
 	__tm_atomic 
 	{
 		vistaheap_init(vistaheap_nugget, metadata_base, metadata_hardlimit, NULL);
 		vistaheap_init(vistaheap_main, heap_base, heap_hardlimit, vistaheap_nugget);
-		generic_init_done = 1;
+		vhalloc_init_done = 1;
 	} 
 	volatile_init_done = 1;
 }
@@ -97,7 +105,7 @@ struct header_s {
 };
 
 
-size_t generic_objsize(void *ptr)
+size_t VHALLOC_OBJSIZE(void *ptr)
 {
 	struct header_s* header_ptr;
 	header_ptr = (struct header_s *) ((char *)ptr - sizeof(struct header_s));
@@ -106,7 +114,7 @@ size_t generic_objsize(void *ptr)
 
 
 void *
-generic_pmalloc(size_t sz)
+VHALLOC_PMALLOC(size_t sz)
 {
 	void *ptr;
 	struct header_s* header_ptr;
@@ -120,8 +128,7 @@ generic_pmalloc(size_t sz)
 
 
 void 
-generic_pfree(void *ptr)
+vhalloc_pfree(void *ptr)
 {
 	//TODO
-	//
 }

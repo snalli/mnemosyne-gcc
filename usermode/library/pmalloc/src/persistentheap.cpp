@@ -23,7 +23,8 @@ persistentHeap::persistentHeap (void)
 	scavenge();
 	
 	// Initialize some logically non-persistent information 
-	// FIXME: This should really be implemented as a volatile index to avoid writing PCM
+	// FIXME: This should really be implemented as a volatile index to avoid 
+	// writing PCM cells
 	for(i=0; i<PERSISTENTSUPERBLOCK_NUM; i++) { 
 		psb = (persistentSuperblock *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 		psb->volatileInit();

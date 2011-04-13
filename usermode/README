@@ -26,11 +26,23 @@ Berkeley DB or Boost serialization that are designed for disks.
 
 BUILDING:
 
-TODO
+Invoke SCons
+
+For example, to build Mnemosyne for PCM write latency of 1000ns, you may invoke SCons 
+while in $MNEMOSYNE/usermode:
+
+% cd $MNEMOSYNE/usermode
+% scons M_PCM_EMULATE_LATENCY=True M_PCM_LATENCY_WRITE=1000
+
+Please refer to the Doxygen generated documentation for more information.
 
 DOCUMENTATION:
 
 Running doxygen will create documentation under $MNEMOSYNE/usermode/doc/html
 
+% cd $MNEMOSYNE/usermode
+% doxygen
+
 LICENSE:
 
+Please see file COPYING

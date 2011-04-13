@@ -362,7 +362,7 @@ static inline
 void
 PCM_WB_STORE(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 {
-	//printf("STORE: (0x%lx, %lx)\n", addr, val);
+	//printf("PCM_WB_STORE: (0x%lx, %lx)\n", addr, val);
 #ifdef M_PCM_EMULATE_CRASH
 	pcm_wb_store_emulate_crash(set, addr, val);
 #endif	
@@ -389,7 +389,7 @@ PCM_WB_STORE_MASKED(pcm_storeset_t *set,
                     pcm_word_t val, 
                     pcm_word_t mask)
 {
-	//printf("WB_STORE_MASKED: (0x%lx, %lx, %lx)\n", addr, val, mask);
+	//printf("PCM_WB_STORE_MASKED: (0x%lx, %lx, %lx)\n", addr, val, mask);
 #ifdef M_PCM_EMULATE_CRASH
 	pcm_wb_store_emulate_crash(set, addr, val);
 #endif	

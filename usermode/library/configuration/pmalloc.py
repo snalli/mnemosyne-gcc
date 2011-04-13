@@ -47,6 +47,11 @@ class Environment(mnemosyne.Environment):
 	
 	#: Build directives which have enumerated values.
 	_enumerable_directive_vars = [
+	    ('GENALLOC',
+		                 'Determines the generic persistent memory allocator.',
+		                 'GENALLOC_DOUGLEA',
+		                 ['GENALLOC_DOUGLEA', 'GENALLOC_VISTAHEAP'])
+
 	]
 	
 	#: Build directives which have numerical values

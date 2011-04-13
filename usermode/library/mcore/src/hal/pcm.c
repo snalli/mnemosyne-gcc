@@ -456,6 +456,9 @@ nt_flush_buffers(pcm_storeset_t *set)
 void
 pcm_wb_store_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 {
+	if (!set) {
+		return;
+	}
 	pcm_check_crash(set);
 	set->in_crash_emulation_code = 1;
 	crash_save_oldvalue(set, addr);

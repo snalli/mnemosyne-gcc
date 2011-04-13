@@ -32,16 +32,6 @@
 
 #define M_DEBUG_SEGMENT 1
 
-/* FIXME: Properly define these MACROs to redirect to PCM layer */
-#define PCM_STORE(addr, val) \
-do {                         \
-   *addr = val;              \
-} while(0);
-
-#define PCM_BARRIER          \
-do {                         \
-} while (0);
-
 m_segtbl_t m_segtbl;
 
 
@@ -651,12 +641,15 @@ pmap_internal_abs(void *start, size_t length, int prot, int flags,
 
 	/* Now update the segment table with the necessary segment information. */
 	tentry = new_ientry->segtbl_entry;
-	PCM_STORE(&(tentry->start), map_addr);
-	PCM_STORE(&(tentry->size), length);
-	PCM_BARRIER;
+	tentry->start = map_addr; /* PCM STORE */ 
+	tentry->size = length;  /* PCM STORE */
+	PCM_WB_FENCE(NULL);
+	PCM_WB_FLUSH(NULL, &(tentry->start));
+	PCM_WB_FLUSH(NULL, &(tentry->size));
 	flags_val = segtbl_entry_flags;
-	PCM_STORE(&(tentry->flags), flags_val);
-	PCM_BARRIER;
+	tentry->flags = flags_val;  /* PCM STORE */
+	PCM_WB_FENCE(NULL);
+	PCM_WB_FLUSH(NULL, &(tentry->flags));
 
 	/* Insert the entry into the ordered index */
 	segidx_insert_entry_ordered(m_segtbl.idx, new_ientry, 1);
@@ -779,8 +772,9 @@ segment_create_sections(m_segtbl_t *segtbl)
 
 			tentry = ientry->segtbl_entry;
 			flags_val = tentry->flags | SGTB_VALID_DATA;
-			PCM_STORE(&(tentry->flags), flags_val);
-			PCM_BARRIER;
+			tentry->flags = flags_val; /* PCM STORE */
+			PCM_WB_FENCE(NULL);
+			PCM_WB_FLUSH(NULL, &(tentry->flags));
 		}
 
 	} /* end of list_for_each_entry */

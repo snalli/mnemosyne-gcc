@@ -96,7 +96,12 @@ typedef intptr_t  intptr;
 #  define _ITM_CALL_CONVENTION __fastcall
 # else
     /*Assume GCC like behavior on other OSes */
-#  define _ITM_CALL_CONVENTION __attribute__((regparm(2)))
+#  if (defined (__x86_64__))
+#   define _ITM_CALL_CONVENTION
+#  else
+#   define _ITM_CALL_CONVENTION __attribute__((regparm(2)))
+#  endif
+
 # endif
 
 //struct _ITM_transactionS;

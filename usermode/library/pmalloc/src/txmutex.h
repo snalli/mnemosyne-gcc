@@ -35,6 +35,7 @@
 
 typedef pthread_mutex_t txmutex_t;
 
+
 static
 void _ITM_CALL_CONVENTION txmutex_unlock_commit_action(void *arg)
 {

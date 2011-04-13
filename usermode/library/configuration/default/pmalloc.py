@@ -1,14 +1,17 @@
 ########################################################################
 #                                                                    
-#                         MNEMOSYNE CORE LIBRARY              
+#         PERSISTENT MEMORY ALLOCATOR BUILD-TIME CONFIGURATION               
 #                                                                    
 ########################################################################
 
-
-
 ########################################################################
-# MCORE_KERNEL_PMAP: User-mode Mnemosyne runs on a kernel supporting 
-#   pmap.
+# GENALLOC: Determines the generic persistent memory allocator
+# 
+# GENALLOC_DOUGLEA: persistent memory allocator based on Doug Lea's 
+#   memory allocator (dlmalloc)
+#   
+# GENALLOC_VISTAHEAP: persistent memory allocator based on Vistaheap 
+#
 ########################################################################
 
-MCORE_KERNEL_PMAP = True
+GENALLOC = 'GENALLOC_DOUGLEA'

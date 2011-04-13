@@ -8,7 +8,6 @@
 
 #include "mtm_i.h"
 #include "mode/dtable.h"
-#include "mode/dtablegen.h"
 
 extern mtm_dtable_t mtm_pwbnl_dtable;
 extern mtm_dtable_t mtm_pwbetl_dtable;

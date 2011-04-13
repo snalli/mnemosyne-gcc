@@ -35,7 +35,8 @@ buildEnv.Append(CPPPATH = ['#library/mcore/include'])
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
 
 C_SRC = Split("""
-              src/genalloc.c 
+              src/pdlmalloc.c 
+              src/vhalloc.c 
               src/vistaheap.c
               """)
 

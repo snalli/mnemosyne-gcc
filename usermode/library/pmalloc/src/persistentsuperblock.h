@@ -21,8 +21,6 @@ class superblock; // forward declaration
   } while (0)
 #endif
 
-//FIXME: PCM_NT_STORE must be replaced with transactional barrier 
-//TODO: Need to call transactional barriers directly
 
 /* Basic access macros for bitmaps.  */
 # define __BITMAPELT(bit)	((bit) / BITMAP_ARRAY_ENTRY_SIZE_BITS)
@@ -64,7 +62,7 @@ public:
 		PCM_NT_STORE(set, (volatile pcm_word_t *) &_pregion, (pcm_word_t) pregion); /* _pregion is a pointer, so it has a size of 64-bit on 64-bit systems */
 		//PCM_NT_STORE(set, (volatile pcm_word_t *) &_blksize, (pcm_word_t) PERSISTENTBLOCK_MIN_SIZE);
 
-		/* FIXME: We have an ugly hack:
+		/* FIXME: We currently have an ugly hack:
 		 * When creating the persistentSuperblocks, we don't want to create them using the smallest
 		 * possible block size because this would allocate lots of memory to support the free lists
 		 * in the superblocks. Instead we assume the largest possible block size and when we reformat
@@ -116,7 +114,7 @@ public:
 		int            bitsPerBlock = _blksize / PERSISTENTBLOCK_MIN_SIZE;
 		int            firstBit = index * bitsPerBlock;
 		int            i;
-		pcm_storeset_t *set = pcm_storeset_get();
+		//pcm_storeset_t *set = pcm_storeset_get();
 
 		for (i=firstBit; i<firstBit+bitsPerBlock; i++) {
 			//__BITMAP_CLR(set, i, _bitmap);

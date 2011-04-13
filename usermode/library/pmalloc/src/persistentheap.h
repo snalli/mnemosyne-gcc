@@ -18,15 +18,13 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-/*
-  persistentheap.h
-  ------------------------------------------------------------------------
-  We use one persistentHeap for the whole program. It acts as a proxy to 
-  the actual persistent superblocks stored in non-volatile memory.
-  ------------------------------------------------------------------------
-  Haris Volos
-  ========================================================================
-*/
+/**
+ * \file persistentheap.h
+ * 
+ * We use one persistentHeap for the whole program. It acts as a proxy to 
+ * the actual persistent superblocks stored in non-volatile memory.
+ *
+ */
 
 #ifndef _PERSISTENTHEAP_H_
 #define _PERSISTENTHEAP_H_
@@ -44,11 +42,11 @@
 #include "log.h"
 #endif
 
-//FIXME: enum types are signed, so they can't store integer larger than 2G-1
-// thus overflowing when having 2G heap
+//FIXME: enum types are signed types, so they can't store integer larger 
+// than 2G-1 thus overflowing when having a 2GBytes heap
 enum {PERSISTENTHEAP_HEADER_BASE = 0xa00000000};
 enum {PERSISTENTHEAP_BASE = 0xb00000000};
-enum {PERSISTENTSUPERBLOCK_NUM = (128*1024)};
+enum {PERSISTENTSUPERBLOCK_NUM = (128*1024)}; /* this controls the size of the heap */
 #define PERSISTENTHEAP_SIZE ((uint64_t) PERSISTENTSUPERBLOCK_NUM * SUPERBLOCK_SIZE)
 
 class persistentHeap : public hoardHeap {

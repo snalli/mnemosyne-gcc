@@ -43,6 +43,8 @@ class Environment(mnemosyne.Environment):
 
 	#: Build directives which are either on or off.
 	_boolean_directive_vars = [
+		('MCORE_KERNEL_PMAP',           'User-mode Mnemosyne runs on a kernel supporting pmap.',
+			True),
 	]
 	
 	#: Build directives which have enumerated values.

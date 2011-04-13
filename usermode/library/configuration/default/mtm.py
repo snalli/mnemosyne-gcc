@@ -1,6 +1,6 @@
 ########################################################################
 #                                                                    
-#                 PERSISTENT MEMORY TRANSACTIONS FLAGS               
+#       PERSISTENT MEMORY TRANSACTIONS BUILD-TIME CONFIGURATION              
 #                                                                    
 ########################################################################
 

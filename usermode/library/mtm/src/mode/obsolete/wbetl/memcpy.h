@@ -1,9 +1,0 @@
-#ifndef _WBETL_MEMCPY_H
-#define _WBETL_MEMCPY_H
-
-#include "mode/common/memcpy.h"
-
-FORALL_MEMCOPY_VARIANTS(MEMCPY_DECLARATION, wbetl)
-FORALL_MEMMOVE_VARIANTS(MEMMOVE_DECLARATION, wbetl)
-
-#endif

@@ -25,10 +25,10 @@ $BUILD_DIR    : OpenLDAP build directory; where you will build OpenLDAP
    % export CC=icc
    % export CFLAGS="-Qtm_enabled -gcc-version=410 -fno-omit-frame-pointer"
    % export CPPFLAGS=-D_GNU_SOURCE
-   % export LDFLAGS=-T $MNEMOSYNE_DIR/usermode/util/linker_script_persistent_segment_m64
+   % export LDFLAGS=-T $MNEMOSYNE_DIR/usermode/tool/linker/linker_script_persistent_segment_m64
 
 Example:
-   % export LDFLAGS=-T /home/hvolos/workspace/mnemosyne/usermode/util/linker_script_persistent_segment_m64
+   % export LDFLAGS=-T /home/hvolos/workspace/mnemosyne/usermode/tool/linker/linker_script_persistent_segment_m64
 
 2. Run configure
 

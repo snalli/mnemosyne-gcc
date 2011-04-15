@@ -13,6 +13,6 @@ Deprecated. Use Scons
  1) cd $USERMODE/bench/memcached/memcached-1.2.4-mtm
  2) mkdir build
  3) cd build
- 4) ../configure CC=icc CFLAGS=-Qtm_enabled CPPFLAGS="-I ../../../../library -I../../../../library/mnemosyne/include -I../../../../library/mtm/include -I../../library" LDFLAGS=" -fpic -fno-omit-frame-pointer -m64 -T ../../../../util/linker_script_persistent_segment_m64" LIBS=-"L../../../../build/library/mnemosyne -lmnemosyne -L../../../../build/library/malloc -lmalloc -L../../../../build/library/mtm/ -lmtm /opt/intel/Compiler/11.0/606/lib/intel64/libitm.a"
+ 4) ../configure CC=icc CFLAGS=-Qtm_enabled CPPFLAGS="-I ../../../../library -I../../../../library/mnemosyne/include -I../../../../library/mtm/include -I../../library" LDFLAGS=" -fpic -fno-omit-frame-pointer -m64 -T ../../../../tool/linker/linker_script_persistent_segment_m64" LIBS=-"L../../../../build/library/mnemosyne -lmnemosyne -L../../../../build/library/malloc -lmalloc -L../../../../build/library/mtm/ -lmtm /opt/intel/Compiler/11.0/606/lib/intel64/libitm.a"
 
 

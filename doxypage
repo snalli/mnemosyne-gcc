@@ -1,0 +1,281 @@
+/*****************************************************************************
+ *                            MNEMOSYNE MAIN-PAGE                            *
+ *****************************************************************************/ 
+
+/**
+
+   @mainpage Mnemosyne: Lightweight Persistent Memory
+
+   <em> Memoria est thesaurus ominum rerum e custos </em>\n
+   Memory is the treasury and guardian of all things. \n
+   -- Cicero \n
+
+   <em>A memory is what is left when something happens and does not completely unhappen</em> \n
+   -- Edward De Bono \n
+
+   \section section-intro Introduction 
+
+   New storage-class memory (SCM) technologies, such as phase-change memory, 
+   STT-RAM, and memristors, promise user-level access to non-volatile storage 
+   through regular memory instructions. These memory devices enable fast 
+   user-mode access to persistence, allowing regular in-memory data structures 
+   to survive system crashes.
+
+   Mnemosyne provides a simple interface for programming with persistent 
+   memory. Mnemosyne addresses two challenges: how to create and manage such 
+   memory, and how to ensure consistency in the presence of failures. Without 
+   additional mechanisms, a system failure may leave data structures in SCM in 
+   an invalid state, crashing the program the next time it starts.
+
+   In Mnemosyne, programmers declare global persistent data with the keyword 
+   persistent or allocate it dynamically. Mnemosyne provides primitives for 
+   directly modifying persistent variables and supports consistent updates 
+   through a lightweight transaction mechanism. Compared to past work on 
+   disk-based persistent memory, Mnemosyne is much lighter weight, as it can 
+   store data items as small as a word rather than a virtual memory page. In 
+   tests emulating the performance characteristics of forthcoming SCMs, we 
+   find that Mnemosyne provides a 20--280 percent performance increase for 
+   small data sizes over alternative persistence strategies, such as 
+   Berkeley DB or Boost serialization that are designed for disks.
+
+   \subsection section-intro-name_origin Name Origin
+
+   Mnemosyne is the personification of memory in Greek mythology, and is 
+   pronounced nee--moss--see--nee.
+
+
+   \subsection section-references References
+
+   \li \ref page-building_mnemosyne 
+   \li \ref page-building_bench
+   \li \ref page-running_bench
+   \li \ref page-source_tree_overview
+
+
+   \subsection section-external_references External References
+
+   Haris Volos, Andres Jaan Tack, Michael M. Swift Mnemosyne: Lightweight 
+   Persistent Memory. ASPLOS '11: Proceedings of the 16th International 
+   Conference on Architectural Support for Programming Languages and 
+   Operating Systems, March 2011.
+ 
+*/
+
+
+
+/*****************************************************************************
+ *                            BUILDING MNEMOSYNE                             *
+ *****************************************************************************/ 
+
+
+/** 
+
+@page page-building_mnemosyne Building Mnemosyne 
+
+@section section-building_mnemosyne Building User-mode Mnemosyne (usermode)
+
+Conventions used below:
+\li $ICC_DIR refers to the directory where ICC is installed.
+\li $MNEMOSYNE refers to the root directory of the Mnemosyne source tree.
+
+
+@subsection section-building_mnemosyne-prerequisites Prerequisites
+\li GNU C/C++ Compiler v.4.4 (tested v.4.4.2) 
+\li Intel C/C++ STM Compiler (ICC), Prototype Edition 3.0 (tested) or 4.0 (not tested)
+\li SCons: A software construction tool (tested v.1.2.0)
+\li libconfig (tested v.1.3.2)
+\li libelf (elfutils-libelf in most RPM systems) (tested v.0.148)
+\li Berkeley DB (tested v.4.8.26)
+\li UnitTest++ (unittest-cpp.sourceforge.net) (libunittest++-dev in most RPM systems)
+
+
+@subsection section-building_mnemosyne-prepare_tree Preparing the Source Tree
+
+\li Copy itm.h and itmuser.h from ICC into Mnemosyne STM 
+\verbatim
+% cp $ICC_DIR/include/itm.h $MNEMOSYNE/usermode/library/mtm/src
+% cp $ICC_DIR/include/itmuser.h $MNEMOSYNE/usermode/library/mtm/src
+\endverbatim
+
+Then do the following modification in the Mnemosyne copy of itmuser.h:
+\li Remove lines 102-104:
+\verbatim
+struct _ITM_transactionS;
+//! Opaque transaction descriptor.
+typedef struct _ITM_transactionS _ITM_transaction;
+\endverbatim
+
+\li Replace line 99:
+\verbatim
+#  define _ITM_CALL_CONVENTION __attribute__((regparm(2)))
+\endverbatim
+with 
+\verbatim
+#  if (defined (__x86_64__))
+#   define _ITM_CALL_CONVENTION
+#  else
+#   define _ITM_CALL_CONVENTION __attribute__((regparm(2)))
+#  endif
+\endverbatim
+
+@subsection building_mnemosyne-building Building
+
+Configuration switches of interest:
+\li --build-debug: build library with debug info (default)
+\li --no-build-debug: build library with no debug info
+\li --build-stats: build library with statistics collection support
+
+For all configuration switches please invoke: <tt>scons --help</tt>
+
+Configuration variables of interest:
+\li M_PCM_EMULATE_LATENCY (default: False)
+\li M_PCM_CPUFREQ (default: 2500)
+\li M_PCM_LATENCY_WRITE (default: 150)
+\li M_PCM_BANDWIDTH_MB (default: 1200)
+
+For all configuration variables please refer to $MNEMOSYNE/usermode/library/configuration/default
+
+Ensure that mainEnv['ICC_DIR'] in $MNEMOSYNE/usermode/SConstruct points to the directory where ICC is installed:
+
+For example, to build Mnemosyne for PCM write latency of 1000ns, invoke SCons 
+in $MNEMOSYNE/usermode:
+
+\verbatim
+% cd $MNEMOSYNE/usermode
+% scons M_PCM_EMULATE_LATENCY=True M_PCM_LATENCY_WRITE=1000
+\endverbatim
+
+
+All generated objects and binaries are placed under $MNEMOSYNE/usermode/build.
+
+\note It is important to compile with framepointers on using: -fno-omit-frame-pointer. 
+SCons files take care of this but if you are going to use Mnemosyne with your 
+own application then make sure you build the application with framepointers.
+
+\note Currently we use GCC to build the TM library as libatomic_ops relies 
+on GCC atomic intrinsics such as __sync_add_and_fetch_4, which are not available
+in the version of ICC we use. 
+
+\todo Currently we use GCC to build the TM library as libatomic_ops relies 
+on GCC atomic intrinsics such as __sync_add_and_fetch_4, which are not available
+in the version of ICC we use. We would like to fix this issue.
+
+
+
+@section section-building_mnemosyne_kernel Building Kernel-mode Mnemosyne (kernelmode)
+
+@subsection section-building_mnemosyne_kernel-extensions Building Linux Extensions
+
+Building our Linux extensions is necessary if you want to have persistent 
+mappings that survive system reboot without having to issue fsync. If you 
+do not care about system crashes then you can always issue an fsync and run
+mnemosyne on top of a vanilla kernel. In that case you just need to build 
+user-mode Mnemosyne with:
+
+\verbatim
+MCORE_KERNEL_PMAP = False
+\endverbatim
+
+@subsubsection section-building_mnemosyne_kernel-extensions-kernel Building Kernel
+
+Switch to $MNEMOSYNE/kernelmode/linux-2.6.33 and follow the same usual procedure 
+when building a Linux vanilla kernel.
+
+@subsubsection section-building_mnemosyne_kernel-extensions-kernel Building Kernel Module
+
+Switch to $MNEMOSYNE/kernelmode/scmmap and invoke make
+
+\verbatim
+% cd $MNEMOSYNE/kernelmode/scmmap
+% make
+\endverbatim
+
+
+@subsection section-building_mnemosyne_kernel-pcmdisk Building PCM-disk
+
+Switch to $MNEMOSYNE/kernelmode/pcmdisk.
+
+The provided makefile may be used to build the kernel-module. Please make sure the 
+makefile variable $KERNEL_SOURCE points to the right kernel source tree.
+
+Several parameters may be changed to configure PCM-disk as needed:
+<ul>
+<li> $MNEMOSYNE/kernelmode/pcmdisk/pcm.h </li>
+	<ul>
+	<li>PCM_CPUFREQ : To set the CPU frequency</li>
+	</ul>
+<li> $MNEMOSYNE/kernelmode/pcmdisk/brd.c </li>
+	<ul>
+	<li>CONFIG_BLK_DEV_PCM_SIZE : To set the size of the PCM-disk</li>
+	</ul>
+<li> $MNEMOSYNE/kernelmode/pcmdisk/pcm.c </li>
+	<ul>
+	<li>PCM_BANDWIDTH_MB: Emulated PCM write bandwidth (can be changed dynamically as well) </li>
+	<li>DRAM_BANDWIDTH_MB: DRAM system peak bandwidth (can be measured using the tool in $MNEMOSYNE/usermode/tool/bandwidth-ram) </li>
+	</ul>
+<ul>
+
+To build:
+
+\verbatim
+% cd $MNEMOSYNE/kernelmode/pcmdisk
+% make
+\endverbatim
+
+
+*/
+
+
+
+/*****************************************************************************
+ *                           SOURCE TREE OVERVIEW                            *
+ *****************************************************************************/ 
+
+/**
+
+@page page-source_tree_overview Source Tree Overview
+
+<ul>
+<li> <tt> kernelmode </tt> </li> Mnemosyne kernel-mode extensions
+	<ul>
+	<li> <tt> linux-2.6.33 </tt> </li> : Linux kernel
+	<li> <tt> pcmdisk </tt> </li> : PCM-disk
+	<li> <tt> scmmap </tt> </li> : Kernel module to manage SCM mappings
+	</ul>
+
+<li> <tt> usermode </tt> </li> Mnemosyne user-mode library suite and benchmarks
+	<ul>
+	<li> <tt> bench </tt> </li> : Benchmarks
+		<ul>
+		<li> <tt> kvstore </tt> </li> : Key-value store benchmarks 
+			<ul>
+			<li> <tt> bdb </tt> </li> : Berkeley DB 
+			<li> <tt> ht </tt> </li> : Simple hash table 
+			<li> <tt> kvdriver </tt> </li> : A front-end workload generator to drive the key-value stores
+			<li> <tt> tc </tt> </li> : Tokyocabinet
+			</ul>
+		<li> <tt> openldap </tt> </li> : OpenLDAP lightweight directory access protocol implementation
+		<li> <tt> ubench </tt> </li> : Microbenchmarks
+		</ul>
+	<li> <tt> example </tt> </li> : Simple examples that demonstrate how to use Mnemosyne programming constructs
+	<li> <tt> library </tt> </li> : Mnemosyne library suite
+		<ul>
+		<li> <tt> atomic_ops </tt> </li> : A light version of the atomic_ops library (libatomic_ops)
+		<li> <tt> common </tt> </li> : Common code used by the library parts 
+		<li> <tt> configuration </tt> </li> : SCons build-time configuration variables (see files in <tt>configuration/default</tt>) 
+		<li> <tt> mcore </tt> </li> : Main library <tt>libmcore</tt>, which provides persistent regions and primitives (low-level updates, log). 
+		<li> <tt> mtm </tt> </li> : STM library <tt>libmtm</tt>, which provides durable memory transactions. This library is based on TinySTM and implements the Intel C/C++ STM Compiler ABI. 
+		<li> <tt> pmalloc </tt> </li> : Persistent heap library <tt>libpmalloc</tt>
+		</ul>
+	<li> <tt> site_scons </tt> </li> : SCons utilities 
+	<li> <tt> test </tt> </li> : Tests 
+	<li> <tt> tool </tt> </li> : Tools (memory system bandwidth measurement, linker script) 
+	</ul>
+
+<ul>
+
+\note The Mnemosyne ASPLOS 2011 paper refers to \c libmcore as \c libmnemosyne.
+
+*/
+
+

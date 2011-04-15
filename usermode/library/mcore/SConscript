@@ -11,7 +11,7 @@ buildEnv.Append(CPPPATH = ['#library/mcore/src'])
 buildEnv.Append(CCFLAGS = ' -D_GNU_SOURCE ')
 buildEnv.Append(LIBS = ['config', 'elf', 'pthread'])
 buildEnv.Append(CCFLAGS = ' -m64 ')
-buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 buildEnv.Append(CCFLAGS = '-DHAVE_CONFIG_H -Wall -pthread')
 
 

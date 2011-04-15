@@ -14,7 +14,7 @@ else:
 	examplesEnv.Append(CCFLAGS = ' -O2')
 
 examplesEnv.Append(CCFLAGS = ' -m64 ')
-examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 Export('examplesEnv')
 
 example = examplesEnv['BUILD_EXAMPLE']

@@ -28,7 +28,7 @@ testEnv.Append(CPPPATH = '#library/common')
 testEnv.Append(CCFLAGS = ' -m64 -g')
 testEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
 testEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
-testEnv.Append(LINKFLAGS = ' -T '+ 'util/linker_script_persistent_segment_m64')
+testEnv.Append(LINKFLAGS = ' -T '+ 'tool/linker/linker_script_persistent_segment_m64')
 testEnv.AddMethod(addUnitTest, "addUnitTest")
 testEnv.AddMethod(addUnitTestSeries, "addUnitTestSeries")
 testEnv['UNIT_TEST_CMDS'] = []

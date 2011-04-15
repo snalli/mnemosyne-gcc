@@ -399,7 +399,7 @@ int scmmap_update_mapping(struct page *page, struct address_space *address_space
 
 	printk(KERN_INFO "scmmap_update_mapping\n");
 
-	/* FIXME: RACE CONDITION: You may race with another instance of this function or with function reconstruct_pages */
+	/* FIXME: RACE CONDITION: You may race with another instance of this function or with function reconstruct_pages (Bug: 0001) */
 	if (!address_space) {
 		rv = 0;
 		goto out;
@@ -422,7 +422,7 @@ int scmmap_update_mapping(struct page *page, struct address_space *address_space
 	sb = inode->i_sb;
 
 	/* Updating a mapping should be atomic */
-	/* FIXME: Issue a PCM barrier and PCM stores */
+	/* FIXME: Issue a PCM fence/flush (Bug: 0002) */
 	/* FIXME: Have a flag to indicate whether the updates were atomic or do the updates 
 	in a way you can later find out whether all were done */
 	mapping->dev = (unsigned long) sb->s_dev;

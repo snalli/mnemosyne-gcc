@@ -61,7 +61,7 @@ class Environment(SCons.Environment.Environment):
 			self['BUILD_DEBUG'] = mainEnv['BUILD_DEBUG'] 
 			self['BUILD_STATS'] = mainEnv['BUILD_STATS'] 
 			self['MY_ROOT_DIR'] = mainEnv['MY_ROOT_DIR'] 
-			self['MY_UTIL_DIR'] = mainEnv['MY_UTIL_DIR'] 
+			self['MY_LINKER_DIR'] = mainEnv['MY_LINKER_DIR'] 
 			self['CC'] = mainEnv['CC'] 
 			self['CXX'] = mainEnv['CXX'] 
             

@@ -1,0 +1,238 @@
+/*****************************************************************************
+ *                            BUILDING BENCHMARKS                            *
+ *****************************************************************************/ 
+
+/**
+
+\file bench/doxypage
+
+@page page-building_bench Building Benchmarks
+
+@section building_bench-prerequisites Prerequisites
+
+\li Intel C/C++ STM Compiler (ICC), Prototype Edition 3.0 (tested) or 4.0 (not tested)
+\li SCons: A software construction tool (tested v.1.2.0)
+\li Berkeley DB (tested v.4.8.26)
+
+@section section-building_bench-kvstore Building KVStore
+
+
+@subsection section-building_bench-prepare_tree Preparing the Source Tree
+
+Ensure that <tt>$MNEMOSYNE/usermode/bench/kvstore/bdb</tt> contains the Berkeley DB source code 
+
+@subsection section-building_bench-build_bdb Building Berkeley DB
+
+\verbatim
+% cd $MNEMOSYNE/usermode/bench/kvstore/bdb/build_unix
+% ../dist/configure
+% make
+\endverbatim
+
+@subsection section-building_bench-build_tc Building TokyoCabinet
+
+\verbatim
+% cd $MNEMOSYNE/usermode/bench/kvstore/tc/library-base
+% ./configure CC=icc --disable-shared
+% cd $MNEMOSYNE/usermode/bench/kvstore/tc/library-mtm
+% ./configure CC=icc --disable-shared
+\endverbatim
+
+\note Unfortunately, trying to config/build in another directory won't work
+ as TokyoCabinet's Makefile searches the local path for dependencies
+
+\todo Integrate Makefiles into Scons for a hassle-free built.
+  http://www.scons.org/wiki/RunningConfigureAndMake
+
+
+@subsection section-building_bench-build_kvstore Building KVStore
+
+\verbatim
+% cd $MNEMOSYNE/usermode
+% scons --build-bench=kvstore
+\endverbatim
+
+\note Mnemosyne configuration variables should be used to control the build.
+See \ref page-building_mnemosyne.
+
+
+@section section-building_bench-openldap Building OpenLDAP
+
+\li <tt>$MNEMOSOSYNE/usermode/bench/openldap/openldap-2.3.35-bdb</tt>:  Berkeley DB based version
+\li <tt>$MNEMOSOSYNE/usermode/bench/openldap/openldap-2.3.35-mnemosyne</tt>:  Mnemosyne based version (backend back-mnemosyne)
+
+Please refer to the following README files for build instructions:
+
+\li <tt>$MNEMOSOSYNE/usermode/bench/openldap/openldap-2.3.35-bdb/README</tt>
+\li <tt>$MNEMOSOSYNE/usermode/bench/openldap/openldap-2.3.35-mnemosyne/README.MNEMOSYNE</tt>
+\li <tt>$MNEMOSOSYNE/usermode/bench/openldap/openldap-2.3.35-mnemosyne/README</tt>
+
+*/
+
+
+/*****************************************************************************
+ *                      RUNNING BENCHMARKS/EXPERIMENTS                       *
+ *****************************************************************************/ 
+
+/**
+
+@page page-running_bench Running Benchmarks
+
+
+@section section-running_bench-pcmdisk Using PCM-disk 
+
+PCM-disk is an emulator for a PCM-based block device, which can be used to 
+compare Mnemosyne against other uses of PCM. Based on Linux's
+RAM-disk (\c brd device driver), PCM-disk introduces delays when writing a block.
+
+@subsection section-running_bench-pcmdisk-load Loading
+
+PCM-disk is implemented as a kernel module. To use PCM-disk, the block device nodes 
+\c /dev/pcm0 and \c /dev/pcm0-ctl must exist. To create the necessary device nodes, 
+you may use the provided \c $MNEMOSYNE/kernelmode/pcmdisk/dev.sh script.
+
+To load the PCM-disk, create an ext2 file system on it and mount the file 
+system on \c /mnt/pcmfs, you may use the provided 
+\c $MNEMOSYNE/kernelmode/pcmdisk/fs.sh script:
+
+\verbatim
+% cd $MNEMOSYNE/kernelmode/pcmdisk
+% ./fs.sh -c
+\endverbatim
+
+To unmount the file system and unload PCM-disk, you may use the same script:
+\verbatim
+% cd $MNEMOSYNE/kernelmode/pcmdisk
+% ./fs.sh -r
+\endverbatim
+
+
+@subsection section-running_bench-pcmdisk-configure Configuring
+
+To dynamically configure and control PCM-disk, you may use the 
+provided \c pcmdiskctl user-mode application.
+
+\c pcmdiskctl accepts the following command line options:
+\li \c --print-config: Prints the current PCM-disk configuration
+\li \c --set-pcm-bw=: Sets emulated PCM bandwidth (in MB/s)
+\li \c --set-dram-bw=: Sets DRAM system bandwidth (in MB/s)
+\li \c --reset-stat : Resets statistics 
+\li \c --print-stat : Prints statistics 
+
+@subsection section-running_bench-pcmdisk-calibrate Calibrating
+
+PCM-disk basically emulates PCM by introducing some latency after writing a 
+block to handicap the available bandwidth to the DRAM system. 
+The two parameters \c --set-pcm-bw and \c --set-dram-bw may be used to
+control the available bandwidth. You may follow the following procedure 
+to configure and calibrate the available bandwidth:
+
+<ol>
+<li>Measure the maximum DRAM bandwidth of your system using the 
+tool $MNEMOSYNE/usermode/tool/bandwidth-ram. This will be the value passed 
+to \c --set-dram-bw .</li>
+<li>Reset PCM-disk statistics via \c --reset-stat.</li>
+<li>Set the target PCM bandwidth via \c --set-pcm-bw .</li> 
+<li>Run your benchmark.</li>
+<li>Check the emulated PCM-disk bandwidth (PCM-BW) by getting a PCM-disk statistics 
+report via \c --print-stat. </li>
+<li>Calibrate by increasing/decreasing the target PCM bandwidth till the 
+emulated PCM-disk bandwidth is close to the targeted value. </li>
+</ol>
+
+\todo PCM-disk should use a feedback loop to self-calibrate.
+
+These are the bandwidth values for each latency used in the ASPLOS 2011 paper:
+\li 150ns: --set-dram-bw=7000 --set-pcm-bw=5000 --> emulated PCM-BW ~= 4000 MB/s
+\li 1000ns: --set-dram-bw=7000 --set-pcm-bw=800 --> emulated PCM-BW ~= 800 MB/s
+\li 2000ns: --set-dram-bw=7000 --set-pcm-bw=400 --> emulated PCM-BW ~= 400 MB/s
+
+
+
+@section section-running_bench-runtime_config Mnemosyne Runtime Configuration
+
+Mnemosyne can be dynamically configured through mnemosyne.ini, which must be 
+placed in the working directory. Configuration parameters include:
+
+\c libmcore library
+\li \c reset_segments : Clears persistent regions upon restart. Can be used 
+to force a clean start of the application. Default is \c false.
+\li \c segments_dir: The directory where the files backing the persistent 
+regions are placed. Default is \c $CWD/.segments.
+
+\c libmtm library
+\li \c force_mode: Sets the transaction execution mode. Execution modes 
+include \c pwbetl (durable w/ locking) and \c pwbnl (durable w/o locking). 
+Default is \c pwbetl.
+\li \c stats : Enables statistics collection. Library must be compiled with statistics support. Default is \c false.
+
+An example configuration file:
+
+\verbatim
+mcore: 
+{
+    segments_dir = "/tmp/segments";
+}
+
+mtm:
+{
+    force_mode = "pwbetl";
+    stats = false;
+}
+\endverbatim
+
+
+
+@section section-running_bench-file_cache Linux Page Cache Tuning
+
+When running Mnemosyne experiments make sure the Linux kernel page cache 
+is not asynchronously flushing dirty pages. This is not required with 
+SCM and Mnemosyne as page data and mappings are persistent. Additionally,
+the unnecessary asynchronous flushing of dirty pages causes disk I/O, 
+which disturbs the experiments. 
+
+As an extreme, you may set the following watermarks:
+\li <tt>echo 100 > /proc/sys/vm/dirty_background_ratio</tt>
+\li <tt>echo 100 > /proc/sys/vm/dirty_ratio</tt>
+\li <tt>echo 10000 > /proc/sys/vm/dirty_expire_centisecs</tt>
+
+
+
+@section section-running_bench-kvstore Running KVStore
+
+We use \c kvdriver (\c $MNEMOSYNE/usermode/bench/kvstore/kvdriver) to exercise 
+four key-value stores (persistent hashtable) implementations:
+\li \c kvdriver-ht : exercises Berkeley DB's hash table (\c bdb) running on PCM-disk and a C Hash Table (\c ht) by Christopher Clark extended to support multiple threads and Mnemosyne persistence.
+\li \c kvdriver-tc-base: exercises the base version of TokyoCabinet running on PCM-disk 
+\li \c kvdriver-tc-mtm: exercises the Mnemosyne based version of TokyoCabinet
+
+To measure the scalability of the persistence solutions, the workload 
+generated by kvdriver is such that threads do not touch the same data
+to avoid true conflicts due to sharing. Threads may still experience
+false conflicts due to scalability bottlenecks of the persistence 
+solution. For example, Mnemosyne may experience false conflicts on
+the transactional locks.
+
+\c kvdriver accepts the following command line options:
+\li \c --ubench=: Microbenchmark to run (please see below)
+\li \c --runtime=: Runtime of the experiement in seconds
+\li \c --nthreads=: Number of threads
+\li \c --vsize=: Value size
+\li \c --nkeys=: Number of keys in the hashtable
+
+For \c kvdriver-ht, some microbenchmarks of interest are:
+\li \c mtm_mix_latency_etl: measures the latency of inserting/deleting elements to a persistent hash table 
+\li \c mtm_mix_throughput_etl: measures the throughput of inserting/deleting elements to a persistent hash table 
+\li \c bdb_mix_latency: measures the latency of inserting/deleting elements to a BDB hash table 
+\li \c bdb_mix_throughput: measures the throughput of inserting/deleting elements to a BDB hash table 
+
+For \c kvdriver-tc-base, some microbenchmarks of interest are:
+\li \c tc_base_mix_latency: measures the latency of inserting/deleting elements to the base TC hash table 
+\li \c tc_base_mix_throughput: measures the throughput of inserting/deleting elements to the base TC hash table 
+
+For \c kvdriver-tc-mtm, some microbenchmarks of interest are:
+\li \c tc_mtm_mix_latency_etl: measures the latency of inserting/deleting elements to a Mnemosyne based TC hash table 
+\li \c tc_mtm_mix_throughput_etl: measures the throughput of inserting/deleting elements to a Mnemosyne based TC hash table 
+
+
+*/

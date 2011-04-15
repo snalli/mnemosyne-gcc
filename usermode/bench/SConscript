@@ -16,7 +16,7 @@ else:
 	benchEnv.Append(CCFLAGS = ' -O2')
 
 benchEnv.Append(CCFLAGS = ' -m64 ')
-benchEnv.Append(LINKFLAGS = ' -T '+ benchEnv['MY_UTIL_DIR'] + '/linker_script_persistent_segment_m64')
+benchEnv.Append(LINKFLAGS = ' -T '+ benchEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 Export('benchEnv')
 
 if benchEnv['BUILD_BENCH'] == 'ALL':

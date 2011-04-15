@@ -80,7 +80,7 @@ mainEnv['TEST_FILTER'] = GetOption('test_filter')
 
 rootDir = os.getcwd()
 mainEnv['MY_ROOT_DIR'] = rootDir
-mainEnv['MY_UTIL_DIR'] = os.path.join(rootDir, 'util')
+mainEnv['MY_LINKER_DIR'] = os.path.join(rootDir, 'tool/linker')
 
 mainEnv['ICC_DIR'] = '/opt/intel/Compiler/11.0/606/'
 

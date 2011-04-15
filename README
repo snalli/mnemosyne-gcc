@@ -1,4 +1,4 @@
-OVERVIEW:
+MNEMOSYNE OVERVIEW:
 
 New storage-class memory (SCM) technologies, such as phase-change memory, 
 STT-RAM, and memristors, promise user-level access to non-volatile storage 
@@ -24,6 +24,14 @@ small data sizes over alternative persistence strategies, such as
 Berkeley DB or Boost serialization that are designed for disks.
 
 
+SOURCE-TREE:
+
+$MNEMOSYNE/usermode  : Mnemosyne user-mode library suite
+$MNEMOSYNE/kernelmode: Mnemosyne kernel extensions
+
+For further information please refer to the Doxygen generated documentation.
+
+
 BUILDING:
 
 Invoke SCons
@@ -34,15 +42,23 @@ while in $MNEMOSYNE/usermode:
 % cd $MNEMOSYNE/usermode
 % scons M_PCM_EMULATE_LATENCY=True M_PCM_LATENCY_WRITE=1000
 
-Please refer to the Doxygen generated documentation for more information.
+For further information please refer to the Doxygen generated documentation.
+
 
 DOCUMENTATION:
 
-Running doxygen will create documentation under $MNEMOSYNE/usermode/doc/html
+Running doxygen will create documentation under $MNEMOSYNE/doc/html
 
-% cd $MNEMOSYNE/usermode
+% cd $MNEMOSYNE
 % doxygen
+
+
+AUTHORS:
+
+Haris Volos   <hvolos@cs.wisc.edu>
+Andres Jaan Tack   <tack@cs.wisc.edu>
+
 
 LICENSE:
 
-Please see file COPYING
+GPL v.2.1

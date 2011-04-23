@@ -1,0 +1,44 @@
+This document provides the parameters used with the 
+SLAMD Add/Remove Rate Template
+===================================================
+
+
+Schedule Information
+--------------------
+Scheduled Start Time            DD/MM/YYYY HH:MM:SS
+Scheduled Stop Time             (not specified)
+Scheduled Duration              (not specified)
+Number of Clients               1
+Wait for Available Clients      true
+Monitor Clients if Available    false
+Threads per Client              128
+Thread Startup Delay            0 milliseconds
+Statistics Collection Interval  1 second
+Job Dependencies                (none specified)
+Notify on Completion            (none specified)
+
+Parameter Information
+---------------------
+
+Server Addresses                128.105.102.223:10000
+Security Method                 None
+Bind DN                         cn=manager,dc=example,dc=com
+Bind Password                   secret
+
+Base DN                         dc=example,dc=com
+RDN Attribute                   cn
+First Entry Number              0
+Last Entry Number               100000
+
+Entry Template Lines
+objectClass: person
+cn: <entryNumber>
+sn: <entryNumber>
+cn: <random:alpha:10>
+
+Type of Processing to Perform                   Perform add operations but not delete operations
+Response Time Threshold (ms)                    -1
+Max Operation Rate (Ops/Second)                 -1
+Max Rate Enforcement Interval (Seconds)         0
+Time Between Requests (ms)                      0
+Time Between Adds and Deletes (s)               30

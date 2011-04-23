@@ -67,6 +67,18 @@ Please refer to the following README files for build instructions:
 \li <tt>$MNEMOSOSYNE/usermode/bench/openldap/openldap-2.3.35-mnemosyne/README.MNEMOSYNE</tt>
 \li <tt>$MNEMOSOSYNE/usermode/bench/openldap/openldap-2.3.35-mnemosyne/README</tt>
 
+@section building_bench-applications Building Your Own Applications
+
+Please refer to the SConscripts and Makefiles of the accompanied 
+benchmarks (<tt>$MNEMOSYNE/usermode/bench</tt>) and examples (<tt>$MNEMOSYNE/usermode/examples</tt>.
+
+Note the following:
+\li Must use the linker script <tt>$MNEMOSYNE/usermode/tool/linker/linker_script_persistent_segment_mXX</tt>
+with the linker when creating executable binaries or library modules.
+\li Must compile object files using the <tt>-fpic</tt> switch otherwise relocation of 
+static persistent symbols will not work. 
+
+
 */
 
 
@@ -233,6 +245,30 @@ For \c kvdriver-tc-base, some microbenchmarks of interest are:
 For \c kvdriver-tc-mtm, some microbenchmarks of interest are:
 \li \c tc_mtm_mix_latency_etl: measures the latency of inserting/deleting elements to a Mnemosyne based TC hash table 
 \li \c tc_mtm_mix_throughput_etl: measures the throughput of inserting/deleting elements to a Mnemosyne based TC hash table 
+
+@section section-running_bench-openldap Running OpenLDAP
+
+@subsection section-running_bench-openldap-scripts Scripts
+
+The accompanying scripts <tt>$MNEMOSYNE/usermode/bench/openldap/driver/scripts/mnemosyne</tt>
+may be used to config and run the Mnemosyne-based version of OpenLDAP. Please ensure that:
+\li the script variables \u OPENLDAP_BUILD and \u MNEMOSYNE_PATH point to the OpenLDAP build and
+Mnemosyne tree respectively. 
+\li the variable <tt>include</tt> in <tt>$MNEMOSYNE/usermode/bench/openldap/driver/scripts/mnemosyne/slapd.conf</tt> points
+to the right schema file. 
+\li the IP address and port number correspond to the one of your OpenLDAP server
+\li in the case you use slapd.conf for running other backends, ensure the 
+variable \u directory points to a valid directory (preferably under a file system backed by PCM-disk).
+
+The accompanying scripts <tt>$MNEMOSYNE/usermode/bench/openldap/driver/scripts/query</tt>
+may be used to test OpenLDAP with simple add/search queries. 
+
+
+@subsection section-running_bench-openldap-slamd SLAMD
+
+We recommend using the SLAMD Distributed Load Generation Engine (http://www.slamd.com) 
+to generate a workload for OpenLDAP. You may use the <it>Add/Remove Rate Template</it> 
+configured using the parameters provided in <tt>$MNEMOSYNE/usermode/bench/openldap/driver/slamd/slamd-template</tt>.
 
 
 */

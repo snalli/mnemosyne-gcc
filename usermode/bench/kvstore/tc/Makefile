@@ -11,11 +11,11 @@ experiment/mmap: experiment/mmap.c library-reg/libtokyocabinet.a
 
 experiment/mnemosyne: experiment/mnemosyne.o library/libtokyocabinet.a
 	@echo "(LINK) $@"
-	@icc -fpic -fno-omit-frame-pointer -m64 -T ../../tool/linker/linker_script_persistent_segment_m64 -g -O2 -o $@ -I ../../library -I../../library/mnemosyne/include -I../../library/mtm/include -Ilibrary -lpthread library/libtokyocabinet.a -L../../build/library/mnemosyne -lmnemosyne -L../../build/library/malloc -lmalloc $(MTM_LIB) $(ICCPATH)/lib/intel64/libitm.a -lbz2 -lz $^
+	@icc -fpic -fno-omit-frame-pointer -m64 -T ../../tool/linker/linker_script_persistent_segment_m64 -g -O2 -o $@ -I ../../library -I../../library/mcore/include -I../../library/mtm/include -Ilibrary -lpthread library/libtokyocabinet.a -L../../build/library/mcore -lmcore -L../../build/library/pmalloc -lpmalloc $(MTM_LIB) $(ICCPATH)/lib/intel64/libitm.a -lbz2 -lz $^
 
 experiment/mnemosyne.o: experiment/mnemosyne.c
 	@echo "(COMPILE) $@"
-	@icc -fpic -fno-omit-frame-pointer -m64  -g -O2 -Qtm_enabled -c -o $@ -I ../../library -I../../library/mnemosyne/include -I../../library/mtm/include -Ilibrary $^
+	@icc -fpic -fno-omit-frame-pointer -m64  -g -O2 -Qtm_enabled -c -o $@ -I ../../library -I../../library/mcore/include -I../../library/mtm/include -Ilibrary $^
 
 library/libtokyocabinet.a: library/Makefile library/tcbdb.h library/tcbdb.c
 	@echo "(BUILD) Tokyo Cabinet for Mnemosyne"

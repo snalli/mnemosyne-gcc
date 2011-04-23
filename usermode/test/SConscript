@@ -18,7 +18,7 @@ def addUnitTestSeries(env, path, suite, *tests):
             args = ['-s', suite, '-t', utest]
             env.Append(UNIT_TEST_CMDS = [(osenv, path, args)])
  
-Import('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+Import('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
 Import('mainEnv')
 testEnv = mainEnv.Clone()
 
@@ -34,7 +34,7 @@ testEnv.AddMethod(addUnitTestSeries, "addUnitTestSeries")
 testEnv['UNIT_TEST_CMDS'] = []
 
 Export('testEnv')
-Export('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+Export('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
 
 thedir = os.path.join(Dir('#').abspath, 'test')
 dirs = [ name for name in os.listdir(thedir) if os.path.isdir(os.path.join(thedir, name)) ]

@@ -99,6 +99,7 @@ init_global()
 		fprintf(stderr, "Error creating condition variable\n");
 		exit(1);
 	}
+
 	tx_count = 0;
 	tx_overflow = 0;
 #endif /* ROLLOVER_CLOCK */
@@ -163,7 +164,7 @@ fini_global()
 	pthread_key_delete(_mtm_thread_tx);
 #endif /* ! TLS */
 #ifdef ROLLOVER_CLOCK
-	pthread_cond_destroy(&tx_reset);
+	//pthread_cond_destroy(&tx_reset);
 	pthread_mutex_destroy(&tx_count_mutex);
 #endif /* ROLLOVER_CLOCK */
 
@@ -180,7 +181,17 @@ fini_global()
 void 
 mtm_fini_global(void)
 {
-	fini_global();
+	if (!mtm_initialized) {
+		return 0;
+	}
+
+	pthread_mutex_lock(&global_init_lock);
+	if (mtm_initialized) {
+		fini_global();
+		mtm_initialized = 0;
+	}	
+	pthread_mutex_unlock(&global_init_lock);
+	return 0;
 }
 
 
@@ -347,7 +358,7 @@ mtm_fini_thread(void)
 #endif /* EPOCH_GC */
 	mtm_tx_t *tx = mtm_get_tx();
 
-	PRINT_DEBUG("==> mtm_exit_thread(%p[%lu-%lu])\n", tx, (unsigned long)tx->start, (unsigned long)tx->end);
+	PRINT_DEBUG("==> mtm_exit_thread(%p)\n", tx);
 
 #if 0
 	/* Callbacks */

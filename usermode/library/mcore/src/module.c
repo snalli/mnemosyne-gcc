@@ -50,7 +50,7 @@ m_module_relocate_symbols(uintptr_t got_start,
 	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "relocate.old_end   = %lx\n", old_end);
 	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "relocate.new_start = %lx\n", new_start);
 	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "relocate.new_end   = %lx\n", new_end);
-	
+
 	mprotect(got_start - (got_start % 4096), got_end - (got_start - (got_start % 4096)), PROT_READ | PROT_WRITE | PROT_EXEC);
 	
 	for (entry = got_start; entry < got_end; entry+=sizeof(uintptr_t)) {
@@ -59,7 +59,8 @@ m_module_relocate_symbols(uintptr_t got_start,
 		if (symbol_old_addr >= old_start && symbol_old_addr < old_end) {
 			symbol_new_addr = symbol_old_addr - old_start + new_start;
 			*((uintptr_t *) entry) = symbol_new_addr;
-			//printf("relocate_symbol: %lx ==> %lx\n", symbol_old_addr, symbol_new_addr );
+
+			M_DEBUG_PRINT(M_DEBUG_SEGMENT, "relocate_symbol: %lx ==> %lx\n", symbol_old_addr, symbol_new_addr );
 		}
 	}
 }

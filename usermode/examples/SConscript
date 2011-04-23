@@ -1,12 +1,12 @@
 import os
 
 Import('examplesEnv')
-Import('mallocLibrary')
+Import('pmallocLibrary')
 
-examplesEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+examplesEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
 examplesEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
 examplesEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
-examplesEnv.Append(LIBS = [mallocLibrary])
+examplesEnv.Append(LIBS = [pmallocLibrary])
 
 if examplesEnv['BUILD_DEBUG'] == True:
 	examplesEnv.Append(CCFLAGS = ' -g')

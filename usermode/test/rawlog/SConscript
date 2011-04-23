@@ -5,12 +5,12 @@ from unit_test import runUnitTests
 sys.path.append('%s/library' % (Dir('#').abspath))
 
 Import('mainEnv', 'testEnv')
-Import('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+Import('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
 configEnv = mainEnv.Clone()
 myTestEnv = testEnv.Clone()
 
 
-test = myTestEnv.Program('test', source = [Glob('*.test.cxx'), Glob('*.fixture.cxx'), Glob('*.helper.cxx'), 'main.cxx'], LIBS=['UnitTest++', mcoreLibrary, mtmLibrary, mallocLibrary])
-runtests = myTestEnv.Command("test.passed", ['test', mcoreLibrary, mallocLibrary, mtmLibrary], runUnitTests)
+test = myTestEnv.Program('test', source = [Glob('*.test.cxx'), Glob('*.fixture.cxx'), Glob('*.helper.cxx'), 'main.cxx'], LIBS=['UnitTest++', mcoreLibrary, mtmLibrary, pmallocLibrary])
+runtests = myTestEnv.Command("test.passed", ['test', mcoreLibrary, pmallocLibrary, mtmLibrary], runUnitTests)
 
 myTestEnv.addUnitTestSeries(test[0].path, 'RandomReadWriteLog')

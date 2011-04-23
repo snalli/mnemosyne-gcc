@@ -70,7 +70,7 @@ do_global_fini(void)
 		m_logmgr_fini();
 		m_segmentmgr_fini();
 		mtm_fini_global();
-		mnemosyne_initialized = 1;
+		mnemosyne_initialized = 0;
 
 		M_WARNING("Shutdown\n");
 	}	

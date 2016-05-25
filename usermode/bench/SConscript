@@ -25,6 +25,7 @@ if benchEnv['BUILD_BENCH'] == 'ALL':
 			   stl
 			   ubench
 			   memcached
+			   stamp-kozy
 	                   """)
 else:
 	bench_list = benchEnv['BUILD_BENCH'].split(',')

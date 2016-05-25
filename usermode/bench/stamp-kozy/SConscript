@@ -1,0 +1,36 @@
+Import('benchEnv')
+stampEnv = benchEnv.Clone()
+
+# Shouldn't benchEnv already contain these ?
+Import('mcoreLibrary')
+Import('mtmLibrary')
+Import('pmallocLibrary')
+
+if benchEnv['BUILD_DEBUG'] == True:
+        stampEnv.Append(CCFLAGS = ' -g -O0')
+else:
+        stampEnv.Append(CCFLAGS = ' -g -O0')
+        #stampEnv.Append(CCFLAGS = ' -O2')
+
+stampEnv.Append(CCFLAGS = '-Ibench/stamp-kozy/lib -Ibench/stamp-kozy/lib/ptm')
+stampEnv.Append(CPPPATH = ['#library/common'])
+stampEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+stampEnv.Append(LIBS = [mcoreLibrary])
+stampEnv.Append(LIBS = [mtmLibrary])
+stampEnv.Append(LIBS = [pmallocLibrary])
+stampEnv.Append(LIBS = ['pthread'])
+# examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
+
+
+Export('stampEnv')
+
+
+stamp_list = Split("""
+		   vacation
+                   """)
+#kmeans labyrinth ssca2 genome
+
+for stamp_item in stamp_list:
+        sconscript_path = stamp_item + '/SConscript'
+	SConscript(sconscript_path)
+

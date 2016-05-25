@@ -426,6 +426,7 @@ manager_addCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
 
     if (TMMAP_CONTAINS(managerPtr->customerTablePtr, customerId)) {
         // return FALSE;
+	__m_print_d("customerID (EXISTS)=", customerId);
         return TRUE; 
 	/* 
 		FOR PERSISTENCE, if the customer already exists

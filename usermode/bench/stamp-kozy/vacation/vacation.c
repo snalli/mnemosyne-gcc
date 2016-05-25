@@ -101,7 +101,7 @@ enum param_types {
 #define PARAM_DEFAULT_NUMBER       (10)
 #define PARAM_DEFAULT_QUERIES      (90)
 #define PARAM_DEFAULT_RELATIONS    (1 << 16)
-#define PARAM_DEFAULT_TRANSACTIONS (1 << 26)
+#define PARAM_DEFAULT_TRANSACTIONS (1 << 17)
 #define PARAM_DEFAULT_USER         (80)
 
 double global_params[256]; /* 256 = ascii limit */
@@ -122,8 +122,6 @@ displayUsage (const char* appName)
            PARAM_DEFAULT_NUMBER);
     printf("    q <UINT>   Percentage of relations [q]ueried     (%i)\n",
            PARAM_DEFAULT_QUERIES);
-    printf("    r <UINT>   Number of possible [r]elations        (%i)\n",
-           PARAM_DEFAULT_RELATIONS);
     printf("    t <UINT>   Number of [t]ransactions              (%i)\n",
            PARAM_DEFAULT_TRANSACTIONS);
     printf("    u <UINT>   Percentage of [u]ser transactions     (%i)\n",
@@ -162,12 +160,11 @@ parseArgs (long argc, char* const argv[])
 
     setDefaultParams();
 
-    while ((opt = getopt(argc, argv, "c:n:q:r:t:u:")) != -1) {
+    while ((opt = getopt(argc, argv, "c:n:q:t:u:")) != -1) {
         switch (opt) {
             case 'c':
             case 'n':
             case 'q':
-            case 'r':
             case 't':
             case 'u':
                 global_params[(unsigned char)opt] = atol(optarg);

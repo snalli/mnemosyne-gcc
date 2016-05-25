@@ -19,11 +19,8 @@ stampEnv.Append(LIBS = [mcoreLibrary])
 stampEnv.Append(LIBS = [mtmLibrary])
 stampEnv.Append(LIBS = [pmallocLibrary])
 stampEnv.Append(LIBS = ['pthread'])
-# examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
-
 
 Export('stampEnv')
-
 
 stamp_list = Split("""
 		   vacation

@@ -1,5 +1,5 @@
 Import('stampEnv')
-
+# Can we use hash table instead ?
 stampEnv.Append(CCFLAGS = '-DMAP_USE_RBTREE -DLIST_NO_DUPLICATES')
 sources = Split("""     client.c
 			customer.c

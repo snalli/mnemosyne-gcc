@@ -1,6 +1,6 @@
 /* =============================================================================
  *
- * seq/tm.h
+ * ptm/tm.h
  *
  * Utility defines for transactional memory for sequential
  *
@@ -219,9 +219,9 @@ extern struct timeval v_time;
 #define TM_FREE(ptr)                pfree(ptr)
 
 #define TM_BEGIN()                    MNEMOSYNE_ATOMIC {
-#define TM_BEGIN_RO()                 MNEMOSYNE_ATOMIC {
+#define TM_BEGIN_RO()                 MNEMOSYNE_ATOMIC { // What is the txn spans across multiple routines ?
 #define TM_END()                      }
-#define TM_RESTART()                  {;} // TODO: This is temporary FIX. assert(0)
+#define TM_RESTART()                  {;} // assert(0); // How do you explicitly restart txns in M ?
 
 #define TM_EARLY_RELEASE(var)         /* nothing */
 

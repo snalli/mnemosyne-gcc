@@ -35,11 +35,13 @@
 #include "./test_and_set_t_is_char.h"
 
 #include "./standard_ao_double_t.h"
+#include <pm_instr.h>
 
 #if defined(AO_USE_PENTIUM4_INSTRS)
 AO_INLINE void
 AO_nop_full(void)
 {
+  PM_FENCE();
   __asm__ __volatile__("mfence" : : : "memory");
 }
 

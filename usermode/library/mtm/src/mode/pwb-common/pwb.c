@@ -37,7 +37,7 @@ void ITM_NORETURN
 mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r)
 {
 	uint32_t actions;
-
+	//fprintf(stderr,"%d %s-%d restart_reason=%d\n",syscall(SYS_gettid),__func__,__LINE__, r);
 #if (!defined(ALLOW_ABORTS))
 	if (tx->mode == MTM_MODE_pwbnl) {
 		assert(0 && "Aborts disabled for current mode pwbnl but want to abort.\n");

@@ -124,7 +124,7 @@ init_global()
 	// Clear the lock bits (and also the write-set bits) for all addresses
 	// in memory. Because the write-sets are also referenced by this array,
 	// we must do this even in the case of disabled isolation.
-   	memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+   	PM_MEMSET((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
 
 #if CM == CM_PRIORITY
 	s = getenv(VR_THRESHOLD);
@@ -179,7 +179,7 @@ init_global()
 	}	
 #endif	
 
-	/* Catch signals for non-faulting load */
+	/* Catch signals for non-faulting load 
 	act.sa_handler = signal_catcher;
 	act.sa_flags = 0;
 	sigemptyset(&act.sa_mask);
@@ -187,6 +187,7 @@ init_global()
 		perror("sigaction");
 		exit(1);
 	}
+	*/
 }
 
 
@@ -236,7 +237,7 @@ void
 mtm_fini_global(void)
 {
 	if (!mtm_initialized) {
-		return 0;
+		return;
 	}
 
 	pthread_mutex_lock(&global_init_lock);
@@ -245,7 +246,7 @@ mtm_fini_global(void)
 		mtm_initialized = 0;
 	}	
 	pthread_mutex_unlock(&global_init_lock);
-	return 0;
+	return;
 }
 
 

@@ -36,10 +36,35 @@
 #define _SUPERBLOCK_H_
 
 #include "config.h"
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 #include "arch-specific.h"
 #include "block.h"
 #include "persistentsuperblock.h"
+#include <map>
+
+#define debug_race 0
+
+#if debug_race
+#define __m_time__                ({gettimeofday(&mtm_time, NULL); \
+                                        (double)mtm_time.tv_sec +    \
+                                        ((double)mtm_time.tv_usec / 1000000);})
+#define __m_tid__                 syscall(SYS_gettid)
+#define __m_debug()               fprintf(stderr, "%lf %d %s %d \n",__m_time__,__m_tid__, __func__, __LINE__);
+#define __m_fail()               fprintf(stderr, "FAIL %lf %d %s %d \n",__m_time__,__m_tid__, __func__, __LINE__);
+#define __m_print(args ...)	 fprintf(stderr, args);
+#else
+#define __m_time__                ({gettimeofday(&mtm_time, NULL); \
+                                        (double)mtm_time.tv_sec +    \
+                                        ((double)mtm_time.tv_usec / 1000000);})
+#define __m_tid__                 syscall(SYS_gettid)
+#define __m_debug()		 {;}
+#define __m_fail()		 {;}
+#define __m_print(args ...)	 {;}
+#endif
 
 class hoardHeap;            // forward declaration
 class processHeap;          // forward declaration
@@ -75,7 +100,7 @@ public:
   inline block * acquireBlock (void);
 
   // Put a block back in the superblock.
-  inline void putBlock (block * b);
+  inline bool putBlock (block * b);
 
   // Get a pointer to the block identified by id.
   block * getBlock (int id);
@@ -127,8 +152,8 @@ public:
   inline persistentSuperblock *getPersistentSuperblock(void);
   inline void *getBlockRegion(int id);
 private:
-
-
+  typedef std::map<block*, bool>  blocks_present_t;
+  blocks_present_t blocks_present;
   // Disable copying and assignment.
 
   superblock (const superblock&);
@@ -167,12 +192,16 @@ hoardHeap * superblock::getOwner (void)
 {
 	assert (isValid());
 	hoardHeap * o = _owner;
+	__m_debug();
+  __m_print("%lf %d %s %d sb=%p o=%p\n",__m_time__, __m_tid__, __func__, __LINE__, this, o, getNumAvailable());
 	return o;
 }
 
 
 void superblock::setOwner (hoardHeap * o) 
 {
+	__m_debug();
+  __m_print("%lf %d %s %d sb=%p o=%p\n",__m_time__, __m_tid__, __func__, __LINE__, this, o, getNumAvailable());
 	assert (isValid());
 	_owner = o;
 }
@@ -180,11 +209,14 @@ void superblock::setOwner (hoardHeap * o)
 
 block * superblock::acquireBlock (void)
 {
+	__m_debug();
 	assert (isValid());
+  __m_print("%lf %d %s(1) %d sb=%p freelist=%p num=%d\n",__m_time__, __m_tid__, __func__, __LINE__, this, _freeList, getNumAvailable());
 	// Pop off a block from this superblock's freelist,
 	// if there is one available.
 	if (_freeList == NULL) {
 		// The freelist is empty.
+		__m_fail();
 		assert (getNumAvailable() == 0);
 		return NULL;
 	}
@@ -192,6 +224,7 @@ block * superblock::acquireBlock (void)
 	block * b = _freeList;
 	_freeList = _freeList->getNext();
 	_numAvailable--;
+  __m_print("%lf %d %s(2) %d sb=%p b=%p freelist=%p num=%d\n",__m_time__, __m_tid__, __func__, __LINE__, this, b, _freeList, getNumAvailable());
 	_psb->allocBlock(b->getId());
 
 	b->setNext(NULL);
@@ -199,12 +232,18 @@ block * superblock::acquireBlock (void)
 	dirtyFullness = true;
 	//  computeFullness();
 
+  	blocks_present[b] = false;
 	return b;
 }
 
 
-void superblock::putBlock (block * b)
+bool superblock::putBlock (block * b)
 {
+  __m_debug();
+  __m_print("%lf %d %s(1) %d sb=%p b=%p free=%p num=%d\n",__m_time__, __m_tid__, __func__, __LINE__, this, b, _freeList, getNumAvailable());
+  
+  if(blocks_present[b] == true)
+	return false;
   assert (isValid());
   // Push a block onto the superblock's freelist.
   assert (b->isValid());
@@ -213,9 +252,12 @@ void superblock::putBlock (block * b)
   b->setNext (_freeList);
   _freeList = b;
   _numAvailable++;
+  __m_print("%lf %d %s(2) %d sb=%p b=%p free=%p num=%d\n",__m_time__, __m_tid__, __func__, __LINE__, this, b, _freeList, getNumAvailable());
   _psb->freeBlock(b->getId());
 
   dirtyFullness = true;
+  blocks_present[b] = true;
+  return true;
   //  computeFullness();
 }
 

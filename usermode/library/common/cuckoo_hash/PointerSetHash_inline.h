@@ -126,7 +126,7 @@ IOINLINE void PointerSetHashRecord_swapWith_(PointerSetHashRecord *self, Pointer
 
 IOINLINE void PointerSetHash_clean(PointerSetHash *self)
 {
-	memset(self->records, 0, sizeof(PointerSetHashRecord) * self->size);
+	PM_MEMSET(self->records, 0, sizeof(PointerSetHashRecord) * self->size);
 	self->keyCount = 0;
 }
 

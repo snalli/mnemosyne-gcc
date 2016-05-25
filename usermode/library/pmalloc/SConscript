@@ -34,6 +34,9 @@ buildEnv.Append(CPPPATH = ['#library'])
 buildEnv.Append(CPPPATH = ['#library/mcore/include'])
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 
+if mainEnv['ENABLE_TRACE'] == True:
+        buildEnv.Append(CCFLAGS = '-D_ENABLE_TRACE')
+
 C_SRC = Split("""
               src/pdlmalloc.c 
               src/vhalloc.c 

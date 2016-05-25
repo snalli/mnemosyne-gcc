@@ -122,7 +122,7 @@ IOINLINE void CHashRecord_swapWith_(CHashRecord *self, CHashRecord *other)
 
 IOINLINE void CHash_clean(CHash *self)
 {
-	memset(self->records, 0, sizeof(CHashRecord) * self->size);
+	PM_MEMSET(self->records, 0, sizeof(CHashRecord) * self->size);
 	self->keyCount = 0;
 }
 

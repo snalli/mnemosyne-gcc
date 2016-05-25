@@ -46,6 +46,7 @@
 #define _M_DEBUG_BUILD
 #include <debug.h>
 #include <result.h>
+#include <pm_instr.h>
 /* Private local header files */
 #include "mcore_i.h"
 #include "files.h"
@@ -673,13 +674,13 @@ pmap_internal_abs(void *start, size_t length, int prot, int flags,
 
 	/* Now update the segment table with the necessary segment information. */
 	tentry = new_ientry->segtbl_entry;
-	tentry->start = map_addr; /* PCM STORE */ 
-	tentry->size = length;  /* PCM STORE */
+	PM_EQU(tentry->start, map_addr); /* PCM STORE */ 
+	PM_EQU(tentry->size, length);  /* PCM STORE */
 	PCM_WB_FENCE(NULL);
 	PCM_WB_FLUSH(NULL, &(tentry->start));
 	PCM_WB_FLUSH(NULL, &(tentry->size));
 	flags_val = segtbl_entry_flags;
-	tentry->flags = flags_val;  /* PCM STORE */
+	PM_EQU(tentry->flags, flags_val);  /* PCM STORE */
 	PCM_WB_FENCE(NULL);
 	PCM_WB_FLUSH(NULL, &(tentry->flags));
 
@@ -799,12 +800,12 @@ segment_create_sections(m_segtbl_t *segtbl)
 				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "start_addr = %lx\n", (uintptr_t) mapped_addr);	
 				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "end_addr = %lx\n", (uintptr_t) mapped_addr + length);	
 				M_DEBUG_PRINT(M_DEBUG_SEGMENT, "length     = %u\n", (unsigned int) length);	
-				memcpy(mapped_addr, elfdata->d_buf, elfdata->d_size);
+				PM_MEMCPY(mapped_addr, elfdata->d_buf, elfdata->d_size);
 			}
 
 			tentry = ientry->segtbl_entry;
-			flags_val = tentry->flags | SGTB_VALID_DATA;
-			tentry->flags = flags_val; /* PCM STORE */
+			flags_val = tentry->flags | SGTB_VALID_DATA; // PM_LOAD
+			PM_EQU(tentry->flags, flags_val); /* PCM STORE */
 			PCM_WB_FENCE(NULL);
 			PCM_WB_FLUSH(NULL, &(tentry->flags));
 		}

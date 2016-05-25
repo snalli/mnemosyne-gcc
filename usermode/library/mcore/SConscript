@@ -28,6 +28,9 @@ if buildEnv['BUILD_STATS'] == True:
 #   scons: warning: Two different environments were specified for target ... 
 #   but they appear to have the same actions: ...
 
+if mainEnv['ENABLE_TRACE'] == True:
+	buildEnv.Append(CCFLAGS = '-D_ENABLE_TRACE')
+
 COMMON_SRC = [
               ('src/config_generic', '../common/config_generic.c'),
               ('src/debug', '../common/debug.c'), 

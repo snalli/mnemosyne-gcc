@@ -128,7 +128,7 @@ cacheline_alloc()
 	cacheline_t *l;
 
 	l = (cacheline_t*) malloc(sizeof(cacheline_t));
-	memset(l, 0x0, sizeof(cacheline_t));
+	PM_MEMSET(l, 0x0, sizeof(cacheline_t));
 	return l;
 }
 
@@ -151,7 +151,7 @@ pcm_storeset_create(pcm_storeset_t **setp)
 	list_add(&set->list, &pcm_storeset_list.list);
 	pthread_mutex_unlock(&pcm_storeset_list.lock);
 	set->hashtbl = PointerHash_new();
-	memset(set->wcbuf_hashtbl, 0, WCBUF_HASHTBL_SIZE);
+	PM_MEMSET(set->wcbuf_hashtbl, 0, WCBUF_HASHTBL_SIZE);
 	set->wcbuf_hashtbl_count = 0;
 	set->seqstream_len = 0;
 	set->in_crash_emulation_code = 0;

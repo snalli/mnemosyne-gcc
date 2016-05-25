@@ -59,6 +59,8 @@ void hoardSetConcurrency (int n)
 int hoardGetThreadID (void) {
   // Consecutive thread id's in Linux are 1024 apart.
   return (int) pthread_self() / 1024;
+	// Why is this by-1024 ? If pthread_self < 1024, the return will always be 0 and all threads will map to the same heap !
+	// Further, pthread_self returns pthread_t which must be considered as opaque data and not int !
 }
 
 

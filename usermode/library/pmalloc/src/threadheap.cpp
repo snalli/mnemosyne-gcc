@@ -45,8 +45,9 @@ void * threadHeap::malloc (const size_t size)
 	const int sizeclass = sizeClass (size);
 	block     *b = NULL;
 
-	lock();
+	lock(); // Why do you need this lock when the heap is private ?
 
+	__m_debug();
 	// Look for a free block.
 	// We usually have memory locally so we first look for space in the
 	// superblock list.

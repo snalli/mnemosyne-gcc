@@ -73,17 +73,22 @@ void persistentHeap::format()
 	assert((!psegmentheader && !psegment) || (psegmentheader && psegment));
 
 	if (!psegmentheader) {
-		psegmentheader = m_pmap((void *) PERSISTENTHEAP_HEADER_BASE, PERSISTENTSUPERBLOCK_NUM*sizeof(persistentSuperblock), PROT_READ|PROT_WRITE, 0);
+		PM_EQU(psegmentheader, m_pmap((void *) PERSISTENTHEAP_HEADER_BASE, \ 
+							PERSISTENTSUPERBLOCK_NUM*sizeof(persistentSuperblock), \
+							PROT_READ|PROT_WRITE, 0));
 		assert(psegmentheader != (void *) -1);
-		psegment = m_pmap((void *)PERSISTENTHEAP_BASE, (uint64_t) persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, PROT_READ|PROT_WRITE, 0);
+		PM_EQU(psegment, m_pmap((void *)PERSISTENTHEAP_BASE, \
+				(uint64_t) persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE * PERSISTENTSUPERBLOCK_NUM, \
+				PROT_READ|PROT_WRITE, 0));
 		assert(psegment != (void *) -1);
 		for(i=0; i<PERSISTENTSUPERBLOCK_NUM; i++) { 
 			b = (void *) ((uintptr_t) psegmentheader + i*sizeof(persistentSuperblock));
 			buf = (void *) ((uintptr_t) psegment + i*persistentSuperblock::PERSISTENTSUPERBLOCK_SIZE);
 			new(b) persistentSuperblock((char *)buf);
 		}
-		_psegmentBase = psegment;
 	}
+	
+	_psegmentBase = psegment;
 }
 
 
@@ -146,6 +151,8 @@ void persistentHeap::stats (void) {
 
 void persistentHeap::free (void * ptr)
 {
+	__m_debug();
+	__m_print("%lf %d %s %d ptr=%p\n",__m_time__, __m_tid__, __func__, __LINE__, ptr);
 	// Return if ptr is 0.
 	// This is the behavior prescribed by the standard.
 	if (ptr == 0) {

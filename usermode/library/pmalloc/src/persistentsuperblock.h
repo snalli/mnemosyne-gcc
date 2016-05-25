@@ -34,6 +34,7 @@
 #define _PERSISTENTSUPERBLOCK_H
 
 #include "config.h"
+#include <pm_instr.h>
 
 #include <iostream>
 #include <stdint.h>
@@ -69,9 +70,9 @@ class superblock; // forward declaration
 
 
 # define __BITMAP_CLR2(bit, bitmap)                                              \
-  bitmap[__BITMAPELT (bit)] = bitmap[__BITMAPELT (bit)] & ~__BITMAPMASK (bit);
+  PM_EQU(bitmap[__BITMAPELT (bit)], bitmap[__BITMAPELT (bit)] & ~__BITMAPMASK (bit));
 # define __BITMAP_SET2(bit, bitmap)                                              \
-  bitmap[__BITMAPELT (bit)] = bitmap[__BITMAPELT (bit)] | __BITMAPMASK (bit);
+  PM_EQU(bitmap[__BITMAPELT (bit)], bitmap[__BITMAPELT (bit)] | __BITMAPMASK (bit));
 
 class persistentSuperblock {
 
@@ -105,8 +106,8 @@ public:
 	}
 
 	void volatileInit() {
-		_cached = false;
-		_acquired = false;
+		PM_EQU(_cached, false);
+		PM_EQU(_acquired, false);
 	}
 
 	bool isAcquired() {
@@ -203,7 +204,7 @@ public:
 
 	void setBlockSize(int blksize) {
 		assert(isFree() == true); // block must be free to change its size class 
-		_blksize = blksize;
+		PM_EQU(_blksize, blksize);
 	}
 
 	int getBlockSize() {
@@ -217,7 +218,7 @@ public:
 	}
 
 	void setSuperblock(superblock *sb) {
-		_superblock = sb;
+		PM_EQU(_superblock, sb);
 	}
 
 private:

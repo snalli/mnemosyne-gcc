@@ -20,9 +20,9 @@ CHash *CHash_new(void)
 void CHash_copy_(CHash *self, const CHash *other)
 {
 	io_free(self->records);
-	memcpy(self, other, sizeof(CHash));
+	PM_MEMCPY(self, other, sizeof(CHash));
 	self->records = malloc(self->size * sizeof(CHashRecord));
-	memcpy(self->records, other->records, self->size * sizeof(CHashRecord));
+	PM_MEMCPY(self->records, other->records, self->size * sizeof(CHashRecord));
 }
 
 CHash *CHash_clone(CHash *self)
@@ -38,7 +38,7 @@ void CHash_setSize_(CHash *self, size_t size)
 	
 	if(size > self->size)
 	{		
-		memset(self->records + self->size * sizeof(CHashRecord), 
+		PM_MEMSET(self->records + self->size * sizeof(CHashRecord), 
 			0x0, (size - self->size) * sizeof(CHashRecord));
 	}
 	
@@ -203,7 +203,7 @@ void CHash_removeKey_(CHash *self, void *k)
 
 void CHash_clear(CHash *self)
 {
-	memset(self->records, 0x0, self->size * sizeof(CHashRecord));
+	PM_MEMSET(self->records, 0x0, self->size * sizeof(CHashRecord));
 	self->keyCount = 0;
 	CHash_shrinkIfNeeded(self);
 }

@@ -49,6 +49,7 @@
 
 #include <itm.h>
 #include "mtm/include/txlock.h"
+#include <pm_instr.h>
 
 m_txmutex_t generic_pmalloc_txmutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -112,6 +113,9 @@ static void * pmalloc_internal (size_t sz)
 	static persistentHeap *persistentheap = getPersistentAllocator();
 	static processHeap    *pHeap = getAllocator(persistentheap);
 
+	__m_debug()
+        __m_print("%lf %d %s %d sz=%d\n",__m_time__,__m_tid__, __func__, __LINE__, sz);
+
 	if (sz == 0) {
 		sz = 1;
 	}
@@ -136,10 +140,13 @@ static void * pmalloc_internal (size_t sz)
 			 *   m_txmutex_unlock(&generic_pmalloc_txmutex);
 			 *
 			 */
+		        __m_print("%lf %d %s %d sz=%d (generic malloc)\n",__m_time__,__m_tid__, __func__, __LINE__, sz);
+
 			addr = GENERIC_PMALLOC(sz);
 		}
 	} else {
 		//printf("pmalloc.hoard[START]: size = %d\n",  (int) sz);
+		        __m_print("%lf %d %s %d sz=%d (pmalloc)\n",__m_time__,__m_tid__, __func__, __LINE__, sz);
 		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
 	}
 	//printf("pmalloc[DONE]: addr=%p,  size = %d\n",  addr, (int) sz);
@@ -155,6 +162,7 @@ extern "C" void * HOARD_MALLOC (size_t sz)
 
 extern "C" void * HOARD_MALLOC_TXN (size_t sz)
 {
+        __m_print("%lf %d %s %d sz=%d ()\n",__m_time__,__m_tid__, __func__, __LINE__, sz);
 	return pmalloc_internal(sz);
 }
 
@@ -169,7 +177,7 @@ extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)
 	}
 	void * ptr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
 	// Zero out the malloc'd block.
-	memset (ptr, 0, sz);
+	PM_MEMSET(ptr, 0, sz);
 	return ptr;
 }
 
@@ -177,6 +185,7 @@ static void free_internal (void * ptr)
 {
 	static persistentHeap * persistentheap = getPersistentAllocator();
 
+	__m_debug();
 	//printf("free: %p [%p - %p)\n",
 	//        ptr,
 	//        ((uintptr_t) persistentheap->getPersistentSegmentBase()),
@@ -186,10 +195,13 @@ static void free_internal (void * ptr)
 	if ((uintptr_t) ptr >= ((uintptr_t) persistentheap->getPersistentSegmentBase()) &&
 	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
 	{
+		__m_print("%lf %d %s %d ptr=%p (pfree)\n",__m_time__,__m_tid__, __func__, __LINE__, ptr)
 		persistentheap->free (ptr);
+
 	} else {
 		__tm_atomic 
 		{
+			__m_print("%lf %d %s %d ptr=%p (generic free)\n",__m_time__,__m_tid__, __func__, __LINE__, ptr)
 			GENERIC_PFREE (ptr);
 		}
 	}
@@ -206,6 +218,7 @@ extern "C" void HOARD_FREE (void* ptr)
 
 extern "C" void HOARD_FREE_TXN (void * ptr)
 {
+	__m_print("%lf %d %s %d ptr=%p\n",__m_time__,__m_tid__, __func__, __LINE__, ptr)
 	free_internal(ptr);
 }
 

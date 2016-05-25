@@ -44,6 +44,7 @@
 #include <list.h>
 #include <spinlock.h>
 #include "cuckoo_hash/PointerHashInline.h"
+#include "pm_instr.h"
 
 
 #ifdef __cplusplus
@@ -247,6 +248,7 @@ static inline void asm_sse_write_block64(volatile pcm_word_t *addr, pcm_word_t *
 static inline void asm_movnti(volatile pcm_word_t *addr, pcm_word_t val)
 {
 	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*addr): "r" (val));
+	PM_MOVNTI(addr, sizeof(pcm_word_t), sizeof(pcm_word_t));
 }
 
 
@@ -258,12 +260,14 @@ static inline void asm_clflush(volatile pcm_word_t *addr)
 
 static inline void asm_mfence(void)
 {
+	PM_FENCE();
 	__asm__ __volatile__ ("mfence");
 }
 
 
 static inline void asm_sfence(void)
 {
+	PM_FENCE();
 	__asm__ __volatile__ ("sfence");
 }
 
@@ -364,14 +368,14 @@ write_aligned_masked(pcm_word_t *addr, pcm_word_t val, pcm_word_t mask)
 
 	/* Complete write? */
 	if (mask == ((uint64_t) -1)) {
-		*addr = val;
+		PM_EQU(*addr, val);
 	} else {
 		valu.w = val;
 		a = (uintptr_t) addr;
 		trailing_0bytes = __builtin_ctzll(mask) >> 3;
 		leading_0bytes = __builtin_clzll(mask) >> 3;
 		for (i = trailing_0bytes; i<8-leading_0bytes;i++) {
-			*((uint8_t *) (a+i)) = valu.b[i];
+			PM_EQU(*((uint8_t *) (a+i)), valu.b[i]);
 		}
 	}
 }

@@ -141,7 +141,7 @@ mtm_local_rollback (mtm_tx_t *tx)
 		 */
 		addr = local_undo_entry->addr;
 		if (sp+1 < (uintptr_t*) addr || ((uintptr_t*) addr) <= current_sp) {
-			memcpy (addr, local_undo_entry->saved, local_undo_entry->len);
+			PM_MEMCPY(addr, local_undo_entry->saved, local_undo_entry->len);
 		}
 		/* Get next local_undo_entry */
 		entryp = (uintptr_t) local_undo_entry - local_undo_entry->len - sizeof(mtm_local_undo_entry_t);
@@ -173,7 +173,7 @@ log_arbitrarily (mtm_tx_t *tx, const volatile void *ptr, size_t len)
 	local_undo_entry->len = len;
 	local_undo_entry->saved = buf;
 
-	memcpy (local_undo_entry->saved, (const void*) ptr, len);
+	PM_MEMCPY(local_undo_entry->saved, (const void*) ptr, len);
 
 	local_undo->last_entry = local_undo_entry;
 }

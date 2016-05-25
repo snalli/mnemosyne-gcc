@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <pthread.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +73,20 @@ extern "C" {
 void m_debug_print(char *file, int line, int fatal, const char *prefix, const char *strformat, ...); 
 void m_debug_print_L(int debug_level, const char *strformat, ...); 
 void m_print_trace (void);
+
+#define TSTR_SZ		128
+#define MAX_TBUF_SZ	64*1024*1024	/* bytes */
+
+extern __thread struct timeval mtm_time;
+extern __thread int mtm_tid;
+
+extern __thread char tstr[TSTR_SZ];
+extern __thread int tsz;
+
+extern char *tbuf;
+extern unsigned long long tbuf_sz;
+extern pthread_spinlock_t tbuf_lock;
+extern __thread unsigned long long tbuf_ptr;
 
 #ifdef __cplusplus
 }

@@ -62,7 +62,7 @@
 #define _PERSISTENTHEAP_H_
 
 #include "config.h"
-
+#include <pm_instr.h>
 #include <stdio.h>
 
 #include "arch-specific.h"

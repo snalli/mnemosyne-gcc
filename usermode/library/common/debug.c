@@ -36,7 +36,21 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <pthread.h>
 #include "debug.h"
+
+/* Tracing infrastructure */
+__thread struct timeval mtm_time;
+__thread int mtm_tid = -1;
+
+__thread char tstr[TSTR_SZ];
+__thread int tsz = 0;
+__thread unsigned long long tbuf_ptr = 0;
+
+char *tbuf;
+pthread_spinlock_t tbuf_lock;
+unsigned long long tbuf_sz;
+
 
 void
 m_debug_print(char *file, int line, int fatal, const char *prefix,

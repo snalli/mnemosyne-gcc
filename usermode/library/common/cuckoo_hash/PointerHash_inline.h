@@ -130,7 +130,7 @@ IOINLINE void PointerHashRecord_swapWith_(PointerHashRecord *self, PointerHashRe
 
 IOINLINE void PointerHash_clean(PointerHash *self)
 {
-	memset(self->records, 0, sizeof(PointerHashRecord) * self->size);
+	PM_MEMSET(self->records, 0, sizeof(PointerHashRecord) * self->size);
 	self->keyCount = 0;
 }
 

@@ -508,7 +508,7 @@ static inline void mtm_rollover_exit(mtm_tx_t *tx)
   /* Are all transactions stopped? */
   if (tx_overflow != 0 && tx_count == 0) {
     /* Yes: reset clock */
-    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+    PM_MEMSET((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
     CLOCK = 0;
     tx_overflow = 0;
 # ifdef EPOCH_GC
@@ -542,7 +542,7 @@ static inline void mtm_overflow(mtm_tx_t *tx)
   /* Are all transactions stopped? */
   if (tx_count == 0) {
     /* Yes: reset clock */
-    memset((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
+    PM_MEMSET((void *)locks, 0, LOCK_ARRAY_SIZE * sizeof(mtm_word_t));
     CLOCK = 0;
     tx_overflow = 0;
 # ifdef EPOCH_GC

@@ -52,6 +52,7 @@
 #include "files.h"
 #include "list.h"
 #include "debug.h"
+#include <pm_instr.h>
 
 static m_result_t persistent_shdr_open(char *module_path, uint64_t module_inode, uintptr_t module_start, module_dsr_t *module_dsr);
 
@@ -166,14 +167,14 @@ persistent_shdr_open(char *module_path,
 		}
 		if (strcmp(name, ".persistent") == 0) {
 			module_dsr->persistent_scn = scn;
-			memcpy((void *) &module_dsr->persistent_shdr, &shdr, sizeof(GElf_Shdr));
+			PM_MEMCPY((void *) &module_dsr->persistent_shdr, &shdr, sizeof(GElf_Shdr));
 			have_persistent = 1;
 			break;
 		}			
 	}
 
 	if (have_persistent) {
-		strcpy(module_dsr->module_path, module_path);
+		PM_STRCPY(module_dsr->module_path, module_path);
 		module_dsr->module_start = module_start;
 		module_dsr->module_inode = module_inode;
 		module_dsr->fd = fd;
@@ -189,7 +190,7 @@ persistent_shdr_open(char *module_path,
 				errx(EX_SOFTWARE, "elf_strptr() failed: %s.", elf_errmsg(-1));
 			}
 			if (strcmp(name, ".got") == 0) {
-				memcpy((void *) &module_dsr->GOT_shdr, &shdr, sizeof(GElf_Shdr));
+				PM_MEMCPY((void *) &module_dsr->GOT_shdr, &shdr, sizeof(GElf_Shdr));
 				result = M_R_SUCCESS;
 				goto out;
 			}
@@ -262,7 +263,7 @@ m_module_create_module_dsr_list(struct list_head *module_dsr_listp)
 			{
 				list_add(&module_dsr->list, module_dsr_listp);
 				module_dsr = NULL; /* to allocate a new module_dsr object */
-				strcpy(prev_mapname, mapname);
+				PM_STRCPY(prev_mapname, mapname);
 			}
 		}
 	}

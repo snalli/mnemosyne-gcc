@@ -65,6 +65,12 @@ do_global_init(void)
 	if (mnemosyne_initialized) {
 		return;
 	}
+	
+	pthread_spin_init(&tbuf_lock, PTHREAD_PROCESS_SHARED);
+	tbuf = (char*)malloc(MAX_TBUF_SZ);
+	if(!tbuf)
+		M_ERROR("Failed to allocate trace buffer. Abort now.");
+		
 
 	pcm_storeset = pcm_storeset_get ();
 
@@ -102,6 +108,24 @@ do_global_fini(void)
 		m_logmgr_fini();
 		m_segmentmgr_fini();
 		mtm_fini_global();
+		pthread_spin_lock(&tbuf_lock);
+		if(tbuf_sz)
+		{
+		        tbuf_ptr = 0; 
+        	        while(tbuf_ptr < tbuf_sz)       
+	                {
+				/* 
+				 * for some reason tbuf[tbuf] doesn't work
+				 * although i thot tbuf + tbuf is same as 
+				 * tbuf[tbuf];
+				 */
+	                        tbuf_ptr = tbuf_ptr + 1 + fprintf(stderr, "%s", tbuf + tbuf_ptr); 
+				// tbuf_ptr += TSTR_SZ;
+                	}
+			tbuf_sz = 0;
+		}
+		pthread_spin_unlock(&tbuf_lock);
+		pthread_spin_destroy(&tbuf_lock);
 		mnemosyne_initialized = 0;
 
 		M_WARNING("Shutdown\n");

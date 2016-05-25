@@ -21,9 +21,9 @@ PointerSetHash *PointerSetHash_new(void)
 void PointerSetHash_copy_(PointerSetHash *self, const PointerSetHash *other)
 {
 	io_free(self->records);
-	memcpy(self, other, sizeof(PointerSetHash));
+	PM_MEMCPY(self, other, sizeof(PointerSetHash));
 	self->records = malloc(self->size * sizeof(PointerSetHashRecord));
-	memcpy(self->records, other->records, self->size * sizeof(PointerSetHashRecord));
+	PM_MEMCPY(self->records, other->records, self->size * sizeof(PointerSetHashRecord));
 }
 
 PointerSetHash *PointerSetHash_clone(PointerSetHash *self)
@@ -39,7 +39,7 @@ void PointerSetHash_setSize_(PointerSetHash *self, size_t size)
 	
 	if(size > self->size)
 	{		
-		memset(self->records + self->size * sizeof(PointerSetHashRecord), 
+		PM_MEMSET(self->records + self->size * sizeof(PointerSetHashRecord), 
 			0x0, (size - self->size) * sizeof(PointerSetHashRecord));
 	}
 	

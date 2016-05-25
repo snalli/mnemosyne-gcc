@@ -18,6 +18,10 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 #include "config.h"
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
 
 #include "hoardheap.h"
 #include "processheap.h"
@@ -82,7 +86,7 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
 
   superblock * sb = NULL;
   int reUsed = 0;
-
+  __m_debug();
   // Look through the superblocks, starting with the almost-full ones
   // and going to the emptiest ones.  The Least Empty Bin for a
   // sizeclass is a conservative approximation (fixed after one
@@ -98,8 +102,15 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
         // Insert it into the bin list.
 
         insertSuperblock (sizeclass, sb, persistentheap);
-
-        assert (sb->getOwner() == this);
+	
+        if (sb->getOwner() != this)
+	{
+		fprintf(stderr, "FAIL(108) %lf %d  this = %p, sb = %p, sb->getOwner() = %p\n", ({gettimeofday(&mtm_time, NULL); \
+									(double)mtm_time.tv_sec +    \
+									((double)mtm_time.tv_usec / 1000000);}), \
+									syscall(SYS_gettid), this, sb, sb->getOwner());
+	        assert (sb->getOwner() == this);
+	}
         break;
 	  }
       if (i == _leastEmptyBin[sizeclass]) {
@@ -108,7 +119,15 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
         _leastEmptyBin[sizeclass]--;
       }
     } else {
-      assert (sb->getOwner() == this);
+        if (sb->getOwner() != this)
+	{
+		fprintf(stderr, "FAIL(124) %lf %d this = %p, sb = %p, sb->getOwner() = %p\n", ({gettimeofday(&mtm_time, NULL); \
+									(double)mtm_time.tv_sec +    \
+									((double)mtm_time.tv_usec / 1000000);}), \
+									syscall(SYS_gettid), this, sb, sb->getOwner());
+
+	      assert (sb->getOwner() == this);
+	}
       break;
     }
   } 
@@ -117,7 +136,15 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
     // Try to reuse a superblock.
     sb = reuse (sizeclass);
     if (sb) {
-      assert (sb->getOwner() == this);
+        if (sb->getOwner() != this)
+	{
+		fprintf(stderr, "FAIL(141) %lf %d this = %p, sb = %p, sb->getOwner() = %p\n", ({gettimeofday(&mtm_time, NULL); \
+									(double)mtm_time.tv_sec +    \
+									((double)mtm_time.tv_usec / 1000000);}), \
+									syscall(SYS_gettid), this, sb, sb->getOwner());
+
+	      assert (sb->getOwner() == this);
+	}
       reUsed = 1;
     }
   }
@@ -127,7 +154,16 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
     //   This superblock is 'valid'.
     assert (sb->isValid());
     //   This superblock has the right ownership.
-    assert (sb->getOwner() == this);
+
+        if (sb->getOwner() != this)
+	{
+		fprintf(stderr, "FAIL(160) %lf %d this = %p, sb = %p, sb->getOwner() = %p\n", ({gettimeofday(&mtm_time, NULL); \
+									(double)mtm_time.tv_sec +    \
+									((double)mtm_time.tv_usec / 1000000);}), \
+									syscall(SYS_gettid), this, sb, sb->getOwner());
+
+	    assert (sb->getOwner() == this);
+	}
     
     int oldFullness = sb->getFullness();
 
@@ -172,6 +208,7 @@ void hoardHeap::insertSuperblock (int sizeclass,
                                   superblock * sb,
                                   persistentHeap *)
 {
+  __m_debug();
 	assert (sb->isValid());
 	assert (sb->getBlockSizeClass() == sizeclass);
 	assert (sb->getPrev() == NULL);
@@ -300,6 +337,8 @@ superblock * hoardHeap::removeMaxSuperblock (int sizeclass)
 
 superblock * hoardHeap::removePartiallyFullSuperblock (int fullness, int sizeclass)
 {
+	__m_debug();
+	lock();
 	assert (_magic == HEAP_MAGIC);
 
 	superblock * head = NULL;
@@ -307,6 +346,7 @@ superblock * hoardHeap::removePartiallyFullSuperblock (int fullness, int sizecla
 	head = _superblocks[fullness][sizeclass];
 
 	if (!head) {
+		unlock();
 		return NULL;
 	}
 
@@ -323,6 +363,7 @@ superblock * hoardHeap::removePartiallyFullSuperblock (int fullness, int sizecla
 	assert (head->isValid());
 	assert (head->getPrev() == NULL);
 	assert (head->getNext() == NULL);
+	unlock();
 	return head;
 }
 
@@ -398,7 +439,8 @@ int hoardHeap::freeBlock (block *& b,
 	assert (this == sb->getOwner());
 
 	const int oldFullness = sb->getFullness();
-	sb->putBlock (b);
+	if (!sb->putBlock (b))
+		return 0;
 #if 0 // DEBUGPRINT
 	std::cout << "hoardheap::freeBlock  hoardheap(this) = " << this 
 	          << "sb = " << sb
@@ -481,8 +523,8 @@ int hoardHeap::freeBlock (block *& b,
 	if (_numProcessors > 1) {
 		int inUse, allocated;
 		getStats (sizeclass, inUse, allocated);
-		const bool crossedThreshold 
-		               = ((inUse < allocated - getReleaseThreshold(sizeclass)) && 
+		const bool crossedThreshold
+		                = ((inUse < allocated - getReleaseThreshold(sizeclass)) && 
 		                  (EMPTY_FRACTION * inUse < EMPTY_FRACTION * allocated - allocated));
 		if (crossedThreshold) {
 			// We've crossed the magical threshold. Find the superblock with

@@ -30,11 +30,13 @@
 #include "./test_and_set_t_is_char.h"
 
 #include "./standard_ao_double_t.h"
+#include <pm_instr.h>
 
 AO_INLINE void
 AO_nop_full(void)
 {
   /* Note: "mfence" (SSE2) is supported on all x86_64/amd64 chips.      */
+  PM_FENCE();
   __asm__ __volatile__("mfence" : : : "memory");
 }
 

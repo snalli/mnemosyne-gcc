@@ -20,9 +20,9 @@ IOINLINE PointerHash *PointerHash_new(void)
 IOINLINE void PointerHash_copy_(PointerHash *self, const PointerHash *other)
 {
 	io_free(self->records);
-	memcpy(self, other, sizeof(PointerHash));
+	PM_MEMCPY(self, other, sizeof(PointerHash));
 	self->records = malloc(self->size * sizeof(PointerHashRecord));
-	memcpy(self->records, other->records, self->size * sizeof(PointerHashRecord));
+	PM_MEMCPY(self->records, other->records, self->size * sizeof(PointerHashRecord));
 }
 
 IOINLINE PointerHash *PointerHash_clone(PointerHash *self)
@@ -38,7 +38,7 @@ IOINLINE void PointerHash_setSize_(PointerHash *self, size_t size)
 	
 	if(size > self->size)
 	{		
-		memset(self->records + self->size * sizeof(PointerHashRecord), 
+		PM_MEMSET(self->records + self->size * sizeof(PointerHashRecord), 
 			0x0, (size - self->size) * sizeof(PointerHashRecord));
 	}
 	

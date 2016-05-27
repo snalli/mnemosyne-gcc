@@ -47,6 +47,7 @@ __thread char tstr[TSTR_SZ];
 __thread int tsz = 0;
 __thread unsigned long long tbuf_ptr = 0;
 
+// Can we make these thread local ?
 char *tbuf;
 pthread_spinlock_t tbuf_lock;
 unsigned long long tbuf_sz;

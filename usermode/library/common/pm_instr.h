@@ -23,8 +23,8 @@
 #include <debug.h>
 #include <string.h>
 
-#define LOC1 	__func__	/* str ["0"]: can be __func__, __FILE__ */	
-#define LOC2	__LINE__        /* int [0]  : can be __LINE__ */
+#define LOC1 	"0"// __func__	/* str ["0"]: can be __func__, __FILE__ */	
+#define LOC2	0  //__LINE__        /* int [0]  : can be __LINE__ */
 #define TENTRY_ID					\
 	(mtm_tid == -1 ? 				\
 		({mtm_tid = syscall(SYS_gettid); mtm_tid;}) : mtm_tid), \

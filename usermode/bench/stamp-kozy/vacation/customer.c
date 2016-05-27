@@ -212,6 +212,12 @@ customer_removeReservationInfo (TM_ARGDECL
         TM_RESTART();
     }
 
+    /* 
+	The difficulty here is if you cannot remove the reservation from
+	the list and you don't restart the transaction, then you free the 
+	reservation without removing it from the list and that can lead to 
+	a segfault.
+    */
     RESERVATION_INFO_FREE(reservationInfoPtr);
 
     return TRUE;

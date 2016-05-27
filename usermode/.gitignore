@@ -5,6 +5,7 @@
 cscope.out
 .DS_Store
 .segments
+pin/
 /build
 /bench/openldap/openldap-2.3.35-bdb/build_local
 /bench/openldap/openldap-2.3.35-mnemosyne/build_local

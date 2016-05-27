@@ -97,12 +97,14 @@ extern struct timeval v_time;
 #define __m_fail()               fprintf(stderr, "FAIL %lf %d %s-%d \n",__m_time__,__m_tid__, __func__, __LINE__);
 #define __m_print(args ...)      fprintf(stderr, args);
 #define __m_print_d(s,d)         fprintf(stderr, "%lf %d %s-%d %s=%d\n",__m_time__,__m_tid__, __func__, __LINE__,s,d);
+#define __m_print_p(s,p)         fprintf(stderr, "%lf %d %s-%d %s=%p\n",__m_time__,__m_tid__, __func__, __LINE__,s,p);
 #define __m_print_s(s)           fprintf(stderr, "%lf %d %s-%d %s\n",__m_time__,__m_tid__, __func__, __LINE__,s);
 #else
 #define __m_debug()              {;}
 #define __m_fail()               {;}
 #define __m_print(args ...)      {;}
 #define __m_print_d(s,d)      	 {;}
+#define __m_print_p(s,d)      	 {;}
 #define __m_print_s(s)      	 {;}
 #endif
 
@@ -221,7 +223,7 @@ extern struct timeval v_time;
 #define TM_BEGIN()                    MNEMOSYNE_ATOMIC {
 #define TM_BEGIN_RO()                 MNEMOSYNE_ATOMIC { // What is the txn spans across multiple routines ?
 #define TM_END()                      }
-#define TM_RESTART()                  {;} // assert(0); // How do you explicitly restart txns in M ?
+#define TM_RESTART()                  MNEMOSYNE_ATOMIC { if(1) __tm_retry; } // assert(0); // How do you explicitly restart txns in M ?
 
 #define TM_EARLY_RELEASE(var)         /* nothing */
 

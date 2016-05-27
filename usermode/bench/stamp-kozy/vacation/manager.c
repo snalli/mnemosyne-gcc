@@ -118,6 +118,7 @@ addReservation (TM_ARGDECL  MAP_T* tablePtr, long id, long num, long price);
  * tableAlloc
  * =============================================================================
  */
+__TM_CALLABLE
 static MAP_T*
 tableAlloc ()
 {
@@ -137,22 +138,32 @@ manager_alloc ()
     managerPtr = (manager_t*)malloc(sizeof(manager_t));
     assert(managerPtr != NULL);
 
+    TM_BEGIN();
     if(!glb_car_table_ptr)
         glb_car_table_ptr      = tableAlloc();
+    TM_END();
 
+    TM_BEGIN();
     if(!glb_room_table_ptr)
         glb_room_table_ptr     = tableAlloc();
+    TM_END();
 
+    TM_BEGIN();
     if(!glb_flight_table_ptr)
         glb_flight_table_ptr   = tableAlloc();
+    TM_END();
 
+    TM_BEGIN();
     if(!glb_customer_table_ptr)
         glb_customer_table_ptr = tableAlloc();
+    TM_END();
 
+    TM_BEGIN();
     managerPtr->carTablePtr      = glb_car_table_ptr;
     managerPtr->roomTablePtr     = glb_room_table_ptr;
     managerPtr->flightTablePtr   = glb_flight_table_ptr;
     managerPtr->customerTablePtr = glb_customer_table_ptr;
+    TM_END();
 
     assert(managerPtr->carTablePtr != NULL);
     assert(managerPtr->roomTablePtr != NULL);
@@ -426,12 +437,14 @@ manager_addCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
 
     if (TMMAP_CONTAINS(managerPtr->customerTablePtr, customerId)) {
         // return FALSE;
-	__m_print_d("customerID (EXISTS)=", customerId);
+	__m_print_d("customerID(EXISTS)", customerId);
         return TRUE; 
 	/* 
 		FOR PERSISTENCE, if the customer already exists
 		then do nothing.
 	*/
+    } else {
+	__m_print_d("customerID(ADDED)", customerId);
     }
 
     customerPtr = CUSTOMER_ALLOC(customerId);

@@ -105,6 +105,8 @@ enum param_types {
 #define PARAM_DEFAULT_USER         (80)
 
 double global_params[256]; /* 256 = ascii limit */
+struct timeval v_time;
+
 
 
 /* =============================================================================
@@ -192,6 +194,7 @@ parseArgs (long argc, char* const argv[])
  * -- Wrapper function
  * =============================================================================
  */
+__TM_CALLABLE
 static bool_t
 addCustomer (manager_t* managerPtr, long id, long num, long price)
 {
@@ -216,6 +219,7 @@ initializeManager ()
     long numRelation;
     random_t* randomPtr;
     long* ids;
+    int v_glb_mgr_initialized = 0;
     /*
     FOR PERSISTENCE, we don't care about these sequential routines
     that use malloc and free. We want TM_MALLOC and TM_FREE
@@ -245,7 +249,15 @@ initializeManager ()
     managerPtr = manager_alloc();
     assert(managerPtr != NULL);
 
-    if(glb_mgr_initialized)
+    TM_BEGIN();
+	    // Read-only transaction 
+	    // Transaction is necessary even though there is only one thread
+  	    // Since TM library may choose to implement a redo-log in which
+	    // case only the TM library is aware of the location of the latest version
+	    v_glb_mgr_initialized = glb_mgr_initialized;
+    TM_END();
+
+    if(v_glb_mgr_initialized)
     {
 	printf("\n***************************************************\n");
         printf("\nRe-using tables from previous incarnation...\n");
@@ -282,7 +294,18 @@ initializeManager ()
             long id = ids[i];
             long num = ((random_generate(randomPtr) % 5) + 1) * 100;
             long price = ((random_generate(randomPtr) % 5) * 10) + 50;
-            status = manager_add[t](managerPtr, id, num, price);
+	    TM_BEGIN();
+		/* 
+			FOR PERSISTENCE, NOT FOR SYNCHRONIZATION 
+			Do we need the overhead of a transaction when
+			there is exactly one thread ?
+			Yes, for crash consistency !
+			But the side-effect is the overhead of locking
+			Do we need locking ? Can we disable lock mgmt ?
+			This act increases the time to initialize, but only the first time.
+		*/
+            	status = manager_add[t](managerPtr, id, num, price);
+	    TM_END();
             assert(status);
         }
 
@@ -294,7 +317,9 @@ initializeManager ()
     random_free(randomPtr);
     free(ids);
 
-    glb_mgr_initialized = 1;
+    TM_BEGIN();
+	    glb_mgr_initialized = 1;
+    TM_END();
     return managerPtr;
 }
 

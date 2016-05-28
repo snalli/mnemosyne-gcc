@@ -51,6 +51,7 @@ __thread unsigned long long tbuf_ptr = 0;
 char *tbuf;
 pthread_spinlock_t tbuf_lock;
 unsigned long long tbuf_sz;
+int mtm_enable_trace = 0;
 
 
 void

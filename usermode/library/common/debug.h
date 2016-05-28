@@ -82,12 +82,12 @@ extern __thread int mtm_tid;
 
 extern __thread char tstr[TSTR_SZ];
 extern __thread int tsz;
+extern __thread unsigned long long tbuf_ptr;
 
 extern char *tbuf;
 extern unsigned long long tbuf_sz;
 extern pthread_spinlock_t tbuf_lock;
-extern __thread unsigned long long tbuf_ptr;
-
+extern int mtm_enable_trace;
 #ifdef __cplusplus
 }
 #endif

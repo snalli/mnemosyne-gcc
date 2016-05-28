@@ -48,7 +48,7 @@ AddOption('--test-filter',
            help='a regular expression used to match tests to run')
 AddOption('--enable-trace',
            action="store_true", dest='enable_trace',
-           default = False,
+           default = True,
            help='Enable tracing of NVM accesses [%default]')
 
 

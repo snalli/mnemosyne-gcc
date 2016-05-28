@@ -55,8 +55,8 @@ public:
 
 	// A thread heap must be at least 1/EMPTY_FRACTION empty before we
 	// start returning superblocks to the process heap.
-	// enum { EMPTY_FRACTION = SUPERBLOCK_FULLNESS_GROUP - 1 };
-	enum { EMPTY_FRACTION = 1 };
+	enum { EMPTY_FRACTION = SUPERBLOCK_FULLNESS_GROUP - 1 };
+	// enum { EMPTY_FRACTION = 1 };
 
 	// Reset value for the least-empty bin.  The last bin
 	// (SUPERBLOCK_FULLNESS_GROUP-1) is for completely full superblocks,
@@ -72,7 +72,7 @@ public:
 	// number of threads -- Hoard imposes no such limit.)  This must be
 	// a power of two! NB: This number is twice the maximum number of
 	// PROCESSORS supported by Hoard. 2P
-	enum { MAX_HEAPS = 64 };
+	enum { MAX_HEAPS = 8 };
 
 	// ANDing with this rounds to MAX_HEAPS.
 	enum { MAX_HEAPS_MASK = MAX_HEAPS - 1 };

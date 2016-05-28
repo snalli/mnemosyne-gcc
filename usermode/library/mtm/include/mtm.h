@@ -57,6 +57,7 @@ extern "C" {
 # endif
 
 void mtm_fini_global();
+extern int mtm_enable_trace;
 
 
 # ifdef __cplusplus

@@ -37,8 +37,7 @@
 
 
 #ifndef RW_SET_SIZE
-// #define RW_SET_SIZE (256*1024)
-#define RW_SET_SIZE (1024*1024)
+#define RW_SET_SIZE (256*1024)
 #endif
 
 #undef _DTABLE_MEMBER

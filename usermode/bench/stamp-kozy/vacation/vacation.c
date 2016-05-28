@@ -95,14 +95,16 @@ enum param_types {
     PARAM_RELATIONS    = (unsigned char)'r',
     PARAM_TRANSACTIONS = (unsigned char)'t',
     PARAM_USER         = (unsigned char)'u',
+    PARAM_TRACE        = (unsigned char)'e',
 };
 
 #define PARAM_DEFAULT_CLIENTS      (1)
 #define PARAM_DEFAULT_NUMBER       (10)
 #define PARAM_DEFAULT_QUERIES      (90)
-#define PARAM_DEFAULT_RELATIONS    (1 << 16)
+#define PARAM_DEFAULT_RELATIONS    ((1<<22) + (1<<20) + (1<<19))
 #define PARAM_DEFAULT_TRANSACTIONS (1 << 17)
 #define PARAM_DEFAULT_USER         (80)
+#define PARAM_DEFAULT_TRACE        (0)
 
 double global_params[256]; /* 256 = ascii limit */
 struct timeval v_time;
@@ -128,6 +130,8 @@ displayUsage (const char* appName)
            PARAM_DEFAULT_TRANSACTIONS);
     printf("    u <UINT>   Percentage of [u]ser transactions     (%i)\n",
            PARAM_DEFAULT_USER);
+    printf("    e <UINT>   Enable trac[e] collection             (%i)\n",
+           PARAM_DEFAULT_TRACE);
     exit(1);
 }
 
@@ -145,6 +149,7 @@ setDefaultParams ()
     global_params[PARAM_RELATIONS]    = PARAM_DEFAULT_RELATIONS;
     global_params[PARAM_TRANSACTIONS] = PARAM_DEFAULT_TRANSACTIONS;
     global_params[PARAM_USER]         = PARAM_DEFAULT_USER;
+    global_params[PARAM_TRACE]        = PARAM_DEFAULT_TRACE;
 }
 
 
@@ -162,13 +167,15 @@ parseArgs (long argc, char* const argv[])
 
     setDefaultParams();
 
-    while ((opt = getopt(argc, argv, "c:n:q:t:u:")) != -1) {
+    while ((opt = getopt(argc, argv, "c:n:q:r:t:u:e:")) != -1) {
         switch (opt) {
             case 'c':
             case 'n':
             case 'q':
+            case 'r':
             case 't':
             case 'u':
+            case 'e':
                 global_params[(unsigned char)opt] = atol(optarg);
                 break;
             case '?':
@@ -365,6 +372,7 @@ initializeClients (manager_t* managerPtr)
     }
 
     puts("done.");
+    /*
     printf("    Transactions        = %li\n", numTransaction);
     printf("    Clients             = %li\n", numClient);
     printf("    Transactions/client = %li\n", numTransactionPerClient);
@@ -373,6 +381,7 @@ initializeClients (manager_t* managerPtr)
     printf("    Query percent       = %li\n", percentQuery);
     printf("    Query range         = %li\n", queryRange);
     printf("    Percent user        = %li\n", percentUser);
+    */
     fflush(stdout);
 
     random_free(randomPtr);
@@ -472,8 +481,36 @@ MAIN(argc, argv)
     /* Initialization */
     parseArgs(argc, argv);
     SIM_GET_NUM_CPU(global_params[PARAM_CLIENTS]);
+
+    long numClient = (long)global_params[PARAM_CLIENTS];
+    long numTransaction = (long)global_params[PARAM_TRANSACTIONS];
+    long numTransactionPerClient = 0;
+    long numQueryPerTransaction = (long)global_params[PARAM_NUMBER];
+    long numRelation = (long)global_params[PARAM_RELATIONS];
+    long percentQuery = (long)global_params[PARAM_QUERIES];
+    long queryRange;
+    long percentUser = (long)global_params[PARAM_USER];
+    long enableTrace = (long)global_params[PARAM_TRACE];
+    if(numClient != 0)
+	    numTransactionPerClient = (long)((double)numTransaction / (double)numClient + 0.5);
+    queryRange = (long)((double)percentQuery / 100.0 * (double)numRelation + 0.5);
+    mtm_enable_trace = (int)enableTrace;
+
+    printf("    Transactions        = %li\n", numTransaction);
+    printf("    Clients             = %li\n", numClient);
+    printf("    Transactions/client = %li\n", numTransactionPerClient);
+    printf("    Queries/transaction = %li\n", numQueryPerTransaction);
+    printf("    Relations           = %li\n", numRelation);
+    printf("    Query percent       = %li\n", percentQuery);
+    printf("    Query range         = %li\n", queryRange);
+    printf("    Percent user        = %li\n", percentUser);
+    printf("    Enable trace        = %li\n", enableTrace);
+ 
     managerPtr = initializeManager();
     assert(managerPtr != NULL);
+    if(numClient == 0)
+	MAIN_RETURN(0);
+
     clients = initializeClients(managerPtr);
     assert(clients != NULL);
     long numThread = global_params[PARAM_CLIENTS];
@@ -482,7 +519,7 @@ MAIN(argc, argv)
     thread_startup(numThread);
 
     /* Run transactions */
-    printf("Running clients... ");
+    printf("\nRunning clients...\n\n");
     fflush(stdout);
     TIMER_READ(start);
     GOTO_SIM();

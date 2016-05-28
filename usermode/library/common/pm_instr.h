@@ -37,6 +37,7 @@
 #ifdef _ENABLE_TRACE
 #define pm_trace_print(format, args ...)		\
     {							\
+	if(mtm_enable_trace) {				\
 	pthread_spin_lock(&tbuf_lock);			\
        	sprintf(tstr, format, args);    		\
 	tsz = strlen(tstr);				\
@@ -60,6 +61,7 @@
 							\
 	}						\
 	pthread_spin_unlock(&tbuf_lock);		\
+	}						\
     }
 #else
 #define pm_trace_print(args ...)	{;}

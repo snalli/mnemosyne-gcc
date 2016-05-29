@@ -237,6 +237,7 @@ addReservation (TM_ARGDECL  MAP_T* tablePtr, long id, long num, long price)
         if (!RESERVATION_ADD_TO_TOTAL(reservationPtr, num)) {
             return FALSE;
         }
+	// TODO : This doesn't make sense. Why would you delete a car that is in use ?
         if ((long)TM_SHARED_READ(reservationPtr->numTotal) == 0) {
             bool_t status = TMMAP_REMOVE(tablePtr, id);
             if (status == FALSE) {
@@ -518,21 +519,34 @@ manager_deleteCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
         reservationPtr =
             (reservation_t*)TMMAP_FIND(reservationTables[reservationInfoPtr->type],
                                      reservationInfoPtr->id);
+	if (reservationPtr != NULL)
+        	status = RESERVATION_CANCEL(reservationPtr);
+	/*
+	TODO : Is this even vacation any longer ? IDK 
         if (reservationPtr == NULL) {
+		// What is the point of restarting the TXN when 
+		// the bloody table has no tuple ? Do you think
+		// the tuple will magically reappear when you restart
+		// the transaction ?
             TM_RESTART();
         }
         status = RESERVATION_CANCEL(reservationPtr);
         if (status == FALSE) {
+		// NOTE : We will never enter here !
             TM_RESTART();
         }
+	*/
         RESERVATION_INFO_FREE(reservationInfoPtr);
     }
 
+    /*
+    We don't want to delete a customer, but only the reservations he makes.
     status = TMMAP_REMOVE(managerPtr->customerTablePtr, customerId);
     if (status == FALSE) {
         TM_RESTART();
     }
     CUSTOMER_FREE(customerPtr);
+    */
 
     return TRUE;
 }

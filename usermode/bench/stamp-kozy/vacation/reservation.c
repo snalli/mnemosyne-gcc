@@ -318,13 +318,17 @@ reservation_cancel (TM_ARGDECL  reservation_t* reservationPtr)
 {
     long numUsed = (long)TM_SHARED_READ(reservationPtr->numUsed);
 
-    if (numUsed < 1) {
-        return FALSE;
-    }
+    // TODO : Put it back
+    //if (numUsed < 1) {
+    //    return FALSE;
+    //}
 
-    TM_SHARED_WRITE(reservationPtr->numUsed, (numUsed - 1));
-    TM_SHARED_WRITE(reservationPtr->numFree,
+    if (numUsed > 0)
+    {
+	    TM_SHARED_WRITE(reservationPtr->numUsed, (numUsed - 1));
+    	    TM_SHARED_WRITE(reservationPtr->numFree,
                     ((long)TM_SHARED_READ(reservationPtr->numFree) + 1));
+    }
 
     CHECK_RESERVATION(reservationPtr);
 

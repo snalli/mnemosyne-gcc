@@ -84,6 +84,7 @@
 #  include "hashtable.h"
 
 #  define MAP_T                       hashtable_t
+/* Sequential operations */
 #  define MAP_ALLOC(hash, cmp)        hashtable_alloc(1, hash, cmp, 2, 2)
 #  define MAP_FREE(map)               hashtable_free(map)
 #  define MAP_CONTAINS(map, key)      hashtable_containsKey(map, (void*)(key))

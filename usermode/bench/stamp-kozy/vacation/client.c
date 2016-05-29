@@ -177,6 +177,8 @@ client_run (void* argPtr)
 
     for (i = 0; i < numOperation; i++) {
 
+	if(i%100000 == 0)
+		printf("Thread-%lu finished %lu queries\n", myId, i);
         long r = random_generate(randomPtr) % 100;
         action_t action = selectAction(r, percentUser);
 
@@ -246,7 +248,9 @@ client_run (void* argPtr)
                 long customerId = random_generate(randomPtr) % queryRange + 1;
                 TM_BEGIN();
                 long bill = MANAGER_QUERY_CUSTOMER_BILL(managerPtr, customerId);
-                if (bill >= 0) {
+                // if (bill >= 0) { If the bill is 0, then the customer has no reservations to be deleted !
+		// I think it is correct. Put it back TODO
+                if (bill > 0) {
                     MANAGER_DELETE_CUSTOMER(managerPtr, customerId);
                 }
                 TM_END();

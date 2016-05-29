@@ -108,8 +108,10 @@ enum param_types {
 
 double global_params[256]; /* 256 = ascii limit */
 struct timeval v_time;
-
-
+int init_user = 0;
+unsigned long long v_mem_total = 0;
+unsigned long long nv_mem_total = 0;
+unsigned long v_free = 0, nv_free = 0;
 
 /* =============================================================================
  * displayUsage
@@ -493,6 +495,8 @@ MAIN(argc, argv)
     long enableTrace = (long)global_params[PARAM_TRACE];
     if(numClient != 0)
 	    numTransactionPerClient = (long)((double)numTransaction / (double)numClient + 0.5);
+    else
+	    init_user = 1;
     queryRange = (long)((double)percentQuery / 100.0 * (double)numRelation + 0.5);
     mtm_enable_trace = (int)enableTrace;
 
@@ -509,7 +513,14 @@ MAIN(argc, argv)
     managerPtr = initializeManager();
     assert(managerPtr != NULL);
     if(numClient == 0)
+    {
+	printf("\nInit-phase\n");
+	printf("Total volatile memory consumption     = %llu bytes\n", v_mem_total);
+	printf("Total non-volatile memory consumption = %llu bytes\n", nv_mem_total);
+	printf("Total volatile memory free()'s        = %lu\n", v_free);
+	printf("Total non-volatile memory free()'s    = %lu\n", nv_free);
 	MAIN_RETURN(0);
+    }
 
     clients = initializeClients(managerPtr);
     assert(clients != NULL);

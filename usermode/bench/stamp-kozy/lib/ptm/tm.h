@@ -202,6 +202,11 @@ extern struct timeval v_time;
 
 #include <assert.h>
 
+extern int init_user;
+extern unsigned long long v_mem_total;
+extern unsigned long long nv_mem_total;
+extern unsigned long v_free, nv_free;
+
 #define TM_ARG                        /* nothing */
 #define TM_ARG_ALONE                  /* nothing */
 #define TM_ARGDECL                    /* nothing */
@@ -215,10 +220,34 @@ extern struct timeval v_time;
 #define TM_THREAD_ENTER()             /* nothing */
 #define TM_THREAD_EXIT()              /* nothing */
 
-#define P_MALLOC(size)              malloc(size)
-#define P_FREE(ptr)                 free(ptr)
-#define TM_MALLOC(size)             pmalloc(size)
-#define TM_FREE(ptr)                pfree(ptr)
+#define P_MALLOC(size)              		\
+	({ 					\
+		void *vptr = malloc(size); 	\
+		if(vptr && init_user)		\
+			v_mem_total += size;	\
+		vptr;				\
+	})
+#define P_FREE(ptr)                 		\
+	({					\
+		void *vptr = ptr;		\
+		if(vptr && init_user)		\
+			++v_free;		\
+		free(ptr);			\
+	})
+#define TM_MALLOC(size)             		\
+	({					\
+		void *nvptr = pmalloc(size);	\
+		if(nvptr && init_user)		\
+			nv_mem_total += size;	\
+		nvptr;				\
+	})
+#define TM_FREE(ptr)                		\
+	({					\
+		void *nvptr = ptr;		\
+		if(nvptr && init_user)		\
+			++nv_free;		\
+		pfree(ptr);			\
+	})
 
 #define TM_BEGIN()                    MNEMOSYNE_ATOMIC {
 #define TM_BEGIN_RO()                 MNEMOSYNE_ATOMIC { // What is the txn spans across multiple routines ?

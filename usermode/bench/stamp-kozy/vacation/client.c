@@ -178,7 +178,7 @@ client_run (void* argPtr)
     for (i = 0; i < numOperation; i++) {
 
 	if(i%100000 == 0)
-		printf("Thread-%lu finished %lu queries\n", myId, i);
+		fprintf(OUT, "Thread-%lu finished %lu queries\n", myId, i);
         long r = random_generate(randomPtr) % 100;
         action_t action = selectAction(r, percentUser);
 

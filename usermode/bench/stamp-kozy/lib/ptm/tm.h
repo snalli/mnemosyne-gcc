@@ -201,12 +201,15 @@ extern struct timeval v_time;
 
 
 #include <assert.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 extern int init_user;
 extern unsigned long long v_mem_total;
 extern unsigned long long nv_mem_total;
 extern unsigned long v_free, nv_free;
 
+#define OUT			      stderr
 #define TM_ARG                        /* nothing */
 #define TM_ARG_ALONE                  /* nothing */
 #define TM_ARGDECL                    /* nothing */
@@ -217,7 +220,7 @@ extern unsigned long v_free, nv_free;
 #define TM_STARTUP(numThread)         /* nothing */
 #define TM_SHUTDOWN()                 /* nothing */
 
-#define TM_THREAD_ENTER()             /* nothing */
+#define TM_THREAD_ENTER()             fprintf(OUT, "Starting thread %li\n", syscall(SYS_gettid));
 #define TM_THREAD_EXIT()              /* nothing */
 
 #define P_MALLOC(size)              		\

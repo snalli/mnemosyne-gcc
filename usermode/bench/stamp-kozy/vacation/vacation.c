@@ -120,19 +120,19 @@ unsigned long v_free = 0, nv_free = 0;
 static void
 displayUsage (const char* appName)
 {
-    printf("Usage: %s [options]\n", appName);
-    puts("\nOptions:                                             (defaults)\n");
-    printf("    c <UINT>   Number of [c]lients                   (%i)\n",
+    fprintf(OUT, "Usage: %s [options]\n", appName);
+    fprintf(OUT,"\nOptions:                                             (defaults)\n");
+    fprintf(OUT, "    c <UINT>   Number of [c]lients                   (%i)\n",
            PARAM_DEFAULT_CLIENTS);
-    printf("    n <UINT>   [n]umber of user queries/transaction  (%i)\n",
+    fprintf(OUT, "    n <UINT>   [n]umber of user queries/transaction  (%i)\n",
            PARAM_DEFAULT_NUMBER);
-    printf("    q <UINT>   Percentage of relations [q]ueried     (%i)\n",
+    fprintf(OUT, "    q <UINT>   Percentage of relations [q]ueried     (%i)\n",
            PARAM_DEFAULT_QUERIES);
-    printf("    t <UINT>   Number of [t]ransactions              (%i)\n",
+    fprintf(OUT, "    t <UINT>   Number of [t]ransactions              (%i)\n",
            PARAM_DEFAULT_TRANSACTIONS);
-    printf("    u <UINT>   Percentage of [u]ser transactions     (%i)\n",
+    fprintf(OUT, "    u <UINT>   Percentage of [u]ser transactions     (%i)\n",
            PARAM_DEFAULT_USER);
-    printf("    e <UINT>   Enable trac[e] collection             (%i)\n",
+    fprintf(OUT, "    e <UINT>   Enable trac[e] collection             (%i)\n",
            PARAM_DEFAULT_TRACE);
     exit(1);
 }
@@ -188,7 +188,7 @@ parseArgs (long argc, char* const argv[])
     }
 
     for (i = optind; i < argc; i++) {
-        fprintf(stderr, "Non-option argument: %s\n", argv[i]);
+        fprintf(OUT, "Non-option argument: %s\n", argv[i]);
         opterr++;
     }
 
@@ -249,7 +249,7 @@ initializeManager ()
     long t;
     long numTable = sizeof(manager_add) / sizeof(manager_add[0]);
 
-    printf("Initializing manager... ");
+    fprintf(OUT, "Initializing manager... ");
     fflush(stdout);
 
     randomPtr = random_alloc();
@@ -268,14 +268,14 @@ initializeManager ()
 
     if(v_glb_mgr_initialized)
     {
-	printf("\n***************************************************\n");
-        printf("\nRe-using tables from previous incarnation...\n");
-        printf("\n%s = %p\n%s = %p\n%s = %p\n%s = %p\n",					\
+	fprintf(OUT, "\n***************************************************\n");
+        fprintf(OUT, "\nRe-using tables from previous incarnation...\n");
+        fprintf(OUT, "\n%s = %p\n%s = %p\n%s = %p\n%s = %p\n",					\
 						"Car Table     ", managerPtr->carTablePtr, 	\
                                                 "Room Table    ", managerPtr->roomTablePtr, 	\
                                                 "Flight Table  ", managerPtr->flightTablePtr, 	\
                                                 "Customer Table", managerPtr->customerTablePtr);
-	printf("\n***************************************************\n");
+	fprintf(OUT, "\n***************************************************\n");
 
         return managerPtr;
     }
@@ -288,6 +288,7 @@ initializeManager ()
 
     for (t = 0; t < numTable; t++) {
 
+	fprintf(OUT, "POPULATING TABLE NO. %lu\n", t);
         /* Shuffle ids */
         for (i = 0; i < numRelation; i++) {
             long x = random_generate(randomPtr) % numRelation;
@@ -299,6 +300,9 @@ initializeManager ()
 
         /* Populate table */
         for (i = 0; i < numRelation; i++) {
+	
+	    if(i % 100000 == 0)
+	    	fprintf(OUT, "Table no. %lu : Completed %lu tuples\n", t, i);
             bool_t status;
             long id = ids[i];
             long num = ((random_generate(randomPtr) % 5) + 1) * 100;
@@ -352,8 +356,8 @@ initializeClients (manager_t* managerPtr)
     long queryRange;
     long percentUser = (long)global_params[PARAM_USER];
 
-    printf("Initializing clients... ");
-    fflush(stdout);
+    fprintf(OUT, "Initializing clients... ");
+    fflush(OUT);
 
     randomPtr = random_alloc();
     assert(randomPtr != NULL);
@@ -500,25 +504,25 @@ MAIN(argc, argv)
     queryRange = (long)((double)percentQuery / 100.0 * (double)numRelation + 0.5);
     mtm_enable_trace = (int)enableTrace;
 
-    printf("    Transactions        = %li\n", numTransaction);
-    printf("    Clients             = %li\n", numClient);
-    printf("    Transactions/client = %li\n", numTransactionPerClient);
-    printf("    Queries/transaction = %li\n", numQueryPerTransaction);
-    printf("    Relations           = %li\n", numRelation);
-    printf("    Query percent       = %li\n", percentQuery);
-    printf("    Query range         = %li\n", queryRange);
-    printf("    Percent user        = %li\n", percentUser);
-    printf("    Enable trace        = %li\n", enableTrace);
+    fprintf(OUT, "    Transactions        = %li\n", numTransaction);
+    fprintf(OUT, "    Clients             = %li\n", numClient);
+    fprintf(OUT, "    Transactions/client = %li\n", numTransactionPerClient);
+    fprintf(OUT, "    Queries/transaction = %li\n", numQueryPerTransaction);
+    fprintf(OUT, "    Relations           = %li\n", numRelation);
+    fprintf(OUT, "    Query percent       = %li\n", percentQuery);
+    fprintf(OUT, "    Query range         = %li\n", queryRange);
+    fprintf(OUT, "    Percent user        = %li\n", percentUser);
+    fprintf(OUT, "    Enable trace        = %li\n", enableTrace);
  
     managerPtr = initializeManager();
     assert(managerPtr != NULL);
     if(numClient == 0)
     {
-	printf("\nInit-phase\n");
-	printf("Total volatile memory consumption     = %llu bytes\n", v_mem_total);
-	printf("Total non-volatile memory consumption = %llu bytes\n", nv_mem_total);
-	printf("Total volatile memory free()'s        = %lu\n", v_free);
-	printf("Total non-volatile memory free()'s    = %lu\n", nv_free);
+	fprintf(OUT, "\nInit-phase\n");
+	fprintf(OUT, "Total volatile memory consumption     = %llu bytes\n", v_mem_total);
+	fprintf(OUT, "Total non-volatile memory consumption = %llu bytes\n", nv_mem_total);
+	fprintf(OUT, "Total volatile memory free()'s        = %lu\n", v_free);
+	fprintf(OUT, "Total non-volatile memory free()'s    = %lu\n", nv_free);
 	MAIN_RETURN(0);
     }
 
@@ -530,8 +534,8 @@ MAIN(argc, argv)
     thread_startup(numThread);
 
     /* Run transactions */
-    printf("\nRunning clients...\n\n");
-    fflush(stdout);
+    fprintf(OUT, "\nRunning clients...\n\n");
+    fflush(OUT);
     TIMER_READ(start);
     GOTO_SIM();
 #ifdef OTM
@@ -544,18 +548,19 @@ MAIN(argc, argv)
 #endif
     GOTO_REAL();
     TIMER_READ(stop);
-    puts("done.");
-    printf("Time = %0.6lf\n",
+    mtm_enable_trace = (int)0;
+    fprintf(OUT, "done.");
+    fprintf(OUT, "Time = %0.6lf\n",
            TIMER_DIFF_SECONDS(start, stop));
-    fflush(stdout);
+    fflush(OUT);
 #if 0
     /* FOR PERSISTENCE, don't remove entries from table */
     checkTables(managerPtr);
 #endif
 
     /* Clean up */
-    printf("Deallocating memory... ");
-    fflush(stdout);
+    fprintf(OUT, "Deallocating memory... ");
+    fflush(OUT);
     freeClients(clients);
 #if 0
     /* FOR PERSISTENCE, don't clean-up */
@@ -564,8 +569,8 @@ MAIN(argc, argv)
      */
     manager_free(managerPtr);
 #endif
-    puts("done.");
-    fflush(stdout);
+    fprintf(OUT, "done.");
+    fflush(OUT);
     TM_SHUTDOWN();
     P_MEMORY_SHUTDOWN();
 

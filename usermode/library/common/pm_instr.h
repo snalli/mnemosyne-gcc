@@ -6,7 +6,7 @@
  * The value returned by code surrounded by {}
  * is the value returned by last statement in
  * the block. These macros do not perform any
- * operations on the persistent variable itself,
+ * operations on the persistent variable itsellu,
  * and hence do not introduce any extra accesses
  * to persistent memory. 
  * 
@@ -23,18 +23,26 @@
 #include <debug.h>
 #include <string.h>
 
+/*
+  		gettimeofday(&mtm_time, NULL);		\
+		(double)mtm_time.tv_sec +		\
+		((double)mtm_time.tv_usec /		\
+		1000000);				\
+
+ */
 #define LOC1 	"0"// __func__	/* str ["0"]: can be __func__, __FILE__ */	
 #define LOC2	0  //__LINE__        /* int [0]  : can be __LINE__ */
 #define TENTRY_ID					\
 	(mtm_tid == -1 ? 				\
 		({mtm_tid = syscall(SYS_gettid); mtm_tid;}) : mtm_tid), \
-	({gettimeofday(&mtm_time, NULL);		\
-		(double)mtm_time.tv_sec +		\
-		((double)mtm_time.tv_usec /		\
-		1000000);				\
+	({						\
+		gettimeofday(&mtm_time, NULL);		\
+		1000000*(mtm_time.tv_sec - glb_tv_sec)	\
+		+ (mtm_time.tv_usec - glb_tv_usec);	\
 	 })						\
 
 #ifdef _ENABLE_TRACE
+#define m_out stdout
 #define pm_trace_print(format, args ...)		\
     {							\
 	if(mtm_enable_trace) {				\
@@ -52,10 +60,11 @@
 		while(tbuf_ptr < tbuf_sz)		\
 		{					\
 			tbuf_ptr = tbuf_ptr + 1 + 	\
-				fprintf(stderr,"%s", 	\
+				fprintf(m_out,"%s", 	\
 				tbuf + tbuf_ptr);	\
 		}					\
 		tbuf_sz = 0; 				\
+		memset(tbuf,'\0', MAX_TBUF_SZ);		\
 		memcpy(tbuf, tstr, tsz);		\
 		tbuf_sz += tsz;				\
 							\
@@ -92,7 +101,7 @@
 /* PM Write to variable */
 #define PM_STORE(pm_dst, bytes)                     	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",        	\
+        PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",        	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         (pm_dst),                   	\
@@ -103,7 +112,7 @@
 
 #define PM_WRITE(pm_dst)                            	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",        	\
+        PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",        	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         &(pm_dst),                  	\
@@ -116,7 +125,7 @@
 
 #define PM_EQU(pm_dst, y)                           	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         &(pm_dst),                  	\
@@ -128,7 +137,7 @@
 
 #define PM_OR_EQU(pm_dst, y)                        	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         &(pm_dst),                  	\
@@ -140,7 +149,7 @@
 
 #define PM_AND_EQU(pm_dst, y)                       	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         &(pm_dst),                  	\
@@ -152,7 +161,7 @@
 
 #define PM_ADD_EQU(pm_dst, y)                       	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         &(pm_dst),                  	\
@@ -164,7 +173,7 @@
 
 #define PM_SUB_EQU(pm_dst, y)                       	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         &(pm_dst),                  	\
@@ -177,7 +186,7 @@
 /* PM Writes to a range of memory */
 #define PM_MEMSET(pm_dst, val, sz)                  	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         (pm_dst),                   	\
@@ -189,7 +198,7 @@
 
 #define PM_MEMCPY(pm_dst, src, sz)                  	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         (pm_dst),                   	\
@@ -201,7 +210,7 @@
 
 #define PM_STRCPY(pm_dst, src)                      	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%u:%s:%d\n",     	\
+            PM_TRACE("%d:%llu:%s:%p:%u:%s:%d\n",     	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         (pm_dst),                   	\
@@ -213,7 +222,7 @@
 
 #define PM_MOVNTI(pm_dst, count, copied)            	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%lu:%s:%d\n",	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%lu:%s:%d\n",	\
 			TENTRY_ID,		    	\
                         PM_NTI,                     	\
                         (pm_dst),                   	\
@@ -229,7 +238,7 @@
 /* Return the data    of persistent variable */
 #define PM_READ(pm_src)                             	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_RD_MARKER,               	\
                         &(pm_src),                  	\
@@ -242,7 +251,7 @@
 /* Return the address of persistent variable */
 #define PM_READ_P(pm_src)                           	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_RD_MARKER,               	\
                         &(pm_src),                  	\
@@ -255,14 +264,14 @@
 /* Return the address of persistent variable */
 #define PM_RD_WR_P(pm_src)                          	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",        	\
+        PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",        	\
 			TENTRY_ID,		    	\
                         PM_RD_MARKER,               	\
                         &(pm_src),                  	\
                         sizeof((pm_src)),           	\
                         LOC1,                   	\
                         LOC2);                  	\
-        PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",        	\
+        PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",        	\
 			TENTRY_ID,		    	\
                         PM_WRT_MARKER,              	\
                         &(pm_src),                  	\
@@ -275,7 +284,7 @@
 /* PM Reads to a range of memory */
 #define PM_MEMCMP(pm_dst, src, sz)                  	\
     ({                                              	\
-            PM_TRACE("%d:%lf:%s:%p:%lu:%s:%d\n",    	\
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",    	\
 			TENTRY_ID,		    	\
                         PM_RD_MARKER,               	\
                         (pm_dst),                   	\
@@ -291,7 +300,7 @@
 
 #define start_txn()                                 	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%s:%d\n",               	\
+        PM_TRACE("%d:%llu:%s:%s:%d\n",               	\
 			TENTRY_ID,		    	\
                 PM_TX_START,                        	\
                 LOC1,                           	\
@@ -300,7 +309,7 @@
 
 #define end_txn()                                   	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%s:%d\n",               	\
+        PM_TRACE("%d:%llu:%s:%s:%d\n",               	\
 			TENTRY_ID,		    	\
                 PM_TX_END,                          	\
                 LOC1,                           	\
@@ -313,7 +322,7 @@
  */
 #define PM_FLUSH(pm_dst, count, done)               	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%p:%u:%u:%s:%d\n",      	\
+        PM_TRACE("%d:%llu:%s:%p:%u:%u:%s:%d\n",      	\
 			TENTRY_ID,		    	\
                     PM_FLUSH_MARKER,                	\
                     (pm_dst),                       	\
@@ -325,7 +334,7 @@
     })
 #define PM_COMMIT()                                 	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%s:%d\n",		    	\
+        PM_TRACE("%d:%llu:%s:%s:%d\n",		    	\
 			TENTRY_ID,		    	\
 			PM_COMMIT_MARKER,    	    	\
                     	LOC1, 				\
@@ -333,7 +342,7 @@
     })
 #define PM_BARRIER()                                	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%s:%d\n",		    	\
+        PM_TRACE("%d:%llu:%s:%s:%d\n",		    	\
 			TENTRY_ID,		    	\
 			PM_BARRIER_MARKER,   	    	\
                     	LOC1, 				\
@@ -341,7 +350,7 @@
     })
 #define PM_FENCE()                                  	\
     ({                                              	\
-        PM_TRACE("%d:%lf:%s:%s:%d\n",		    	\
+        PM_TRACE("%d:%llu:%s:%s:%d\n",		    	\
 			TENTRY_ID,		    	\
 			PM_FENCE_MARKER,     	    	\
                     	LOC1, 				\

@@ -52,6 +52,8 @@ char *tbuf;
 pthread_spinlock_t tbuf_lock;
 unsigned long long tbuf_sz;
 int mtm_enable_trace = 0;
+struct timeval glb_time;
+unsigned long long glb_tv_sec = 0, glb_tv_usec = 0;
 
 
 void

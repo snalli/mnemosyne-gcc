@@ -23,26 +23,25 @@
 #include <debug.h>
 #include <string.h>
 
-/*
-  		gettimeofday(&mtm_time, NULL);		\
-		(double)mtm_time.tv_sec +		\
-		((double)mtm_time.tv_usec /		\
-		1000000);				\
+#define LOC1 	__func__	/* str ["0"]: can be __func__, __FILE__ */	
+#define LOC2	__LINE__        /* int [0]  : can be __LINE__ */
 
- */
-#define LOC1 	"0"// __func__	/* str ["0"]: can be __func__, __FILE__ */	
-#define LOC2	0  //__LINE__        /* int [0]  : can be __LINE__ */
+#define time_since_start				\
+	({						\
+		gettimeofday(&mtm_time, NULL);		\
+		((1000000*mtm_time.tv_sec + 		\
+				mtm_time.tv_usec)	\
+		- (glb_start_time));			\
+	})
+
 #define TENTRY_ID					\
 	(mtm_tid == -1 ? 				\
 		({mtm_tid = syscall(SYS_gettid); mtm_tid;}) : mtm_tid), \
-	({						\
-		gettimeofday(&mtm_time, NULL);		\
-		1000000*(mtm_time.tv_sec - glb_tv_sec)	\
-		+ (mtm_time.tv_usec - glb_tv_usec);	\
-	 })						\
+	(time_since_start)				
 
 #ifdef _ENABLE_TRACE
 #define m_out stdout
+#define m_err stderr
 #define pm_trace_print(format, args ...)		\
     {							\
 	if(mtm_enable_trace) {				\
@@ -57,6 +56,12 @@
 	}						\
 	else {						\
 		tbuf_ptr = 0;				\
+		if(mtm_debug_buffer)			\
+		{					\
+			fprintf(m_err, 			\
+			"start_buf_drain - %llu us\n",	\
+				time_since_start);	\
+		}					\
 		while(tbuf_ptr < tbuf_sz)		\
 		{					\
 			tbuf_ptr = tbuf_ptr + 1 + 	\
@@ -65,6 +70,12 @@
 		}					\
 		tbuf_sz = 0; 				\
 		memset(tbuf,'\0', MAX_TBUF_SZ);		\
+		if(mtm_debug_buffer)			\
+		{					\
+			fprintf(m_err, 			\
+			"end_buf_drain - %llu us\n",	\
+				time_since_start);	\
+		}					\
 		memcpy(tbuf, tstr, tsz);		\
 		tbuf_sz += tsz;				\
 							\

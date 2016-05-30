@@ -75,7 +75,7 @@ void m_debug_print_L(int debug_level, const char *strformat, ...);
 void m_print_trace (void);
 
 #define TSTR_SZ		128
-#define MAX_TBUF_SZ	64*1024	/* bytes */
+#define MAX_TBUF_SZ	512*1024*1024	/* bytes */
 
 extern __thread struct timeval mtm_time;
 extern __thread int mtm_tid;
@@ -88,8 +88,9 @@ extern char *tbuf;
 extern unsigned long long tbuf_sz;
 extern pthread_spinlock_t tbuf_lock;
 extern int mtm_enable_trace;
+extern int mtm_debug_buffer;
 extern struct timeval glb_time;
-extern unsigned long long glb_tv_sec, glb_tv_usec;
+extern unsigned long long glb_tv_sec, glb_tv_usec, glb_start_time;
 #ifdef __cplusplus
 }
 #endif

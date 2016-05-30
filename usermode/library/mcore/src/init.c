@@ -70,6 +70,7 @@ do_global_init(void)
         gettimeofday(&glb_time, NULL);          
         glb_tv_sec  = glb_time.tv_sec;
         glb_tv_usec = glb_time.tv_usec;
+	glb_start_time = glb_tv_sec * 1000000 + glb_tv_usec;
 
 	pthread_spin_init(&tbuf_lock, PTHREAD_PROCESS_SHARED);
 	// tbuf = (char*)malloc(MAX_TBUF_SZ); To avoid interaction with M's hoard

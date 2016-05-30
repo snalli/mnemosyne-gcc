@@ -232,44 +232,49 @@ static inline unsigned long long asm_rdtscp(void)
 #endif
 
 
-static inline void asm_sse_write_block64(volatile pcm_word_t *addr, pcm_word_t *val)
-{
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[0]): "r" (val[0]));
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[1]): "r" (val[1]));
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[2]): "r" (val[2]));
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[3]): "r" (val[3]));
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[4]): "r" (val[4]));
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[5]): "r" (val[5]));
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[6]): "r" (val[6]));
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[7]): "r" (val[7]));
-}
+//static inline void asm_sse_write_block64(volatile pcm_word_t *addr, pcm_word_t *val)
+#define asm_sse_write_block64(addr, val)						\
+({											\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[0]): "r" (val[0]));		\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[1]): "r" (val[1]));		\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[2]): "r" (val[2]));		\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[3]): "r" (val[3]));		\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[4]): "r" (val[4]));		\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[5]): "r" (val[5]));		\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[6]): "r" (val[6]));		\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*&addr[7]): "r" (val[7]));		\
+})
 
 
-static inline void asm_movnti(volatile pcm_word_t *addr, pcm_word_t val)
-{
-	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*addr): "r" (val));
-	PM_MOVNTI(addr, sizeof(pcm_word_t), sizeof(pcm_word_t));
-}
+//static inline void asm_movnti(volatile pcm_word_t *addr, pcm_word_t val)
+#define asm_movnti(addr, val)							\
+({										\
+	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*addr): "r" (val));	\
+	PM_MOVNTI(addr, sizeof(pcm_word_t), sizeof(pcm_word_t));		\
+})
 
 
-static inline void asm_clflush(volatile pcm_word_t *addr)
-{
-	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));
-}
+// static inline void asm_clflush(volatile pcm_word_t *addr)
+#define asm_clflush(addr)					\
+({								\
+	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));	\
+})
 
 
-static inline void asm_mfence(void)
-{
-	PM_FENCE();
-	__asm__ __volatile__ ("mfence");
-}
+// static inline void asm_mfence(void)
+#define asm_mfence()				\
+({						\
+	PM_FENCE();				\
+	__asm__ __volatile__ ("mfence");	\
+})
 
 
-static inline void asm_sfence(void)
-{
-	PM_FENCE();
-	__asm__ __volatile__ ("sfence");
-}
+//static inline void asm_sfence(void)
+#define asm_sfence()				\
+({						\
+	PM_FENCE();				\
+	__asm__ __volatile__ ("sfence");	\
+})
 
 
 static inline
@@ -352,34 +357,84 @@ emulate_latency_ns(int ns)
  * 
  * Note: Mask MUST not be zero.
  */
-static inline 
-void
-write_aligned_masked(pcm_word_t *addr, pcm_word_t val, pcm_word_t mask)
-{
-	uintptr_t a;
-	int       i;
-	int       trailing_0bytes;
-	int       leading_0bytes;
+// static inline 
+// void
+//  write_aligned_masked(pcm_word_t *addr, pcm_word_t val, pcm_word_t mask)		
+#define write_aligned_masked(addr, val, mask)						\
+(											\
+	{										\
+		uintptr_t a;								\
+		int       i;								\
+		int       trailing_0bytes;						\
+		int       leading_0bytes;						\
+											\
+		union convert_u {							\
+			pcm_word_t w;							\
+			uint8_t    b[sizeof(pcm_word_t)];				\
+		} valu;									\
+											\
+		/* Complete write? */							\
+		if (mask == ((uint64_t) -1)) {						\
+			PM_EQU(*addr, val);						\
+		} else {								\
+			valu.w = val;							\
+			a = (uintptr_t) addr;						\
+			trailing_0bytes = __builtin_ctzll(mask) >> 3;			\
+			leading_0bytes = __builtin_clzll(mask) >> 3;			\
+			for (i = trailing_0bytes; i<8-leading_0bytes;i++) {		\
+				PM_EQU(*((uint8_t *) (a+i)), valu.b[i]);		\
+			}								\
+		}									\
+	}										\
+)		
 
-	union convert_u {
-		pcm_word_t w;
-		uint8_t    b[sizeof(pcm_word_t)];
-	} valu;
+#define PCM_WB_STORE_MASKED(set, addr, val, mask)				\
+		write_aligned_masked(addr, val, mask);				
 
-	/* Complete write? */
-	if (mask == ((uint64_t) -1)) {
-		PM_EQU(*addr, val);
-	} else {
-		valu.w = val;
-		a = (uintptr_t) addr;
-		trailing_0bytes = __builtin_ctzll(mask) >> 3;
-		leading_0bytes = __builtin_clzll(mask) >> 3;
-		for (i = trailing_0bytes; i<8-leading_0bytes;i++) {
-			PM_EQU(*((uint8_t *) (a+i)), valu.b[i]);
-		}
-	}
-}
+#define PCM_WB_STORE_ALIGNED_MASKED(set, addr, val, mask)			\
+		PCM_WB_STORE_MASKED(set, addr, val, mask);
 
+#define PCM_WB_FENCE(set)							\
+		asm_mfence(); 
+
+#define PCM_WB_FLUSH(set, addr)							\
+({										\
+	asm_clflush(addr); 							\
+	asm_mfence(); 								\
+})
+
+
+#define PCM_NT_STORE(set, addr, val)						\
+	asm_movnti(addr, val);
+
+#define PCM_NT_FLUSH(set)							\
+	asm_sfence();
+
+#define PCM_SEQSTREAM_STORE(set, addr, val)					\
+	asm_movnti(addr, val);
+
+#define PCM_SEQSTREAM_STORE_64B_FIRST_WORD(set, addr, val)			\
+	asm_movnti(addr, val);
+
+#define PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, addr, val)			\
+	asm_movnti(addr, val);
+
+#define PCM_SEQSTREAM_STORE_64B(set, addr, val)					\
+	asm_sse_write_block64(addr, val);
+
+#define PCM_SEQSTREAM_FLUSH(set)						\
+	asm_sfence();
+
+#define PCM_SEQSTREAM_INIT(set) {;}
+
+
+/****************************** WALL ***************************************/
+
+
+
+
+
+#if 0
 
 /*
  * WRITE BACK CACHE MODE
@@ -739,7 +794,7 @@ PCM_SEQSTREAM_FLUSH(pcm_storeset_t *set)
 	asm_sfence();
 #endif
 }
-
+#endif // #if 0
 #ifdef __cplusplus
 }
 #endif

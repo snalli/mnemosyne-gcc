@@ -548,7 +548,7 @@ MAIN(argc, argv)
 #endif
     GOTO_REAL();
     TIMER_READ(stop);
-    mtm_enable_trace = (int)0;
+    // mtm_enable_trace = (int)0;
     fprintf(OUT, "done.");
     fprintf(OUT, "Time = %0.6lf\n",
            TIMER_DIFF_SECONDS(start, stop));

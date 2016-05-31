@@ -255,11 +255,13 @@ static inline unsigned long long asm_rdtscp(void)
 
 
 // static inline void asm_clflush(volatile pcm_word_t *addr)
+/*
 #define asm_clflush(addr)					\
 ({								\
 	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));	\
 })
-
+*/
+#define asm_clflush(addr) {;}
 
 // static inline void asm_mfence(void)
 #define asm_mfence()				\

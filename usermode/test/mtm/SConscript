@@ -3,7 +3,7 @@ import sys
 import string
 sys.path.append('%s/library' % (Dir('#').abspath))
 
-Import('mcoreLibrary', 'mallocLibrary', 'mtmLibrary')
+Import('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
 Import('mainEnv')
 Import('testEnv')
 configEnv = mainEnv.Clone()

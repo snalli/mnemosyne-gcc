@@ -23,7 +23,7 @@ Import('mainEnv')
 testEnv = mainEnv.Clone()
 
 # For correct and complete compilation.
-testEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include', '#library/malloc/include']
+testEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
 testEnv.Append(CPPPATH = '#library/common')
 testEnv.Append(CCFLAGS = ' -m64 -g')
 testEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')

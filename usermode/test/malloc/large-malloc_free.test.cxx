@@ -34,14 +34,14 @@
 #include <mnemosyne.h>
 #include "../common/unittest.h"
 
-MNEMOSYNE_PERSISTENT void *dummy_ptr1;
+extern MNEMOSYNE_PERSISTENT void *dummy_ptr1;
 
 SUITE(SuiteLarge)
 {
 	TEST(Test1)
 	{
 		__tm_atomic {
-			dummy_ptr1 = pmalloc();
+			dummy_ptr1 = pmalloc(1024);
 		}
 		CHECK(dummy_ptr1 != NULL);
 	}

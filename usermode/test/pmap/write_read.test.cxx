@@ -36,7 +36,7 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include <stdlib.h>
-#include <unittest++/UnitTest++.h>
+#include <UnitTest++/UnitTest++.h>
 #include "../common/memrandom.h"
 
 #define PREGION_BASE          0xd00000000

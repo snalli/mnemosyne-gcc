@@ -32,7 +32,7 @@
 
 #include <vector>
 #include <stdlib.h>
-#include <unittest++/UnitTest++.h>
+#include <UnitTest++/UnitTest++.h>
 #include <mnemosyne.h>
 #include <pcm.h>
 #include "rawlog_tornbit.helper.h"

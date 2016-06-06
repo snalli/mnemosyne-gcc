@@ -34,11 +34,11 @@
 #include <fstream>
 #include <getopt.h>
 #include <string.h>
-#include <unittest++/UnitTest++.h>
-#include <unittest++/TestReporterStdout.h>
-#include <unittest++/TestRunner.h>
-#include <unittest++/Test.h>
-#include <unittest++/XmlTestReporter.h>
+#include <UnitTest++/UnitTest++.h>
+#include <UnitTest++/TestReporterStdout.h>
+#include <UnitTest++/TestRunner.h>
+#include <UnitTest++/Test.h>
+#include <UnitTest++/XmlTestReporter.h>
 
 struct RunTestIfNameIs
 {
@@ -57,7 +57,7 @@ struct RunTestIfNameIs
 };
 
 
-int runTests(const char *suiteName, const char *testName)
+static inline int runTests(const char *suiteName, const char *testName)
 {
 	int                          ret;
 	UnitTest::XmlTestReporter    reporter(std::cerr);
@@ -72,7 +72,7 @@ int runTests(const char *suiteName, const char *testName)
 }
 
 
-int getTest(int argc, char **argv, char **suiteName, char **testName)
+static inline int getTest(int argc, char **argv, char **suiteName, char **testName)
 {
 	extern char  *optarg;
 	int          c;

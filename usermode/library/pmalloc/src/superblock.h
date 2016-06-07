@@ -232,7 +232,7 @@ block * superblock::acquireBlock (void)
 	dirtyFullness = true;
 	//  computeFullness();
 
-  	blocks_present[b] = false;
+  	// blocks_present[b] = false;
 	return b;
 }
 
@@ -242,8 +242,8 @@ bool superblock::putBlock (block * b)
   __m_debug();
   __m_print("%lf %d %s(1) %d sb=%p b=%p free=%p num=%d\n",__m_time__, __m_tid__, __func__, __LINE__, this, b, _freeList, getNumAvailable());
   
-  if(blocks_present[b] == true)
-	return false;
+  //if(blocks_present[b] == true)
+	// return false;
   assert (isValid());
   // Push a block onto the superblock's freelist.
   assert (b->isValid());
@@ -256,7 +256,7 @@ bool superblock::putBlock (block * b)
   _psb->freeBlock(b->getId());
 
   dirtyFullness = true;
-  blocks_present[b] = true;
+  // blocks_present[b] = true;
   return true;
   //  computeFullness();
 }

@@ -237,9 +237,9 @@ customer_getBill (TM_ARGDECL  customer_t* customerPtr)
     list_t* reservationInfoListPtr =
         (list_t*)TM_SHARED_READ(customerPtr->reservationInfoListPtr);
 
-    /* TODO : Remove this. It is a temporary FIX ONLY */
-    if(!reservationInfoListPtr)
-	return 0;
+    /* TODO : Remove this. It is a temporary FIX ONLY till pfree commit action is added */
+    //if(!reservationInfoListPtr)
+	//return 0;
 
     TMLIST_ITER_RESET(&it, reservationInfoListPtr);
     while (TMLIST_ITER_HASNEXT(&it, reservationInfoListPtr)) {

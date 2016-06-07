@@ -250,7 +250,8 @@ client_run (void* argPtr)
                 long bill = MANAGER_QUERY_CUSTOMER_BILL(managerPtr, customerId);
                 // if (bill >= 0) { If the bill is 0, then the customer has no reservations to be deleted !
 		// I think it is correct. Put it back TODO
-                if (bill > 0) {
+                // if (bill > 0) {
+                if (bill >= 0) {
                     MANAGER_DELETE_CUSTOMER(managerPtr, customerId);
                 }
                 TM_END();

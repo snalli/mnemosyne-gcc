@@ -507,8 +507,8 @@ manager_deleteCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
     /* Cancel this customer's reservations */
     reservationInfoListPtr = customerPtr->reservationInfoListPtr;
     /* TODO : Remove this. It is a temporary FIX ONLY */
-    if(!reservationInfoListPtr)
-	return TRUE;
+    //if(!reservationInfoListPtr)
+	//return TRUE;
 
     TMLIST_ITER_RESET(&it, reservationInfoListPtr);
     while (TMLIST_ITER_HASNEXT(&it, reservationInfoListPtr)) {
@@ -540,7 +540,7 @@ manager_deleteCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
     }
 
     /*
-    We don't want to delete a customer, but only the reservations he makes.
+    TODO : We don't want to delete a customer, but only the reservations he makes.
     status = TMMAP_REMOVE(managerPtr->customerTablePtr, customerId);
     if (status == FALSE) {
         TM_RESTART();

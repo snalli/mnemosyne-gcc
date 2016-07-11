@@ -25,63 +25,76 @@
 
 #define LOC1 	__func__	/* str ["0"]: can be __func__, __FILE__ */	
 #define LOC2	__LINE__        /* int [0]  : can be __LINE__ */
+#define PM_CL_SIZE	64	/* Cache line size on x86-64 architecture */
+#define FIX_ALLOC	0
 
-#define time_since_start				\
-	({						\
-		gettimeofday(&mtm_time, NULL);		\
-		((1000000*mtm_time.tv_sec + 		\
-				mtm_time.tv_usec)	\
-		- (glb_start_time));			\
+#if FIX_ALLOC
+#define __TM_CALLABLE__		__attribute__((tm_callable))
+#define TM_BEGIN()		__tm_atomic {
+#define TM_END()		}
+#else
+#define __TM_CALLABLE__		
+#define TM_BEGIN()		{;}
+#define TM_END()		{;}
+#endif
+
+#define time_since_start							\
+	({									\
+		gettimeofday(&mtm_time, NULL);					\
+		(((1000000*mtm_time.tv_sec + 					\
+				mtm_time.tv_usec)				\
+		- (glb_start_time)) - buf_drain_period);			\
 	})
 
-#define TENTRY_ID					\
-	(mtm_tid == -1 ? 				\
-		({mtm_tid = syscall(SYS_gettid); mtm_tid;}) : mtm_tid), \
+#define TENTRY_ID								\
+	(mtm_tid == -1 ? 							\
+		({mtm_tid = syscall(SYS_gettid); mtm_tid;}) : mtm_tid), 	\
 	(time_since_start)				
 
 #ifdef _ENABLE_TRACE
 #define m_out stdout
 #define m_err stderr
-#define pm_trace_print(format, args ...)		\
-    {							\
-	if(mtm_enable_trace) {				\
-	pthread_spin_lock(&tbuf_lock);			\
-       	sprintf(tstr, format, args);    		\
-	tsz = strlen(tstr);				\
-	if(tsz < MAX_TBUF_SZ - tbuf_sz)			\
-	{						\
-		memcpy(tbuf+tbuf_sz, 			\
-				tstr, tsz);		\
-		tbuf_sz += tsz;				\
-	}						\
-	else {						\
-		tbuf_ptr = 0;				\
-		if(mtm_debug_buffer)			\
-		{					\
-			fprintf(m_err, 			\
-			"start_buf_drain - %llu us\n",	\
-				time_since_start);	\
-		}					\
-		while(tbuf_ptr < tbuf_sz)		\
-		{					\
-			tbuf_ptr = tbuf_ptr + 1 + 	\
-				fprintf(m_out,"%s", 	\
-				tbuf + tbuf_ptr);	\
-		}					\
-		tbuf_sz = 0; 				\
-		memset(tbuf,'\0', MAX_TBUF_SZ);		\
-		if(mtm_debug_buffer)			\
-		{					\
-			fprintf(m_err, 			\
-			"end_buf_drain - %llu us\n",	\
-				time_since_start);	\
-		}					\
-		memcpy(tbuf, tstr, tsz);		\
-		tbuf_sz += tsz;				\
-							\
-	}						\
-	pthread_spin_unlock(&tbuf_lock);		\
-	}						\
+#define pm_trace_print(format, args ...)					\
+    {										\
+	if(mtm_enable_trace) {							\
+	pthread_spin_lock(&tbuf_lock);						\
+       	sprintf(tstr, format, args);    					\
+	tsz = strlen(tstr);							\
+	if(tsz < MAX_TBUF_SZ - tbuf_sz)						\
+	{									\
+		memcpy(tbuf+tbuf_sz, 						\
+				tstr, tsz);					\
+		tbuf_sz += tsz;							\
+	}									\
+	else {									\
+		tbuf_ptr = 0;							\
+		if(mtm_debug_buffer)						\
+		{								\
+			fprintf(m_err, 						\
+			"start_buf_drain - %llu us\n",				\
+			(start_buf_drain = time_since_start));			\
+		}								\
+		while(tbuf_ptr < tbuf_sz)					\
+		{								\
+			tbuf_ptr = tbuf_ptr + 1 + 				\
+				fprintf(m_out,"%s", 				\
+				tbuf + tbuf_ptr);				\
+		}								\
+		tbuf_sz = 0; 							\
+		memset(tbuf,'\0', MAX_TBUF_SZ);					\
+		if(mtm_debug_buffer)						\
+		{								\
+			fprintf(m_err, 						\
+			"end_buf_drain - %llu us\n",				\
+			(end_buf_drain = time_since_start));			\
+		}								\
+		memcpy(tbuf, tstr, tsz);					\
+		tbuf_sz += tsz;							\
+		buf_drain_period += (end_buf_drain -				\
+					start_buf_drain) + 1;			\
+	}									\
+	pthread_spin_unlock(&tbuf_lock);					\
+	}									\
     }
 #else
 #define pm_trace_print(args ...)	{;}
@@ -326,6 +339,9 @@
                 LOC1,                           	\
                 LOC2);                          	\
     })
+
+#define PM_START_TX     start_txn
+#define PM_END_TX       end_txn
 
 /* PM Persist operations 
  * (done/copied) followed by count to maintain 

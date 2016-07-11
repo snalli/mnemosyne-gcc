@@ -59,6 +59,7 @@ m_txmutex_t generic_pmalloc_txmutex = PTHREAD_MUTEX_INITIALIZER;
 // We create this object dynamically to avoid bloating the object code.
 //
 
+__TM_CALLABLE__
 inline static persistentHeap * getPersistentAllocator (void) {
   static char * buf = (char *) hoardGetMemory (sizeof(persistentHeap));
   static persistentHeap * theAllocator = new (buf) persistentHeap;
@@ -72,6 +73,7 @@ inline static persistentHeap * getPersistentAllocator (void) {
 // We create this object dynamically to avoid bloating the object code.
 //
 
+__TM_CALLABLE__
 inline static processHeap * getAllocator (persistentHeap *persistentHeap) {
   static char * buf = (char *) hoardGetMemory (sizeof(processHeap));
   static processHeap * theAllocator = new (buf) processHeap(persistentHeap);
@@ -107,6 +109,7 @@ __attribute__((tm_wrapping(HOARD_FREE))) void HOARD_FREE_TXN(void *);
 __attribute__((tm_wrapping(HOARD_REALLOC))) void *HOARD_REALLOC_TXN(void *, size_t);
 
 
+__TM_CALLABLE__
 static void * pmalloc_internal (size_t sz)
 {
 	void                  *addr;
@@ -163,7 +166,9 @@ extern "C" void * HOARD_MALLOC (size_t sz)
 extern "C" void * HOARD_MALLOC_TXN (size_t sz)
 {
         __m_print("%lf %d %s %d sz=%d ()\n",__m_time__,__m_tid__, __func__, __LINE__, sz);
-	return pmalloc_internal(sz);
+	TM_BEGIN();
+		return pmalloc_internal(sz);
+	TM_END();
 }
 
 extern "C" void * HOARD_CALLOC (size_t nelem, size_t elsize)

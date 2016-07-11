@@ -86,7 +86,8 @@ struct m_phlog_base_nvmd_s {
 	pcm_word_t head;                         
 	pcm_word_t tail;     
 	pcm_word_t reserved4;                /**< reserved for future use */
-};
+	char padding[32];
+};/* 32 bytes, possibly. Two of these can reside in one cache line */
 
 
 
@@ -202,13 +203,13 @@ static inline
 m_result_t
 m_phlog_base_flush(pcm_storeset_t *set, m_phlog_base_t *log)
 {
-	if (log->buffer_count > 0) {
+	if (log->buffer_count > 0) { /* freud : There are still some stores left in buffer */
 		base_write_buffer2log(set, log);
 	}	
-	PCM_SEQSTREAM_FLUSH(set);
+	PCM_SEQSTREAM_FLUSH(set); /* freud : necessary fence */
 	PCM_NT_STORE(set, (volatile pcm_word_t *) &log->nvmd->tail, 
 	             (pcm_word_t) log->tail);
-	PCM_NT_FLUSH(set);
+	PCM_WB_FENCE(set); /* freud : necessary fence */
 
 	return M_R_SUCCESS;
 }
@@ -312,7 +313,7 @@ m_result_t
 m_phlog_base_truncate_sync(pcm_storeset_t *set, m_phlog_base_t *phlog) 
 {
 	phlog->head = phlog->tail;
-
+	/* freud : truncating the log by advancing the head, you could pull back the tail */
 	PCM_NT_STORE(set, (volatile pcm_word_t *) &phlog->nvmd->head, 
 	             (pcm_word_t) phlog->head);
 	PCM_NT_FLUSH(set);

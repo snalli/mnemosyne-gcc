@@ -166,6 +166,7 @@ public:
 	}
 
 
+	__TM_CALLABLE__
 	void * getBlockRegion(int index) {
 		return (void *) (_pregion + index * _blksize);
 	}
@@ -212,7 +213,7 @@ public:
 	}
 
 	void makePersistentSuperblock(int blksize);
-
+	__TM_CALLABLE__
 	superblock *getSuperblock() {
 		return _superblock;
 	}

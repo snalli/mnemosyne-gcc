@@ -211,6 +211,12 @@ out:
 m_result_t
 m_logmgr_init(pcm_storeset_t *set)
 {
+        #ifdef _M_STATS_BUILD   
+	        fprintf(stderr, "LOG_POOL_START         : %p\n", LOG_POOL_START);
+                fprintf(stderr, "sizeof(m_log_dsc_t)    : %lu\n", sizeof(m_log_dsc_t));
+                fprintf(stderr, "sizeof(m_log_nvmd_t)   : %lu\n", sizeof(m_log_nvmd_t));
+        #endif
+
 	return logmgr_init(set);
 }
 

@@ -39,6 +39,7 @@ mtm_pwbetl_beginTransaction_internal (mtm_tx_t *tx,
                                    uint32_t prop, 
                                    _ITM_srcLocation *srcloc)
 {
+	PM_START_TX();
 	return beginTransaction_internal (tx, prop, srcloc, 1);
 }
 
@@ -113,7 +114,7 @@ mtm_pwbetl_commitTransaction(mtm_tx_t *tx, const _ITM_srcLocation *loc)
 		                      // do we need to quiesce first? TinySTM 1.0.0 has 
 		                      // quiescence support.
 	}							  
-
+	PM_END_TX();
 	MTM_DEBUG_PRINT("==> mtm_pwb_commitTransaction(%p): DONE\n", tx);
 }
 

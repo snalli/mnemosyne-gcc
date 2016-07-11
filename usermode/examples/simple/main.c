@@ -21,6 +21,6 @@ int main (int argc, char const *argv[])
 		}
 	}
 	
-	printf(" --> %d\n", flag);
+	printf(" --> %d\n&flag = %p\n", flag, &flag);
 	return 0;
 }

@@ -302,7 +302,7 @@ int hoardHeap::maxAllocated (int sizeclass) {
 }
 #endif
 
-
+__TM_CALLABLE__
 int hoardHeap::sizeClass (const size_t sz) {
   // Find the size class for a given object size
   // (the smallest i such that _sizeTable[i] >= sz).
@@ -341,14 +341,14 @@ int hoardHeap::numBlocks (const int sizeclass) {
   return nb;
 }
 
-
+__TM_CALLABLE__
 void hoardHeap::lock (void) 
 {
   assert (_magic == HEAP_MAGIC);
   hoardLock (_lock);
 }
 
-
+__TM_CALLABLE__
 void hoardHeap::unlock (void) {
   assert (_magic == HEAP_MAGIC);
   hoardUnlock (_lock);

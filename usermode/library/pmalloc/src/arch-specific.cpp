@@ -18,6 +18,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+#include <pm_instr.h>
 #include <assert.h>
 #include "arch-specific.h"
 
@@ -135,7 +136,7 @@ void hoardLockInit (hoardLockType& mutex) {
 }
 
 #include <stdio.h>
-
+__TM_CALLABLE__
 void hoardLock (hoardLockType& mutex) {
   int spincount = 0;
   while (InterlockedExchange (&mutex, LOCKED) != UNLOCKED) {
@@ -147,6 +148,7 @@ void hoardLock (hoardLockType& mutex) {
   }
 }
 
+__TM_CALLABLE__
 void hoardUnlock (hoardLockType& mutex) {
 	mutex = UNLOCKED;
 //  InterlockedExchange (&mutex, UNLOCKED);
@@ -177,6 +179,7 @@ static hoardLockType getMemoryLock = PTHREAD_MUTEX_INITIALIZER;
 
 #include <stdio.h>
 
+__TM_CALLABLE__
 void * hoardGetMemory (long size) {
   hoardLock (getMemoryLock);
   void * ptr = malloc (size);

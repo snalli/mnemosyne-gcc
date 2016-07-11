@@ -73,9 +73,9 @@ do_global_init(void)
 	glb_start_time = glb_tv_sec * 1000000 + glb_tv_usec;
 
 	pthread_spin_init(&tbuf_lock, PTHREAD_PROCESS_SHARED);
-	// tbuf = (char*)malloc(MAX_TBUF_SZ); To avoid interaction with M's hoard
+	/* tbuf = (char*)malloc(MAX_TBUF_SZ); To avoid interaction with M's hoard */
 	tbuf = (char*)mmap(0, MAX_TBUF_SZ, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	// MAZ_TBUF_SZ influences how often we compress and hence the overall execution speed.
+	/* MAZ_TBUF_SZ influences how often we compress and hence the overall execution speed. */
 	if(!tbuf)
 		M_ERROR("Failed to allocate trace buffer. Abort now.");
 		
@@ -128,7 +128,7 @@ do_global_fini(void)
 				 * tbuf[tbuf];
 				 */
 	                        tbuf_ptr = tbuf_ptr + 1 + fprintf(m_out, "%s", tbuf + tbuf_ptr); 
-				// tbuf_ptr += TSTR_SZ;
+				/* tbuf_ptr += TSTR_SZ; */
                 	}
 			tbuf_sz = 0;
 		}

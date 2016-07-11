@@ -75,6 +75,7 @@ hoardHeap::hoardHeap (void)
 // This lazy approach avoids distributing persistent superblocks to thread
 // heaps when the allocator is first initialized. However it seems that it
 // complicated the recycling policy. Consider revising the policy.
+__TM_CALLABLE__
 superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
                                                  block *& b,
                                                  persistentHeap * persistentheap)
@@ -203,7 +204,7 @@ superblock * hoardHeap::findAvailableSuperblock (int sizeclass,
 }
 
 
-
+__TM_CALLABLE__
 void hoardHeap::insertSuperblock (int sizeclass,
                                   superblock * sb,
                                   persistentHeap *)

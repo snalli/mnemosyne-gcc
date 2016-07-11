@@ -39,6 +39,7 @@ threadHeap::threadHeap (void)
 //   returns: a pointer to an object of the appropriate size.
 //   side effects: allocates a block from a superblock;
 
+__TM_CALLABLE__
 void * threadHeap::malloc (const size_t size)
 {
 	void      *allocRegionPtr; 

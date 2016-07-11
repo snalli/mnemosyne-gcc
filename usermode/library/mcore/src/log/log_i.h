@@ -111,6 +111,7 @@ struct m_log_nvmd_s {
 	pcm_word_t reserved2;                     /**< reserved for future use */
 	pcm_word_t reserved3;                     /**< reserved for future use */
 	pcm_word_t reserved4;                     /**< reserved for future use */
+        char padding[32];
 };
 
 struct m_log_dsc_s {

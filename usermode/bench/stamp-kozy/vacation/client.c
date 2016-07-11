@@ -220,8 +220,8 @@ client_run (void* argPtr)
                             assert(0);
                     }
                     if (price > maxPrices[t]) {
-                        maxPrices[t] = price;
-                        maxIds[t] = id;
+                        maxPrices[t] = price; 	/* TX_WRITE Volatile */
+                        maxIds[t] = id;		/* TX_WRITE Volatile */
                         isFound = TRUE;
                     }
                 } /* for n */

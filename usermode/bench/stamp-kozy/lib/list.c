@@ -233,8 +233,8 @@ TMallocNode (TM_ARGDECL  void* dataPtr)
         return NULL;
     }
 
-    nodePtr->dataPtr = dataPtr;
-    nodePtr->nextPtr = NULL;
+    nodePtr->dataPtr = dataPtr; /* freud : TX_WRITE persistent */
+    nodePtr->nextPtr = NULL;	/* freud : TX_WRITE persistent */
 
     return nodePtr;
 }
@@ -311,14 +311,14 @@ TMlist_alloc (TM_ARGDECL  long (*compare)(const void*, const void*))
         return NULL;
     }
 
-    listPtr->head.dataPtr = NULL;
-    listPtr->head.nextPtr = NULL;
-    listPtr->size = 0;
+    listPtr->head.dataPtr = NULL;			/* persistent */
+    listPtr->head.nextPtr = NULL;			/* persistent */
+    listPtr->size = 0;					/* persistent */
 
     if (compare == NULL) {
-        listPtr->compare = &compareDataPtrAddresses; /* default */
+        listPtr->compare = &compareDataPtrAddresses; /* default, persistent */
     } else {
-        listPtr->compare = compare;
+        listPtr->compare = compare;			/* persistent */
     }
 
     return listPtr;
@@ -675,9 +675,9 @@ TMlist_insert (TM_ARGDECL  list_t* listPtr, void* dataPtr)
         return FALSE;
     }
 
-    nodePtr->nextPtr = currPtr;
-    TM_SHARED_WRITE_P(prevPtr->nextPtr, nodePtr);
-    TM_SHARED_WRITE(listPtr->size, (TM_SHARED_READ(listPtr->size) + 1));
+    nodePtr->nextPtr = currPtr; /* TX_WRITE persistent */
+    TM_SHARED_WRITE_P(prevPtr->nextPtr, nodePtr);	/* persistent */
+    TM_SHARED_WRITE(listPtr->size, (TM_SHARED_READ(listPtr->size) + 1));	/* persistent */
 
     return TRUE;
 }

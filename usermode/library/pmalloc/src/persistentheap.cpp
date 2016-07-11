@@ -41,7 +41,7 @@
 
 MNEMOSYNE_PERSISTENT void *psegmentheader = 0;
 MNEMOSYNE_PERSISTENT void *psegment = 0;
-
+__TM_CALLABLE__
 persistentHeap::persistentHeap (void)
   : _buffer (NULL),
     _bufferCount (0)

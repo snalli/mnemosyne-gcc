@@ -22,7 +22,7 @@
 #define _BLOCK_H_
 
 #include "config.h"
-
+#include <pm_instr.h>
 #include <assert.h>
 
 
@@ -81,7 +81,7 @@ public:
   block * getNext (void) { return _next; }
 
   void setId(int id) { _id = id; }
-  int getId(void) { return _id; }
+  __TM_CALLABLE__ int getId(void) { return _id; }
 
 private:
 
@@ -109,6 +109,7 @@ private:
 };
 
 
+__TM_CALLABLE__
 superblock * block::getSuperblock (void)
 {
 #if HEAP_DEBUG
@@ -127,6 +128,7 @@ void block::markFree (void)
 }
 
 
+__TM_CALLABLE__
 void block::markAllocated (void)
 {
 #if HEAP_DEBUG

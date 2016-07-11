@@ -135,8 +135,8 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		/* Make sure the persistent tm log is made stable */
 		M_TMLOG_COMMIT(tx->pcm_storeset, modedata->ptmlog, t);
 
-		/* Make sure previous stores are not reordered with the cl-flushes below */
-		PCM_WB_FENCE(tx->pcm_storeset);
+		/* Make sure previous stores are not reordered with the cl-flushes below  freud : unnecessary fence */
+		/* PCM_WB_FENCE(tx->pcm_storeset);  moved this info M_TMLOG_COMMIT. It replaces PCM_NT_FLUSH in m_tmlog_base_? */
 
 		/* Install new versions, drop locks and set new timestamp */
 		/* In the case when isolation is off, the write set contains entries 
@@ -164,7 +164,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 					if (((uintptr_t) w->addr >= PSEGMENT_RESERVED_REGION_START &&
 						 (uintptr_t) w->addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))
 					{
-						/* access is persistent -- flush */
+						/* access is persistent -- flush, freud : why flush individual entries ? */
 						PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
 						wbflush_cnt++;
 					}
@@ -179,7 +179,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 				ATOMIC_STORE_REL(w->lock, LOCK_SET_TIMESTAMP(t));
 			}	
 		}
-		
+		PCM_WB_FENCE(tx->pcm_storeset);
 #ifdef _M_STATS_BUILD
 		m_stats_statset_increment(mtm_statsmgr, tx->statset, XACT, wbflush, wbflush_cnt);
 #endif		
@@ -329,7 +329,7 @@ void pwb_prepare_transaction(mtm_tx_t *tx)
 
 start:
 	/* Start timestamp */
-	modedata->start = modedata->end = GET_CLOCK; /* OPT: Could be delayed until first read/write */
+	modedata->start = modedata->end = GET_CLOCK; /* OPT: Could be delayed until first read/write, why bother ? */
 	/* Allow extensions */
 	tx->can_extend = 1;
 #ifdef ROLLOVER_CLOCK
@@ -377,7 +377,7 @@ beginTransaction_internal (mtm_tx_t *tx,
 	MTM_DEBUG_PRINT("==> mtm_pwb_beginTransaction(%p) nest_level: %d-->%d\n", tx,
 	                tx->nesting, tx->nesting+1);
 
-	/* Increment nesting level */
+	/* Increment nesting level, freud : we did not enter here */
 	if (tx->nesting++ > 0) {
 		return a_runInstrumentedCode | a_saveLiveVariables;
 	}	

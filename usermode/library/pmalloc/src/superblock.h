@@ -206,7 +206,7 @@ void superblock::setOwner (hoardHeap * o)
 	_owner = o;
 }
 
-
+__TM_CALLABLE__
 block * superblock::acquireBlock (void)
 {
 	__m_debug();
@@ -321,7 +321,7 @@ void superblock::remove (void) {
   _next = NULL;
 }
 
-
+__TM_CALLABLE__
 int superblock::isValid (void)
 {
   assert (_numBlocks > 0);
@@ -353,6 +353,7 @@ persistentSuperblock *superblock::getPersistentSuperblock(void)
 	return _psb;
 }
 
+__TM_CALLABLE__
 void *superblock::getBlockRegion(int id)
 {
 	return _psb->getBlockRegion(id);

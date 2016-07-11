@@ -167,7 +167,7 @@ private:
     hoardHeap::lock();
   }
 
-  inline void unlock (void) {
+  __TM_CALLABLE__ inline void unlock (void) {
     hoardHeap::unlock();
   }
 
@@ -209,6 +209,7 @@ private:
 };
 
 
+__TM_CALLABLE__
 threadHeap& persistentHeap::getHeap (int i)
 {
   assert (i >= 0);
@@ -228,6 +229,7 @@ Log<MemoryRequest>& persistentHeap::getLog (int i)
 
 
 // Hash out the thread id to a heap and return an index to that heap.
+__TM_CALLABLE__
 int persistentHeap::getHeapIndex (void) {
 //  int tid = hoardGetThreadID() & hoardHeap::_numProcessorsMask;
   int tid = hoardGetThreadID() & MAX_HEAPS_MASK;
@@ -235,7 +237,7 @@ int persistentHeap::getHeapIndex (void) {
   return tid;
 }
 
-
+__TM_CALLABLE__
 superblock * persistentHeap::acquire (const int sizeclass,
                                       hoardHeap * dest)
 {

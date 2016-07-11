@@ -105,9 +105,9 @@ customer_alloc (TM_ARGDECL  long id)
     customerPtr = (customer_t*)TM_MALLOC(sizeof(customer_t));
     assert(customerPtr != NULL);
 
-    customerPtr->id = id;
+    customerPtr->id = id;								/* persistent write */
 
-    customerPtr->reservationInfoListPtr = TMLIST_ALLOC(&compareReservationInfo);
+    customerPtr->reservationInfoListPtr = TMLIST_ALLOC(&compareReservationInfo);	/* persistent write */
     assert(customerPtr->reservationInfoListPtr != NULL);
 
     return customerPtr;

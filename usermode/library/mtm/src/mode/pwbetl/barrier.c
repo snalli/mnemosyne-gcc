@@ -49,7 +49,7 @@ mtm_pwbetl_store(mtm_tx_t *tx, volatile mtm_word_t *addr, mtm_word_t value)
 }
 
 
-/*
+/* freud : use this as an entry point into  the library for RSTM 
  * Called by the CURRENT thread to store part of a word-sized value.
  */
 void 

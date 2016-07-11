@@ -255,13 +255,14 @@ static inline unsigned long long asm_rdtscp(void)
 
 
 // static inline void asm_clflush(volatile pcm_word_t *addr)
-/*
 #define asm_clflush(addr)					\
 ({								\
 	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));	\
+	PM_FLUSH((addr), PM_CL_SIZE, sizeof(addr));		\
 })
-*/
+/*
 #define asm_clflush(addr) {;}
+*/
 
 // static inline void asm_mfence(void)
 #define asm_mfence()				\
@@ -397,14 +398,10 @@ emulate_latency_ns(int ns)
 		PCM_WB_STORE_MASKED(set, addr, val, mask);
 
 #define PCM_WB_FENCE(set)							\
-		asm_mfence(); 
+	asm_mfence(); 
 
 #define PCM_WB_FLUSH(set, addr)							\
-({										\
 	asm_clflush(addr); 							\
-	asm_mfence(); 								\
-})
-
 
 #define PCM_NT_STORE(set, addr, val)						\
 	asm_movnti(addr, val);

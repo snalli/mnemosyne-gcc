@@ -458,6 +458,7 @@ static unsigned int hashpower = 16;
 #define hashsize(n) ((ub4)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
 
+/* Sanketh here !!!*/
 /* Main hash table. This is where we look except during expansion. */
 static item** primary_hashtable = 0;
 
@@ -483,6 +484,12 @@ void assoc_init(void) {
 	void *ptr;
     unsigned int hash_size = hashsize(hashpower) * sizeof(void*);
     fprintf(stderr, "assoc_init: hash_size = %d\n", hash_size);
+    /* Sanketh */
+	/*
+ 		So the primary hash table is simply
+		a chunk of memory. but why is it a 2d array ?
+		to handle collisions ???
+	 */
     primary_hashtable = PMALLOC(hash_size);
     if (! primary_hashtable) {
         fprintf(stderr, "Failed to init hashtable.\n");
@@ -496,6 +503,7 @@ item *assoc_find(const char *key, const size_t nkey) {
     item *it;
     unsigned int oldbucket;
 
+	// find the item here, Sanketh !
     if (expanding &&
         (oldbucket = (hv & hashmask(hashpower - 1))) >= expand_bucket)
     {
@@ -589,10 +597,20 @@ void do_assoc_move_next_bucket(void) {
 
 /* Note: this isn't an assoc_update.  The key must not already exist to call this */
 int assoc_insert(item *it) {
+	/* Sanketh, this where a brand new SET lands
+	 * Look for refs to SCM in here !
+	 */
     uint32_t hv;
     unsigned int oldbucket;
 
     assert(assoc_find(ITEM_key(it), it->nkey) == 0);  /* shouldn't have duplicately named things defined */
+
+	/*
+	fprintf(stderr, "assoc key : %s\n", ITEM_key(it));
+	fprintf(stderr, "assoc val : %s\n", ITEM_data(it));
+	fprintf(stderr, "assoc key : %p\n", ITEM_key(it));
+	fprintf(stderr, "assoc val : %p\n", ITEM_data(it));
+	*/
 
     hv = hash(ITEM_key(it), it->nkey, 0);
     if (expanding &&

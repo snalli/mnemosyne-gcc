@@ -25,13 +25,14 @@
 
 #define POWER_SMALLEST 1
 #define POWER_LARGEST  200
-#define POWER_BLOCK 1048576
+#define POWER_BLOCK 1048576 // slab size = 1MB
 #define CHUNK_ALIGN_BYTES (sizeof(void *))
-#define DONT_PREALLOC_SLABS
+//#define DONT_PREALLOC_SLABS
 
 /* powers-of-N allocation structures */
 
 typedef struct {
+	// All pointers in this struct are persistent ?!
     unsigned int size;      /* sizes of items */
     unsigned int perslab;   /* how many items per slab */
 
@@ -98,6 +99,7 @@ void slabs_init(const size_t limit, const double factor) {
     unsigned int size = sizeof(item) + settings.chunk_size;
 
     /* Factor of 2.0 means use the default memcached behavior */
+	// If factor is 2 then the chunk size defaults to 128, Sanketh
     if (factor == 2.0 && size < 128)
         size = 128;
 
@@ -126,6 +128,7 @@ void slabs_init(const size_t limit, const double factor) {
     {
         char *t_initial_malloc = getenv("T_MEMD_INITIAL_MALLOC");
         if (t_initial_malloc) {
+            // fprintf(stderr, "T_MEMD_INITIAL_MALLOC\n");
             mem_malloced = (size_t)atol(t_initial_malloc);
         }
 
@@ -136,6 +139,7 @@ void slabs_init(const size_t limit, const double factor) {
         char *pre_alloc = getenv("T_MEMD_SLABS_ALLOC");
 
         if (pre_alloc == NULL || atoi(pre_alloc) != 0) {
+            fprintf(stderr, "T_MEMD_SLABS_MALLOC\n");
             slabs_preallocate(power_largest);
         }
     }
@@ -190,6 +194,12 @@ static int do_slabs_newslab(const unsigned int id) {
 
     if (grow_slab_list(id) == 0) return 0;
 
+	/* Sanketh */
+    // fprintf(stderr, "%s : PMALLOC\n", __func__);
+	/* So you never preallocate the entire
+	   the entire pool of slabs. You always
+	   do it incrementally.
+	 */
     ptr = PMALLOC((size_t)len);
     if (ptr == 0) return 0;
 
@@ -206,22 +216,43 @@ static int do_slabs_newslab(const unsigned int id) {
 void *do_slabs_alloc(const size_t size) {
     slabclass_t *p;
 
+	// getting the slab id here 
     unsigned int id = slabs_clsid(size);
+	// If the item is out of the range of sizes
+	// supported by memcached, return null !!!
     if (id < POWER_SMALLEST || id > power_largest)
         return NULL;
 
+	// getting the pointer to the array of slabs 
+	// in the slab class id
+	// all slabs are persistent !!! 
     p = &slabclass[id];
     assert(p->sl_curr == 0 || ((item *)p->slots[p->sl_curr - 1])->slabs_clsid == 0);
 
+// Have to disable this to prevent 
+// memcached from asking more slabs !!
 #ifdef USE_SYSTEM_MALLOC
+	// This code is wrong !
+	// You can't just return a alloc'ed 
+	// chunk of memory without putting it 
+	// in a slab first or taking it out
+	// of a prealloc'ed slab !!  Sanketh
     if (mem_limit && mem_malloced + size > mem_limit)
         return 0;
+	/* How do you know the malloc will succeed ?? */
+	fprintf(stderr, "Using system malloc (a)\n");
     mem_malloced += size;
+	/* Sanketh  here !!!!*/
     return PMALLOC(size);
+	// This code never runs anyways !!
 #endif
 
+// LRU is not performed here !!
+// It is performed in the caller of this func 
     /* fail unless we have space at the end of a recently allocated page,
        we have something on our freelist, or we could allocate a new page */
+	/* get something of the free list or allocate a new page */
+
     if (! (p->end_page_ptr != 0 || p->sl_curr != 0 || do_slabs_newslab(id) != 0))
         return 0;
 

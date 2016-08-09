@@ -413,7 +413,10 @@ void mt_run_deferred_deletes() {
  */
 item *mt_item_alloc(char *key, size_t nkey, int flags, rel_time_t exptime, int nbytes) {
     item *it;
+	/* Sanketh */
+	// printf("Allocating a new item...\n");
     //pthread_mutex_lock(&cache_lock);
+	// This here triggers mnemosyne !!
 	TM_ATOMIC 
 	{
 	    it = do_item_alloc(key, nkey, flags, exptime, nbytes);
@@ -602,7 +605,12 @@ void mt_assoc_move_next_bucket() {
 void *mt_slabs_alloc(size_t size) {
     void *ret;
 
+// Why another lock when we have the global
+// cache lock ???
+
     //pthread_mutex_lock(&slabs_lock);
+	// another transaction
+	// The first one is in item_alloc
 	TM_ATOMIC {
     	ret = do_slabs_alloc(size);
 	}

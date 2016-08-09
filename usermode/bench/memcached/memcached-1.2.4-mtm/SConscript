@@ -7,7 +7,7 @@ myEnv = memcachedEnv.Clone()
 myEnv.Append(CCFLAGS = ' -O2')
 
 myEnv.Append(CCFLAGS = ' -D_GNU_SOURCE -DHAVE_CONFIG_H')
-myEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include']
+myEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include','#library/mcore/include']
 myEnv.Append(CPPPATH = ['#library/common'])
 myEnv.Append(CPPPATH = ['#bench/memcached/memcached-1.2.4-mtm'])
 

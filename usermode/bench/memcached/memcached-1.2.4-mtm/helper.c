@@ -2,6 +2,22 @@
 #include "helper.h"
 
 char *
+txc_libc_memcpy (char *dest, const char *src, const int bytes)
+{
+	const char *p;
+	char *q;
+	int count;
+
+	TM_ATOMIC 
+	{
+		for(p = src, q = dest, count = 0; count < bytes; p++, q++, count++)
+			*q = *p;
+	}
+
+	return dest;
+}
+
+char *
 txc_libc_strcpy (char *dest, const char *src)
 {
 	const char *p;

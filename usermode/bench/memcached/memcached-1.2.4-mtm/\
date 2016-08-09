@@ -2193,7 +2193,7 @@ static void drive_machine(conn *c) {
 		/* Because Item was allocated out of persistent memory */
 		/* But this copy happens outside of the txn !! */
                 //memcpy(c->ritem, c->rcurr, tocopy);
-                txc_libc_memcpy(c->ritem, c->rcurr, tocopy);
+                txc_libc_strcpy(c->ritem, c->rcurr, tocopy);
 		//fprintf(stderr, "Copying data  dst:%p %d bytes %s\n", c->ritem, tocopy, c->ritem);
                 c->ritem += tocopy;
                 c->rlbytes -= tocopy;

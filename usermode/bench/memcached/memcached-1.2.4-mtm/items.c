@@ -82,6 +82,9 @@ static size_t item_make_header(const uint8_t nkey, const int flags, const int nb
 
 /*@null@*/
 item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_time_t exptime, const int nbytes) {
+
+    /* nbytes is simply the size of a value and not the value itself ! */
+
     uint8_t nsuffix;
     item *it;
     char suffix[40];
@@ -112,6 +115,7 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
         if (id > LARGEST_ID) return NULL;
         if (tails[id] == 0) return NULL;
 
+	// LRU right here...the fabled and mysterious LRU !!! 
         for (search = tails[id]; tries > 0 && search != NULL; tries--, search=search->prev) {
             if (search->refcount == 0) {
                if (search->exptime == 0 || search->exptime > current_time) {
@@ -135,12 +139,17 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
 
     assert(it != heads[it->slabs_clsid]);
 
+	// All references to item are to persistent memory !!!!
+	// But unfortunately u wont see them in 
+	// this routine in the assembly, they'll be in 
+	// some deep routine in mnemosyne
     it->next = it->prev = it->h_next = 0;
     it->refcount = 1;     /* the caller will have a reference */
     DEBUG_REFCNT(it, '*');
     it->it_flags = 0;
     it->nkey = nkey;
     it->nbytes = nbytes;
+	/* sanketh, possible ref to persistent memory */
     txc_libc_strcpy(ITEM_key(it), key);
     it->exptime = exptime;
     memcpy(ITEM_suffix(it), suffix, (size_t)nsuffix);
@@ -222,6 +231,7 @@ int do_item_link(item *it) {
     assert(it->nbytes < (1024 * 1024));  /* 1MB max size */
     it->it_flags |= ITEM_LINKED;
     it->time = current_time;
+	// inserting into the hash table !!!
     assoc_insert(it);
 
     //STATS_LOCK();

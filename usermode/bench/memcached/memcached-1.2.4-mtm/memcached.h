@@ -177,6 +177,7 @@ typedef struct {
      * item is used to hold an item structure created after reading the command
      * line of set/add/replace commands, but before we finished reading the actual
      * data. The data is read into ITEM_data(item) to avoid extra copying.
+     * And here is where persistent memory references are made !!!
      */
 
     void   *item;     /* for commands set/add/replace  */

@@ -15,6 +15,9 @@
 std *
  *  $Id: memcached.c 654 2007-12-02 02:06:51Z dormando $
  */
+#include "mnemosyne.h"
+#include "mtm.h"
+#include "pmalloc.h"
 #include "memcached.h"
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -2687,7 +2690,8 @@ static void usage(void) {
            "-b            run a managed instanced (mnemonic: buckets)\n"
            "-P <file>     save PID in <file>, only used with -d option\n"
            "-f <factor>   chunk size growth factor, default 1.25\n"
-           "-n <bytes>    minimum space allocated for key+value+flags, default 48\n");
+           "-n <bytes>    minimum space allocated for key+value+flags, default 48\n"
+	   "-x            enable trace (default:disable)\n");
 #ifdef USE_THREADS
     printf("-t <num>      number of threads to use, default 4\n");
 #endif
@@ -2799,7 +2803,7 @@ static void sig_handler(const int sig) {
 }
 
 int main (int argc, char **argv) {
-    int c;
+    int c, is_enable_trace = 0;
     struct in_addr addr;
     bool lock_memory = false;
     bool daemonize = false;
@@ -2820,8 +2824,12 @@ int main (int argc, char **argv) {
     setbuf(stderr, NULL);
 
     /* process arguments */
-    while ((c = getopt(argc, argv, "a:bp:s:U:m:Mc:khirvdl:u:P:f:s:n:t:D:")) != -1) {
+    while ((c = getopt(argc, argv, "a:bp:s:U:m:Mc:khirvdl:u:P:f:s:n:t:D:x")) != -1) {
         switch (c) {
+	case 'x':
+		fprintf(stderr, "Trace enabled.\n");
+		is_enable_trace = 1;
+		break;
         case 'a':
             /* access for unix domain socket, as octal mask (like chmod)*/
             settings.access= strtol(optarg,NULL,8);
@@ -3065,6 +3073,7 @@ int main (int argc, char **argv) {
         perror("failed to ignore SIGPIPE; sigaction");
         exit(EXIT_FAILURE);
     }
+    mtm_enable_trace = is_enable_trace;
     /* create the initial listening connection */
     if (!(listen_conn = conn_new(l_socket, conn_listening,
                                  EV_READ | EV_PERSIST, 1, false, main_base))) {

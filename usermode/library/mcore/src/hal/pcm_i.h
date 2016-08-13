@@ -247,6 +247,7 @@ static inline unsigned long long asm_rdtscp(void)
 
 
 //static inline void asm_movnti(volatile pcm_word_t *addr, pcm_word_t val)
+/* Use to write log entry in Mnemosyne */
 #define asm_movnti(addr, val)							\
 ({										\
 	__asm__ __volatile__ ("movnti %1, %0" : "=m"(*addr): "r" (val));	\
@@ -255,6 +256,7 @@ static inline unsigned long long asm_rdtscp(void)
 
 
 // static inline void asm_clflush(volatile pcm_word_t *addr)
+/* Flush updates */
 #define asm_clflush(addr)					\
 ({								\
 	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));	\

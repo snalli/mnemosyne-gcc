@@ -482,7 +482,7 @@ void *
 persistent_sbrk(size_t size) 
 {
 	sbrk_limit += size;
-	return (void *) (dlmalloc_pheap + sbrk_limit);
+	return (void *) (dlmalloc_pheap + sbrk_limit - size);
 }	
 
 TM_PURE static inline

@@ -119,7 +119,7 @@ void stats_prefix_record_get(const char *key, const bool is_hit) {
     PREFIX_STATS *pfs;
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud : volatile txn */
 		pfs = stats_prefix_find(key);
 		if (NULL != pfs) {
 			pfs->num_gets++;
@@ -138,7 +138,7 @@ void stats_prefix_record_delete(const char *key) {
     PREFIX_STATS *pfs;
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud : volatle txn */
 		pfs = stats_prefix_find(key);
 		if (NULL != pfs) {
 			pfs->num_deletes++;
@@ -154,7 +154,7 @@ void stats_prefix_record_set(const char *key) {
     PREFIX_STATS *pfs;
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud : volatile txn */
 		pfs = stats_prefix_find(key);
 		if (NULL != pfs) {
 			pfs->num_sets++;
@@ -181,7 +181,7 @@ char *stats_prefix_dump(int *length) {
      * plus space for the "END" at the end.
      */
     //STATS_LOCK();
-		TM_ATOMIC {
+		TM_ATOMIC { /* volatile txn freud */
 		size = strlen(format) + total_prefix_size +
 			   num_prefixes * (strlen(format) - 2 /* %s */
 							   + 4 * (20 - 4)) /* %llu replaced by 20-digit num */

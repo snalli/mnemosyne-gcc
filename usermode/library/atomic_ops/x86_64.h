@@ -36,7 +36,7 @@ AO_INLINE void
 AO_nop_full(void)
 {
   /* Note: "mfence" (SSE2) is supported on all x86_64/amd64 chips.      */
-  PM_FENCE();
+  // PM_FENCE();
   __asm__ __volatile__("mfence" : : : "memory");
 }
 

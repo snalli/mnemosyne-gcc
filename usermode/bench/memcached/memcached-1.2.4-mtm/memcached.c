@@ -169,7 +169,7 @@ static void stats_init(void) {
 static void stats_reset(void) {
     //STATS_LOCK();
 	TM_ATOMIC 
-	{
+	{ /* freud : volatile transactions */
     	stats.total_items = stats.total_conns = 0;
 	    stats.get_cmds = stats.set_cmds = stats.get_hits = stats.get_misses = stats.evictions = 0;
     	stats.bytes_read = stats.bytes_written = 0;
@@ -353,7 +353,7 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
         }
 
         //STATS_LOCK();
-		TM_ATOMIC {
+		TM_ATOMIC { /* freud : volatile transactions */
         	stats.conn_structs++;
 		}
         //STATS_UNLOCK();
@@ -403,7 +403,7 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
     }
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud volatile transactions */
 	    stats.curr_conns++;
     	stats.total_conns++;
 	}	
@@ -482,7 +482,7 @@ static void conn_close(conn *c) {
     }
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud : volatile transactions */
     	stats.curr_conns--;
 	}
     //STATS_UNLOCK();
@@ -788,7 +788,7 @@ static void complete_nread(conn *c) {
     int ret;
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud : volatile transactions */
 	    stats.set_cmds++;
 	}	
     //STATS_UNLOCK();
@@ -1047,7 +1047,7 @@ static void process_stat(conn *c, token_t *tokens, const size_t ntokens) {
 #endif /* !WIN32 */
 
         //STATS_LOCK();
-		TM_ATOMIC {
+		TM_ATOMIC { /* freud : volatile transactions */
         pos += sprintf(pos, "STAT pid %u\r\n", pid);
         pos += sprintf(pos, "STAT uptime %u\r\n", now);
         pos += sprintf(pos, "STAT time %ld\r\n", now + stats.started);
@@ -1237,7 +1237,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
 
             if(nkey > KEY_MAX_LENGTH) {
                 //STATS_LOCK();
-				TM_ATOMIC {
+				TM_ATOMIC { /* freud : volatile txn */
         	        stats.get_cmds   += stats_get_cmds;
 	                stats.get_hits   += stats_get_hits;
                 	stats.get_misses += stats_get_misses;
@@ -1285,7 +1285,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
                   suffix = suffix_from_freelist();
                   if (suffix == NULL) {
                     //STATS_LOCK();
-					TM_ATOMIC {
+					TM_ATOMIC { /* freud : volatile txn */
                     	stats.get_cmds   += stats_get_cmds;
                     	stats.get_hits   += stats_get_hits;
                     	stats.get_misses += stats_get_misses;
@@ -1368,7 +1368,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
     }
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud : volatile txn */
 	    stats.get_cmds   += stats_get_cmds;
     	stats.get_hits   += stats_get_hits;
 	    stats.get_misses += stats_get_misses;
@@ -1908,7 +1908,7 @@ static int try_read_udp(conn *c) {
     if (res > 8) {
         unsigned char *buf = (unsigned char *)c->rbuf;
         //STATS_LOCK();
-		TM_ATOMIC {
+		TM_ATOMIC { /* freud : volatile txn */
 	        stats.bytes_read += res;
 		}
         //STATS_UNLOCK();
@@ -1979,7 +1979,7 @@ static int try_read_network(conn *c) {
         res = read(c->sfd, c->rbuf + c->rbytes, c->rsize - c->rbytes);
         if (res > 0) {
             //STATS_LOCK();
-			TM_ATOMIC {
+			TM_ATOMIC { /* freud : volatile txn */
 	            stats.bytes_read += res;
 			}	
             //STATS_UNLOCK();
@@ -2059,7 +2059,7 @@ static int transmit(conn *c) {
         res = sendmsg(c->sfd, m, 0);
         if (res > 0) {
             //STATS_LOCK();
-			TM_ATOMIC {
+			TM_ATOMIC { /* freud : volatile txn */
 	            stats.bytes_written += res;
 			}	
             //STATS_UNLOCK();
@@ -2211,7 +2211,7 @@ static void drive_machine(conn *c) {
             res = read(c->sfd, c->ritem, c->rlbytes);
             if (res > 0) {
                 //STATS_LOCK();
-				TM_ATOMIC {
+				TM_ATOMIC { /* freud : volatile txn */
 	                stats.bytes_read += res;
 				}
                 //STATS_UNLOCK();
@@ -2262,7 +2262,7 @@ static void drive_machine(conn *c) {
             res = read(c->sfd, c->rbuf, c->rsize > c->sbytes ? c->sbytes : c->rsize);
             if (res > 0) {
                 //STATS_LOCK();
-				TM_ATOMIC {
+				TM_ATOMIC { /* freud : volatile txn */
 	                stats.bytes_read += res;
 				}	
                 //STATS_UNLOCK();

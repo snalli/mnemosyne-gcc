@@ -41,7 +41,7 @@
 AO_INLINE void
 AO_nop_full(void)
 {
-  PM_FENCE();
+  // PM_FENCE();
   __asm__ __volatile__("mfence" : : : "memory");
 }
 

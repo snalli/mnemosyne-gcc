@@ -120,7 +120,7 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
             if (search->refcount == 0) {
                if (search->exptime == 0 || search->exptime > current_time) {
                        //STATS_LOCK();
-					   TM_ATOMIC {
+					   TM_ATOMIC { /* freud : volatile transactions */
                        	stats.evictions++;
 					   }
                        //STATS_UNLOCK();
@@ -235,7 +235,7 @@ int do_item_link(item *it) {
     assoc_insert(it);
 
     //STATS_LOCK();
-	TM_ATOMIC {
+	TM_ATOMIC { /* freud : volatile transactions */
     	stats.curr_bytes += ITEM_ntotal(it);
 	    stats.curr_items += 1;
     	stats.total_items += 1;
@@ -254,7 +254,7 @@ void do_item_unlink(item *it) {
     if ((it->it_flags & ITEM_LINKED) != 0) {
         it->it_flags &= ~ITEM_LINKED;
         //STATS_LOCK();
-		TM_ATOMIC {
+		TM_ATOMIC { /* freud : volatile transactions */
         	stats.curr_bytes -= ITEM_ntotal(it);
         	stats.curr_items -= 1;
 		}

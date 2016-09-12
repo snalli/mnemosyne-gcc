@@ -50,7 +50,7 @@
  * If the code proceeds past the bottom curly brace, the persistent writes are
  * guaranteed to be flushed to persistent memory.
  */
-#define MNEMOSYNE_ATOMIC __tm_atomic
+#define MNEMOSYNE_ATOMIC __transaction_atomic
 
 # ifdef __cplusplus
 extern "C" {

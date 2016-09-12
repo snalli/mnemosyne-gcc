@@ -31,16 +31,13 @@
  * Functions which can be called by user code are in itmuser.h.
  */
 
-#if !defined(_ITM09_H)                            /* Idempotence */
-# define _ITM09_H
-//! Version string
-# define _ITM_VERSION "0.9 (October 1, 2008)"
-/* We undef _ITM_VERSION_NO before defining it since it may have been set by the build system
- * to a less precise version than we know here. (e.g. 70 when we're 72).
- */
-# undef _ITM_VERSION_NO
 //! Version number (the version times 100)
-# define _ITM_VERSION_NO 90
+# ifndef _ITM_VERSION
+# define _ITM_VERSION "1.0.4"
+#endif
+# ifndef _ITM_VERSION_NO
+# define _ITM_VERSION_NO 104
+#endif
 
 # ifdef __cplusplus
 extern "C"

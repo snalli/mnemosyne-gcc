@@ -123,7 +123,7 @@ _init(void)
 	heap_base = (void *) (((uintptr_t) metadata_hardlimit) + VHALLOC_PREGION_HOLE_SIZE);
 	heap_hardlimit = (void *) (((uintptr_t) heap_base) + VHALLOC_PREGION_HEAP_SIZE);
 
-	__tm_atomic 
+	__transaction_atomic 
 	{
 		vistaheap_init(vistaheap_nugget, metadata_base, metadata_hardlimit, NULL);
 		vistaheap_init(vistaheap_main, heap_base, heap_hardlimit, vistaheap_nugget);

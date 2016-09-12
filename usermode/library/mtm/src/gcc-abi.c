@@ -31,10 +31,9 @@
 */
 
 /**
- * \file intelabi.c
+ * \file gcc-abi.c
  *
- * \brief Implements the rest of the Intel ABI that is not exported via
- * the dispatch table.
+ * \brief Implements the GCC ABI.
  */
 
 #include "mtm_i.h"
@@ -58,8 +57,9 @@ _ITM_libraryVersion (void)
 
 
 _ITM_howExecuting _ITM_CALL_CONVENTION
-_ITM_inTransaction (mtm_tx_t *tx)
+_ITM_inTransaction ()
 {
+	mtm_tx_t *tx = mtm_get_tx();
 	if (tx && tx->status != TX_IDLE) {
 		if (tx->status & TX_IRREVOCABLE) {
 			return inIrrevocableTransaction;
@@ -72,7 +72,7 @@ _ITM_inTransaction (mtm_tx_t *tx)
 
 
 _ITM_transactionId _ITM_CALL_CONVENTION
-_ITM_getTransactionId (mtm_tx_t *td)
+_ITM_getTransactionId ()
 {
 	mtm_tx_t *tx = mtm_get_tx();
 	return tx ? tx->id : _ITM_noTransactionId;
@@ -125,7 +125,7 @@ _ITM_userError (const char *errorStr, int errorCode)
 
 
 void _ITM_CALL_CONVENTION 
-_ITM_dropReferences (mtm_tx_t * td, const void *start, size_t size)
+_ITM_dropReferences (const void *start, size_t size)
 {
 	//TODO
 }
@@ -191,29 +191,29 @@ _ITM_registerThreadFinalization (void (_ITM_CALL_CONVENTION * thread_fini_func) 
 }
 
 void _ITM_CALL_CONVENTION
-_ITM_addUserCommitAction(mtm_tx_t * __td,
-                         _ITM_userCommitFunction fn,
+_ITM_addUserCommitAction(_ITM_userCommitFunction fn,
                          _ITM_transactionId tid, 
                          void *arg)
 {
-	mtm_useraction_addUserCommitAction(__td, fn, tid, arg);
+	mtm_tx_t *tx = mtm_get_tx();
+	mtm_useraction_addUserCommitAction(tx, fn, tid, arg);
 }
 
 
 void _ITM_CALL_CONVENTION
-_ITM_addUserUndoAction(mtm_tx_t * __td,
-                       const _ITM_userUndoFunction fn, 
+_ITM_addUserUndoAction(const _ITM_userUndoFunction fn, 
                        void *arg)
 {
-	mtm_useraction_addUserUndoAction(__td, fn, arg);
+	mtm_tx_t *tx = mtm_get_tx();
+	mtm_useraction_addUserUndoAction(tx, fn, arg);
 }
 
 
 void _ITM_CALL_CONVENTION
-_ITM_changeTransactionMode(mtm_tx_t *td,
-                           _ITM_transactionState __mode,
+_ITM_changeTransactionMode(_ITM_transactionState __mode,
                            const _ITM_srcLocation * __loc)
 {
+	/* This mode is not implemented yet */
 	//TODO: Support compiler instructed switching of transaction execution mode
 	//assert (state == modeSerialIrrevocable);
 	//MTM_serialmode (false, true);

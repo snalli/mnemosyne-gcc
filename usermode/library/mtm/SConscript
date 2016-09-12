@@ -52,7 +52,7 @@ CC_SRC = Split("""
                src/config.c
                src/gc.c
                src/init.c
-               src/intelabi.c
+               src/gcc-abi.c
                src/local.c
                src/mode/mode.c
                src/mode/common/common.c
@@ -62,11 +62,6 @@ CC_SRC = Split("""
                src/mode/pwbetl/memset.c
                src/mode/pwbetl/pwbetl.c
                src/mode/pwbetl/barrier.c
-               src/mode/pwbnl/beginend.c
-               src/mode/pwbnl/memcpy.c
-               src/mode/pwbnl/memset.c
-               src/mode/pwbnl/pwbnl.c
-               src/mode/pwbnl/barrier.c
 	       src/mode/pwb-common/tmlog_base.c
 	       src/mode/pwb-common/tmlog_tornbit.c
                src/mtm.c

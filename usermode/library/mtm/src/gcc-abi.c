@@ -49,6 +49,44 @@ void _ITM_CALL_CONVENTION _ITM_abortTransaction(_ITM_abortReason __reason,
 	mtm_pwbetl_abortTransaction(tx, __reason, __src);
 }
 
+void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(const _ITM_srcLocation *__src)
+{
+	mtm_tx_t *tx = mtm_get_tx();	
+	mtm_pwbetl_rollbackTransaction(tx, __src);
+}
+
+void _ITM_CALL_CONVENTION _ITM_commitTransaction()
+{
+  	mtm_tx_t *tx = mtm_get_tx();	
+	void *__src = NULL;
+	mtm_pwbetl_commitTransaction(tx, __src);
+}
+
+bool _ITM_CALL_CONVENTION _ITM_tryCommitTransaction(const _ITM_srcLocation *__src)
+{
+	mtm_tx_t *tx = mtm_get_tx();
+	return mtm_pwbetl_tryCommitTransaction(tx, __src);
+}
+
+void _ITM_CALL_CONVENTION _ITM_commitTransactionToId(const _ITM_transactionId tid,
+                              const _ITM_srcLocation *__src)
+{
+	mtm_tx_t *tx = mtm_get_tx();
+	mtm_pwbetl_commitTransactionToId(tx, tid, __src);
+}
+
+/*
+TODO : Requires assembly-level hacking
+uint32_t
+mtm_pwbetl_beginTransaction_internal (mtm_tx_t *tx,
+                                   uint32_t prop,
+                                   _ITM_srcLocation *srcloc)
+{
+        PM_START_TX();
+        return beginTransaction_internal (tx, prop, srcloc, 1);
+}
+*/
+
 
 int _ITM_CALL_CONVENTION
 _ITM_versionCompatible (int version)

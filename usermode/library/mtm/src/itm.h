@@ -1,385 +1,396 @@
-/**
-*** Copyright (C) 2007-2008 Intel Corporation.  All rights reserved.
-***
-*** The information and source code contained herein is the exclusive
-*** property of Intel Corporation and may not be disclosed, examined
-*** or reproduced in whole or in part without explicit written authorization
-*** from the company.
-***
-**/
-
 /*
- * This file can be processed with doxygen to generate documentation.
- * If you do that you will get better results if you use this set of parameters
- * in your Doxyfile.
+ * File:
+ *   itm.h (Copied from libitm.h)
+ * Author(s):
+ *   Pascal Felber <pascal.felber@unine.ch>
+ *   Patrick Marlier <patrick.marlier@unine.ch>
+ * Description:
+ *   ABI for tinySTM.
  *
- *  ENABLE_PREPROCESSING   = YES
- *  MACRO_EXPANSION        = YES
- *  EXPAND_ONLY_PREDEF     = YES
- *  PREDEFINED             = "_ITM_NORETURN(arg) = arg "\
- *                           "_ITM_CALL_CONVENTION= "   \
- *                           "_ITM_PRIVATE= "           \
- *                           "_ITM_EXPORT= "            \
- *  EXPAND_AS_DEFINED      = _ITM_FOREACH_TRANSFER
+ * Copyright (c) 2007-2014.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, version 2
+ * of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * This program has a dual license and can also be distributed
+ * under the terms of the MIT license.
  */
 
-/*!
- * \file itm09.h
- * \brief Header file for the Intel C/C++ STM Compiler ABI v0.9.
- *
- * itm09.h contains the full 0.9 ABI interface between the compiler and the TM runtime.
- * Functions which can be called by user code are in itmuser.h.
- */
+#ifndef _ITM_H_
+#define _ITM_H_
 
-//! Version number (the version times 100)
-# ifndef _ITM_VERSION
-# define _ITM_VERSION "1.0.4"
-#endif
-# ifndef _ITM_VERSION_NO
-# define _ITM_VERSION_NO 104
-#endif
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
-# ifdef __cplusplus
-extern "C"
-{
-# endif                          /* __cplusplus */
-
+#include <stdint.h>
+#include <stdbool.h>
+#ifdef __SSE__
 # include <xmmintrin.h>
-# include <stddef.h>
+#endif
 
-    /* defined(_WIN32) should be sufficient, but it looks so much like a latent bug
-     * that I also test _WIN64
-     */
-# if (defined (_WIN32) || defined (_WIN64))
-#  define  _ITM_NORETURN(funcspec) __declspec(noreturn) funcspec
-/* May need something here for Windows, but I'm not fixing that just now... */
-#  define  _ITM_EXPORT
-#  define  _ITM_PRIVATE
-# else
-#  define _ITM_NORETURN(funcspec) funcspec __attribute__((noreturn))
-#  define _ITM_EXPORT  __attribute__((visibility("default")))
-#  define _ITM_PRIVATE __attribute__((visibility("hidden" )))
-# endif
+/* ################################################################### *
+ * DEFINES
+ * ################################################################### */
+#define _ITM_VERSION_NO_STR "1.0.4"
+#define _ITM_VERSION_NO 104
 
-# include "itmuser.h"
+#if defined(__i386__)
+# define _ITM_CALL_CONVENTION __attribute__((regparm(2)))
+#else
+# define _ITM_CALL_CONVENTION
+#endif
 
-/* Opaque types passed over the interface.
- * In most cases these allow us to use pointers to specific opaque
- * types, rather than just "void *" and thus get some type checking
- * without having to make the content of the type visible.  This also
- * allows the data-flow from the result of one function to an argument
- * to another to be clearer.
- */
-//! Opaque memento descriptor
-struct _ITM_mementoS;
-typedef struct _ITM_mementoS _ITM_memento;
+#define _ITM_noTransactionId 1		/* Id for non-transactional code. */
 
-/*! This is the same source location structure as is used for OpenMP. */
+
+#define _ITM_TRANSACTION_PURE __attribute__((transaction_pure))
+
+/* ################################################################### *
+ * TYPES
+ * ################################################################### */
+
+typedef void *_ITM_transaction;
+
+typedef void (*_ITM_userUndoFunction)(void *);
+typedef void (*_ITM_userCommitFunction)(void *);
+
+typedef uint32_t _ITM_transactionId;
+
+typedef enum
+{
+  outsideTransaction = 0,
+  inRetryableTransaction,
+  inIrrevocableTransaction
+} _ITM_howExecuting;
+
 struct _ITM_srcLocationS
 {
-    int32 reserved_1;
-    int32 flags;
-    int32 reserved_2;
-    int32 reserved_3;
-    const char *psource; /**< psource contains a string describing the
-     * source location generated like this
-     * \code
-     * sprintf(loc_name,";%s;%s;%d;%d;;", path_file_name, routine_name, sline, eline); 
-     * \endcode 
-     * where sline is the starting line and eline the ending line.
-     */
+  int32_t reserved_1;
+  int32_t flags;
+  int32_t reserved_2;
+  int32_t reserved_3;
+  const char *psource;
 };
 
 typedef struct _ITM_srcLocationS _ITM_srcLocation;
 
-/*! Values to describe properties of the code generated for a
- * transaction, passed in to startTransaction.
- */ 
-typedef enum 
-{
-   pr_instrumentedCode   = 0x0001, /**< Instrumented code is available.  */
-   pr_uninstrumentedCode = 0x0002, /**< Uninstrumented code is available.  */
-   pr_multiwayCode = pr_instrumentedCode | pr_uninstrumentedCode,
-   pr_hasNoXMMUpdate     = 0x0004, /**< Compiler has proved that no XMM registers are updated.  */
-   pr_hasNoAbort         = 0x0008, /**< Compiler has proved that no user abort can occur. */
-   pr_hasNoRetry         = 0x0010, /**< Compiler has proved that no user retry can occur. */
-   pr_hasNoIrrevocable   = 0x0020, /**< Compiler has proved that the transaction does not become irrevocable. */
-   pr_doesGoIrrevocable  = 0x0040, /**< Compiler has proved that the transaction always becomes irrevocable. */
-   pr_hasNoSimpleReads   = 0x0080, /**< Compiler has proved that the transaction has no R<type> calls. */
-
-   /* More detailed information about properties of instrumented code generation. 
-    * These don't tell us that the transaction had no need for these barriers (like hasNoSimpleReads),
-    * rather that the compiler simply generated native ld/st for these operations and omitted the
-    * barriers. (Useful if the library implementation didn't need them, for instance an in-place
-    * update STM never needs to know about "after Write" operations).
-    */
-   pr_aWBarriersOmitted  = 0x0100, /**< Compiler omitted "after write" barriers  */
-   pr_RaRBarriersOmitted = 0x0200, /**< Compiler omitted "read after read" barriers  */
-   pr_undoLogCode        = 0x0400, /**< Compiler generated only code for undo-logging, no other barriers. */
-
-   /* Another hint from the compiler. */
-   pr_preferUninstrumented
-                         = 0x0800, /**< Compiler thinks this is a transaction best run uninstrumented. */
-   pr_exceptionBlock     = 0x1000,
-   pr_hasElse            = 0x2000
+typedef enum {
+  pr_instrumentedCode = 0x0001,
+  pr_uninstrumentedCode = 0x0002,
+  pr_multiwayCode = pr_instrumentedCode | pr_uninstrumentedCode,
+  pr_hasNoXMMUpdate = 0x0004,
+  pr_hasNoAbort = 0x0008,
+  pr_hasNoRetry = 0x0010,
+  pr_hasNoIrrevocable = 0x0020,
+  pr_doesGoIrrevocable = 0x0040,
+  pr_hasNoSimpleReads = 0x0080,
+  pr_aWBarriersOmitted = 0x0100,
+  pr_RaRBarriersOmitted = 0x0200,
+  pr_undoLogCode = 0x0400,
+  pr_preferUninstrumented = 0x0800,
+  pr_exceptionBlock = 0x1000,
+  pr_hasElse = 0x2000,
+  pr_readOnly = 0x4000 /* GNU gcc specific */
 } _ITM_codeProperties;
 
-/*! Result from startTransaction which describes what actions to take.  */
-typedef enum
-{
-    a_runInstrumentedCode   = 0x01, /**< Run instrumented code.  */
-    a_runUninstrumentedCode = 0x02, /**< Run uninstrumented code.  */
-    a_saveLiveVariables     = 0x04, /**< Save live in variables (only legal with run instrumented code).  */
-    a_restoreLiveVariables  = 0x08, /**< Restore live in variables (only legal with abort or retry).  */
-    a_abortTransaction      = 0x10, /**< Branch to the abort label.  */
+typedef enum {
+  a_runInstrumentedCode = 0x01,
+  a_runUninstrumentedCode = 0x02,
+  a_saveLiveVariables = 0x04,
+  a_restoreLiveVariables = 0x08,
+  a_abortTransaction = 0x10,
 } _ITM_actions;
 
-/*! Values to be passed to changeTransactionMode. */
-typedef enum 
-{
-    modeSerialIrrevocable, /**< Serial irrevocable mode. No abort, no retry. Good for legacy functions. */
-    modeObstinate,         /**< Obstinate mode. Abort or retry are possible, but this transaction wins all contention fights. */
-    modeOptimistic,        /**< Optimistic mode. Force transaction to run in optimistic mode. */
-    modePessimistic,       /**< Pessimistic mode. Force transaction to run in pessimistic mode. */
+typedef enum {
+  modeSerialIrrevocable,
+  modeObstinate,
+  modeOptimistic,
+  modePessimistic,
 } _ITM_transactionState;
 
-/*! Values to be passed to _ITM_abort*Transaction */
 typedef enum {
-    unknown = 0,
-    userAbort = 1,     /**< __tm_abort was invoked. */
-    userRetry = 2,     /**< __tm_retry was invoked. */              
-    TMConflict= 4,     /**< The runtime detected a memory access conflict. */
-    exceptionBlockAbort = 8   /**< Propagate abort from a systhetic transaction for catch block or destructor. */
+  unknown = 0,
+  userAbort = 1,
+  userRetry = 2,
+  TMConflict= 4,
+  exceptionBlockAbort = 8
 } _ITM_abortReason;
 
 
-/*! Memory management functions to be used directly from user code */
-_ITM_EXPORT extern void * _ITM_CALL_CONVENTION _ITM_malloc (size_t size);
+/* ################################################################### *
+ * FUNCTIONS
+ * ################################################################### */
 
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_free (void * ptr);
+extern _ITM_TRANSACTION_PURE
+_ITM_transaction * _ITM_CALL_CONVENTION _ITM_getTransaction(void);
 
-/*! Version checking */
-_ITM_EXPORT extern const char * _ITM_CALL_CONVENTION _ITM_libraryVersion (void);
+extern _ITM_TRANSACTION_PURE
+_ITM_howExecuting _ITM_CALL_CONVENTION _ITM_inTransaction();
 
-/*! Call with the _ITM_VERSION_NO macro defined above, so that the
- * library can handle compatibility issues.
- */
-_ITM_EXPORT extern int _ITM_CALL_CONVENTION _ITM_versionCompatible (int); /* Zero if not compatible */
+extern _ITM_TRANSACTION_PURE
+int _ITM_CALL_CONVENTION _ITM_getThreadnum(void);
 
-/*! Initialization, finalization
- * Result of initialization function is zero for success, non-zero for failure, so you want
- * if (!_ITM_initializeProcess())
- * {
- *     ... error exit ...
- * }
- */
-_ITM_EXPORT extern int  _ITM_CALL_CONVENTION _ITM_initializeProcess(void);      /* Idempotent */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_finalizeProcess(void);
-_ITM_EXPORT extern int  _ITM_CALL_CONVENTION _ITM_initializeThread(void);       /* Idempotent */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_finalizeThread(void);
+extern _ITM_TRANSACTION_PURE
+void _ITM_CALL_CONVENTION _ITM_addUserCommitAction(
+                             _ITM_userCommitFunction __commit,
+                             _ITM_transactionId resumingTransactionId,
+                             void *__arg);
 
-/*! Error reporting */
-_ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_error (const _ITM_srcLocation *, int errorCode));
+extern _ITM_TRANSACTION_PURE
+void _ITM_CALL_CONVENTION _ITM_addUserUndoAction(
+                             const _ITM_userUndoFunction __undo, void * __arg);
 
-/* _ITM_getTransaction(void), _ITM_inTransaction(_ITM_transaction*), and
-   _ITM_getTransactionId(_ITM_transaction*) are in itmuser.h */
+extern _ITM_TRANSACTION_PURE
+_ITM_transactionId _ITM_CALL_CONVENTION _ITM_getTransactionId();
 
-/*! Begin a transaction.
- * This function can return more than once (cf setjump). The result always tells the compiled
- * code what needs to be executed next.
- * \param __properties A bit mask composed of values from _ITM_codeProperties or-ed together.
- * \param __src The source location.
- * \return A bit mask composed of values from _ITM_actions or-ed together.
- */
-_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_beginTransaction  (_ITM_transaction *td,
-                                                                         uint32 __properties,
-                                                                         const _ITM_srcLocation *__src);
+extern _ITM_TRANSACTION_PURE
+void _ITM_CALL_CONVENTION _ITM_dropReferences(
+                             const void *__start, size_t __size);
 
-/*! Commit the innermost transaction. If the innermost transaction is also the outermost,
- * validate and release all reader/writer locks.
- * If this fuction returns the transaction is committed. On a commit
- * failure the commit will not return, but will instead longjump and return from the associated
- * beginTransaction call.
- * \param __src The source location of the transaction.
- * 
- */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransaction     (_ITM_transaction *td,
-                                                                         const _ITM_srcLocation *__src);
+extern _ITM_TRANSACTION_PURE
+void _ITM_CALL_CONVENTION _ITM_userError(const char *errString, int exitCode);
 
-/*! Try to commit the innermost transaction. If the innermost transaction is also the outermost,
- * validate. If validation fails, return 0. Otherwise,  release all reader/writer locks and return 1.
- * \param __src The source location of the transaction.
- * 
- */
-_ITM_EXPORT extern uint32 _ITM_CALL_CONVENTION _ITM_tryCommitTransaction  (_ITM_transaction *td,
-                                                                             const _ITM_srcLocation *__src);
+extern const char * _ITM_CALL_CONVENTION _ITM_libraryVersion(void);
 
-/*! Commit the to the nested transaction specifed by the first arugment.
- * \param tid The transaction id for the nested transaction that we are commit to.
- * \param __src The source location of the catch block.
- * 
- */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId (_ITM_transaction *td,
-                                                                         const _ITM_transactionId tid,
-                                                                         const _ITM_srcLocation *__src);
+extern int _ITM_CALL_CONVENTION _ITM_versionCompatible(int version);
 
-/*! Abort a transaction.
- * This function will never return, instead it will longjump and return from the associated
- * beginTransaction call (or from the beginTransaction call assocatiated with a catch block or destructor
- * entered on an exception).
- * \param __td The transaction pointer.
- * \param __reason The reason for the abort.
- * \param __src The source location of the __tm_abort (if abort is called by the compiler).
- */
-_ITM_NORETURN (_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_abortTransaction(_ITM_transaction *td,
-                                                                                  _ITM_abortReason __reason, 
-                                                                                  const _ITM_srcLocation *__src));
 
-/*! Rollback a transaction to the innermost nesting level.
- * This function is similar to abortTransaction, but returns.
- * It does not longjump and return from a beginTransaction.
- * \param __td The transaction pointer.
- * \param __src The source location of the __tm_abort (if abort is called by the compiler).
- */
-/*! Abort a transaction which may or may not be nested. Arguments and semantics as for abortOuterTransaction. */
-/* Will return if called with uplevelAbort, otherwise it longjumps */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(_ITM_transaction *td,
-                                                                      const _ITM_srcLocation *__src);
+extern int _ITM_CALL_CONVENTION _ITM_initializeThread(void);
 
-/*! Register the thrown object to avoid undoing it, in case the transaction aborts and throws an exception
- * from inside a catch handler.
- * \param __td The transaction pointer.
- * \param __obj The base address of the thrown object.
- * \param __size The size of the object in bytes.
- */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(_ITM_transaction *td, const void *__obj, size_t __size);
+extern void _ITM_CALL_CONVENTION _ITM_finalizeThread(void);
 
-/*! Enter an irrevocable mode.
- * If this function returns then execution is now in the new mode, however it's possible that
- * to enter the new mode the transaction must be aborted and retried, in which case this function
- * will not return.
- *
- * \param __td The transaction descriptor.
- * \param __mode The new execution mode.
- * \param __src The source location.
- */
-_ITM_EXPORT extern void _ITM_CALL_CONVENTION _ITM_changeTransactionMode (_ITM_transaction *td,
-                                                                         _ITM_transactionState __mode,
-                                                                         const _ITM_srcLocation * __loc);
+extern void _ITM_CALL_CONVENTION _ITM_finalizeProcess(void);
 
-/* Support macros to generate the multiple data transfer functions we need. 
- * We leave them defined because they are useful elsewhere, for instance when building
- * the vtables we use for mode changes.
- */
+extern int _ITM_CALL_CONVENTION _ITM_initializeProcess(void);
 
-# ifndef __cplusplus
-/*! Invoke a macro on each of the transfer functions, passing it the
- * result type, function name (without the _ITM_ prefix) and arguments (including parentheses).
- * This can be used to generate all of the function prototypes, part of the vtable,
- * statistics enumerations and so on.
- *
- * Anywhere where the names of all the transfer functions are needed is a good candidate
- * to use this macro.
- */
+extern void _ITM_CALL_CONVENTION _ITM_error(const _ITM_srcLocation *__src,
+                             int errorCode);
 
-#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)  \
-GENERATE (ACTION, uint8,U1, __VA_ARGS__)                              \
-GENERATE (ACTION, uint16,U2, __VA_ARGS__)                             \
-GENERATE (ACTION, uint32,U4, __VA_ARGS__)                             \
-GENERATE (ACTION, uint64,U8, __VA_ARGS__)                             \
-GENERATE (ACTION, float,F, __VA_ARGS__)                                 \
-GENERATE (ACTION, double,D, __VA_ARGS__)                                \
-GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
-GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
-GENERATE (ACTION, __m128,M128, __VA_ARGS__)                             \
-GENERATE (ACTION, float _Complex, CF, __VA_ARGS__)                      \
-GENERATE (ACTION, double _Complex, CD, __VA_ARGS__)                     \
-GENERATE (ACTION, long double _Complex, CE, __VA_ARGS__) 
-# else
-#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)  \
-GENERATE (ACTION, uint8,U1, __VA_ARGS__)                              \
-GENERATE (ACTION, uint16,U2, __VA_ARGS__)                             \
-GENERATE (ACTION, uint32,U4, __VA_ARGS__)                             \
-GENERATE (ACTION, uint64,U8, __VA_ARGS__)                             \
-GENERATE (ACTION, float,F, __VA_ARGS__)                                 \
-GENERATE (ACTION, double,D, __VA_ARGS__)                                \
-GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
-GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
-GENERATE (ACTION, __m128,M128, __VA_ARGS__)
-# endif
+extern uint32_t _ITM_beginTransaction(uint32_t __properties, ...)
+                             __attribute__((returns_twice));
+extern void _ITM_CALL_CONVENTION _ITM_commitTransaction(void);
 
-# define _ITM_FOREACH_MEMCPY0(ACTION, NAME, ...)                                                            \
-ACTION (void, NAME##RnWt, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)           \
-ACTION (void, NAME##RnWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RnWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWn,   (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWt,   (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWn, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWt, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaRWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaRWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaWWn, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaWWt, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)         \
-ACTION (void, NAME##RtaWWtaR, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)       \
-ACTION (void, NAME##RtaWWtaW, (_ITM_transaction *, void *, const void *, size_t), __VA_ARGS__)
 
-#define _ITM_FOREACH_MEMCPY(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memcpy,__VA_ARGS__)
 
-#define _ITM_FOREACH_MEMMOVE(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memmove,__VA_ARGS__)
+extern bool _ITM_CALL_CONVENTION _ITM_tryCommitTransaction(
+                             const _ITM_srcLocation *__src);
 
-# define _ITM_FOREACH_MEMSET(ACTION, ...)                                               \
-ACTION (void, memsetW, (_ITM_transaction *, void *, int, size_t), __VA_ARGS__)          \
-ACTION (void, memsetWaR, (_ITM_transaction *, void *, int, size_t), __VA_ARGS__)        \
-ACTION (void, memsetWaW, (_ITM_transaction *, void *, int, size_t), __VA_ARGS__)
+extern void _ITM_CALL_CONVENTION _ITM_commitTransactionToId(
+                             const _ITM_transactionId tid,
+                             const _ITM_srcLocation *__src);
 
-#define _ITM_FOREACH_SIMPLE_TRANSFER(ACTION,ARG)           \
-    _ITM_FOREACH_SIMPLE_READ_TRANSFER(ACTION,ARG)          \
-    _ITM_FOREACH_SIMPLE_WRITE_TRANSFER(ACTION,ARG)
+extern void _ITM_CALL_CONVENTION _ITM_abortTransaction(
+                             _ITM_abortReason __reason,
+                             const _ITM_srcLocation *__src);
 
-# define _ITM_FOREACH_TRANSFER(ACTION, ARG)     \
- _ITM_FOREACH_SIMPLE_TRANSFER(ACTION, ARG)      \
- _ITM_FOREACH_MEMCPY (ACTION, ARG)              \
- _ITM_FOREACH_LOG_TRANSFER(ACTION,ARG)          \
- _ITM_FOREACH_MEMSET (ACTION,ARG)               \
- _ITM_FOREACH_MEMMOVE (ACTION,ARG)
+extern void _ITM_CALL_CONVENTION _ITM_rollbackTransaction(
+                             const _ITM_srcLocation *__src);
 
-#  define _ITM_FOREACH_SIMPLE_READ_TRANSFER(ACTION,ARG)                           \
-    _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(_ITM_GENERATE_READ_FUNCTIONS, ACTION,ARG) 
+extern void _ITM_CALL_CONVENTION _ITM_registerThrownObject(
+                             const void *__obj,
+                             size_t __size);
 
-#  define _ITM_FOREACH_SIMPLE_WRITE_TRANSFER(ACTION,ARG)                           \
-    _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(_ITM_GENERATE_WRITE_FUNCTIONS, ACTION,ARG) 
+extern void _ITM_CALL_CONVENTION _ITM_changeTransactionMode(
+                             _ITM_transactionState __mode,
+                             const _ITM_srcLocation *__loc);
 
-#  define _ITM_FOREACH_SIMPLE_LOG_TRANSFER(ACTION,ARG)                           \
-    _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(_ITM_GENERATE_LOG_FUNCTIONS, ACTION,ARG) 
+/**** GCC Specific ****/
+extern _ITM_CALL_CONVENTION void *_ITM_getTMCloneOrIrrevocable(void *);
+extern _ITM_CALL_CONVENTION void *_ITM_getTMCloneSafe(void *);
+extern void _ITM_registerTMCloneTable(void *, size_t);
+extern void _ITM_deregisterTMCloneTable(void *);
+extern _ITM_CALL_CONVENTION void _ITM_commitTransactionEH(void *);
 
-#  define _ITM_FOREACH_LOG_TRANSFER(ACTION,ARG)                         \
-    _ITM_FOREACH_SIMPLE_LOG_TRANSFER(ACTION,ARG)                        \
-    ACTION(void, LB, (_ITM_transaction *, const void*, size_t), ARG)
+extern void * _ITM_malloc(size_t);
+extern void * _ITM_calloc(size_t, size_t);
+extern void _ITM_free(void *);
 
-#  define _ITM_GENERATE_READ_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (result_type, R##encoding,   (_ITM_transaction *, const result_type *), ARG) \
-    ACTION (result_type, RaR##encoding, (_ITM_transaction *, const result_type *), ARG) \
-    ACTION (result_type, RaW##encoding, (_ITM_transaction *, const result_type *), ARG) \
-    ACTION (result_type, RfW##encoding, (_ITM_transaction *, const result_type *), ARG)         
+/*** Loads ***/
 
-#  define _ITM_GENERATE_WRITE_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (void, W##encoding,  (_ITM_transaction *, result_type *, result_type), ARG) \
-    ACTION (void, WaR##encoding,(_ITM_transaction *, result_type *, result_type), ARG) \
-    ACTION (void, WaW##encoding,(_ITM_transaction *, result_type *, result_type), ARG)
+extern uint8_t _ITM_CALL_CONVENTION _ITM_RU1(const uint8_t *);
+extern uint8_t _ITM_CALL_CONVENTION _ITM_RaRU1(const uint8_t *);
+extern uint8_t _ITM_CALL_CONVENTION _ITM_RaWU1(const uint8_t *);
+extern uint8_t _ITM_CALL_CONVENTION _ITM_RfWU1(const uint8_t *);
 
-#  define _ITM_GENERATE_LOG_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
-    ACTION (void, L##encoding,   (_ITM_transaction *, const result_type *), ARG) 
+extern uint16_t _ITM_CALL_CONVENTION _ITM_RU2(const uint16_t *);
+extern uint16_t _ITM_CALL_CONVENTION _ITM_RaRU2(const uint16_t *);
+extern uint16_t _ITM_CALL_CONVENTION _ITM_RaWU2(const uint16_t *);
+extern uint16_t _ITM_CALL_CONVENTION _ITM_RfWU2(const uint16_t *);
 
-# define GENERATE_PROTOTYPE(result, function, args, ARG)    \
-    _ITM_EXPORT extern result _ITM_CALL_CONVENTION _ITM_##function args;
+extern uint32_t _ITM_CALL_CONVENTION _ITM_RU4(const uint32_t *);
+extern uint32_t _ITM_CALL_CONVENTION _ITM_RaRU4(const uint32_t *);
+extern uint32_t _ITM_CALL_CONVENTION _ITM_RaWU4(const uint32_t *);
+extern uint32_t _ITM_CALL_CONVENTION _ITM_RfWU4(const uint32_t *);
 
-_ITM_FOREACH_TRANSFER (GENERATE_PROTOTYPE,dummy)
-# undef GENERATE_PROTOTYPE
+extern uint64_t _ITM_CALL_CONVENTION _ITM_RU8(const uint64_t *);
+extern uint64_t _ITM_CALL_CONVENTION _ITM_RaRU8(const uint64_t *);
+extern uint64_t _ITM_CALL_CONVENTION _ITM_RaWU8(const uint64_t *);
+extern uint64_t _ITM_CALL_CONVENTION _ITM_RfWU8(const uint64_t *);
 
-# ifdef __cplusplus
+extern float _ITM_CALL_CONVENTION _ITM_RF(const float *);
+extern float _ITM_CALL_CONVENTION _ITM_RaRF(const float *);
+extern float _ITM_CALL_CONVENTION _ITM_RaWF(const float *);
+extern float _ITM_CALL_CONVENTION _ITM_RfWF(const float *);
+
+extern double _ITM_CALL_CONVENTION _ITM_RD(const double *);
+extern double _ITM_CALL_CONVENTION _ITM_RaRD(const double *);
+extern double _ITM_CALL_CONVENTION _ITM_RaWD(const double *);
+extern double _ITM_CALL_CONVENTION _ITM_RfWD(const double *);
+
+#ifdef __SSE__
+extern __m64 _ITM_CALL_CONVENTION _ITM_RM64(const __m64 *);
+extern __m64 _ITM_CALL_CONVENTION _ITM_RaRM64(const __m64 *);
+extern __m64 _ITM_CALL_CONVENTION _ITM_RaWM64(const __m64 *);
+extern __m64 _ITM_CALL_CONVENTION _ITM_RfWM64(const __m64 *);
+
+extern __m128 _ITM_CALL_CONVENTION _ITM_RM128(const __m128 *);
+extern __m128 _ITM_CALL_CONVENTION _ITM_RaRM128(const __m128 *);
+extern __m128 _ITM_CALL_CONVENTION _ITM_RaWM128(const __m128 *);
+extern __m128 _ITM_CALL_CONVENTION _ITM_RfWM128(const __m128 *);
+#endif /* __SSE__ */
+
+extern float _Complex _ITM_CALL_CONVENTION _ITM_RCF(const float _Complex *);
+extern float _Complex _ITM_CALL_CONVENTION _ITM_RaRCF(const float _Complex *);
+extern float _Complex _ITM_CALL_CONVENTION _ITM_RaWCF(const float _Complex *);
+extern float _Complex _ITM_CALL_CONVENTION _ITM_RfWCF(const float _Complex *);
+
+extern double _Complex _ITM_CALL_CONVENTION _ITM_RCD(const double _Complex *);
+extern double _Complex _ITM_CALL_CONVENTION _ITM_RaRCD(const double _Complex *);
+extern double _Complex _ITM_CALL_CONVENTION _ITM_RaWCD(const double _Complex *);
+extern double _Complex _ITM_CALL_CONVENTION _ITM_RfWCD(const double _Complex *);
+
+extern long double _Complex _ITM_CALL_CONVENTION _ITM_RCE(const long double _Complex *);
+extern long double _Complex _ITM_CALL_CONVENTION _ITM_RaRCE(const long double _Complex *);
+extern long double _Complex _ITM_CALL_CONVENTION _ITM_RaWCE(const long double _Complex *);
+extern long double _Complex _ITM_CALL_CONVENTION _ITM_RfWCE(const long double _Complex *);
+
+
+/*** Stores ***/
+
+extern void _ITM_CALL_CONVENTION _ITM_WU1(const uint8_t *, uint8_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaRU1(const uint8_t *, uint8_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaWU1(const uint8_t *, uint8_t);
+
+extern void _ITM_CALL_CONVENTION _ITM_WU2(const uint16_t *, uint16_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaRU2(const uint16_t *, uint16_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaWU2(const uint16_t *, uint16_t);
+
+extern void _ITM_CALL_CONVENTION _ITM_WU4(const uint32_t *, uint32_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaRU4(const uint32_t *, uint32_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaWU4(const uint32_t *, uint32_t);
+
+extern void _ITM_CALL_CONVENTION _ITM_WU8(const uint64_t *, uint64_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaRU8(const uint64_t *, uint64_t);
+extern void _ITM_CALL_CONVENTION _ITM_WaWU8(const uint64_t *, uint64_t);
+
+extern void _ITM_CALL_CONVENTION _ITM_WF(const float *, float);
+extern void _ITM_CALL_CONVENTION _ITM_WaRF(const float *, float);
+extern void _ITM_CALL_CONVENTION _ITM_WaWF(const float *, float);
+
+extern void _ITM_CALL_CONVENTION _ITM_WD(const double *, double);
+extern void _ITM_CALL_CONVENTION _ITM_WaRD(const double *, double);
+extern void _ITM_CALL_CONVENTION _ITM_WaWD(const double *, double);
+
+#ifdef __SSE__
+extern void _ITM_CALL_CONVENTION _ITM_WM64(const __m64 *, __m64);
+extern void _ITM_CALL_CONVENTION _ITM_WaRM64(const __m64 *, __m64);
+extern void _ITM_CALL_CONVENTION _ITM_WaWM64(const __m64 *, __m64);
+
+extern void _ITM_CALL_CONVENTION _ITM_WM128(const __m128 *, __m128);
+extern void _ITM_CALL_CONVENTION _ITM_WaRM128(const __m128 *, __m128);
+extern void _ITM_CALL_CONVENTION _ITM_WaWM128(const __m128 *, __m128);
+#endif /* __SSE__ */
+
+extern void _ITM_CALL_CONVENTION _ITM_WCF(const float _Complex *, float _Complex);
+extern void _ITM_CALL_CONVENTION _ITM_WaRCF(const float _Complex *, float _Complex);
+extern void _ITM_CALL_CONVENTION _ITM_WaWCF(const float _Complex *, float _Complex);
+
+extern void _ITM_CALL_CONVENTION _ITM_WCD(const double _Complex *, double _Complex);
+extern void _ITM_CALL_CONVENTION _ITM_WaRCD(const double _Complex *, double _Complex);
+extern void _ITM_CALL_CONVENTION _ITM_WaWCD(const double _Complex *, double _Complex);
+
+extern void _ITM_CALL_CONVENTION _ITM_WCE(const long double _Complex *, long double _Complex);
+extern void _ITM_CALL_CONVENTION _ITM_WaRCE(const long double _Complex *, long double _Complex);
+extern void _ITM_CALL_CONVENTION _ITM_WaWCE(const long double _Complex *, long double _Complex);
+
+
+/*** Logging functions ***/
+
+extern void _ITM_CALL_CONVENTION _ITM_LU1(const uint8_t *);
+extern void _ITM_CALL_CONVENTION _ITM_LU2(const uint16_t *);
+extern void _ITM_CALL_CONVENTION _ITM_LU4(const uint32_t *);
+extern void _ITM_CALL_CONVENTION _ITM_LU8(const uint64_t *);
+extern void _ITM_CALL_CONVENTION _ITM_LF(const float *);
+extern void _ITM_CALL_CONVENTION _ITM_LD(const double *);
+extern void _ITM_CALL_CONVENTION _ITM_LE(const long double *);
+extern void _ITM_CALL_CONVENTION _ITM_LM64(const __m64 *);
+extern void _ITM_CALL_CONVENTION _ITM_LM128(const __m128 *);
+extern void _ITM_CALL_CONVENTION _ITM_LCF(const float _Complex *);
+extern void _ITM_CALL_CONVENTION _ITM_LCD(const double _Complex *);
+extern void _ITM_CALL_CONVENTION _ITM_LCE(const long double _Complex *);
+extern void _ITM_CALL_CONVENTION _ITM_LB(const void *, size_t);
+
+
+/*** memcpy functions ***/
+
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRnWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRnWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRnWtaW(void *, const void *, size_t);
+
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtWn(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaRWn(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaWWn(void *, const void *, size_t);
+
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtWtaW(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaRWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaRWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaRWtaW(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaWWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaWWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memcpyRtaWWtaW(void *, const void *, size_t);
+
+
+/*** memset functions ***/
+
+extern void _ITM_CALL_CONVENTION _ITM_memsetW(void *, int, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memsetWaR(void *, int, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memsetWaW(void *, int, size_t);
+
+
+/*** memmove functions ***/
+
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRnWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRnWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRnWtaW(void *, const void *, size_t);
+
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtWn(void *, const void *, size_t); 
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaRWn(void *, const void *, size_t); 
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWn(void *, const void *, size_t); 
+
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtWtaW(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaRWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaRWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaRWtaW(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWt(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWtaR(void *, const void *, size_t);
+extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWtaW(void *, const void *, size_t);
+
+
+#ifdef __cplusplus
 } /* extern "C" */
-# endif                          /* __cplusplus */
+#endif /* __cplusplus */
 
-#endif /* defined(_ITM09_H) */
+#endif /* _ITM_H_ */
+

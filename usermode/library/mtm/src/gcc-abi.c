@@ -42,6 +42,14 @@
 #include "useraction.h"
 
 
+void _ITM_CALL_CONVENTION _ITM_abortTransaction(_ITM_abortReason __reason,
+                              const _ITM_srcLocation *__src)
+{
+	mtm_tx_t *tx = mtm_get_tx();
+	mtm_pwbetl_abortTransaction(tx, __reason, __src);
+}
+
+
 int _ITM_CALL_CONVENTION
 _ITM_versionCompatible (int version)
 {

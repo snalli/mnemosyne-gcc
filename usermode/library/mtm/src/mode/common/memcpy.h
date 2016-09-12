@@ -38,18 +38,18 @@
 /* FIXME: The implementations here are not the most efficient possible. */
 
 #define MEMCPY_DEFINITION(PREFIX, VARIANT, READ, WRITE)                        \
-void _ITM_CALL_CONVENTION mtm_##PREFIX##_memcpy##VARIANT(mtm_tx_t *tx,         \
-                                                   void *dst,                  \
+void _ITM_CALL_CONVENTION _ITM_memcpy##VARIANT(    void *dst,                  \
                                                    const void *src,            \
                                                    size_t size)                \
 {                                                                              \
+  mtm_tx_t *tx = mtm_get_tx();						       \
   volatile uint8_t *saddr=((volatile uint8_t *) src);                          \
   volatile uint8_t *daddr=((volatile uint8_t *) dst);                          \
   uint8_t buf[BUFSIZE];                                                        \
                                                                                \
   if (size == 0) {                                                             \
     return;                                                                    \
-  }	                                                                           \
+  }	                                                                       \
   while (size>BUFSIZE) {                                                       \
     mtm_##PREFIX##_load_bytes(tx, saddr, buf, BUFSIZE);                        \
     mtm_##PREFIX##_store_bytes(tx, daddr, buf, BUFSIZE);                       \
@@ -65,18 +65,18 @@ void _ITM_CALL_CONVENTION mtm_##PREFIX##_memcpy##VARIANT(mtm_tx_t *tx,         \
 
 
 #define MEMMOVE_DEFINITION(PREFIX, VARIANT, READ, WRITE)                       \
-void _ITM_CALL_CONVENTION mtm_##PREFIX##_memmove##VARIANT(mtm_tx_t *tx,        \
-                                                    void *dst,                 \
+void _ITM_CALL_CONVENTION _ITM_memmove##VARIANT(    void *dst,                 \
                                                     const void *src,           \
                                                     size_t size)               \
 {                                                                              \
+  mtm_tx_t *tx = mtm_get_tx();						       \
   volatile uint8_t *saddr=((volatile uint8_t *) src);                          \
   volatile uint8_t *daddr=((volatile uint8_t *) dst);                          \
   uint8_t buf[BUFSIZE];                                                        \
                                                                                \
   if (size == 0) {                                                             \
     return;                                                                    \
-  }	                                                                           \
+  }	                                                                       \
   if (saddr < daddr && daddr < saddr + size) {                                 \
     /* Destructive overlap...have to copy backwards */                         \
     saddr=((volatile uint8_t *) src) +size;                                    \
@@ -108,19 +108,6 @@ void _ITM_CALL_CONVENTION mtm_##PREFIX##_memmove##VARIANT(mtm_tx_t *tx,        \
     }                                                                          \
   }                                                                            \
 }
-
-
-#define MEMCPY_DECLARATION(PREFIX, VARIANT, READ, WRITE)                       \
-void _ITM_CALL_CONVENTION mtm_##PREFIX##_memcpy##VARIANT(mtm_tx_t *tx,         \
-                                                   void *dst,                  \
-                                                   const void *src,            \
-                                                   size_t size);
-
-#define MEMMOVE_DECLARATION(PREFIX, VARIANT, READ, WRITE)                      \
-void _ITM_CALL_CONVENTION mtm_##PREFIX##_memmove##VARIANT(mtm_tx_t *tx,        \
-                                                    void *dst,                 \
-                                                    const void *src,           \
-                                                    size_t size);
 
 
 #define FORALL_MEMCOPY_VARIANTS(ACTION, prefix)   \

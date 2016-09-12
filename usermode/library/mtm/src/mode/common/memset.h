@@ -38,11 +38,11 @@
 /* TODO: A more efficient implementation of memset */
 
 #define MEMSET_DEFINITION(PREFIX, VARIANT)                                     \
-void _ITM_CALL_CONVENTION mtm_##PREFIX##_memset##VARIANT(mtm_tx_t *tx,         \
-                                                        void *dst,             \
+void _ITM_CALL_CONVENTION _ITM_memset##VARIANT(         void *dst,             \
                                                         int c,                 \
                                                         size_t size)           \
 {                                                                              \
+  mtm_tx_t *tx = mtm_get_tx();						       \
   volatile uint8_t *daddr=dst;                                                 \
   uint8_t          buf[BUFSIZE];                                               \
   int              i;                                                          \
@@ -57,24 +57,16 @@ void _ITM_CALL_CONVENTION mtm_##PREFIX##_memset##VARIANT(mtm_tx_t *tx,         \
     mtm_##PREFIX##_store_bytes(tx, daddr, buf, BUFSIZE);                       \
     daddr += BUFSIZE;                                                          \
     size -= BUFSIZE;                                                           \
-  }	                                                                           \
+  }	                                                                       \
   if (size > 0) {                                                              \
     mtm_##PREFIX##_store_bytes(tx, daddr, buf, size);                          \
   }                                                                            \
 }
 
 
-
-#define MEMSET_DECLARATION(PREFIX, VARIANT)                                    \
-void _ITM_CALL_CONVENTION mtm_##PREFIX##_memset##VARIANT(mtm_tx_t * tx,        \
-                                                        void *dst,             \
-                                                        int c, size_t size);
-
 #define FORALL_MEMSET_VARIANTS(ACTION, PREFIX)                                 \
 ACTION(PREFIX, W)                                                              \
 ACTION(PREFIX, WaR)                                                            \
 ACTION(PREFIX, WaW)
-
-FORALL_MEMSET_VARIANTS(MEMSET_DECLARATION, wbetl)
 
 #endif

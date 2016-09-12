@@ -35,6 +35,4 @@
 
 #include "mode/common/memset.h"
 
-FORALL_MEMSET_VARIANTS(MEMSET_DECLARATION, pwbetl)
-
 #endif /* _PWBETL_MEMSET_FGT124_H */

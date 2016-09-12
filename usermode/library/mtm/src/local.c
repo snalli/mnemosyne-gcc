@@ -179,8 +179,8 @@ log_arbitrarily (mtm_tx_t *tx, const volatile void *ptr, size_t len)
 }
 
 
-# define DEFINE_LOG_BARRIER(name, type, encoding)                                \
-void _ITM_CALL_CONVENTION mtm_##name##L##encoding (mtm_tx_t *tx, const type *ptr)\
+# define DEFINE_LOG_BARRIER(name, type, encoding)                                	\
+void _ITM_CALL_CONVENTION _ITM_##name##L##encoding (mtm_tx_t *tx, const type *ptr)	\
 { log_arbitrarily (TXARGS ptr, sizeof (type)); }
 
 

@@ -304,8 +304,7 @@ mtm_init_thread(void)
 
 	switch (txmode) {
 		case MTM_MODE_pwbnl:
-			tx->mode = MTM_MODE_pwbnl;
-			tx->dtable = default_dtable_group->mtm_pwbnl;
+			assert(0); /* unsupported transaction mode */
 			break;
 		case MTM_MODE_pwbetl:
 			tx->mode = MTM_MODE_pwbetl;

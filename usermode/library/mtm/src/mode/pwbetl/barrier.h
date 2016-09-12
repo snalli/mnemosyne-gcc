@@ -35,7 +35,5 @@
 
 #include "pwb_i.h"
 
-FOR_ALL_TYPES(DECLARE_READ_BARRIERS, pwbetl)
-FOR_ALL_TYPES(DECLARE_WRITE_BARRIERS, pwbetl)
 
 #endif /* _PWBETL_BARRIER_QWE393_H */

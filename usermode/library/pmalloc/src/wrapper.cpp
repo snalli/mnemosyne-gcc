@@ -47,8 +47,9 @@
 
 #include "genalloc.h"
 
+#include <mtm_i.h>
 #include <itm.h>
-#include "mtm/include/txlock.h"
+#include <txlock.h>
 #include <pm_instr.h>
 
 m_txmutex_t generic_pmalloc_txmutex = PTHREAD_MUTEX_INITIALIZER;
@@ -216,8 +217,8 @@ static void free_internal (void * ptr)
 
 	    _ITM_transaction * td;
     	td = _ITM_getTransaction();
-	    if (_ITM_inTransaction(td) > 0) {
-		    _ITM_addUserCommitAction (td, free_commit_action, 2, ptr);
+	    if (_ITM_inTransaction() > 0) {
+		    _ITM_addUserCommitAction (free_commit_action, 2, ptr);
         } else {
 			persistentheap->free (ptr);
         }
@@ -306,7 +307,7 @@ static void * prealloc_internal (void * ptr, size_t sz)
 
 	size_t minSize = (objSize < sz) ? objSize : sz;
 	tx = _ITM_getTransaction();
-	_ITM_memcpyRtWt (tx, buf, ptr, minSize);
+	_ITM_memcpyRtWt (buf, ptr, minSize);
 
 	// Free the old block.
 	free_internal (ptr);

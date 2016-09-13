@@ -127,9 +127,9 @@ int m_txmutex_unlock(m_txmutex_t *txmutex)
 	_ITM_transaction * td;
 	td = _ITM_getTransaction();
 
-	if (_ITM_inTransaction(td) > 0) {
+	if (_ITM_inTransaction() > 0) {
 		DEBUG_PRINTF("[%d] DEFER: MUTEX  UNLOCK %p\n", pthread_self(), mutex);
-		_ITM_addUserCommitAction (td, m_txmutex_unlock_commit_action_local, 2, txmutex);
+		_ITM_addUserCommitAction (m_txmutex_unlock_commit_action_local, 2, txmutex);
 		//_ITM_addUserCommitAction (td, m_txmutex_unlock_commit_action_local, 2, txmutex);
 		ret = 0;
 	} else {
@@ -207,9 +207,9 @@ int m_txrwlock_unlock(m_txrwlock_t *txrwlock)
 	_ITM_transaction * td;
 	td = _ITM_getTransaction();
 
-	if (_ITM_inTransaction(td) > 0) {
+	if (_ITM_inTransaction() > 0) {
 		DEBUG_PRINTF("[%d] DEFER: RWLOCK UNLOCK %p\n", pthread_self(), rwlock);
-		_ITM_addUserCommitAction (td, m_txrwlock_unlock_commit_action, 2, txrwlock);
+		_ITM_addUserCommitAction (m_txrwlock_unlock_commit_action, 2, txrwlock);
 		ret = 0;
 	} else {
 		DEBUG_PRINTF("[%d] NOW  : RWLOCK UNLOCK %p\n", pthread_self(), rwlock);

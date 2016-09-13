@@ -96,8 +96,8 @@ mainEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#librar
 Export('mainEnv')
 
 CommonObjects = SConscript('library/common/SConscript', variant_dir = 'build/library/common')
-#pmallocLibrary = SConscript('library/pmalloc/SConscript', 'CommonObjects', variant_dir = 'build/library/pmalloc')
-#mcoreLibrary = SConscript('library/mcore/SConscript', 'CommonObjects', variant_dir = 'build/library/mcore')
+pmallocLibrary = SConscript('library/pmalloc/SConscript', 'CommonObjects', variant_dir = 'build/library/pmalloc')
+mcoreLibrary = SConscript('library/mcore/SConscript', 'CommonObjects', variant_dir = 'build/library/mcore')
 mtmLibrary = SConscript('library/mtm/SConscript', variant_dir = 'build/library/mtm')
 
 #toolsEnv = mainEnv.Clone()

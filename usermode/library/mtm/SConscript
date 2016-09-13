@@ -14,6 +14,7 @@ buildEnv['CC'] = 'gcc -w'
 buildEnv['CXX'] = 'g++'
 
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])

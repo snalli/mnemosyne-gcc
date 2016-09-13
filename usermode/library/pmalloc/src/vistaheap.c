@@ -39,8 +39,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <mtm_i.h>
 #include <itm.h>
-#include "vistaheap.h"
+#include <vistaheap.h>
 
 /*
  * Overview of this vistaheap management system
@@ -223,8 +224,8 @@ static nugget* nalloc(vistaheap* h)
 		 */
 		 
 		{
-			_ITM_transaction *tx = _ITM_getTransaction();
-			_ITM_memcpyRtWn(&local_mem, &mem, sizeof(nugget *));
+			//_ITM_memcpyRtWn(&local_mem, &mem, sizeof(nugget *));
+			memcpy(&local_mem, &mem, sizeof(nugget *));
 			chunks = EXTENDSIZE / sizeof(nugget);
 			for (i = 0; i < chunks; i++) {
 				new = &local_mem[i];

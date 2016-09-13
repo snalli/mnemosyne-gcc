@@ -27,10 +27,18 @@ CCFLAGS = CCFLAGS + ' -m64 '
 
 buildEnv.Append(CCFLAGS = CCFLAGS)
 buildEnv.Append(CXXFLAGS = CCFLAGS)
-#buildEnv.Append(CPPPATH = ['#library'])
-#buildEnv.Append(CPPPATH = ['#library/mcore/include'])
-buildEnv.Append(CPPPATH = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include'])
-
+buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwb-common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwbetl'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/linux'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/x86'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/hal'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/log'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include'])
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 
 if mainEnv['ENABLE_TRACE'] == True:

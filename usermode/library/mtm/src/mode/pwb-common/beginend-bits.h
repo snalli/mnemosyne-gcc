@@ -297,6 +297,7 @@ rollback_transaction (mtm_tx_t *tx)
 	pwb_rollback (tx);
 	switch (tx->mode) {
 		case MTM_MODE_pwbnl:
+			assert(0);
 #if (defined(ALLOW_ABORTS))
 			mtm_local_rollback (tx);
 #endif
@@ -418,6 +419,7 @@ trycommit_transaction (mtm_tx_t *tx, int enable_isolation)
 		}
 		switch (tx->mode) {
 			case MTM_MODE_pwbnl:
+				assert(0);
 #if (defined(ALLOW_ABORTS))
 				mtm_local_commit (tx);
 #endif

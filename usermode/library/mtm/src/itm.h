@@ -36,6 +36,8 @@ extern "C" {
 # include <xmmintrin.h>
 #endif
 
+# include "stddef.h"
+
 /* ################################################################### *
  * DEFINES
  * ################################################################### */
@@ -57,7 +59,22 @@ extern "C" {
  * TYPES
  * ################################################################### */
 
-typedef void *_ITM_transaction;
+typedef uint8_t uint8;
+typedef int8_t  int8;
+
+typedef uint16_t uint16;
+typedef int16_t  int16;
+
+typedef uint32_t uint32;
+typedef int32_t  int32;
+
+typedef uint64_t uint64;
+typedef int64_t  int64;
+
+typedef uintptr_t uintptr;
+typedef intptr_t  intptr;
+
+typedef mtm_tx_t _ITM_transaction;
 
 typedef void (*_ITM_userUndoFunction)(void *);
 typedef void (*_ITM_userCommitFunction)(void *);
@@ -387,6 +404,111 @@ extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWt(void *, const void *, size_t
 extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWtaR(void *, const void *, size_t);
 extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWtaW(void *, const void *, size_t);
 
+/* Do we need this anymore since we are not generating dtables ? */
+/* Support macros to generate the multiple data transfer functions we need. 
+ * We leave them defined because they are useful elsewhere, for instance when building
+ * the vtables we use for mode changes.
+ */
+
+# ifndef __cplusplus
+/*! Invoke a macro on each of the transfer functions, passing it the
+ * result type, function name (without the _ITM_ prefix) and arguments (including parentheses).
+ * This can be used to generate all of the function prototypes, part of the vtable,
+ * statistics enumerations and so on.
+ *
+ * Anywhere where the names of all the transfer functions are needed is a good candidate
+ * to use this macro.
+ */
+
+#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)  \
+GENERATE (ACTION, uint8,U1, __VA_ARGS__)                              \
+GENERATE (ACTION, uint16,U2, __VA_ARGS__)                             \
+GENERATE (ACTION, uint32,U4, __VA_ARGS__)                             \
+GENERATE (ACTION, uint64,U8, __VA_ARGS__)                             \
+GENERATE (ACTION, float,F, __VA_ARGS__)                                 \
+GENERATE (ACTION, double,D, __VA_ARGS__)                                \
+GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
+GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
+GENERATE (ACTION, __m128,M128, __VA_ARGS__)                             \
+GENERATE (ACTION, float _Complex, CF, __VA_ARGS__)                      \
+GENERATE (ACTION, double _Complex, CD, __VA_ARGS__)                     \
+GENERATE (ACTION, long double _Complex, CE, __VA_ARGS__) 
+# else
+#  define _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(GENERATE, ACTION, ...)  \
+GENERATE (ACTION, uint8,U1, __VA_ARGS__)                              \
+GENERATE (ACTION, uint16,U2, __VA_ARGS__)                             \
+GENERATE (ACTION, uint32,U4, __VA_ARGS__)                             \
+GENERATE (ACTION, uint64,U8, __VA_ARGS__)                             \
+GENERATE (ACTION, float,F, __VA_ARGS__)                                 \
+GENERATE (ACTION, double,D, __VA_ARGS__)                                \
+GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
+GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
+GENERATE (ACTION, __m128,M128, __VA_ARGS__)
+# endif
+
+# define _ITM_FOREACH_MEMCPY0(ACTION, NAME, ...)                                                            \
+ACTION (void, NAME##RnWt, (void *, const void *, size_t), __VA_ARGS__)           \
+ACTION (void, NAME##RnWtaR, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RnWtaW, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWn,   (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWt,   (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWtaR, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtWtaW, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWn, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWt, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaRWtaR, (void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaRWtaW, (void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaWWn, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaWWt, (void *, const void *, size_t), __VA_ARGS__)         \
+ACTION (void, NAME##RtaWWtaR, (void *, const void *, size_t), __VA_ARGS__)       \
+ACTION (void, NAME##RtaWWtaW, (void *, const void *, size_t), __VA_ARGS__)
+
+#define _ITM_FOREACH_MEMCPY(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memcpy,__VA_ARGS__)
+
+#define _ITM_FOREACH_MEMMOVE(ACTION,...) _ITM_FOREACH_MEMCPY0(ACTION,memmove,__VA_ARGS__)
+
+# define _ITM_FOREACH_MEMSET(ACTION, ...)                                               \
+ACTION (void, memsetW, (void *, int, size_t), __VA_ARGS__)          \
+ACTION (void, memsetWaR, (void *, int, size_t), __VA_ARGS__)        \
+ACTION (void, memsetWaW, (void *, int, size_t), __VA_ARGS__)
+
+#define _ITM_FOREACH_SIMPLE_TRANSFER(ACTION,ARG)           \
+    _ITM_FOREACH_SIMPLE_READ_TRANSFER(ACTION,ARG)          \
+    _ITM_FOREACH_SIMPLE_WRITE_TRANSFER(ACTION,ARG)
+
+# define _ITM_FOREACH_TRANSFER(ACTION, ARG)     \
+ _ITM_FOREACH_SIMPLE_TRANSFER(ACTION, ARG)      \
+ _ITM_FOREACH_MEMCPY (ACTION, ARG)              \
+ _ITM_FOREACH_LOG_TRANSFER(ACTION,ARG)          \
+ _ITM_FOREACH_MEMSET (ACTION,ARG)               \
+ _ITM_FOREACH_MEMMOVE (ACTION,ARG)
+
+#  define _ITM_FOREACH_SIMPLE_READ_TRANSFER(ACTION,ARG)                           \
+    _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(_ITM_GENERATE_READ_FUNCTIONS, ACTION,ARG) 
+
+#  define _ITM_FOREACH_SIMPLE_WRITE_TRANSFER(ACTION,ARG)                           \
+    _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(_ITM_GENERATE_WRITE_FUNCTIONS, ACTION,ARG) 
+
+#  define _ITM_FOREACH_SIMPLE_LOG_TRANSFER(ACTION,ARG)                           \
+    _ITM_GENERATE_FOREACH_SIMPLE_TRANSFER(_ITM_GENERATE_LOG_FUNCTIONS, ACTION,ARG) 
+
+#  define _ITM_FOREACH_LOG_TRANSFER(ACTION,ARG)                         \
+    _ITM_FOREACH_SIMPLE_LOG_TRANSFER(ACTION,ARG)                        \
+    ACTION(void, LB, (const void*, size_t), ARG)
+
+#  define _ITM_GENERATE_READ_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
+    ACTION (result_type, R##encoding,   (const result_type *), ARG) \
+    ACTION (result_type, RaR##encoding, (const result_type *), ARG) \
+    ACTION (result_type, RaW##encoding, (const result_type *), ARG) \
+    ACTION (result_type, RfW##encoding, (const result_type *), ARG)         
+
+#  define _ITM_GENERATE_WRITE_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
+    ACTION (void, W##encoding,  (result_type *, result_type), ARG) \
+    ACTION (void, WaR##encoding,(result_type *, result_type), ARG) \
+    ACTION (void, WaW##encoding,(result_type *, result_type), ARG)
+
+#  define _ITM_GENERATE_LOG_FUNCTIONS(ACTION, result_type, encoding, ARG ) \
+    ACTION (void, L##encoding,   (const result_type *), ARG) 
 
 #ifdef __cplusplus
 } /* extern "C" */

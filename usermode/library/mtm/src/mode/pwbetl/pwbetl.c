@@ -44,17 +44,18 @@
 #define _DTABLE_MEMBER(result, function, args, ARG)   ARG##function,
 
 
-mtm_dtable_t mtm_pwbetl_dtable =
+mtm_dtable_t mtm_pwbetl_dtable;
+/*
 {
-	FOREACH_ABI_FUNCTION      (_DTABLE_MEMBER, mtm_pwbetl_)
-	FOREACH_READ_BARRIER      (_DTABLE_MEMBER, mtm_pwbetl_)
-	FOREACH_WRITE_BARRIER     (_DTABLE_MEMBER, mtm_pwbetl_)
-	_ITM_FOREACH_MEMCPY       (_DTABLE_MEMBER, mtm_pwbetl_)
-	_ITM_FOREACH_LOG_TRANSFER (_DTABLE_MEMBER, mtm_local_)
-	_ITM_FOREACH_MEMSET       (_DTABLE_MEMBER, mtm_pwbetl_)
-	_ITM_FOREACH_MEMMOVE      (_DTABLE_MEMBER, mtm_pwbetl_)
+	FOREACH_ABI_FUNCTION      (_DTABLE_MEMBER, _ITM_)
+	FOREACH_READ_BARRIER      (_DTABLE_MEMBER, _ITM_)
+	FOREACH_WRITE_BARRIER     (_DTABLE_MEMBER, _ITM_)
+	_ITM_FOREACH_MEMCPY       (_DTABLE_MEMBER, _ITM_)
+	_ITM_FOREACH_LOG_TRANSFER (_DTABLE_MEMBER, _ITM_)
+	_ITM_FOREACH_MEMSET       (_DTABLE_MEMBER, _ITM_)
+	_ITM_FOREACH_MEMMOVE      (_DTABLE_MEMBER, _ITM_)
 };
-
+*/
 
 /* Called by mtm_init_thread */
 m_result_t

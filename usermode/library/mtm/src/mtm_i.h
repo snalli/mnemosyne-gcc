@@ -49,7 +49,6 @@ typedef double _Complex      _ITM_TYPE_CD;
 typedef long double _Complex _ITM_TYPE_CE;
 
 typedef struct mtm_tx_s mtm_tx_t;
-typedef mtm_tx_t _ITM_transaction;
 
 #include "itm.h"
 

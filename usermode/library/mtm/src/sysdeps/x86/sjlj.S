@@ -1,26 +1,4 @@
-	.hidden	mtm_pwbnl_beginTransaction_internal
-	.type	mtm_pwbnl_beginTransaction,@function
-	.align	2,0x90
-	.global	mtm_pwbnl_beginTransaction
-	.hidden	mtm_pwbnl_beginTransaction
-mtm_pwbnl_beginTransaction:
-	mov	24(%rdi),%rax
-	mov	%rbx,8(%rax)
-	mov	%rbp,16(%rax)
-	mov	%r12,24(%rax)
-	mov	%r13,32(%rax)
-	mov	%r14,40(%rax)
-	mov	%r15,48(%rax)
-	lea	8(%rsp),%r10
-	mov	%r10,0(%rax)
-	mov	(%rsp),%r10
-	mov	%r10,56(%rax)
-	stmxcsr 64(%rax)
-	fnstcw  72(%rax)
-	fclex
-	jmp	mtm_pwbnl_beginTransaction_internal	# Vector to the target routine.
-
-
+// Should we replace with arch_X*6.S from tinySTM ?
 	.hidden	mtm_pwbetl_beginTransaction_internal
 	.type	mtm_pwbetl_beginTransaction,@function
 	.align	2,0x90

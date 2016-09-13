@@ -179,9 +179,12 @@ log_arbitrarily (mtm_tx_t *tx, const volatile void *ptr, size_t len)
 }
 
 
-# define DEFINE_LOG_BARRIER(name, type, encoding)                                	\
-void _ITM_CALL_CONVENTION _ITM_##name##L##encoding (mtm_tx_t *tx, const type *ptr)	\
-{ log_arbitrarily (TXARGS ptr, sizeof (type)); }
+# define DEFINE_LOG_BARRIER(name, type, encoding)                       \
+void _ITM_CALL_CONVENTION _ITM_##name##L##encoding (const type *ptr)	\
+{ 									\
+	mtm_tx_t *tx = mtm_get_tx();					\
+	log_arbitrarily (tx, ptr, sizeof (type)); 			\
+}
 
 
 FOR_ALL_TYPES(DEFINE_LOG_BARRIER, local_)

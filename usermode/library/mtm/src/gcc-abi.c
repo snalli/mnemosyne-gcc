@@ -98,7 +98,7 @@ _ITM_versionCompatible (int version)
 const char * _ITM_CALL_CONVENTION
 _ITM_libraryVersion (void)
 {
-	return "Mnemosyne MTM" _ITM_VERSION;
+	return "Mnemosyne MTM" _ITM_VERSION_NO_STR;
 }
 
 
@@ -125,7 +125,7 @@ _ITM_getTransactionId ()
 }
 
 
-mtm_tx_t * _ITM_CALL_CONVENTION
+_ITM_transaction* _ITM_CALL_CONVENTION
 _ITM_getTransaction(void)
 {
 	mtm_tx_t *tx = mtm_get_tx();
@@ -178,8 +178,7 @@ _ITM_dropReferences (const void *start, size_t size)
 
 
 void _ITM_CALL_CONVENTION 
-_ITM_registerThrownObject(mtm_tx_t *td, 
-                          const void *exception_object, size_t s)
+_ITM_registerThrownObject(const void *exception_object, size_t s)
 {
 
 

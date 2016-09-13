@@ -307,8 +307,10 @@ mtm_init_thread(void)
 			assert(0); /* unsupported transaction mode */
 			break;
 		case MTM_MODE_pwbetl:
+			/* freud : get rid of this */
 			tx->mode = MTM_MODE_pwbetl;
-			tx->dtable = default_dtable_group->mtm_pwbetl;
+			/* We do not use the dispatch table though we construct it */
+			// tx->dtable = default_dtable_group->mtm_pwbetl;
 			break;
 		default:
 			assert(0); /* unknown transaction mode */

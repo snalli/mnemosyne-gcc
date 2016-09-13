@@ -25,19 +25,19 @@
 
 #undef FOREACH_ABI_FUNCTION
 #define FOREACH_ABI_FUNCTION(ACTION, ...)                                                \
-    ACTION (void,     abortTransaction,     (mtm_tx_t *td,                               \
+    ACTION (void,     abortTransaction,     (                               \
                                              _ITM_abortReason reason,                    \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (void,     rollbackTransaction,  (mtm_tx_t *td,                               \
+    ACTION (void,     rollbackTransaction,  (                               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (void,     commitTransaction,    (mtm_tx_t *td,                               \
+    ACTION (void,     commitTransaction,    (                               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (bool,     tryCommitTransaction, (mtm_tx_t *td,                               \
+    ACTION (bool,     tryCommitTransaction, (                               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (void,     commitTransactionToId,(mtm_tx_t *td,                               \
+    ACTION (void,     commitTransactionToId,(                               \
                                              const _ITM_transactionId tid,               \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
-    ACTION (uint32_t, beginTransaction,     (mtm_tx_t *td,                               \
+    ACTION (uint32_t, beginTransaction,     (                               \
                                              uint32 __properties,                        \
                                              const _ITM_srcLocation *loc), __VA_ARGS__)  \
 
@@ -73,7 +73,7 @@ typedef struct mtm_dtable_s mtm_dtable_t;
 
 struct mtm_dtable_s
 {
-    FOREACH_DTABLE_ENTRY (_DTABLE_MEMBER, dummy) 
+    // FOREACH_DTABLE_ENTRY (_DTABLE_MEMBER, dummy) 
 };
 
 

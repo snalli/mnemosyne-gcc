@@ -145,7 +145,7 @@ _ITM_##LOCK##T(        const _ITM_TYPE_##T *addr)                              \
 
 
 #define WRITE_BARRIER(NAME, T, LOCK)                                           \
-void _ITM_CALL_CONVENTION _ITM_##LOCK##T(        _ITM_TYPE_##T *addr,          \
+void _ITM_CALL_CONVENTION _ITM_##LOCK##T( const  _ITM_TYPE_##T *addr,          \
                                                  _ITM_TYPE_##T value)          \
 {                                                                              \
   mtm_tx_t *tx = mtm_get_tx();						       \

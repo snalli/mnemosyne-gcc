@@ -1309,9 +1309,10 @@ TM_CALLABLE void PDL_MALLOC_STATS()
 
   malloced_mem = sbrked_mem - avail;
 
+  /*
   TM_WAIVER {
     fprintf(stderr, "total mem = %10u\n", (unsigned int) sbrked_mem);
     fprintf(stderr, "in use    = %10u\n", (unsigned int) malloced_mem);
   }	
-
+  */
 }

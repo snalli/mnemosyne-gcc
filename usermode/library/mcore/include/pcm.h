@@ -42,6 +42,6 @@
 #ifndef _PCM_H
 #define _PCM_H
 
-#include "../src/hal/pcm_i.h"
+#include <pcm_i.h>
 
 #endif

@@ -64,7 +64,7 @@ typedef pthread_mutex_t m_txmutex_t;
 void _ITM_CALL_CONVENTION m_txmutex_unlock_commit_action(void *arg);
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txmutex_init(m_txmutex_t *txmutex)
 {
@@ -76,7 +76,7 @@ int m_txmutex_init(m_txmutex_t *txmutex)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txmutex_destroy(m_txmutex_t *txmutex)
 {
@@ -89,7 +89,7 @@ __attribute__((noinline))
 static
 void breakme() { }
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txmutex_lock(m_txmutex_t *txmutex)
 {
@@ -117,7 +117,7 @@ void _ITM_CALL_CONVENTION m_txmutex_unlock_commit_action_local(void *arg)
 
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txmutex_unlock(m_txmutex_t *txmutex)
 {
@@ -147,7 +147,7 @@ typedef pthread_rwlock_t m_txrwlock_t;
 void _ITM_CALL_CONVENTION m_txrwlock_unlock_commit_action(void *arg);
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txrwlock_init(m_txrwlock_t *txrwlock)
 {
@@ -157,7 +157,7 @@ int m_txrwlock_init(m_txrwlock_t *txrwlock)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txrwlock_destroy(m_txrwlock_t *txrwlock)
 {
@@ -167,7 +167,7 @@ int m_txrwlock_destroy(m_txrwlock_t *txrwlock)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txrwlock_rdlock(m_txrwlock_t *txrwlock)
 {
@@ -182,7 +182,7 @@ int m_txrwlock_rdlock(m_txrwlock_t *txrwlock)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txrwlock_wrlock(m_txrwlock_t *txrwlock)
 {
@@ -197,7 +197,7 @@ int m_txrwlock_wrlock(m_txrwlock_t *txrwlock)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int m_txrwlock_unlock(m_txrwlock_t *txrwlock)
 {

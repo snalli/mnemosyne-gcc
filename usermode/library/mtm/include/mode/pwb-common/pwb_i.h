@@ -44,10 +44,10 @@
 #include <log.h>
 
 #include "mtm_i.h"
-#include "mode/dtable.h"
+#include "dtable.h"
 #include "local.h"
-#include "mode/pwb-common/locks.h"
-#include "mode/pwb-common/tmlog.h"
+#include "locks.h"
+#include "tmlog.h"
 
 
 //#undef MTM_DEBUG_PRINT

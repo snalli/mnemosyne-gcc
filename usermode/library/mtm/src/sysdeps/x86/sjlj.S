@@ -1,10 +1,10 @@
 // Should we replace with arch_X*6.S from tinySTM ?
 	.hidden	mtm_pwbetl_beginTransaction_internal
-	.type	mtm_pwbetl_beginTransaction,@function
+	.type	_ITM_beginTransaction,@function
 	.align	2,0x90
-	.global	mtm_pwbetl_beginTransaction
-	.hidden	mtm_pwbetl_beginTransaction
-mtm_pwbetl_beginTransaction:
+	.global	_ITM_beginTransaction
+	.hidden	_ITM_beginTransaction
+_ITM_beginTransaction:
 	mov	24(%rdi),%rax
 	mov	%rbx,8(%rax)
 	mov	%rbp,16(%rax)
@@ -22,11 +22,11 @@ mtm_pwbetl_beginTransaction:
 	jmp	mtm_pwbetl_beginTransaction_internal	# Vector to the target routine.
 
 
-	.type	mtm_longjmp,@function
+	.type	_ITM_siglongjmp,@function
 	.align	2,0x90
-	.globl	mtm_longjmp
-	.hidden	mtm_longjmp
-mtm_longjmp:
+	.globl	_ITM_siglongjmp
+	.hidden	_ITM_siglongjmp
+_ITM_siglongjmp:
 	mov	8(%rdi),%rbx
 	mov	16(%rdi),%rbp
 	mov	24(%rdi),%r12

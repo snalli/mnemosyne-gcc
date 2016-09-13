@@ -36,7 +36,7 @@ extern "C" {
 # include <xmmintrin.h>
 #endif
 
-# include "stddef.h"
+# include <stddef.h>
 
 /* ################################################################### *
  * DEFINES
@@ -404,7 +404,8 @@ extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWt(void *, const void *, size_t
 extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWtaR(void *, const void *, size_t);
 extern void _ITM_CALL_CONVENTION _ITM_memmoveRtaWWtaW(void *, const void *, size_t);
 
-/* Do we need this anymore since we are not generating dtables ? */
+/* freud : Do we need this anymore since we are not generating dtables ? */
+
 /* Support macros to generate the multiple data transfer functions we need. 
  * We leave them defined because they are useful elsewhere, for instance when building
  * the vtables we use for mode changes.

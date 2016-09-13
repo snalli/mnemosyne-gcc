@@ -40,12 +40,10 @@
 #define TRANSACTIONS_H_MED8GE8A
 
 #ifndef TM_CALLABLE
-#define TM_CALLABLE __attribute__((tm_callable))
+#define TM_CALLABLE __attribute__((transaction_safe))
 #endif
 
-#ifndef TM_WAIVER
-#define TM_WAIVER __attribute__((tm_pure))
-#endif
+#define TM_WAIVER
 
 #ifndef TM_WRAPPING
 #define TM_WRAPPING(function) __attribute__((tm_wrapping(function)))

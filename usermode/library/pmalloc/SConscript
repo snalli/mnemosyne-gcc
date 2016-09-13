@@ -9,12 +9,9 @@ Import('mainEnv')  # read only -- clone if need to modify
 buildEnv = configuration.pmalloc.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
 
 OPTIMIZE_FLAG = '-fno-rtti -fno-exceptions -finline-functions'
-WARNINGS = '-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
-DISABLE_WARNINGS = ['-wd981',  #remark  #981 : operands are evaluated in unspecified order
-                    '-wd2090', #warning #2090: GNU minimum/maximum operators are deprecated                    
-                    '-wd1419', #warning #1419: external declaration in primary source file
-                    '-wd444',  #remark  #444 : destructor for base class is not virtual
-                   ]
+WARNINGS = '-w'
+#'-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
+DISABLE_WARNINGS = []
 
 
 if buildEnv['BUILD_DEBUG'] == True:
@@ -25,13 +22,15 @@ else:
 if buildEnv['BUILD_STATS'] == True:
 	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
 
-CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fpic -fno-omit-frame-pointer'
+CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -fgnu-tm -fpic -fno-omit-frame-pointer'
 CCFLAGS = CCFLAGS + ' -m64 '
 
 buildEnv.Append(CCFLAGS = CCFLAGS)
 buildEnv.Append(CXXFLAGS = CCFLAGS)
-buildEnv.Append(CPPPATH = ['#library'])
-buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+#buildEnv.Append(CPPPATH = ['#library'])
+#buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include'])
+
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 
 if mainEnv['ENABLE_TRACE'] == True:

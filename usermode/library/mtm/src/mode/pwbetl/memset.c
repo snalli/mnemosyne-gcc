@@ -30,7 +30,8 @@
 ### END HEADER ###
 */
 
-#include "pwb_i.h"
+#include <pwb_i.h>
+#include <memset.h>
 
 
 FORALL_MEMSET_VARIANTS(MEMSET_DEFINITION, pwbetl)

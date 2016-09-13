@@ -42,9 +42,9 @@
 
 #include <stdlib.h>
 
-#define TM_CALLABLE __attribute__((tm_callable))
-#define TM_PURE     __attribute__((tm_pure))
-#define TM_WAIVER   __tm_waiver
+#define TM_CALLABLE __attribute__((transaction_safe))
+#define TM_PURE     __attribute__((transaction_pure))
+#define TM_WAIVER   
 
 #define GENALLOC_DOUGLEA    0x1
 #define GENALLOC_VISTAHEAP  0x2

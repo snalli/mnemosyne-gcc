@@ -37,6 +37,7 @@
 // These two must come before all other includes; they define things like w_entry_t.
 #include "pwb_i.h"
 #include "mode/pwb-common/barrier-bits.h"
+#include <barrier.h>
 
 
 /*

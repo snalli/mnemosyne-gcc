@@ -93,13 +93,7 @@ enum { SUPERBLOCK_SIZE = 16384 };
 #define CACHE_LINE 64
 #endif
 
-#ifdef __GNUG__
-// Use the max operator, an extension to C++ found in GNU C++.
-#define MAX(a,b) ((a) >? (b))
-#else
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
-#endif
-
 
 #endif // _CONFIG_H_
 

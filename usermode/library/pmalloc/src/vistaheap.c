@@ -92,7 +92,7 @@
  *	Alternately, 'base' could point somewhere into a file already mapped.
  *	In this case, 'limit' should point to the end of the mapped region.
  */
-__attribute__((tm_callable))
+__attribute__((transaction_safe))
 void* vistaheap_init(vistaheap* h, void* base, void *hardlimit, vistaheap* allocator)
 {
 	int	i;
@@ -115,7 +115,7 @@ void* vistaheap_init(vistaheap* h, void* base, void *hardlimit, vistaheap* alloc
  *
  *	Compute the integer log base two of 'val'.
  */
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static int log2(int val)
 {
 	int	x, i;
@@ -129,7 +129,7 @@ static int log2(int val)
  *
  *	Compute 2 to the power 'pow'.
  */
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static int pow2(int pow)
 {
 	return (1 << pow);
@@ -144,7 +144,7 @@ static int pow2(int pow)
  *	This function adds 'pages' pages of memory to the vistaheap 'h'. 
  *	It returns a pointer to the new pages, or NULL on failure.
  */
-__attribute__((tm_callable))
+__attribute__((transaction_safe))
 void* morecore(vistaheap* h, int pages)
 {
 	long	len;
@@ -184,7 +184,7 @@ void* morecore(vistaheap* h, int pages)
  *	none waiting on the free list, the allocator's mapped region will
  *	automatically be extended to accomodate the new nugget(s).
  */
-__attribute__((tm_callable))
+__attribute__((transaction_safe))
 static nugget* nalloc(vistaheap* h)
 {
 	nugget*	result;
@@ -204,7 +204,7 @@ static nugget* nalloc(vistaheap* h)
 
 		mem = (nugget*) morecore(h->allocator, 1);
 		if (mem == NULL) {
-			__tm_waiver fprintf(stderr, "nalloc: morecore failed.\n");
+			//__tm_waiver fprintf(stderr, "nalloc: morecore failed.\n");
 			return NULL;
 		}
 		/* 
@@ -221,10 +221,10 @@ static nugget* nalloc(vistaheap* h)
 		 * we read the correct version independently of the version management
 		 * done by the TM system.
 		 */
-		__tm_waiver 
+		 
 		{
 			_ITM_transaction *tx = _ITM_getTransaction();
-			_ITM_memcpyRtWn(tx, &local_mem, &mem, sizeof(nugget *));
+			_ITM_memcpyRtWn(&local_mem, &mem, sizeof(nugget *));
 			chunks = EXTENDSIZE / sizeof(nugget);
 			for (i = 0; i < chunks; i++) {
 				new = &local_mem[i];
@@ -249,7 +249,7 @@ static nugget* nalloc(vistaheap* h)
  *
  *	Return nugget pointed to by 'n' to the nugget free list for 'h'.
  */
-__attribute__((tm_callable))
+__attribute__((transaction_safe))
 static void nfree(vistaheap *h, nugget *n)
 {
 	n->next = h->nlist;
@@ -262,7 +262,7 @@ static void nfree(vistaheap *h, nugget *n)
  *
  *	Allocated at least 'size' bytes from vistaheap 'h'.
  */
-__attribute__((tm_callable))
+__attribute__((transaction_safe))
 void* vistaheap_malloc(vistaheap* h, int size)
 {
 	int	bucket;
@@ -334,7 +334,7 @@ void* vistaheap_malloc(vistaheap* h, int size)
  *
  *	Return 'size' bytes of memory pointed to by 'p' to vistaheap 'h'.
  */
-__attribute__((tm_callable))
+__attribute__((transaction_safe))
 void vistaheap_free(vistaheap* h, void* p, int size)
 {
 	nugget* n;
@@ -342,7 +342,7 @@ void vistaheap_free(vistaheap* h, void* p, int size)
 
 	n = nalloc(h);
 	if (n == NULL) {
-		__tm_waiver fprintf(stderr, "vistaheap_free: nalloc failed.\n");
+		// __tm_waiver fprintf(stderr, "vistaheap_free: nalloc failed.\n");
 		return;
 	}
 	bucket = log2(size);

@@ -38,6 +38,7 @@
  *
  */
 
+#define __SSE4_1__
 /* System header files */
 #include <stdio.h>
 #include <stdint.h>

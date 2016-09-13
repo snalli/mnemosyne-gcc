@@ -80,7 +80,7 @@ void _ITM_CALL_CONVENTION txmutex_unlock_commit_action(void *arg)
 	return;
 }
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int txmutex_init(txmutex_t *txmutex)
 {
@@ -92,7 +92,7 @@ int txmutex_init(txmutex_t *txmutex)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int txmutex_destroy(txmutex_t *txmutex)
 {
@@ -102,7 +102,7 @@ int txmutex_destroy(txmutex_t *txmutex)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int txmutex_lock(txmutex_t *txmutex)
 {
@@ -117,7 +117,7 @@ int txmutex_lock(txmutex_t *txmutex)
 }
 
 
-__attribute__((tm_pure))
+__attribute__((transaction_pure))
 static inline 
 int txmutex_unlock(txmutex_t *txmutex)
 {

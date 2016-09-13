@@ -30,7 +30,8 @@
 ### END HEADER ###
 */
 
-#include "pwb_i.h"
+#include <pwb_i.h>
+#include <memcpy.h>
 
 
 FORALL_MEMCOPY_VARIANTS(MEMCPY_DEFINITION, pwbetl)

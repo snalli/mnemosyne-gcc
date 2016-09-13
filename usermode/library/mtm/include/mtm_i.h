@@ -50,7 +50,7 @@ typedef long double _Complex _ITM_TYPE_CE;
 
 typedef struct mtm_tx_s mtm_tx_t;
 
-#include "itm.h"
+#include <itm.h>
 
 # ifndef __cplusplus
 #  define FOR_ALL_TYPES(ACTION,name)    \

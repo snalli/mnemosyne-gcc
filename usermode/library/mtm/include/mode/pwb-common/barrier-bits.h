@@ -60,7 +60,7 @@
  *
  */
 
-
+#include <cm.h>
 
 
 #ifndef _PWB_COMMON_BARRIER_BITS_JKI671_H

@@ -58,11 +58,11 @@ typedef struct vistaheap_s {
 	struct vistaheap_s* allocator; /* vistaheap from which to alloc internal data */
 } vistaheap;
 
-__attribute__((tm_callable)) extern void* vistaheap_init(vistaheap*, void*, void*, vistaheap*);
-__attribute__((tm_callable)) extern void* vistaheap_malloc(vistaheap*, int);
-__attribute__((tm_callable)) extern void  vistaheap_free(vistaheap* h, void* p, int size);
-__attribute__((tm_callable)) extern void* morecore(vistaheap* h, int pages);
-__attribute__((tm_callable)) extern void  vistaheap_reinit_mutex(vistaheap* h);
+__attribute__((transaction_safe)) extern void* vistaheap_init(vistaheap*, void*, void*, vistaheap*);
+__attribute__((transaction_safe)) extern void* vistaheap_malloc(vistaheap*, int);
+__attribute__((transaction_safe)) extern void  vistaheap_free(vistaheap* h, void* p, int size);
+__attribute__((transaction_safe)) extern void* morecore(vistaheap* h, int pages);
+__attribute__((transaction_safe)) extern void  vistaheap_reinit_mutex(vistaheap* h);
 
 #endif
 

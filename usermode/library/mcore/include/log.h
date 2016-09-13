@@ -42,8 +42,8 @@
 #ifndef _LOG_H
 #define _LOG_H
 
-#include "../src/log/log_i.h"
-#include "../src/log/phlog_base.h"
-#include "../src/log/phlog_tornbit.h"
+#include <log_i.h>
+#include <phlog_base.h>
+#include <phlog_tornbit.h>
 
 #endif /* _LOG_H */

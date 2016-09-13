@@ -29,7 +29,7 @@
 #define FIX_ALLOC	0
 
 #if FIX_ALLOC
-#define __TM_CALLABLE__		__attribute__((tm_callable))
+#define __TM_CALLABLE__		__attribute__((transaction_safe))
 #define TM_BEGIN()		__transaction_atomic {
 #define TM_END()		}
 #else

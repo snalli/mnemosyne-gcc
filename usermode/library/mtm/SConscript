@@ -10,11 +10,22 @@ buildEnv = configuration.mtm.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
 # atomic intrinsics such as __sync_add_and_fetch_4, which are not available
 # in the version of ICC we use. We would like to fix this issue.
 
-buildEnv['CC'] = 'gcc'
+buildEnv['CC'] = 'gcc -w'
 buildEnv['CXX'] = 'g++'
 
 buildEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+buildEnv.Append(CPPPATH = ['#library/mtm/include'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwb-common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwbetl'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/linux'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/x86'])
 buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/hal'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/log'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include'])
+
 buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
 buildEnv.Append(CPPPATH = 'src/sysdeps/linux')
 buildEnv.Append(CPPPATH = 'src/sysdeps/x86')
@@ -22,7 +33,7 @@ buildEnv.Append(CPPPATH = 'src')
 buildEnv.Append(CPPPATH = 'src/common')
 buildEnv.Append(LINKFLAGS = '-fpic')  # not sure why but -fPIC causes problems
 buildEnv.Append(CCFLAGS = ' -m64 ')
-buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -Wall -g -O2 -fpic')
+buildEnv.Append(ASFLAGS = '-DHAVE_CONFIG_H -g -O2 -fpic')
 
 if buildEnv['BUILD_DEBUG'] == True:
 	buildEnv.Append(CCFLAGS = ' -g -D_MTM_BUILD_DEBUG')

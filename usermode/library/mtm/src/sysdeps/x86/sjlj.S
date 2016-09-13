@@ -3,7 +3,6 @@
 	.type	_ITM_beginTransaction,@function
 	.align	2,0x90
 	.global	_ITM_beginTransaction
-	.hidden	_ITM_beginTransaction
 _ITM_beginTransaction:
 	mov	24(%rdi),%rax
 	mov	%rbx,8(%rax)
@@ -22,11 +21,10 @@ _ITM_beginTransaction:
 	jmp	mtm_pwbetl_beginTransaction_internal	# Vector to the target routine.
 
 
-	.type	_ITM_siglongjmp,@function
+	.type	mtm_longjmp,@function
 	.align	2,0x90
-	.globl	_ITM_siglongjmp
-	.hidden	_ITM_siglongjmp
-_ITM_siglongjmp:
+	.global	mtm_longjmp
+mtm_longjmp:
 	mov	8(%rdi),%rbx
 	mov	16(%rdi),%rbp
 	mov	24(%rdi),%r12

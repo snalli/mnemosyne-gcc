@@ -33,7 +33,8 @@
 #include <pcm.h>
 #include <log.h>
 
-#include "pwb_i.h"
+#include <pwb_i.h>
+#include <rwset.h>
 
 
 #ifndef RW_SET_SIZE

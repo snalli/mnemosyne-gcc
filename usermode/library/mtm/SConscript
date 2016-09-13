@@ -86,7 +86,7 @@ CC_LINUX_SRC = Split("""
                      src/sysdeps/linux/rwlock.c
                      """)
 
-S_SRC = Split("""src/sysdeps/x86/sjlj.S""")
+S_SRC = Split("""src/sysdeps/x86/arch.S""")
 
 SRC = CC_SRC + S_SRC + CC_LINUX_SRC + COMMON_OBJS
 

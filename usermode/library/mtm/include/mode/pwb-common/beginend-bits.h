@@ -53,11 +53,11 @@
  */
 
 
-#include "mtm_i.h"
-#include "useraction.h"
-#include "mode/pwb-common/pwb_i.h"
-#include "mode/common/rwset.h"
-#include "cm.h" 
+#include <mtm_i.h>
+#include <useraction.h>
+#include <pwb_i.h>
+#include <rwset.h>
+#include <cm.h>
 
 //#define PRINT_DEBUG printf
 //#define MTM_DEBUG_PRINT printf

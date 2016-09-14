@@ -89,9 +89,8 @@ mainEnv['MY_ROOT_DIR'] = rootDir
 mainEnv['MY_LINKER_DIR'] = os.path.join(rootDir, 'tool/linker')
 
 
-mainEnv['CC'] = 'gcc -march=native -w'
+mainEnv['CC'] = 'gcc'
 mainEnv['CXX'] = 'g++'
-mainEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
 
 Export('mainEnv')
 

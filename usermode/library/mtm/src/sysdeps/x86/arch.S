@@ -7,10 +7,10 @@
 	.text
 
 #if defined(__x86_64__)
-	.align 4
+	.align 2,0x90
 	.globl	_ITM_beginTransaction
 	.type	_ITM_beginTransaction, @function
-
+	.hidden MTM_begin_transaction
 _ITM_beginTransaction:
 	.cfi_startproc
 /* Paramters (in order) is in rdi, rsi, rdx, rcx, r8, r9 */
@@ -27,14 +27,14 @@ _ITM_beginTransaction:
 	movq	%r14, 40(%rsp)
 	movq	%r15, 48(%rsp)
 	movq	%rsp, %rsi
-	call	GTM_begin_transaction
+	call	MTM_begin_transaction 
 	addq	$56, %rsp
 	.cfi_def_cfa_offset 8
 	ret
 	.cfi_endproc
 	.size	_ITM_beginTransaction, .-_ITM_beginTransaction
 
-	.align 4
+	.align 2,0x90
 	.globl	_ITM_siglongjmp
 	.type	_ITM_siglongjmp, @function
 	.hidden	_ITM_siglongjmp
@@ -57,52 +57,28 @@ _ITM_siglongjmp:
 	.cfi_endproc
 	.size	_ITM_siglongjmp, .-_ITM_siglongjmp
 
-#elif defined(__i386__)
-	.align 4
-	.globl	_ITM_beginTransaction
-	.type	_ITM_beginTransaction, @function
-_ITM_beginTransaction:
-	.cfi_startproc
-	leal	4(%esp), %ecx
-	movl	4(%esp), %eax
-	subl	$28, %esp
-	.cfi_def_cfa_offset 32
-	movl	%ecx, 8(%esp)
-	movl	%ebx, 12(%esp)
-	movl	%esi, 16(%esp)
-	movl	%edi, 20(%esp)
-	movl	%ebp, 24(%esp)
-	leal	8(%esp), %edx
-	call	GTM_begin_transaction
-	addl	$28, %esp
-	.cfi_def_cfa_offset 4
-	ret
-	.cfi_endproc
-	.size	_ITM_beginTransaction, .-_ITM_beginTransaction
+        .type   mtm_longjmp,@function
+        .align  2,0x90
+        .global mtm_longjmp
 
+mtm_longjmp:
+        mov     8(%rdi),%rbx
+        mov     16(%rdi),%rbp
+        mov     24(%rdi),%r12
+        mov     32(%rdi),%r13
+        mov     40(%rdi),%r14
+        mov     48(%rdi),%r15
+        mov     0(%rdi),%rsp
+        ldmxcsr 64(%rdi)
+        fnclex
+        fldcw   72(%rdi)
+        cld
+        emms
+        mov     %rsi,%rax
+        mov     56(%rdi),%rsi
+        jmp     *%rsi
 
-	.align 4
-	.globl	_ITM_siglongjmp
-	.type	_ITM_siglongjmp, @function
-	.hidden	_ITM_siglongjmp
-_ITM_siglongjmp:
-	.cfi_startproc
-	movl	(%edx), %ecx
-	movl	4(%edx), %ebx
-	movl	8(%edx), %esi
-	movl	12(%edx), %edi
-	movl	16(%edx), %ebp
-	.cfi_def_cfa %edx, 0
-	.cfi_offset %eip, 20
-	.cfi_register %esp, %ecx
-	movl	%ecx, %esp
-	jmp	*20(%edx)
-	.cfi_endproc
-	.size	_ITM_siglongjmp, .-_ITM_siglongjmp
-
-#elif defined(__sparc__)
-# error SPARC arch is not yet supported
-#else
+# else
 # error Unsupported architecture
 #endif
 

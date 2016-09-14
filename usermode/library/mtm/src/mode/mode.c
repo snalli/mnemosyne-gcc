@@ -62,9 +62,10 @@ mtm_mode_t
 mtm_str2mode(char *str)
 {
 	int i;
-
+	fprintf(stderr, "mode = %s\n",str);
 	for (i=0; i<MTM_NUM_MODES; i++) {
 		if (strcasecmp(str, mtm_mode_str[i]) == 0) {
+			fprintf(stderr, "mtm_mode = %d\n",i);
 			return (mtm_mode_t) i;
 		}
 	}

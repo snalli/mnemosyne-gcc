@@ -274,7 +274,7 @@ mtm_init_thread(void)
 #endif /* EPOCH_GC */
 
 
-	/* Allocate descriptor */
+	/* freud : Allocate descriptor */
 #if ALIGNMENT == 1 /* no alignment requirement */
 	if ((tx = (mtm_tx_t *)malloc(sizeof(mtm_tx_t))) == NULL) {
 		perror("malloc");
@@ -304,8 +304,8 @@ mtm_init_thread(void)
 
 	switch (txmode) {
 		case MTM_MODE_pwbnl:
-			assert(0); /* unsupported transaction mode */
-			break;
+			// assert(0); /* freud : unsupported transaction mode */
+			// hack break;
 		case MTM_MODE_pwbetl:
 			/* freud : get rid of this */
 			tx->mode = MTM_MODE_pwbetl;

@@ -42,6 +42,27 @@
 #include "useraction.h"
 
 
+// uint32_t _ITM_CALL_CONVENTION MTM_begin_transaction(uint32_t attr, jmp_buf * buf)
+uint32_t _ITM_CALL_CONVENTION MTM_begin_transaction(uint32_t attr, void * buf)
+{
+	uint32_t ret;
+	mtm_tx_t *tx = mtm_get_tx();
+	if (unlikely(tx == NULL)) {
+		tx = mtm_init_thread();
+	}
+	assert(tx != NULL);
+	mtm_pwbetl_beginTransaction_internal(tx, attr, NULL);
+
+  /*
+  env = int_stm_start(tx, _a); */
+  /* Save thread context only when outermost transaction */
+  /* TODO check that the memcpy is fast. */
+  // if (likely(env != NULL))
+  //  memcpy(env, buf, sizeof(jmp_buf)); /* TODO limit size to real size */
+
+	return ret;
+}
+
 void _ITM_CALL_CONVENTION _ITM_abortTransaction(_ITM_abortReason __reason,
                               const _ITM_srcLocation *__src)
 {

@@ -7,11 +7,10 @@ Import('benchEnv')
 
 
 benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
-benchEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
-benchEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
+benchEnv.Append(CCFLAGS = ' -fgnu-tm -fPIC ')
 
 if benchEnv['BUILD_DEBUG'] == True:
-	benchEnv.Append(CCFLAGS = ' -g')
+	benchEnv.Append(CCFLAGS = ' -O0 -g')
 else:	
 	benchEnv.Append(CCFLAGS = ' -O2')
 

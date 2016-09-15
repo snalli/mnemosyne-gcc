@@ -214,7 +214,7 @@ extern unsigned long v_free, nv_free;
 #define TM_ARG_ALONE                  /* nothing */
 #define TM_ARGDECL                    /* nothing */
 #define TM_ARGDECL_ALONE              /* nothing */
-#define TM_CALLABLE                   __attribute__((tm_callable))
+#define TM_CALLABLE                   __attribute__((transaction_safe))
 #define __TM_CALLABLE                 TM_CALLABLE
 
 #define TM_STARTUP(numThread)         /* nothing */
@@ -255,7 +255,7 @@ extern unsigned long v_free, nv_free;
 #define TM_BEGIN()                    MNEMOSYNE_ATOMIC {
 #define TM_BEGIN_RO()                 MNEMOSYNE_ATOMIC { // What is the txn spans across multiple routines ?
 #define TM_END()                      }
-#define TM_RESTART()                  MNEMOSYNE_ATOMIC { if(1) __tm_retry; } // assert(0); // How do you explicitly restart txns in M ?
+#define TM_RESTART()                  assert(0); // MNEMOSYNE_ATOMIC { if(1) __tm_retry; } How do you explicitly restart txns in M ?
 
 #define TM_EARLY_RELEASE(var)         /* nothing */
 

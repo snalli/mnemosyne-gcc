@@ -212,7 +212,7 @@ SECTIONS
   }
   .persistent ALIGN(0x1000)    : {*(PERSISTENT)}
   . = . + 0x1000; /* move to a new page in memory */
-  . = ALIGN(64 / 8);
+  . = ALIGN(0x1000); /* 2 4-K pages */
   _end = .; PROVIDE (end = .);
   . = DATA_SEGMENT_END (.);
   /* Stabs debugging sections.  */

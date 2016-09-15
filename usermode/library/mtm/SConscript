@@ -30,7 +30,7 @@ buildEnv.Append(CPPPATH = 'src/sysdeps/x86')
 buildEnv.Append(CPPPATH = 'src/sysdeps/linux')
 
 if buildEnv['BUILD_DEBUG'] == True:
-	buildEnv.Append(CCFLAGS = ' -O0 -g -D_MTM_BUILD_DEBUG')
+	buildEnv.Append(CCFLAGS = ' -O0 -g -D_MTM_BUILD_DEBUG -D_M_BUILD_DEBUG')
 else:
 	buildEnv.Append(CCFLAGS = ' -O2')
 

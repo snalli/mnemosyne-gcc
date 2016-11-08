@@ -50,7 +50,7 @@
  * If the code proceeds past the bottom curly brace, the persistent writes are
  * guaranteed to be flushed to persistent memory.
  */
-#define MNEMOSYNE_ATOMIC __transaction_atomic
+#define MNEMOSYNE_ATOMIC __transaction_relaxed
 
 # ifdef __cplusplus
 extern "C" {
@@ -58,6 +58,12 @@ extern "C" {
 
 void mtm_fini_global();
 extern int mtm_enable_trace;
+
+/* GCC specific. For function pointers */
+struct clone_entry
+{
+  void *orig, *clone;
+};
 
 
 # ifdef __cplusplus

@@ -214,7 +214,7 @@ extern unsigned long v_free, nv_free;
 #define TM_ARG_ALONE                  /* nothing */
 #define TM_ARGDECL                    /* nothing */
 #define TM_ARGDECL_ALONE              /* nothing */
-#define TM_CALLABLE                   __attribute__((transaction_safe))
+#define TM_CALLABLE                   __attribute__((transaction_callable))
 #define __TM_CALLABLE                 TM_CALLABLE
 
 #define TM_STARTUP(numThread)         /* nothing */

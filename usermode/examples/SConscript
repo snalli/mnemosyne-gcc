@@ -6,20 +6,27 @@ Import('mtmLibrary')
 Import('mcoreLibrary')
 
 examplesEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
-examplesEnv.Append(CCFLAGS = ' -fgnu-tm -fPIC ')
+examplesEnv.Append(CCFLAGS = ' -fgnu-tm -fpic ')
 examplesEnv.Append(LIBS = [pmallocLibrary])
 examplesEnv.Append(LIBS = [mtmLibrary])
 examplesEnv.Append(LIBS = [mcoreLibrary])
 
 if examplesEnv['BUILD_DEBUG'] == True:
-	examplesEnv.Append(CCFLAGS = ' -g')
+	examplesEnv.Append(CCFLAGS = ' -O0 -g')
 else:	
 	examplesEnv.Append(CCFLAGS = ' -O2')
 
 examplesEnv.Append(CCFLAGS = ' -march=native ')
 examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
-Export('examplesEnv')
 
 example = examplesEnv['BUILD_EXAMPLE']
 sconscript_path = example + '/SConscript'
+
+examplesEnv['BUILD_PVAR'] = True
+Export('examplesEnv')
+pvarLibrary = SConscript(sconscript_path)
+Export('pvarLibrary')
+
+examplesEnv['BUILD_PVAR'] = False
+Export('examplesEnv')
 SConscript(sconscript_path)

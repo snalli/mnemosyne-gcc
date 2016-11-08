@@ -3,24 +3,22 @@
  *
  * \author Haris Volos <hvolos@cs.wisc.edu>
  */
-#include <stdio.h>
-#include <mnemosyne.h>
-#include <mtm.h>
-
-MNEMOSYNE_PERSISTENT int flag = 0;
+#include "pvar.h"
 
 
 int main (int argc, char const *argv[])
 {
-	printf("flag: %d", flag);
+	printf("flag: %d", get_flag());
 	MNEMOSYNE_ATOMIC {
-		if (flag == 0) {
-			flag = 1;
+		if (get_flag() == 0) {
+			set_flag(1);
 		} else {
-			flag = 0;
+			set_flag(0);
 		}
 	}
 	
-	printf(" --> %d\n&flag = %p\n", flag, &flag);
+	printf(" --> %d\n", get_flag());
+	printf("&flag = %p\n", addr_flag());
+
 	return 0;
 }

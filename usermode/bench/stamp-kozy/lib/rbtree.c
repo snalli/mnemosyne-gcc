@@ -1314,7 +1314,7 @@ releaseNode (node_t* n)
  * TMreleaseNode
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 static void
 TMreleaseNode  (TM_ARGDECL  node_t* n)
 {
@@ -1341,7 +1341,7 @@ freeNode (node_t* n)
  * TMfreeNode
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 static void
 TMfreeNode (TM_ARGDECL  node_t* n)
 {

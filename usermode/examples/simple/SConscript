@@ -1,13 +1,17 @@
 Import('examplesEnv')
-Import('mcoreLibrary')
-Import('mtmLibrary')
 
 myEnv = examplesEnv.Clone()
 
-sources = Split("""
-                main.c
-                """)
 
-myEnv.Append(LIBS = [mcoreLibrary])
-myEnv.Append(LIBS = [mtmLibrary])
-myEnv.Program('simple', sources)
+if myEnv['BUILD_PVAR'] == True:
+	pvarLibrary = myEnv.SharedLibrary('pvar', 'pvar.c')
+	Return('pvarLibrary')
+else:
+	Import('mcoreLibrary')
+	Import('mtmLibrary')
+	Import('pvarLibrary')
+	sources = Split("""main.c""")
+	myEnv.Append(LIBS = [pvarLibrary])
+	myEnv.Append(LIBS = [mcoreLibrary])
+	myEnv.Append(LIBS = [mtmLibrary])
+	myEnv.Program('simple', sources)

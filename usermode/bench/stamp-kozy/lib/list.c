@@ -224,7 +224,7 @@ PallocNode (void* dataPtr)
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 static list_node_t*
 TMallocNode (TM_ARGDECL  void* dataPtr)
 {
@@ -302,7 +302,7 @@ Plist_alloc (long (*compare)(const void*, const void*))
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 list_t*
 TMlist_alloc (TM_ARGDECL  long (*compare)(const void*, const void*))
 {
@@ -351,7 +351,7 @@ PfreeNode (list_node_t* nodePtr)
  * TMfreeNode
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 static void
 TMfreeNode (TM_ARGDECL  list_node_t* nodePtr)
 {
@@ -430,7 +430,7 @@ Plist_free (list_t* listPtr)
  * TMlist_free
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 void
 TMlist_free (TM_ARGDECL  list_t* listPtr)
 {

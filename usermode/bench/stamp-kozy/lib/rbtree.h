@@ -116,7 +116,7 @@ rbtree_alloc (long (*compare)(const void*, const void*));
  * TMrbtree_alloc
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 rbtree_t*
 TMrbtree_alloc (TM_ARGDECL  long (*compare)(const void*, const void*));
 
@@ -133,7 +133,7 @@ rbtree_free (rbtree_t* r);
  * TMrbtree_free
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 void
 TMrbtree_free (TM_ARGDECL  rbtree_t* r);
 

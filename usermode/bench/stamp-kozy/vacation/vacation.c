@@ -87,6 +87,7 @@
 #include "tm.h"
 #include "types.h"
 #include "utility.h"
+#include "pvar.h"
 
 enum param_types {
     PARAM_CLIENTS      = (unsigned char)'c',
@@ -203,7 +204,7 @@ parseArgs (long argc, char* const argv[])
  * -- Wrapper function
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 static bool_t
 addCustomer (manager_t* managerPtr, long id, long num, long price)
 {
@@ -263,7 +264,7 @@ initializeManager ()
 	    // Transaction is necessary even though there is only one thread
   	    // Since TM library may choose to implement a redo-log in which
 	    // case only the TM library is aware of the location of the latest version
-	    v_glb_mgr_initialized = glb_mgr_initialized;
+	    v_glb_mgr_initialized = PGET(glb_mgr_initialized);
     TM_END();
 
     if(v_glb_mgr_initialized)
@@ -331,8 +332,9 @@ initializeManager ()
     free(ids);
 
     TM_BEGIN();
-	    glb_mgr_initialized = 1;
+	    PSET(glb_mgr_initialized, 1);
     TM_END();
+    
     return managerPtr;
 }
 

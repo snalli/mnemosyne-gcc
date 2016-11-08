@@ -84,7 +84,7 @@
  * compareReservationInfo
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 static long
 compareReservationInfo (const void* aPtr, const void* bPtr)
 {

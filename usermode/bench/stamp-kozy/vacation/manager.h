@@ -77,6 +77,7 @@
 #include "map.h"
 #include "tm.h"
 #include "types.h"
+#include "pvar.h"
 
 typedef struct manager {
     MAP_T* carTablePtr;
@@ -85,7 +86,7 @@ typedef struct manager {
     MAP_T* customerTablePtr;
 } manager_t;
 
-extern MNEMOSYNE_PERSISTENT int    glb_mgr_initialized;
+// extern MNEMOSYNE_PERSISTENT int    glb_mgr_initialized;
 
 /* =============================================================================
  * manager_alloc
@@ -116,7 +117,7 @@ manager_free (manager_t* managerPtr);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_addCar (TM_ARGDECL
                 manager_t* managerPtr, long carId, long numCar, long price);
@@ -134,7 +135,7 @@ manager_addCar_seq (manager_t* managerPtr, long carId, long numCar, long price);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_deleteCar (TM_ARGDECL  manager_t* managerPtr, long carId, long numCar);
 
@@ -146,7 +147,7 @@ manager_deleteCar (TM_ARGDECL  manager_t* managerPtr, long carId, long numCar);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_addRoom (TM_ARGDECL
                  manager_t* managerPtr, long roomId, long numRoom, long price);
@@ -164,7 +165,7 @@ manager_addRoom_seq (manager_t* managerPtr, long roomId, long numRoom, long pric
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_deleteRoom (TM_ARGDECL  manager_t* managerPtr, long roomId, long numRoom);
 
@@ -176,7 +177,7 @@ manager_deleteRoom (TM_ARGDECL  manager_t* managerPtr, long roomId, long numRoom
  * -- Returns TRUE on success, FALSE on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_addFlight (TM_ARGDECL
                    manager_t* managerPtr, long flightId, long numSeat, long price);
@@ -192,7 +193,7 @@ manager_addFlight_seq (manager_t* managerPtr, long flightId, long numSeat, long 
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_deleteFlight (TM_ARGDECL  manager_t* managerPtr, long flightId);
 
@@ -203,7 +204,7 @@ manager_deleteFlight (TM_ARGDECL  manager_t* managerPtr, long flightId);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_addCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId);
 
@@ -218,7 +219,7 @@ manager_addCustomer_seq (manager_t* managerPtr, long customerId);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_deleteCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId);
 
@@ -235,7 +236,7 @@ manager_deleteCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId);
  * -- Returns -1 if the car does not exist
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 manager_queryCar (TM_ARGDECL  manager_t* managerPtr, long carId);
 
@@ -246,7 +247,7 @@ manager_queryCar (TM_ARGDECL  manager_t* managerPtr, long carId);
  * -- Returns -1 if the car does not exist
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 manager_queryCarPrice (TM_ARGDECL  manager_t* managerPtr, long carId);
 
@@ -257,7 +258,7 @@ manager_queryCarPrice (TM_ARGDECL  manager_t* managerPtr, long carId);
  * -- Returns -1 if the room does not exist
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 manager_queryRoom (TM_ARGDECL  manager_t* managerPtr, long roomId);
 
@@ -268,7 +269,7 @@ manager_queryRoom (TM_ARGDECL  manager_t* managerPtr, long roomId);
  * -- Returns -1 if the room does not exist
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 manager_queryRoomPrice (TM_ARGDECL  manager_t* managerPtr, long roomId);
 
@@ -279,7 +280,7 @@ manager_queryRoomPrice (TM_ARGDECL  manager_t* managerPtr, long roomId);
  * -- Returns -1 if the flight does not exist
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 manager_queryFlight (TM_ARGDECL  manager_t* managerPtr, long flightId);
 
@@ -290,7 +291,7 @@ manager_queryFlight (TM_ARGDECL  manager_t* managerPtr, long flightId);
  * -- Returns -1 if the flight does not exist
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 manager_queryFlightPrice (TM_ARGDECL  manager_t* managerPtr, long flightId);
 
@@ -301,7 +302,7 @@ manager_queryFlightPrice (TM_ARGDECL  manager_t* managerPtr, long flightId);
  * -- Returns -1 if the customer does not exist
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 manager_queryCustomerBill (TM_ARGDECL  manager_t* managerPtr, long customerId);
 
@@ -318,7 +319,7 @@ manager_queryCustomerBill (TM_ARGDECL  manager_t* managerPtr, long customerId);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_reserveCar (TM_ARGDECL
                     manager_t* managerPtr, long customerId, long carId);
@@ -330,7 +331,7 @@ manager_reserveCar (TM_ARGDECL
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_reserveRoom (TM_ARGDECL
                      manager_t* managerPtr, long customerId, long roomId);
@@ -342,7 +343,7 @@ manager_reserveRoom (TM_ARGDECL
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_reserveFlight (TM_ARGDECL
                        manager_t* managerPtr, long customerId, long flightId);
@@ -354,7 +355,7 @@ manager_reserveFlight (TM_ARGDECL
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_cancelCar (TM_ARGDECL
                    manager_t* managerPtr, long customerId, long carId);
@@ -366,7 +367,7 @@ manager_cancelCar (TM_ARGDECL
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_cancelRoom (TM_ARGDECL
                     manager_t* managerPtr, long customerId, long roomId);
@@ -378,7 +379,7 @@ manager_cancelRoom (TM_ARGDECL
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 bool_t
 manager_cancelFlight (TM_ARGDECL
                       manager_t* managerPtr, long customerId, long flightId);

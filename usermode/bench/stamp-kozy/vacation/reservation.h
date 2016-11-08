@@ -104,7 +104,7 @@ typedef struct reservation {
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 reservation_info_t*
 reservation_info_alloc (TM_ARGDECL  reservation_type_t type, long id, long price);
 
@@ -113,7 +113,7 @@ reservation_info_alloc (TM_ARGDECL  reservation_type_t type, long id, long price
  * reservation_info_free
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 void
 reservation_info_free (TM_ARGDECL  reservation_info_t* reservationInfoPtr);
 
@@ -123,7 +123,7 @@ reservation_info_free (TM_ARGDECL  reservation_info_t* reservationInfoPtr);
  * -- Returns -1 if A < B, 0 if A = B, 1 if A > B
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 reservation_info_compare (reservation_info_t* aPtr, reservation_info_t* bPtr);
 
@@ -133,7 +133,7 @@ reservation_info_compare (reservation_info_t* aPtr, reservation_info_t* bPtr);
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 reservation_t*
 reservation_alloc (TM_ARGDECL  long id, long price, long numTotal);
 
@@ -200,7 +200,7 @@ reservation_updatePrice_seq (reservation_t* reservationPtr, long newPrice);
  * -- Returns -1 if A < B, 0 if A = B, 1 if A > B
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 long
 reservation_compare (reservation_t* aPtr, reservation_t* bPtr);
 
@@ -209,7 +209,7 @@ reservation_compare (reservation_t* aPtr, reservation_t* bPtr);
  * reservation_hash
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 ulong_t
 reservation_hash (reservation_t* reservationPtr);
 
@@ -218,7 +218,7 @@ reservation_hash (reservation_t* reservationPtr);
  * reservation_free
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 void
 reservation_free (TM_ARGDECL  reservation_t* reservationPtr);
 

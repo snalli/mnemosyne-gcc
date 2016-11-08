@@ -174,7 +174,7 @@ Plist_alloc (long (*compare)(const void*, const void*));
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 list_t*
 TMlist_alloc (TM_ARGDECL  long (*compare)(const void*, const void*));
 
@@ -203,7 +203,7 @@ Plist_free (list_t* listPtr);
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 void
 TMlist_free (TM_ARGDECL  list_t* listPtr);
 

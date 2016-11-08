@@ -91,7 +91,7 @@ checkReservation (TM_ARGDECL  reservation_t* reservationPtr);
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 reservation_info_t*
 reservation_info_alloc (TM_ARGDECL  reservation_type_t type, long id, long price)
 {
@@ -189,7 +189,7 @@ checkReservation_seq (reservation_t* reservationPtr)
  * -- Returns NULL on failure
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 reservation_t*
 reservation_alloc (TM_ARGDECL  long id, long numTotal, long price)
 {
@@ -416,7 +416,7 @@ reservation_hash (reservation_t* reservationPtr)
  * reservation_free
  * =============================================================================
  */
-__TM_CALLABLE
+TM_ATTR
 void
 reservation_free (TM_ARGDECL  reservation_t* reservationPtr)
 {

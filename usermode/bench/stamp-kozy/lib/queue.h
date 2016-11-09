@@ -146,7 +146,7 @@ queue_isEmpty (queue_t* queuePtr);
  * TMqueue_isEmpty
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 TMqueue_isEmpty (TM_ARGDECL  queue_t* queuePtr);
 
@@ -187,7 +187,7 @@ Pqueue_push (queue_t* queuePtr, void* dataPtr);
  * TMqueue_push
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 TMqueue_push (TM_ARGDECL  queue_t* queuePtr, void* dataPtr);
 
@@ -204,7 +204,7 @@ queue_pop (queue_t* queuePtr);
  * TMqueue_pop
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 void*
 TMqueue_pop (TM_ARGDECL  queue_t* queuePtr);
 

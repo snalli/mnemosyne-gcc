@@ -78,19 +78,19 @@
 #include "tm.h"
 
 /* =============================================================================
- * DECLARATION OF TM_CALLABLE FUNCTIONS
+ * DECLARATION OF TM_ATTR FUNCTIONS
  * =============================================================================
  */
 
-TM_CALLABLE
+TM_ATTR
 static list_node_t*
 TMfindPrevious (TM_ARGDECL  list_t* listPtr, void* dataPtr);
 
-TM_CALLABLE
+TM_ATTR
 static void
 TMfreeList (TM_ARGDECL  list_node_t* nodePtr);
 
-TM_CALLABLE
+TM_ATTR
 void
 TMlist_free (TM_ARGDECL  list_t* listPtr);
 

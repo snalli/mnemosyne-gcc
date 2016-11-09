@@ -88,15 +88,15 @@ struct heap {
 #define RIGHT_CHILD(i)  (2*(i) + 1)
 
 /* =============================================================================
- * DECLARATION OF TM_CALLABLE FUNCTIONS
+ * DECLARATION OF TM_ATTR FUNCTIONS
  * =============================================================================
  */
 
-TM_CALLABLE
+TM_ATTR
 static void
 TMsiftUp (TM_ARGDECL  heap_t* heapPtr, long startIndex);
 
-TM_CALLABLE
+TM_ATTR
 static void
 TMheapify (TM_ARGDECL  heap_t* heapPtr, long startIndex);
 

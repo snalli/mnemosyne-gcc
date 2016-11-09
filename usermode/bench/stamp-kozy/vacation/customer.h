@@ -130,7 +130,7 @@ customer_free (TM_ARGDECL  customer_t* customerPtr);
  * -- Returns TRUE if success, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 customer_addReservationInfo (TM_ARGDECL
                              customer_t* customerPtr,
@@ -158,7 +158,7 @@ customer_removeReservationInfo (TM_ARGDECL
  * -- Returns total cost of reservations
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 long
 customer_getBill (TM_ARGDECL  customer_t* customerPtr);
 

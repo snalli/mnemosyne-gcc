@@ -92,7 +92,7 @@ typedef list_node_t* list_iter_t;
 
 typedef struct list {
     list_node_t head;
-    long (*compare)(const void*, const void*);   /* returns {-1,0,1}, 0 -> equal */
+    TM_PURE long (*compare)(const void*, const void*);   /* returns {-1,0,1}, 0 -> equal */
     long size;
 } list_t;
 
@@ -109,7 +109,7 @@ list_iter_reset (list_iter_t* itPtr, list_t* listPtr);
  * TMlist_iter_reset
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 void
 TMlist_iter_reset (TM_ARGDECL  list_iter_t* itPtr, list_t* listPtr);
 
@@ -126,7 +126,7 @@ list_iter_hasNext (list_iter_t* itPtr, list_t* listPtr);
  * TMlist_iter_hasNext
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 TMlist_iter_hasNext (TM_ARGDECL  list_iter_t* itPtr, list_t* listPtr);
 
@@ -143,7 +143,7 @@ list_iter_next (list_iter_t* itPtr, list_t* listPtr);
  * TMlist_iter_next
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 void*
 TMlist_iter_next (TM_ARGDECL  list_iter_t* itPtr, list_t* listPtr);
 
@@ -223,7 +223,7 @@ list_isEmpty (list_t* listPtr);
  * -- Return TRUE if list is empty, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 TMlist_isEmpty (TM_ARGDECL  list_t* listPtr);
 
@@ -242,7 +242,7 @@ list_getSize (list_t* listPtr);
  * -- Returns size of list
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 long
 TMlist_getSize (TM_ARGDECL  list_t* listPtr);
 
@@ -261,7 +261,7 @@ list_find (list_t* listPtr, void* dataPtr);
  * -- Returns NULL if not found, else returns pointer to data
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 void*
 TMlist_find (TM_ARGDECL  list_t* listPtr, void* dataPtr);
 
@@ -289,7 +289,7 @@ Plist_insert (list_t* listPtr, void* dataPtr);
  * -- Return TRUE on success, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 TMlist_insert (TM_ARGDECL  list_t* listPtr, void* dataPtr);
 
@@ -317,7 +317,7 @@ Plist_remove (list_t* listPtr, void* dataPtr);
  * -- Returns TRUE if successful, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 TMlist_remove (TM_ARGDECL  list_t* listPtr, void* dataPtr);
 

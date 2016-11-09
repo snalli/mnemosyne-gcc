@@ -147,7 +147,7 @@ reservation_alloc_seq (long id, long price, long numTotal);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 reservation_addToTotal (TM_ARGDECL  reservation_t* reservationPtr, long num);
 
@@ -160,7 +160,7 @@ reservation_addToTotal_seq (reservation_t* reservationPtr, long num);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 reservation_make (TM_ARGDECL  reservation_t* reservationPtr);
 
@@ -173,7 +173,7 @@ reservation_make_seq (reservation_t* reservationPtr);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 reservation_cancel (TM_ARGDECL  reservation_t* reservationPtr);
 
@@ -187,7 +187,7 @@ reservation_cancel_seq (reservation_t* reservationPtr);
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 reservation_updatePrice (TM_ARGDECL  reservation_t* reservationPtr, long newPrice);
 

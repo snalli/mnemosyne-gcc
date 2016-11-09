@@ -110,7 +110,7 @@ heap_insert (heap_t* heapPtr, void* dataPtr);
  * -- Returns FALSE on failure
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 bool_t
 TMheap_insert (TM_ARGDECL  heap_t* heapPtr, void* dataPtr);
 
@@ -129,7 +129,7 @@ heap_remove (heap_t* heapPtr);
  * -- Returns NULL if empty
  * =============================================================================
  */
-TM_CALLABLE
+TM_ATTR
 void*
 TMheap_remove (TM_ARGDECL  heap_t* heapPtr);
 

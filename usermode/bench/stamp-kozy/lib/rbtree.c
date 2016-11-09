@@ -101,7 +101,7 @@ typedef struct node {
 
 struct rbtree {
     node_t* root;
-    long (*compare)(const void*, const void*);   /* returns {-1,0,1}, 0 -> equal */
+    TM_PURE long (*compare)(const void*, const void*);   /* returns {-1,0,1}, 0 -> equal */
 };
 
 #define LDA(a)              *(a)
@@ -123,63 +123,63 @@ struct rbtree {
 #define TX_LDNODE(o,f)      ((node_t*)(TX_LDF_P((o),f)))
 
 /* =============================================================================
- * DECLARATION OF TM_CALLABLE FUNCTIONS
+ * DECLARATION OF TM_ATTR FUNCTIONS
  * =============================================================================
  */
 
-TM_CALLABLE
+TM_ATTR
 static node_t*
 TMlookup (TM_ARGDECL  rbtree_t* s, void* k);
 
-TM_CALLABLE
+TM_ATTR
 static void
 TMrotateLeft (TM_ARGDECL  rbtree_t* s, node_t* x);
 
-TM_CALLABLE
+TM_ATTR
 static void
 TMrotateRight (TM_ARGDECL  rbtree_t* s, node_t* x);
 
-TM_CALLABLE
+TM_ATTR
 static inline node_t*
 TMparentOf (TM_ARGDECL  node_t* n);
 
-TM_CALLABLE
+TM_ATTR
 static inline node_t*
 TMleftOf (TM_ARGDECL  node_t* n);
 
-TM_CALLABLE
+TM_ATTR
 static inline node_t*
 TMrightOf (TM_ARGDECL  node_t* n);
 
-TM_CALLABLE
+TM_ATTR
 static inline long
 TMcolorOf (TM_ARGDECL  node_t* n);
 
-TM_CALLABLE
+TM_ATTR
 static inline void
 TMsetColor (TM_ARGDECL  node_t* n, long c);
 
-TM_CALLABLE
+TM_ATTR
 static void
 TMfixAfterInsertion (TM_ARGDECL  rbtree_t* s, node_t* x);
 
-TM_CALLABLE
+TM_ATTR
 static node_t*
 TMsuccessor  (TM_ARGDECL  node_t* t);
 
-TM_CALLABLE
+TM_ATTR
 static void
 TMfixAfterDeletion  (TM_ARGDECL  rbtree_t* s, node_t*  x);
 
-TM_CALLABLE
+TM_ATTR
 static node_t*
 TMinsert (TM_ARGDECL  rbtree_t* s, void* k, void* v, node_t* n);
 
-TM_CALLABLE
+TM_ATTR
 static node_t*
 TMgetNode (TM_ARGDECL_ALONE);
 
-TM_CALLABLE
+TM_ATTR
 static node_t*
 TMdelete (TM_ARGDECL  rbtree_t* s, node_t* p);
 

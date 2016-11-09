@@ -78,11 +78,11 @@
 #include "types.h"
 
 /* =============================================================================
- * DECLARATION OF TM_CALLABLE FUNCTIONS
+ * DECLARATION OF TM_ATTR FUNCTIONS
  * =============================================================================
  */
 
-TM_CALLABLE
+TM_ATTR
 static void
 checkReservation (TM_ARGDECL  reservation_t* reservationPtr);
 

@@ -209,20 +209,27 @@ extern unsigned long long v_mem_total;
 extern unsigned long long nv_mem_total;
 extern unsigned long v_free, nv_free;
 
+
 #define OUT			      stderr
 #define TM_ARG                        /* nothing */
 #define TM_ARG_ALONE                  /* nothing */
 #define TM_ARGDECL                    /* nothing */
 #define TM_ARGDECL_ALONE              /* nothing */
-#define TM_CALLABLE                   __attribute__((transaction_callable))
-#define TM_SAFE		              __attribute__((transaction_safe))
-#define TM_ATTR				TM_CALLABLE
+#define TM_SAFE		              	__attribute__((transaction_safe))
+#define TM_CALL				__attribute__((transaction_callable))
+#define TM_PURE		              	__attribute__((transaction_pure))
+#define TM_ATTR				TM_SAFE
 
 #define TM_STARTUP(numThread)         /* nothing */
 #define TM_SHUTDOWN()                 /* nothing */
 
 #define TM_THREAD_ENTER()             fprintf(OUT, "Starting thread %li\n", syscall(SYS_gettid));
 #define TM_THREAD_EXIT()              /* nothing */
+
+TM_PURE extern
+void __assert_fail (const char *__assertion, const char *__file,
+                    unsigned int __line, const char *__function)
+     __THROW __attribute__ ((__noreturn__));
 
 #define P_MALLOC(size)              		\
 	({ 					\

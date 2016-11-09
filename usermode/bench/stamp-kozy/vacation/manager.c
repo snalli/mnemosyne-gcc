@@ -95,23 +95,23 @@ MNEMOSYNE_PERSISTENT int    glb_mgr_initialized    = 0;
 */
 
 /* =============================================================================
- * DECLARATION OF TM_CALLABLE FUNCTIONS
+ * DECLARATION OF TM_ATTR FUNCTIONS
  * =============================================================================
  */
 
-TM_CALLABLE
+TM_ATTR
 static long 
 queryNumFree (TM_ARGDECL  MAP_T* tablePtr, long id);
 
-TM_CALLABLE
+TM_ATTR
 static long 
 queryPrice (TM_ARGDECL  MAP_T* tablePtr, long id);
 
-TM_CALLABLE
+TM_ATTR
 static bool_t 
 reserve (TM_ARGDECL MAP_T* tablePtr, MAP_T* customerTablePtr, long customerId, long id, reservation_type_t type);
 
-TM_CALLABLE
+TM_ATTR
 bool_t
 addReservation (TM_ARGDECL  MAP_T* tablePtr, long id, long num, long price);
 

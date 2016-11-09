@@ -14,15 +14,18 @@
 
 #define PVAR(type, var)	\
 	MNEMOSYNE_PERSISTENT type var;	\
-	TM_SAFE type pset_##var(type __##var) { return (var = __##var); }	\
-	TM_SAFE type pget_##var() { return var; }	\
-	TM_SAFE unsigned long paddr_##var() { return &var; }	
+	TM_ATTR type pset_##var(type __##var) 		\
+			{ return (var = __##var); }	\
+	TM_ATTR type pget_##var() { return var; }	\
+	TM_ATTR void* paddr_##var() { return (void*)&var; }	
 	
 #else /* !__PVAR_C__ */
 
 #define PVAR(type, var)	\
-	extern TM_SAFE type pset_##var(type);	\
-	extern TM_SAFE type pget_##var();	
+	extern MNEMOSYNE_PERSISTENT type var;	\
+	extern TM_ATTR type pset_##var(type);	\
+	extern TM_ATTR type pget_##var();	\
+	extern TM_ATTR void* paddr_##var();	
 
 #endif /* __PVAR_C__ */
 

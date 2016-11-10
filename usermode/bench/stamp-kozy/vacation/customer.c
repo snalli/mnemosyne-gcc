@@ -97,6 +97,7 @@ compareReservationInfo (const void* aPtr, const void* bPtr)
  * customer_alloc
  * =============================================================================
  */
+TM_ATTR
 customer_t*
 customer_alloc (TM_ARGDECL  long id)
 {
@@ -136,6 +137,7 @@ customer_alloc_seq (long id)
  * -- Returns -1 if A < B, 0 if A = B, 1 if A > B
  * =============================================================================
  */
+TM_ATTR
 long
 customer_compare (customer_t* aPtr, customer_t* bPtr)
 {
@@ -147,6 +149,7 @@ customer_compare (customer_t* aPtr, customer_t* bPtr)
  * customer_free
  * =============================================================================
  */
+TM_ATTR
 void
 customer_free (TM_ARGDECL  customer_t* customerPtr)
 {
@@ -162,6 +165,7 @@ customer_free (TM_ARGDECL  customer_t* customerPtr)
  * -- Returns TRUE if success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 customer_addReservationInfo (TM_ARGDECL
                              customer_t* customerPtr,
@@ -184,6 +188,7 @@ customer_addReservationInfo (TM_ARGDECL
  * -- Returns TRUE if success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 customer_removeReservationInfo (TM_ARGDECL
                                 customer_t* customerPtr,
@@ -229,6 +234,7 @@ customer_removeReservationInfo (TM_ARGDECL
  * -- Returns total cost of reservations
  * =============================================================================
  */
+TM_ATTR
 long
 customer_getBill (TM_ARGDECL  customer_t* customerPtr)
 {

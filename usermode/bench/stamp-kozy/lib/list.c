@@ -121,6 +121,7 @@ list_iter_reset (list_iter_t* itPtr, list_t* listPtr)
  * TMlist_iter_reset
  * =============================================================================
  */
+TM_ATTR
 void
 TMlist_iter_reset (TM_ARGDECL  list_iter_t* itPtr, list_t* listPtr)
 {
@@ -143,6 +144,7 @@ list_iter_hasNext (list_iter_t* itPtr, list_t* listPtr)
  * TMlist_iter_hasNext
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMlist_iter_hasNext (TM_ARGDECL  list_iter_t* itPtr, list_t* listPtr)
 {
@@ -169,6 +171,7 @@ list_iter_next (list_iter_t* itPtr, list_t* listPtr)
  * TMlist_iter_next
  * =============================================================================
  */
+TM_ATTR
 void*
 TMlist_iter_next (TM_ARGDECL  list_iter_t* itPtr, list_t* listPtr)
 {
@@ -391,6 +394,7 @@ PfreeList (list_node_t* nodePtr)
  * TMfreeList
  * =============================================================================
  */
+TM_ATTR
 static void
 TMfreeList (TM_ARGDECL  list_node_t* nodePtr)
 {
@@ -457,6 +461,7 @@ list_isEmpty (list_t* listPtr)
  * -- Return TRUE if list is empty, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMlist_isEmpty (TM_ARGDECL  list_t* listPtr)
 {
@@ -482,6 +487,7 @@ list_getSize (list_t* listPtr)
  * -- Returns the size of the list
  * =============================================================================
  */
+TM_ATTR
 long
 TMlist_getSize (TM_ARGDECL  list_t* listPtr)
 {
@@ -514,6 +520,7 @@ findPrevious (list_t* listPtr, void* dataPtr)
  * TMfindPrevious
  * =============================================================================
  */
+TM_ATTR
 static list_node_t*
 TMfindPrevious (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 {
@@ -561,6 +568,7 @@ list_find (list_t* listPtr, void* dataPtr)
  * -- Returns NULL if not found, else returns pointer to data
  * =============================================================================
  */
+TM_ATTR
 void*
 TMlist_find (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 {
@@ -653,6 +661,7 @@ Plist_insert (list_t* listPtr, void* dataPtr)
  * -- Return TRUE on success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMlist_insert (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 {
@@ -746,6 +755,7 @@ Plist_remove (list_t* listPtr, void* dataPtr)
  * -- Returns TRUE if successful, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMlist_remove (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 {

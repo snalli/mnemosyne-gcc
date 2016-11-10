@@ -565,6 +565,7 @@ manager_deleteCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
  * -- Return numFree of a reservation, -1 if failure
  * =============================================================================
  */
+TM_ATTR
 static long
 queryNumFree (TM_ARGDECL  MAP_T* tablePtr, long id)
 {
@@ -720,6 +721,7 @@ manager_queryCustomerBill (TM_ARGDECL  manager_t* managerPtr, long customerId)
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 static bool_t
 reserve (TM_ARGDECL
          MAP_T* tablePtr, MAP_T* customerTablePtr,

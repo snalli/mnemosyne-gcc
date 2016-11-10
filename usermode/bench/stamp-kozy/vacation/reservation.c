@@ -112,6 +112,7 @@ reservation_info_alloc (TM_ARGDECL  reservation_type_t type, long id, long price
  * reservation_info_free
  * =============================================================================
  */
+TM_ATTR
 void
 reservation_info_free (TM_ARGDECL  reservation_info_t* reservationInfoPtr)
 {
@@ -124,6 +125,7 @@ reservation_info_free (TM_ARGDECL  reservation_info_t* reservationInfoPtr)
  * -- Returns -1 if A < B, 0 if A = B, 1 if A > B
  * =============================================================================
  */
+TM_ATTR
 long
 reservation_info_compare (reservation_info_t* aPtr, reservation_info_t* bPtr)
 {
@@ -234,6 +236,7 @@ reservation_alloc_seq (long id, long numTotal, long price)
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 reservation_addToTotal (TM_ARGDECL  reservation_t* reservationPtr, long num)
 {
@@ -274,6 +277,7 @@ reservation_addToTotal_seq (reservation_t* reservationPtr, long num)
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 reservation_make (TM_ARGDECL  reservation_t* reservationPtr)
 {
@@ -313,6 +317,7 @@ reservation_make_seq (reservation_t* reservationPtr)
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 reservation_cancel (TM_ARGDECL  reservation_t* reservationPtr)
 {
@@ -358,6 +363,7 @@ reservation_cancel_seq (reservation_t* reservationPtr)
  * -- Returns TRUE on success, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 reservation_updatePrice (TM_ARGDECL  reservation_t* reservationPtr, long newPrice)
 {
@@ -393,6 +399,7 @@ reservation_updatePrice_seq (reservation_t* reservationPtr, long newPrice)
  * -- Returns -1 if A < B, 0 if A = B, 1 if A > B
  * =============================================================================
  */
+TM_ATTR
 long
 reservation_compare (reservation_t* aPtr, reservation_t* bPtr)
 {

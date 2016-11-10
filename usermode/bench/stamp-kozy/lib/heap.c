@@ -167,6 +167,7 @@ siftUp (heap_t* heapPtr, long startIndex)
  * TMsiftUp
  * =============================================================================
  */
+TM_ATTR
 static void
 TMsiftUp (TM_ARGDECL  heap_t* heapPtr, long startIndex)
 {
@@ -229,6 +230,7 @@ heap_insert (heap_t* heapPtr, void* dataPtr)
  * -- Returns FALSE on failure
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMheap_insert (TM_ARGDECL  heap_t* heapPtr, void* dataPtr)
 {
@@ -310,6 +312,7 @@ heapify (heap_t* heapPtr, long startIndex)
  * TMheapify
  * =============================================================================
  */
+TM_ATTR
 static void
 TMheapify (TM_ARGDECL  heap_t* heapPtr, long startIndex)
 {
@@ -384,6 +387,7 @@ heap_remove (heap_t* heapPtr)
  * -- Returns NULL if empty
  * =============================================================================
  */
+TM_ATTR
 void*
 TMheap_remove (TM_ARGDECL  heap_t* heapPtr)
 {

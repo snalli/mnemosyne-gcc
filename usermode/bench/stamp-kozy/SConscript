@@ -6,11 +6,6 @@ Import('mcoreLibrary')
 Import('mtmLibrary')
 Import('pmallocLibrary')
 
-if benchEnv['BUILD_DEBUG'] == True:
-        stampEnv.Append(CCFLAGS = ' -g -O0')
-else:
-        stampEnv.Append(CCFLAGS = ' -O2')
-
 stampEnv.Append(CCFLAGS = '-Ibench/stamp-kozy/lib -Ibench/stamp-kozy/lib/ptm')
 stampEnv.Append(CPPPATH = ['#library/common'])
 stampEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')

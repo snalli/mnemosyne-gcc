@@ -229,6 +229,7 @@ lookup (rbtree_t* s, void* k)
  * TMlookup
  * =============================================================================
  */
+TM_ATTR
 static node_t*
 TMlookup (TM_ARGDECL  rbtree_t* s, void* k)
 {
@@ -1285,6 +1286,7 @@ rbtree_alloc (long (*compare)(const void*, const void*))
  * TMrbtree_alloc
  * =============================================================================
  */
+TM_ATTR
 rbtree_t*
 TMrbtree_alloc (TM_ARGDECL  long (*compare)(const void*, const void*))
 {
@@ -1369,6 +1371,7 @@ rbtree_free (rbtree_t* r)
  * TMrbtree_free
  * =============================================================================
  */
+TM_ATTR
 void
 TMrbtree_free (TM_ARGDECL  rbtree_t* r)
 {
@@ -1423,6 +1426,7 @@ rbtree_insert (rbtree_t* r, void* key, void* val)
  * -- Returns TRUE on success
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMrbtree_insert (TM_ARGDECL  rbtree_t* r, void* key, void* val)
 {
@@ -1460,6 +1464,7 @@ rbtree_delete (rbtree_t* r, void* key)
  * -- Returns TRUE if key exists
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMrbtree_delete (TM_ARGDECL  rbtree_t* r, void* key)
 {
@@ -1499,6 +1504,7 @@ rbtree_update (rbtree_t* r, void* key, void* val)
  * -- Return FALSE if had to insert node first
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMrbtree_update (TM_ARGDECL  rbtree_t* r, void* key, void* val)
 {
@@ -1532,6 +1538,7 @@ rbtree_get (rbtree_t* r, void* key) {
  * TMrbtree_get
  * =============================================================================
  */
+TM_ATTR
 void*
 TMrbtree_get (TM_ARGDECL  rbtree_t* r, void* key) {
     node_t* n = TX_LOOKUP(r, key);
@@ -1559,6 +1566,7 @@ rbtree_contains (rbtree_t* r, void* key)
  * TMrbtree_contains
  * =============================================================================
  */
+TM_ATTR
 long
 TMrbtree_contains (TM_ARGDECL  rbtree_t* r, void* key)
 {

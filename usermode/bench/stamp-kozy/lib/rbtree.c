@@ -1554,7 +1554,7 @@ TMrbtree_get (TM_ARGDECL  rbtree_t* r, void* key) {
  * rbtree_contains
  * =============================================================================
  */
-long
+bool_t
 rbtree_contains (rbtree_t* r, void* key)
 {
     node_t* n = LOOKUP(r, key);
@@ -1567,7 +1567,7 @@ rbtree_contains (rbtree_t* r, void* key)
  * =============================================================================
  */
 TM_ATTR
-long
+bool_t
 TMrbtree_contains (TM_ARGDECL  rbtree_t* r, void* key)
 {
     node_t* n = TX_LOOKUP(r, key);

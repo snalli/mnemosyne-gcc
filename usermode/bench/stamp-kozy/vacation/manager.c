@@ -438,23 +438,13 @@ manager_addCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
     customer_t* customerPtr;
     bool_t status;
 
-    if (TMMAP_CONTAINS(managerPtr->customerTablePtr, customerId)) {
-        // return FALSE;
-	__m_print_d("customerID(EXISTS)", customerId);
-        return TRUE; 
-	/* 
-		FOR PERSISTENCE, if the customer already exists
-		then do nothing.
-	*/
-    } else {
-	__m_print_d("customerID(ADDED)", customerId);
-    }
-
-    customerPtr = CUSTOMER_ALLOC(customerId);
-    assert(customerPtr != NULL);
-    status = TMMAP_INSERT(managerPtr->customerTablePtr, customerId, customerPtr);
-    if (status == FALSE) {
-        TM_RESTART();
+    if (!TMMAP_CONTAINS(managerPtr->customerTablePtr, customerId)) {
+    	customerPtr = CUSTOMER_ALLOC(customerId);
+    	assert(customerPtr != NULL);
+    	status = TMMAP_INSERT(managerPtr->customerTablePtr, customerId, customerPtr);
+    	if (status == FALSE) {
+        	TM_RESTART();
+    	}
     }
 
     return TRUE;

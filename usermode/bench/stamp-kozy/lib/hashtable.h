@@ -107,8 +107,8 @@ typedef struct hashtable {
 #ifdef HASHTABLE_SIZE_FIELD
     long size;
 #endif
-    ulong_t (*hash)(const void*);
-    long (*comparePairs)(const pair_t*, const pair_t*);
+    TM_PURE ulong_t (*hash)(const void*);
+    TM_PURE long (*comparePairs)(const pair_t*, const pair_t*);
     long resizeRatio;
     long growthFactor;
     /* comparePairs should return <0 if before, 0 if equal, >0 if after */
@@ -133,6 +133,7 @@ hashtable_iter_reset (hashtable_iter_t* itPtr, hashtable_t* hashtablePtr);
  * TMhashtable_iter_reset
  * =============================================================================
  */
+TM_ATTR
 void
 TMhashtable_iter_reset (TM_ARGDECL
                         hashtable_iter_t* itPtr, hashtable_t* hashtablePtr);
@@ -150,6 +151,7 @@ hashtable_iter_hasNext (hashtable_iter_t* itPtr, hashtable_t* hashtablePtr);
  * TMhashtable_iter_hasNext
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_iter_hasNext (TM_ARGDECL
                           hashtable_iter_t* itPtr, hashtable_t* hashtablePtr);
@@ -167,6 +169,7 @@ hashtable_iter_next (hashtable_iter_t* itPtr, hashtable_t* hashtablePtr);
  * TMhashtable_iter_next
  * =============================================================================
  */
+TM_ATTR
 void*
 TMhashtable_iter_next (TM_ARGDECL
                        hashtable_iter_t* itPtr, hashtable_t* hashtablePtr);
@@ -192,6 +195,7 @@ hashtable_alloc (long initNumBucket,
  * -- Negative values for resizeRatio or growthFactor select default values
  * =============================================================================
  */
+TM_ATTR
 hashtable_t*
 TMhashtable_alloc (TM_ARGDECL
                    long initNumBucket,
@@ -213,6 +217,7 @@ hashtable_free (hashtable_t* hashtablePtr);
  * TMhashtable_free
  * =============================================================================
  */
+TM_ATTR
 void
 TMhashtable_free (TM_ARGDECL  hashtable_t* hashtablePtr);
 
@@ -229,6 +234,7 @@ hashtable_isEmpty (hashtable_t* hashtablePtr);
  * TMhashtable_isEmpty
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_isEmpty (TM_ARGDECL  hashtable_t* hashtablePtr);
 
@@ -247,6 +253,7 @@ hashtable_getSize (hashtable_t* hashtablePtr);
  * -- Returns number of elements in hash table
  * =============================================================================
  */
+TM_ATTR
 long
 TMhashtable_getSize (TM_ARGDECL  hashtable_t* hashtablePtr);
 
@@ -263,6 +270,7 @@ hashtable_containsKey (hashtable_t* hashtablePtr, void* keyPtr);
  * TMhashtable_containsKey
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_containsKey (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr);
 
@@ -281,6 +289,7 @@ hashtable_find (hashtable_t* hashtablePtr, void* keyPtr);
  * -- Returns NULL on failure, else pointer to data associated with key
  * =============================================================================
  */
+TM_ATTR
 void*
 TMhashtable_find (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr);
 
@@ -297,6 +306,7 @@ hashtable_insert (hashtable_t* hashtablePtr, void* keyPtr, void* dataPtr);
  * TMhashtable_insert
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_insert (TM_ARGDECL
                     hashtable_t* hashtablePtr, void* keyPtr, void* dataPtr);
@@ -316,6 +326,7 @@ hashtable_remove (hashtable_t* hashtablePtr, void* keyPtr);
  * -- Returns TRUE if successful, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_remove (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr);
 
@@ -323,13 +334,14 @@ TMhashtable_remove (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr);
 #define TMHASHTABLE_ITER_RESET(it, ht)    TMhashtable_iter_reset(TM_ARG  it, ht)
 #define TMHASHTABLE_ITER_HASNEXT(it, ht)  TMhashtable_iter_hasNext(TM_ARG  it, ht)
 #define TMHASHTABLE_ITER_NEXT(it, ht)     TMhashtable_iter_next(TM_ARG  it, ht)
-#define TMHASHTABLE_ALLOC(i, h, c, r, g)  TMhashtable_alloc(TM_ARG, i, h, c, r, g)
+#define TMHASHTABLE_ALLOC(i, h, c, r, g)  TMhashtable_alloc(TM_ARG i, h, c, r, g)
 #define TMHASHTABLE_FREE(ht)              TMhashtable_free(TM_ARG  ht)
 #define TMHASHTABLE_ISEMPTY(ht)           TMhashtable_isEmpty(TM_ARG  ht)
 #define TMHASHTABLE_GETSIZE(ht)           TMhashtable_getSize(TM_ARG  ht)
 #define TMHASHTABLE_FIND(ht, k)           TMhashtable_find(TM_ARG  ht, k)
 #define TMHASHTABLE_INSERT(ht, k, d)      TMhashtable_insert(TM_ARG  ht, k, d)
-#define TMHASHTABLE_REMOVE(ht)            TMhashtable_remove(TM_ARG  ht)
+#define TMHASHTABLE_REMOVE(ht, k)         TMhashtable_remove(TM_ARG  ht, k)
+#define TMHASHTABLE_CONTAINS(ht, k)	  TMhashtable_containsKey(TM_ARG ht, k)
 
 
 #ifdef __cplusplus

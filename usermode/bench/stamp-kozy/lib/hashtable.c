@@ -96,6 +96,18 @@
 #  warning "hash table resizing currently disabled for TM"
 #endif
 
+static ulong_t
+hashKey (const void* keyPtr)
+{
+    return ((ulong_t)(keyPtr));
+}
+
+
+static long
+comparePairs (const pair_t* a, const pair_t* b)
+{
+    return ((a->firstPtr) - (b->firstPtr));
+}
 
 /* =============================================================================
  * hashtable_iter_reset
@@ -113,6 +125,7 @@ hashtable_iter_reset (hashtable_iter_t* itPtr, hashtable_t* hashtablePtr)
  * TMhashtable_iter_reset
  * =============================================================================
  */
+TM_ATTR
 void
 TMhashtable_iter_reset (TM_ARGDECL
                         hashtable_iter_t* itPtr, hashtable_t* hashtablePtr)
@@ -151,6 +164,7 @@ hashtable_iter_hasNext (hashtable_iter_t* itPtr, hashtable_t* hashtablePtr)
  * hashtable_iter_hasNext
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_iter_hasNext (TM_ARGDECL
                           hashtable_iter_t* itPtr, hashtable_t* hashtablePtr)
@@ -208,6 +222,7 @@ hashtable_iter_next (hashtable_iter_t* itPtr, hashtable_t* hashtablePtr)
  * TMhashtable_iter_next
  * =============================================================================
  */
+TM_ATTR
 void*
 TMhashtable_iter_next (TM_ARGDECL
                        hashtable_iter_t* itPtr, hashtable_t* hashtablePtr)
@@ -274,6 +289,7 @@ allocBuckets (long numBucket, long (*comparePairs)(const pair_t*, const pair_t*)
  * -- Returns NULL on error
  * =============================================================================
  */
+TM_ATTR
 static list_t**
 TMallocBuckets (TM_ARGDECL
                 long numBucket, long (*comparePairs)(const pair_t*, const pair_t*))
@@ -312,7 +328,7 @@ TMallocBuckets (TM_ARGDECL
 hashtable_t*
 hashtable_alloc (long initNumBucket,
                  ulong_t (*hash)(const void*),
-                 long (*comparePairs)(const pair_t*, const pair_t*),
+                 long (*compare)(const pair_t*, const pair_t*),
                  long resizeRatio,
                  long growthFactor)
 {
@@ -323,7 +339,10 @@ hashtable_alloc (long initNumBucket,
         return NULL;
     }
 
-    hashtablePtr->buckets = allocBuckets(initNumBucket, comparePairs);
+    if(compare)
+    	hashtablePtr->buckets = allocBuckets(initNumBucket, compare);
+    else
+    	hashtablePtr->buckets = allocBuckets(initNumBucket, &comparePairs);
     if (hashtablePtr->buckets == NULL) {
         free(hashtablePtr);
         return NULL;
@@ -333,8 +352,15 @@ hashtable_alloc (long initNumBucket,
 #ifdef HASHTABLE_SIZE_FIELD
     hashtablePtr->size = 0;
 #endif
-    hashtablePtr->hash = hash;
-    hashtablePtr->comparePairs = comparePairs;
+    if(hash)
+	    hashtablePtr->hash = hash;
+    else
+	    hashtablePtr->hash = &hashKey;
+
+    if(compare)
+	hashtablePtr->comparePairs = compare;
+    else
+	hashtablePtr->comparePairs = &comparePairs;
     hashtablePtr->resizeRatio = ((resizeRatio < 0) ?
                                   HASHTABLE_DEFAULT_RESIZE_RATIO : resizeRatio);
     hashtablePtr->growthFactor = ((growthFactor < 0) ?
@@ -350,11 +376,12 @@ hashtable_alloc (long initNumBucket,
  * -- Negative values for resizeRatio or growthFactor select default values
  * =============================================================================
  */
+TM_ATTR
 hashtable_t*
 TMhashtable_alloc (TM_ARGDECL
                    long initNumBucket,
                    ulong_t (*hash)(const void*),
-                   long (*comparePairs)(const pair_t*, const pair_t*),
+                   long (*compare)(const pair_t*, const pair_t*),
                    long resizeRatio,
                    long growthFactor)
 {
@@ -365,7 +392,10 @@ TMhashtable_alloc (TM_ARGDECL
         return NULL;
     }
 
-    hashtablePtr->buckets = TMallocBuckets(TM_ARG  initNumBucket, comparePairs);
+    if(compare)
+	    hashtablePtr->buckets = TMallocBuckets(TM_ARG  initNumBucket, compare);
+    else
+	    hashtablePtr->buckets = TMallocBuckets(TM_ARG  initNumBucket, &comparePairs);
     if (hashtablePtr->buckets == NULL) {
         TM_FREE(hashtablePtr);
         return NULL;
@@ -375,8 +405,14 @@ TMhashtable_alloc (TM_ARGDECL
 #ifdef HASHTABLE_SIZE_FIELD
     hashtablePtr->size = 0;
 #endif
-    hashtablePtr->hash = hash;
-    hashtablePtr->comparePairs = comparePairs;
+    if(hash)
+	    hashtablePtr->hash = hash;
+    else
+	    hashtablePtr->hash = &hashKey;
+    if(compare)
+	hashtablePtr->comparePairs = compare;
+    else
+	hashtablePtr->comparePairs = &comparePairs;
     hashtablePtr->resizeRatio = ((resizeRatio < 0) ?
                                   HASHTABLE_DEFAULT_RESIZE_RATIO : resizeRatio);
     hashtablePtr->growthFactor = ((growthFactor < 0) ?
@@ -407,6 +443,7 @@ freeBuckets (list_t** buckets, long numBucket)
  * TMfreeBuckets
  * =============================================================================
  */
+TM_ATTR
 static void
 TMfreeBuckets (TM_ARGDECL  list_t** buckets, long numBucket)
 {
@@ -436,6 +473,7 @@ hashtable_free (hashtable_t* hashtablePtr)
  * TMhashtable_free
  * =============================================================================
  */
+TM_ATTR
 void
 TMhashtable_free (TM_ARGDECL  hashtable_t* hashtablePtr)
 {
@@ -471,6 +509,7 @@ hashtable_isEmpty (hashtable_t* hashtablePtr)
  * TMhashtable_isEmpty
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_isEmpty (TM_ARGDECL  hashtable_t* hashtablePtr)
 {
@@ -518,6 +557,7 @@ hashtable_getSize (hashtable_t* hashtablePtr)
  * -- Returns number of elements in hash table
  * =============================================================================
  */
+TM_ATTR
 long
 TMhashtable_getSize (TM_ARGDECL  hashtable_t* hashtablePtr)
 {
@@ -558,6 +598,7 @@ hashtable_containsKey (hashtable_t* hashtablePtr, void* keyPtr)
  * TMhashtable_containsKey
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_containsKey (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr)
 {
@@ -599,6 +640,7 @@ hashtable_find (hashtable_t* hashtablePtr, void* keyPtr)
  * -- Returns NULL on failure, else pointer to data associated with key
  * =============================================================================
  */
+TM_ATTR
 void*
 TMhashtable_find (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr)
 {
@@ -719,6 +761,7 @@ hashtable_insert (hashtable_t* hashtablePtr, void* keyPtr, void* dataPtr)
  * TMhashtable_insert
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_insert (TM_ARGDECL
                     hashtable_t* hashtablePtr, void* keyPtr, void* dataPtr)
@@ -792,6 +835,7 @@ hashtable_remove (hashtable_t* hashtablePtr, void* keyPtr)
  * -- Returns TRUE if successful, else FALSE
  * =============================================================================
  */
+TM_ATTR
 bool_t
 TMhashtable_remove (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr)
 {
@@ -831,18 +875,8 @@ TMhashtable_remove (TM_ARGDECL  hashtable_t* hashtablePtr, void* keyPtr)
 #include <stdio.h>
 
 
-static ulong_t
-hash (const void* keyPtr)
-{
-    return ((ulong_t)(*(long*)keyPtr));
-}
 
 
-static long
-comparePairs (const pair_t* a, const pair_t* b)
-{
-    return (*(long*)(a->firstPtr) - *(long*)(b->firstPtr));
-}
 
 
 static void

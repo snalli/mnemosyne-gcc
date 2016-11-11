@@ -6,7 +6,8 @@ if myEnv['BUILD_PVAR'] == True:
 	Return('pvarLibrary')
 else:
 	# Can we use hash table instead ?
-	myEnv.Append(CCFLAGS = '-DMAP_USE_RBTREE -DLIST_NO_DUPLICATES')
+	# myEnv.Append(CCFLAGS = '-DMAP_USE_RBTREE -DLIST_NO_DUPLICATES')
+	myEnv.Append(CCFLAGS = '-DMAP_USE_HASHTABLE -DLIST_NO_DUPLICATES')
 	sources = Split("""     client.c
 				customer.c
 				manager.c
@@ -16,9 +17,11 @@ else:
 				../lib/pair.c
 				../lib/mt19937ar.c
 				../lib/random.c
-				../lib/rbtree.c
+				../lib/hashtable.c
 				../lib/thread.c
 			""")
 	Import('pvarLibrary')
 	myEnv.Append(LIBS = [pvarLibrary])
 	myEnv.Program('vacation', sources)
+
+#../lib/hashtable.c

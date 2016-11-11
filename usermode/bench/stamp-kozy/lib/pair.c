@@ -119,6 +119,7 @@ Ppair_alloc (void* firstPtr, void* secondPtr)
  * -- Returns NULL if failure
  * =============================================================================
  */
+TM_ATTR
 pair_t*
 TMpair_alloc (TM_ARGDECL  void* firstPtr, void* secondPtr)
 {
@@ -160,6 +161,7 @@ Ppair_free (pair_t* pairPtr)
  * TMpair_free
  * =============================================================================
  */
+TM_ATTR
 void
 TMpair_free (TM_ARGDECL  pair_t* pairPtr)
 {

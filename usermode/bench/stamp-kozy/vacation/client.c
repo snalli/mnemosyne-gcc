@@ -177,10 +177,11 @@ client_run (void* argPtr)
 
     for (i = 0; i < numOperation; i++) {
 
-	//if(i%100000 == 0)
+	if(i%100000 == 0)
 		fprintf(OUT, "Thread-%lu finished %lu queries\n", myId, i);
         long r = random_generate(randomPtr) % 100;
         action_t action = selectAction(r, percentUser);
+	action = ACTION_MAKE_RESERVATION;
 
         switch (action) {
 
@@ -225,6 +226,7 @@ client_run (void* argPtr)
                         isFound = TRUE;
                     }
                 } /* for n */
+
                 if (isFound) {
                     MANAGER_ADD_CUSTOMER(managerPtr, customerId);
                 }
@@ -240,6 +242,7 @@ client_run (void* argPtr)
                     MANAGER_RESERVE_ROOM(managerPtr,
                                          customerId, maxIds[RESERVATION_ROOM]);
                 }
+		
                 TM_END();
                 break;
             }

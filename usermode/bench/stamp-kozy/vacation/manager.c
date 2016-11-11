@@ -569,8 +569,10 @@ TM_ATTR
 static long
 queryNumFree (TM_ARGDECL  MAP_T* tablePtr, long id)
 {
+    
     long numFree = -1;
     reservation_t* reservationPtr;
+
 
     reservationPtr = (reservation_t*)TMMAP_FIND(tablePtr, id);
     if (reservationPtr != NULL) {

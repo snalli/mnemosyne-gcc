@@ -250,7 +250,7 @@ initializeManager ()
     long t;
     long numTable = sizeof(manager_add) / sizeof(manager_add[0]);
 
-    fprintf(OUT, "Initializing manager... ");
+    fprintf(OUT, "Initializing manager... \n");
     fflush(stdout);
 
     randomPtr = random_alloc();
@@ -271,6 +271,7 @@ initializeManager ()
     {
 	fprintf(OUT, "\n***************************************************\n");
         fprintf(OUT, "\nRe-using tables from previous incarnation...\n");
+        fprintf(OUT, "\nPersistent table pointers.\n");
         fprintf(OUT, "\n%s = %p\n%s = %p\n%s = %p\n%s = %p\n",					\
 						"Car Table     ", managerPtr->carTablePtr, 	\
                                                 "Room Table    ", managerPtr->roomTablePtr, 	\
@@ -502,10 +503,18 @@ MAIN(argc, argv)
     if(numClient != 0)
 	    numTransactionPerClient = (long)((double)numTransaction / (double)numClient + 0.5);
     else
+    {
+	    numTransaction = 0;
 	    init_user = 1;
+    }
     queryRange = (long)((double)percentQuery / 100.0 * (double)numRelation + 0.5);
     mtm_enable_trace = (int)enableTrace;
 
+    #if defined(MAP_USE_HASHTABLE)
+    fprintf(OUT, "    Table Index         = HASHTABLE\n");
+    #elif defined(MAP_USE_RBTREE)
+    fprintf(OUT, "    Table Index         = RBTREE\n");
+    #endif
     fprintf(OUT, "    Transactions        = %li\n", numTransaction);
     fprintf(OUT, "    Clients             = %li\n", numClient);
     fprintf(OUT, "    Transactions/client = %li\n", numTransactionPerClient);
@@ -518,7 +527,7 @@ MAIN(argc, argv)
  
     managerPtr = initializeManager();
     assert(managerPtr != NULL);
-    if(numClient == 0)
+    if(init_user == 1)
     {
 	fprintf(OUT, "\nInit-phase\n");
 	fprintf(OUT, "Total volatile memory consumption     = %llu bytes\n", v_mem_total);

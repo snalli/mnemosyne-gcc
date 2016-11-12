@@ -8,7 +8,10 @@
 #include <stdlib.h>
 #include <pmalloc.h>
 
-long *ptr, count = 100000, *ptr1, sz = 32;
+unsigned long long cl_mask = 0xffffffffffffffc0;
+#define sz 32
+#define count 100000
+long *ptr, *ptr1;
 pthread_t thr[2];
 
 void* reader()
@@ -38,7 +41,9 @@ void malloc_bench()
 	ptr1 = pmalloc(sz);
 	if(ptr != NULL && ptr1 != NULL)
 	{
-	       printf("ptr =%p, ptr1 =%p, ptr1-ptr = %ld\n", ptr, ptr1, labs((unsigned long long)ptr1-(unsigned long long)ptr));
+	       printf("ptr =%p, ptr1 =%p, sz=%d\n", ptr, ptr1, sz);
+	       printf("ptr & cl_mask = %p, ptr1 & cl_mask = %p\n", (void*)((unsigned long)ptr & cl_mask), (void*)((unsigned long)ptr1 & cl_mask));
+	       printf("ptr1-ptr = %ld\n", labs((unsigned long)ptr1-(unsigned long)ptr));
 	       pthread_create(&thr[0], NULL,
                           &writer, NULL);
 

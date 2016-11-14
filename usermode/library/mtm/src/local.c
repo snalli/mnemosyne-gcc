@@ -130,7 +130,8 @@ mtm_local_rollback (mtm_tx_t *tx)
 	char                   *buf;
 	uintptr_t              entryp;
 	void                   *addr;
-    uintptr_t              *sp = (uintptr_t *) tx->jb.sp;
+    uintptr_t              *sp;
+	memcpy(&sp, &(tx->jb), sizeof(uintptr_t)); /* Stack pointer is in the first 8 bytes */
     uintptr_t              *current_sp = get_stack_pointer();
  
 	local_undo_entry = local_undo->last_entry;

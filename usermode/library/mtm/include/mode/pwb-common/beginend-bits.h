@@ -371,7 +371,7 @@ uint32_t
 beginTransaction_internal (mtm_tx_t *tx, 
                            uint32_t prop, 
                            _ITM_srcLocation *srcloc,
-                           int enable_isolation)
+                           int enable_isolation, jmp_buf **__env)
 {
 	assert(tx->mode == MTM_MODE_pwbnl || MTM_MODE_pwbetl);
 
@@ -380,10 +380,12 @@ beginTransaction_internal (mtm_tx_t *tx,
 
 	/* Increment nesting level, freud : we did not enter here */
 	if (tx->nesting++ > 0) {
+		*__env = NULL;
 		return a_runInstrumentedCode | a_saveLiveVariables;
 	}	
 
-	tx->jb = tx->tmp_jb;
+	memcpy(&tx->jb, &tx->tmp_jb, sizeof(jmp_buf));
+	*__env = &(tx->jb);
 	tx->prop = prop;
 
 	/* Initialize transaction descriptor */

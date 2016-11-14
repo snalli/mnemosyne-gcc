@@ -41,19 +41,19 @@ _ITM_beginTransaction:
 
 _ITM_siglongjmp:
 	.cfi_startproc
-	movq	(%rsi), %rcx
-	movq	8(%rsi), %rbx
-	movq	16(%rsi), %rbp
-	movq	24(%rsi), %r12
-	movq	32(%rsi), %r13
-	movq	40(%rsi), %r14
-	movq	48(%rsi), %r15
+	movq	(%rdi), %rcx
+	movq	8(%rdi), %rbx
+	movq	16(%rdi), %rbp
+	movq	24(%rdi), %r12
+	movq	32(%rdi), %r13
+	movq	40(%rdi), %r14
+	movq	48(%rdi), %r15
 	movl	%edi, %eax
-	.cfi_def_cfa %rsi, 0
+	.cfi_def_cfa %rdi, 0
 	.cfi_offset %rip, 56
 	.cfi_register %rsp, %rcx
 	movq	%rcx, %rsp
-	jmp	*56(%rsi)
+	jmp	*56(%rdi)
 	.cfi_endproc
 	.size	_ITM_siglongjmp, .-_ITM_siglongjmp
 
@@ -62,19 +62,14 @@ _ITM_siglongjmp:
         .global mtm_longjmp
 
 mtm_longjmp:
+        mov     %rsi,%rax
+        // mov     0(%rdi),%rsp
         mov     8(%rdi),%rbx
         mov     16(%rdi),%rbp
         mov     24(%rdi),%r12
         mov     32(%rdi),%r13
         mov     40(%rdi),%r14
         mov     48(%rdi),%r15
-        mov     0(%rdi),%rsp
-        ldmxcsr 64(%rdi)
-        fnclex
-        fldcw   72(%rdi)
-        cld
-        emms
-        mov     %rsi,%rax
         mov     56(%rdi),%rsi
         jmp     *%rsi
 

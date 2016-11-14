@@ -30,6 +30,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <setjmp.h>
 
 #define ITM_NORETURN	__attribute__((noreturn))
 
@@ -268,9 +269,9 @@ struct mtm_tx_s {
 	uintptr_t              dummy2;
 	mtm_dtable_t           *dtable;          /* The dispatch table for the active transaction mode. */
 
-	mtm_jmpbuf_t           *tmp_jb_ptr;      /* Pointer to the temporary register checkpoint. This simplifies the assembly checkpoint code. */
-	mtm_jmpbuf_t           tmp_jb;           /* Temporary register checkpoint; this is where the assebly register checkpoint code will save the registers.  */
-	mtm_jmpbuf_t           jb;               /* Register checkpoint of this transaction. Keeping this separate from tmp_jb allows a nested transaction to transparently execute the assembly checkpoint code without destroying the active register checkpoint.  */
+	jmp_buf                *tmp_jb_ptr;      /* Pointer to the temporary register checkpoint. This simplifies the assembly checkpoint code. */
+	jmp_buf                tmp_jb;           /* Temporary register checkpoint; this is where the assebly register checkpoint code will save the registers.  */
+	jmp_buf                jb;               /* Register checkpoint of this transaction. Keeping this separate from tmp_jb allows a nested transaction to transparently execute the assembly checkpoint code without destroying the active register checkpoint.  */
 
 	mtm_mode_data_t        *modedata[MTM_NUM_MODES];
 	mtm_mode_t             mode;

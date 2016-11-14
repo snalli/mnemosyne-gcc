@@ -37,10 +37,10 @@
 uint32_t
 mtm_pwbetl_beginTransaction_internal (mtm_tx_t *tx, 
                                    uint32_t prop, 
-                                   _ITM_srcLocation *srcloc)
+                                   _ITM_srcLocation *srcloc, jmp_buf **__env)
 {
 	PM_START_TX();
-	return beginTransaction_internal (tx, prop, srcloc, 1);
+	return beginTransaction_internal (tx, prop, srcloc, 1, __env);
 }
 
 
@@ -87,7 +87,7 @@ mtm_pwbetl_abortTransaction (mtm_tx_t *tx,
 		 * free_tx (td, tx);
 		 */
 
-		mtm_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables);
+		_ITM_siglongjmp (tx->jb, a_abortTransaction | a_restoreLiveVariables);
 	} else if (reason == userRetry) {
 		mtm_pwb_restart_transaction(tx, RESTART_USER_RETRY);
 	}

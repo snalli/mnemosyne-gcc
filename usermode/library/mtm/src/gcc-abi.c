@@ -40,6 +40,8 @@
 #include <stdio.h>
 #include "init.h"
 #include "useraction.h"
+#include <setjmp.h>
+
 
 struct clone_entry
 {
@@ -182,23 +184,26 @@ void _ITM_CALL_CONVENTION _ITM_commitTransactionEH(void *exc_ptr)
 }
 
 
-// uint32_t _ITM_CALL_CONVENTION MTM_begin_transaction(uint32_t attr, jmp_buf * buf)
-uint32_t _ITM_CALL_CONVENTION MTM_begin_transaction(uint32_t attr, void * buf)
+uint32_t _ITM_CALL_CONVENTION MTM_begin_transaction(uint32_t attr, jmp_buf * buf)
 {
 	uint32_t ret;
+	jmp_buf *env = NULL;
 	mtm_tx_t *tx = mtm_get_tx();
 	if (unlikely(tx == NULL)) {
 		tx = mtm_init_thread();
 	}
 	assert(tx != NULL);
-	mtm_pwbetl_beginTransaction_internal(tx, attr, NULL);
+	ret = mtm_pwbetl_beginTransaction_internal(tx, attr, NULL, &env);
 
   /*
   env = int_stm_start(tx, _a); */
   /* Save thread context only when outermost transaction */
   /* TODO check that the memcpy is fast. */
-  // if (likely(env != NULL))
-  //  memcpy(env, buf, sizeof(jmp_buf)); /* TODO limit size to real size */
+  	if (likely(env != NULL))
+		memcpy(env, buf, sizeof(jmp_buf)); /* TODO limit size to real size */
+  // freud : This is where you intialized the jump buffer. 
+  // And then use a code like _ITM_siglongjmp to parse the buffer 
+  // and jump to the appropriate routine.
 
 	return ret;
 }

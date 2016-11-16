@@ -123,6 +123,7 @@ mtm_useraction_addUserCommitAction(mtm_tx_t * tx,
                                    _ITM_transactionId tid, 
                                    void *arg)
 {
+	/* tid is ignored */
 	mtm_user_action_list_t *list = tx->commit_action_list;
 	mtm_user_action_t      *action;
 

@@ -132,7 +132,7 @@ static void * pmalloc_internal (size_t sz)
 		 * instrumented path. Actually we are already in the transactional path so
 		 * this atomic block should execute as a nested transaction.
 		 */
-		__transaction_atomic 
+		// __transaction_atomic 
 		{
 			/* 
 			 * FIXME: We don't need the lock as we execute with isolation on
@@ -223,7 +223,7 @@ static void free_internal (void * ptr)
 			persistentheap->free (ptr);
         }
 	} else {
-		__transaction_atomic 
+		//__transaction_atomic 
 		{
 			__m_print("%lf %d %s %d ptr=%p (generic free)\n",__m_time__,__m_tid__, __func__, __LINE__, ptr)
 			GENERIC_PFREE (ptr);

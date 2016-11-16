@@ -31,18 +31,6 @@ class Environment(SCons.Environment.Environment):
 		self.Append(CPPPATH = '#library/common')
 
 
-		# Make output pretty.
-		if not self['VERBOSE']:
-			self.Replace(
-			                 CCCOMSTR = '(COMPILE)  $SOURCES',
-			                CXXCOMSTR = '(COMPILE)  $SOURCES',
-			              SHCXXCOMSTR = '(COMPILE)  $SOURCES',
-			               SHCCCOMSTR = '(COMPILE)  $SOURCES',
-			               ASPPCOMSTR = '(ASSEMBLE) $SOURCES',
-			                 ARCOMSTR = '(BUILD)    $TARGET',
-			             RANLIBCOMSTR = '(INDEX)    $TARGET',
-			               LINKCOMSTR = '(LINK)     $TARGET',
-			             SHLINKCOMSTR = '(LINK)     $TARGET')
 	
 		self.Append(CPPDEFINES = mnemosyneDirectives.getPreprocessorDefinitions())
 
@@ -65,6 +53,21 @@ class Environment(SCons.Environment.Environment):
 			self['CC'] = mainEnv['CC'] 
 			self['CXX'] = mainEnv['CXX'] 
             
+	def set_verbosity(self):
+
+		# Make output pretty.
+		if not self['VERBOSE']:
+			self.Replace(
+			                 CCCOMSTR = '(COMPILE)  $SOURCES',
+			                CXXCOMSTR = '(COMPILE)  $SOURCES',
+			              SHCXXCOMSTR = '(COMPILE)  $SOURCES',
+			               SHCCCOMSTR = '(COMPILE)  $SOURCES',
+			               ASPPCOMSTR = '(ASSEMBLE) $SOURCES',
+			                 ARCOMSTR = '(BUILD)    $TARGET',
+			             RANLIBCOMSTR = '(INDEX)    $TARGET',
+			               LINKCOMSTR = '(LINK)     $TARGET',
+			             SHLINKCOMSTR = '(LINK)     $TARGET')
+
 	def _GetConfigurationVariables(self):
 		"""
 			Retrieve and define help variables for configuration variables.

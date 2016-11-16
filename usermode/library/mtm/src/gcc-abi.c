@@ -430,6 +430,42 @@ _ITM_changeTransactionMode(_ITM_transactionState __mode,
 	//MTM_serialmode (false, true);
 }
 
+void * _ITM_malloc(size_t size)
+{
+  void *ptr = NULL;
+  ptr = malloc(size);
+  if(!ptr)
+	goto out;
 
+  mtm_tx_t *tx = mtm_get_tx();
+  if(tx)
+	_ITM_addUserUndoAction(free, ptr);
+out:
+  return ptr;
+}
+
+void * _ITM_calloc(size_t nm, size_t size)
+{
+  void *ptr = NULL;
+  ptr = calloc(nm, size);
+  if(!ptr)
+	goto out;
+
+  mtm_tx_t *tx = mtm_get_tx();
+  if(tx)
+	_ITM_addUserUndoAction(free, ptr);
+out:
+  return ptr;
+}   
+
+void _ITM_free(void *ptr)
+{   
+  mtm_tx_t *tx = mtm_get_tx();
+  if (tx) {
+    _ITM_addUserCommitAction(free, tx->id, ptr);
+    return;
+  }
+  free(ptr);
+}
 
 

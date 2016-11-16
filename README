@@ -42,6 +42,8 @@ Initializing manager...
 ***************************************************
 Re-using tables from previous incarnation...
 
+Persistent table pointers.
+
 Car Table      = 0x100ba0035ff0
 Room Table     = 0x100ba0035fe0
 Flight Table   = 0x100ba0035fd0

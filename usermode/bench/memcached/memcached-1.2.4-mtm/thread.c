@@ -395,10 +395,9 @@ int mt_is_listen_thread() {
  * Walks through the list of deletes that have been deferred because the items
  * were locked down at the tmie.
  */
-TM_ATTR
 void mt_run_deferred_deletes() {
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
     	do_run_deferred_deletes();
 	}
     //pthread_mutex_unlock(&cache_lock);
@@ -407,14 +406,13 @@ void mt_run_deferred_deletes() {
 /*
  * Allocates a new item.
  */
-TM_ATTR
 item *mt_item_alloc(char *key, size_t nkey, int flags, rel_time_t exptime, int nbytes) {
     item *it;
 	/* Sanketh */
 	// printf("Allocating a new item...\n");
     //pthread_mutex_lock(&cache_lock);
 	// This here triggers mnemosyne !!
-	/* PTx */ 
+	PTx
 	{
 	    it = do_item_alloc(key, nkey, flags, exptime, nbytes);
 	}	
@@ -426,11 +424,10 @@ item *mt_item_alloc(char *key, size_t nkey, int flags, rel_time_t exptime, int n
  * Returns an item if it hasn't been marked as expired or deleted,
  * lazy-expiring as needed.
  */
-TM_ATTR
 item *mt_item_get_notedeleted(const char *key, const size_t nkey, bool *delete_locked) {
     item *it;
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
 	    it = do_item_get_notedeleted(key, nkey, delete_locked);
 	}	
     //pthread_mutex_unlock(&cache_lock);
@@ -440,12 +437,11 @@ item *mt_item_get_notedeleted(const char *key, const size_t nkey, bool *delete_l
 /*
  * Links an item into the LRU and hashtable.
  */
-TM_ATTR
 int mt_item_link(item *item) {
     int ret;
 
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx  {
     	ret = do_item_link(item);
 	}
     //pthread_mutex_unlock(&cache_lock);
@@ -456,10 +452,9 @@ int mt_item_link(item *item) {
  * Decrements the reference count on an item and adds it to the freelist if
  * needed.
  */
-TM_ATTR
 void mt_item_remove(item *item) {
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
     	do_item_remove(item);
 	}	
     //pthread_mutex_unlock(&cache_lock);
@@ -468,12 +463,11 @@ void mt_item_remove(item *item) {
 /*
  * Replaces one item with another in the hashtable.
  */
-TM_ATTR
 int mt_item_replace(item *old, item *new) {
     int ret;
 
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
    		ret = do_item_replace(old, new);
 	}
     //pthread_mutex_unlock(&cache_lock);
@@ -483,10 +477,9 @@ int mt_item_replace(item *old, item *new) {
 /*
  * Unlinks an item from the LRU and hashtable.
  */
-TM_ATTR
 void mt_item_unlink(item *item) {
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
 	    do_item_unlink(item);
 	}	
     //pthread_mutex_unlock(&cache_lock);
@@ -495,10 +488,9 @@ void mt_item_unlink(item *item) {
 /*
  * Moves an item to the back of the LRU queue.
  */
-TM_ATTR
 void mt_item_update(item *item) {
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
     	do_item_update(item);
 	}
     //pthread_mutex_unlock(&cache_lock);
@@ -507,12 +499,11 @@ void mt_item_update(item *item) {
 /*
  * Adds an item to the deferred-delete list so it can be reaped later.
  */
-TM_ATTR
 char *mt_defer_delete(item *item, time_t exptime) {
     char *ret;
 
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
     	ret = do_defer_delete(item, exptime);
 	}
     //pthread_mutex_unlock(&cache_lock);
@@ -525,21 +516,22 @@ char *mt_defer_delete(item *item, time_t exptime) {
 char *mt_add_delta(item *item, int incr, const int64_t delta, char *buf) {
     char *ret;
 
-    pthread_mutex_lock(&cache_lock);
+    // pthread_mutex_lock(&cache_lock);
+    PTx {
     ret = do_add_delta(item, incr, delta, buf);
-    pthread_mutex_unlock(&cache_lock);
+    }
+    // pthread_mutex_unlock(&cache_lock);
     return ret;
 }
 
 /*
  * Stores an item in the cache (high level, obeys set/add/replace semantics)
  */
-TM_ATTR
 int mt_store_item(item *item, int comm) {
     int ret;
 
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
 	
     	ret = do_store_item(item, comm);
 	}
@@ -550,10 +542,9 @@ int mt_store_item(item *item, int comm) {
 /*
  * Flushes expired items after a flush_all call
  */
-TM_ATTR
 void mt_item_flush_expired() {
     //pthread_mutex_lock(&cache_lock);
- /* PTx */ {
+  PTx  {
 
 	    do_item_flush_expired();
 	}	
@@ -563,12 +554,11 @@ void mt_item_flush_expired() {
 /*
  * Dumps part of the cache
  */
-TM_ATTR
 char *mt_item_cachedump(unsigned int slabs_clsid, unsigned int limit, unsigned int *bytes) {
     char *ret;
 
     //pthread_mutex_lock(&cache_lock);
-	 /* PTx */ {
+	  PTx  {
 	
 	    ret = do_item_cachedump(slabs_clsid, limit, bytes);
 	}	
@@ -602,10 +592,9 @@ char *mt_item_stats_sizes(int *bytes) {
 
 /****************************** HASHTABLE MODULE *****************************/
 
-TM_ATTR
 void mt_assoc_move_next_bucket() {
     //pthread_mutex_lock(&cache_lock);
-	/* PTx */ {
+	PTx {
 	
     	do_assoc_move_next_bucket();
 	}
@@ -614,38 +603,35 @@ void mt_assoc_move_next_bucket() {
 
 /******************************* SLAB ALLOCATOR ******************************/
 
-TM_ATTR
 void *mt_slabs_alloc(size_t size) {
     void *ret;
 
 // Why another lock when we have the global
 // cache lock ???
-
+// always called in a PTx
     //pthread_mutex_lock(&slabs_lock);
 	// another transaction
 	// The first one is in item_alloc
-	/* PTx */ {
+	PTx {
     	ret = do_slabs_alloc(size);
 	}
     //pthread_mutex_unlock(&slabs_lock);
     return ret;
 }
 
-TM_ATTR
 void mt_slabs_free(void *ptr, size_t size) {
     //pthread_mutex_lock(&slabs_lock);
-	/* PTx */ {
+	PTx {
     	do_slabs_free(ptr, size);
 	}
     //pthread_mutex_unlock(&slabs_lock);
 }
 
-TM_ATTR
 char *mt_slabs_stats(int *buflen) {
     char *ret;
 
     //pthread_mutex_lock(&slabs_lock);
-	/* PTx */ {
+	PTx {
 	    ret = do_slabs_stats(buflen);
 	}
 	//pthread_mutex_unlock(&slabs_lock);
@@ -653,12 +639,11 @@ char *mt_slabs_stats(int *buflen) {
 }
 
 #ifdef ALLOW_SLABS_REASSIGN
-TM_ATTR
 int mt_slabs_reassign(unsigned char srcid, unsigned char dstid) {
     int ret;
 
     //pthread_mutex_lock(&slabs_lock);
-	/* PTx */ {
+	PTx {
 	    ret = do_slabs_reassign(srcid, dstid);
 	}	
     //pthread_mutex_unlock(&slabs_lock);

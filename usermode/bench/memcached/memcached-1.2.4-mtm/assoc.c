@@ -132,6 +132,7 @@ and these came close:
 }
 
 #if HASH_LITTLE_ENDIAN == 1
+TM_ATTR
 uint32_t hash(
   const void *key,       /* the key to hash */
   size_t      length,    /* length of the key */
@@ -313,6 +314,7 @@ uint32_t hash(
  * from hashlittle() on all machines.  hashbig() takes advantage of
  * big-endian byte ordering.
  */
+TM_ATTR
 uint32_t hash( const void *key, size_t length, const uint32_t initval)
 {
   uint32_t a,b,c;
@@ -481,12 +483,16 @@ void assoc_init(void) {
 		a chunk of memory. but why is it a 2d array ?
 		to handle collisions ???
 	 */
-    primary_hashtable = (item**) pmalloc(hash_size);
-    if (! primary_hashtable) {
-        fprintf(stderr, "Failed to init hashtable.\n");
-        exit(EXIT_FAILURE);
-    }
-    txc_libc_memset(primary_hashtable, 0, hash_size);
+	PTx {
+	    primary_hashtable = (item**) pmalloc(hash_size);
+	    if(primary_hashtable)
+	    	    txc_libc_memset(primary_hashtable, 0, hash_size);
+	}
+
+	if (! primary_hashtable) {
+		fprintf(stderr, "Failed to init hashtable.\n");
+		exit(EXIT_FAILURE);
+	}
 }
 
 TM_ATTR

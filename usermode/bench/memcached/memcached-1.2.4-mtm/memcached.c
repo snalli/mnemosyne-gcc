@@ -817,6 +817,7 @@ static void complete_nread(conn *c) {
  *
  * Returns true if the item was stored.
  */
+TM_ATTR
 int do_store_item(item *it, int comm) {
     char *key = ITEM_key(it);
     bool delete_locked = false;
@@ -1517,6 +1518,7 @@ static void process_arithmetic_command(conn *c, token_t *tokens, const size_t nt
  *
  * returns a response string to send back to the client.
  */
+TM_ATTR
 char *do_add_delta(item *it, const bool incr, const int64_t delta, char *buf) {
     char *ptr;
     int64_t value;
@@ -1538,7 +1540,7 @@ char *do_add_delta(item *it, const bool incr, const int64_t delta, char *buf) {
         else value -= delta;
     }
     sprintf(buf, "%lu", value);
-    res = strlen(buf);
+    res = txc_libc_strlen(buf);
     if (res + 2 > it->nbytes) { /* need to realloc */
         item *new_it;
         new_it = do_item_alloc(ITEM_key(it), it->nkey, atoi(ITEM_suffix(it) + 1), it->exptime, res + 2 );
@@ -1631,7 +1633,7 @@ char *do_defer_delete(item *it, time_t exptime)
              * can't delete it immediately, user wants a delay,
              * but we ran out of memory for the delete queue
              */
-            item_remove(it);    /* release reference */
+            do_item_remove(it);    /* release reference */
             return "SERVER_ERROR out of memory";
         }
     }
@@ -3046,7 +3048,7 @@ int main (int argc, char **argv) {
             fprintf(stderr, "failed to allocate the bucket array");
             exit(EXIT_FAILURE);
         }
-        txc_libc_memset(buckets, 0, sizeof(int) * MAX_BUCKETS);
+        memset(buckets, 0, sizeof(int) * MAX_BUCKETS);
     }
 
     /* lock paged memory if needed */

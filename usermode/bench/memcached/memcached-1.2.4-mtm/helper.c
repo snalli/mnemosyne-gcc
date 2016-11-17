@@ -7,7 +7,6 @@ txc_libc_memset (void *dest, int i, const int bytes)
 	char *q, c = i;
 	int count;
 
-//	PTx 
 	{
 		for(q = dest, count = 0; count < bytes; q++, count++)
 			*q = c;
@@ -24,7 +23,6 @@ txc_libc_memcpy (char *dest, const char *src, const int bytes)
 	char *q;
 	int count;
 
-//	PTx 
 	{
 		for(p = src, q = dest, count = 0; count < bytes; p++, q++, count++)
 			*q = *p;
@@ -62,7 +60,6 @@ txc_libc_strncpy (char *dest, const char *src, const int bytes)
 	char *q;
 	int n;
 
-//	PTx 
 	{
 		for(p = src, q = dest, n = 0; *p != '\0' && n < bytes; p += n, q += n)
 		{
@@ -77,13 +74,23 @@ txc_libc_strncpy (char *dest, const char *src, const int bytes)
 }
 
 TM_ATTR
+int
+txc_libc_strlen (const char *src)
+{
+	int count = 0;
+	while(*(src+count)) {
+		++count;
+	}
+	return count;
+}
+
+TM_ATTR
 char *
 txc_libc_strcpy (char *dest, const char *src)
 {
 	const char *p;
 	char *q;
 
-//	PTx 
 	{
 		for(p = src, q = dest; *p != '\0'; p++, q++)
 			*q = *p;

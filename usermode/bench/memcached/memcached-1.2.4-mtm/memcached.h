@@ -27,6 +27,7 @@
 
 TM_PURE void *realloc(void *ptr, size_t size);
 TM_PURE long int strtol(const char *nptr, char **endptr, int base);
+TM_PURE unsigned long long int strtoull(const char *nptr, char **endptr, int base);
 
 TM_PURE size_t __builtin_object_size (void * ptr, int type);
 TM_PURE int __builtin___sprintf_chk (char *s, int flag, size_t os, const char *fmt, ...);
@@ -270,7 +271,7 @@ char *do_suffix_from_freelist();
 bool do_suffix_add_to_freelist(char *s);
 TM_ATTR char *do_defer_delete(item *item, time_t exptime);
 TM_ATTR void do_run_deferred_deletes(void);
-char *do_add_delta(item *item, const bool incr, const int64_t delta, char *buf);
+TM_ATTR char *do_add_delta(item *item, const bool incr, const int64_t delta, char *buf);
 TM_ATTR int do_store_item(item *item, int comm);
 conn *conn_new(const int sfd, const int init_state, const int event_flags, const int read_buffer_size, const bool is_udp, struct event_base *base);
 
@@ -314,15 +315,15 @@ char *mt_item_cachedump(const unsigned int slabs_clsid, const unsigned int limit
 void  mt_item_flush_expired(void);
 item *mt_item_get_notedeleted(const char *key, const size_t nkey, bool *delete_locked);
 int   mt_item_link(item *it);
-TM_ATTR void  mt_item_remove(item *it);
+void  mt_item_remove(item *it);
 int   mt_item_replace(item *it, item *new_it);
 char *mt_item_stats(int *bytes);
 char *mt_item_stats_sizes(int *bytes);
 void  mt_item_unlink(item *it);
 void  mt_item_update(item *it);
 void  mt_run_deferred_deletes(void);
-TM_ATTR void *mt_slabs_alloc(size_t size);
-TM_ATTR void  mt_slabs_free(void *ptr, size_t size);
+void *mt_slabs_alloc(size_t size);
+void  mt_slabs_free(void *ptr, size_t size);
 int   mt_slabs_reassign(unsigned char srcid, unsigned char dstid);
 char *mt_slabs_stats(int *buflen);
 void  mt_stats_lock(void);

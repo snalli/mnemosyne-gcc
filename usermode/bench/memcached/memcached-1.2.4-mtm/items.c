@@ -36,6 +36,7 @@ void item_init(void) {
 }
 
 /* Get the next CAS id for a new item. */
+TM_ATTR
 uint64_t get_cas_id() {
     static uint64_t cas_id = 0;
     return ++cas_id;
@@ -75,6 +76,7 @@ static size_t item_make_header(const uint8_t nkey, const int flags, const int nb
 }
 
 /*@null@*/
+TM_ATTR
 item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_time_t exptime, const int nbytes) {
 
     /* nbytes is simply the size of a value and not the value itself ! */
@@ -88,7 +90,7 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
     if (id == 0)
         return 0;
 
-    it = slabs_alloc(ntotal);
+    it = do_slabs_alloc(ntotal);
     if (it == 0) {
         int tries = 50;
         item *search;
@@ -123,7 +125,7 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
                 break;
             }
         }
-        it = slabs_alloc(ntotal);
+        it = do_slabs_alloc(ntotal);
         if (it == 0) return NULL;
     }
 
@@ -151,6 +153,7 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
     return it;
 }
 
+TM_ATTR
 void item_free(item *it) {
     size_t ntotal = ITEM_ntotal(it);
     assert((it->it_flags & ITEM_LINKED) == 0);
@@ -162,7 +165,7 @@ void item_free(item *it) {
     it->slabs_clsid = 0;
     it->it_flags |= ITEM_SLABBED;
     DEBUG_REFCNT(it, 'F');
-    slabs_free(it, ntotal);
+    do_slabs_free(it, ntotal);
 }
 
 /**
@@ -220,6 +223,7 @@ static void item_unlink_q(item *it) {
     return;
 }
 
+TM_ATTR
 int do_item_link(item *it) {
     assert((it->it_flags & (ITEM_LINKED|ITEM_SLABBED)) == 0);
     assert(it->nbytes < (1024 * 1024));  /* 1MB max size */
@@ -229,7 +233,7 @@ int do_item_link(item *it) {
     assoc_insert(it);
 
     //STATS_LOCK();
-	//PTx { /* freud : volatile transactions */
+	// PTx { /* freud : volatile transactions */
 	{
     	stats.curr_bytes += ITEM_ntotal(it);
 	    stats.curr_items += 1;
@@ -245,6 +249,7 @@ int do_item_link(item *it) {
     return 1;
 }
 
+TM_ATTR
 void do_item_unlink(item *it) {
     if ((it->it_flags & ITEM_LINKED) != 0) {
         it->it_flags &= ~ITEM_LINKED;
@@ -261,6 +266,7 @@ void do_item_unlink(item *it) {
     }
 }
 
+TM_ATTR
 void do_item_remove(item *it) {
     assert((it->it_flags & ITEM_SLABBED) == 0);
     if (it->refcount != 0) {
@@ -407,6 +413,7 @@ bool item_delete_lock_over (item *it) {
 }
 
 /** wrapper around assoc_find which does the lazy expiration/deletion logic */
+TM_ATTR
 item *do_item_get_notedeleted(const char *key, const size_t nkey, bool *delete_locked) {
     item *it = assoc_find(key, nkey);
     if (delete_locked) *delete_locked = false;

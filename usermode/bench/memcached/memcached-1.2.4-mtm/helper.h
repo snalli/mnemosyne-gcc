@@ -8,5 +8,7 @@ TM_ATTR char *txc_libc_strcpy (char*, const char*);
 TM_ATTR char *txc_libc_strncpy (char*, const char*, const int);
 TM_ATTR int txc_libc_strcmp (const char*, const char*);
 TM_ATTR int txc_libc_strncmp (const char*, const char*, const int);
+TM_ATTR int txc_libc_strlen (const char *src);
+
 
 #endif

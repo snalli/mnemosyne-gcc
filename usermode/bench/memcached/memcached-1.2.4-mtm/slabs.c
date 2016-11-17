@@ -73,6 +73,7 @@ static void slabs_preallocate (const unsigned int maxslabs);
  * 0 means error: can't store such a large object
  */
 
+TM_ATTR
 unsigned int slabs_clsid(const size_t size) {
     int res = POWER_SMALLEST;
 
@@ -207,6 +208,7 @@ static int do_slabs_newslab(const unsigned int id) {
 }
 
 /*@null@*/
+TM_ATTR
 void *do_slabs_alloc(const size_t size) {
     slabclass_t *p;
 
@@ -234,7 +236,7 @@ void *do_slabs_alloc(const size_t size) {
     if (mem_limit && mem_malloced + size > mem_limit)
         return 0;
 	/* How do you know the malloc will succeed ?? */
-	fprintf(stderr, "Using system malloc (a)\n");
+//	fprintf(stderr, "Using system malloc (a)\n");
     mem_malloced += size;
 	/* Sanketh  here !!!!*/
     return pmalloc(size);
@@ -268,6 +270,7 @@ void *do_slabs_alloc(const size_t size) {
     return NULL;  /* shouldn't ever get here */
 }
 
+TM_ATTR
 void do_slabs_free(void *ptr, const size_t size) {
     unsigned char id = slabs_clsid(size);
     slabclass_t *p;
@@ -281,7 +284,7 @@ void do_slabs_free(void *ptr, const size_t size) {
 
 #ifdef USE_SYSTEM_MALLOC
     mem_malloced -= size;
-    PFREE(ptr);
+    pfree(ptr);
     return;
 #endif
 

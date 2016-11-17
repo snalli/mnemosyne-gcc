@@ -9,19 +9,13 @@
  *
  * $Id: slabs.c 591 2007-07-09 14:28:54Z plindner $
  */
-#include "memcached.h"
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/signal.h>
 #include <sys/resource.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include "pmalloc.h"
+#include <memcached.h>
 
 #define POWER_SMALLEST 1
 #define POWER_LARGEST  200
@@ -104,7 +98,7 @@ void slabs_init(const size_t limit, const double factor) {
         size = 128;
 
     mem_limit = limit;
-    memset(slabclass, 0, sizeof(slabclass));
+    txc_libc_memset(slabclass, 0, sizeof(slabclass));
 
     while (++i < POWER_LARGEST && size <= POWER_BLOCK / 2) {
         /* Make sure items are always n-byte aligned */
@@ -166,12 +160,12 @@ static void slabs_preallocate (const unsigned int maxslabs) {
 }
 #endif
 
-__attribute__((tm_callable))
+TM_ATTR
 static int grow_slab_list (const unsigned int id) {
     slabclass_t *p = &slabclass[id];
     if (p->slabs == p->list_size) {
         size_t new_size =  (p->list_size != 0) ? p->list_size * 2 : 16;
-        void *new_list = PREALLOC(p->slab_list, new_size * sizeof(void *));
+        void *new_list = prealloc(p->slab_list, new_size * sizeof(void *));
         if (new_list == 0) return 0;
         p->list_size = new_size;
         p->slab_list = new_list;
@@ -179,7 +173,7 @@ static int grow_slab_list (const unsigned int id) {
     return 1;
 }
 
-__attribute__((tm_callable))
+TM_ATTR
 static int do_slabs_newslab(const unsigned int id) {
     slabclass_t *p = &slabclass[id];
 #ifdef ALLOW_SLABS_REASSIGN
@@ -200,10 +194,10 @@ static int do_slabs_newslab(const unsigned int id) {
 	   the entire pool of slabs. You always
 	   do it incrementally.
 	 */
-    ptr = PMALLOC((size_t)len);
+    ptr = pmalloc((size_t)len);
     if (ptr == 0) return 0;
 
-    memset(ptr, 0, (size_t)len);
+    txc_libc_memset(ptr, 0, (size_t)len);
     p->end_page_ptr = ptr;
     p->end_page_free = p->perslab;
 
@@ -243,7 +237,7 @@ void *do_slabs_alloc(const size_t size) {
 	fprintf(stderr, "Using system malloc (a)\n");
     mem_malloced += size;
 	/* Sanketh  here !!!!*/
-    return PMALLOC(size);
+    return pmalloc(size);
 	// This code never runs anyways !!
 #endif
 
@@ -293,7 +287,7 @@ void do_slabs_free(void *ptr, const size_t size) {
 
     if (p->sl_curr == p->sl_total) { /* need more space on the free list */
         int new_size = (p->sl_total != 0) ? p->sl_total * 2 : 16;  /* 16 is arbitrary */
-        void **new_slots = PREALLOC(p->slots, new_size * sizeof(void *));
+        void **new_slots = prealloc(p->slots, new_size * sizeof(void *));
         if (new_slots == 0)
             return;
         p->slots = new_slots;
@@ -320,6 +314,7 @@ char* do_slabs_stats(int *buflen) {
 
             slabs = p->slabs;
             perslab = p->perslab;
+		/*
 			__tm_waiver {
 	            bufcurr += sprintf(bufcurr, "STAT %d:chunk_size %u\r\n", i, p->size);
     	        bufcurr += sprintf(bufcurr, "STAT %d:chunks_per_page %u\r\n", i, perslab);
@@ -329,13 +324,16 @@ char* do_slabs_stats(int *buflen) {
     	        bufcurr += sprintf(bufcurr, "STAT %d:free_chunks %u\r\n", i, p->sl_curr);
         	    bufcurr += sprintf(bufcurr, "STAT %d:free_chunks_end %u\r\n", i, p->end_page_free);
 			}	
+	*/
             total++;
         }
     }
+	/*
 	__tm_waiver {
 	    bufcurr += sprintf(bufcurr, "STAT active_slabs %d\r\nSTAT total_malloced %llu\r\n", total, (unsigned long long)mem_malloced);
     	bufcurr += sprintf(bufcurr, "END\r\n");
-	}	
+	}
+	*/	
     *buflen = bufcurr - buf;
     return buf;
 }

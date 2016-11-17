@@ -1,8 +1,12 @@
 #ifndef _HELPER_H_ASA121
 #define _HELPER_H_ASA121
 
-__attribute__((tm_callable)) int txc_libc_memcmp (const void * s1, const void * s2, int n);
-__attribute__((tm_callable)) char *txc_libc_strcpy (char *dest, const char *src);
-__attribute__((tm_callable)) char *txc_libc_memcpy (char *dest, const char *src, const int bytes);
+TM_ATTR void* txc_libc_memset (void*, int, const int);
+TM_ATTR void* txc_libc_memcpy (char*, const char*, const int);
+TM_ATTR int txc_libc_memcmp (const void*, const void*, const int);
+TM_ATTR char *txc_libc_strcpy (char*, const char*);
+TM_ATTR char *txc_libc_strncpy (char*, const char*, const int);
+TM_ATTR int txc_libc_strcmp (const char*, const char*);
+TM_ATTR int txc_libc_strncmp (const char*, const char*, const int);
 
 #endif

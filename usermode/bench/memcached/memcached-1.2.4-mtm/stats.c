@@ -9,12 +9,7 @@
  *
  * $Id$
  */
-#include "memcached.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include "tm.h"
+#include <memcached.h>
 
 /*
  * Stats are tracked on the basis of key prefixes. This is a simple
@@ -39,7 +34,7 @@ static int num_prefixes = 0;
 static int total_prefix_size = 0;
 
 void stats_prefix_init() {
-    memset(prefix_stats, 0, sizeof(prefix_stats));
+    txc_libc_memset(prefix_stats, 0, sizeof(prefix_stats));
 }
 
 /*
@@ -67,7 +62,7 @@ void stats_prefix_clear() {
  * in the list.
  */
 /*@null@*/
-__attribute__((tm_callable))
+TM_ATTR
 static PREFIX_STATS *stats_prefix_find(const char *key) {
     PREFIX_STATS *pfs;
     uint32_t hashval;
@@ -82,24 +77,24 @@ static PREFIX_STATS *stats_prefix_find(const char *key) {
     hashval = hash(key, length, 0) % PREFIX_HASH_SIZE;
 
     for (pfs = prefix_stats[hashval]; NULL != pfs; pfs = pfs->next) {
-        if (strncmp(pfs->prefix, key, length) == 0)
+        if (txc_libc_strncmp(pfs->prefix, key, length) == 0)
             return pfs;
     }
 
     pfs = calloc(sizeof(PREFIX_STATS), 1);
     if (NULL == pfs) {
-        perror("Can't allocate space for stats structure: calloc");
+        //perror("Can't allocate space for stats structure: calloc");
         return NULL;
     }
 
     pfs->prefix = malloc(length + 1);
     if (NULL == pfs->prefix) {
-        perror("Can't allocate space for copy of prefix: malloc");
+        //perror("Can't allocate space for copy of prefix: malloc");
         free(pfs);
         return NULL;
     }
 
-    strncpy(pfs->prefix, key, length);
+    txc_libc_strncpy(pfs->prefix, key, length);
     pfs->prefix[length] = '\0';      /* because strncpy() sucks */
     pfs->prefix_len = length;
 
@@ -119,7 +114,7 @@ void stats_prefix_record_get(const char *key, const bool is_hit) {
     PREFIX_STATS *pfs;
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud : volatile txn */
+	PTx { /* freud : volatile txn */
 		pfs = stats_prefix_find(key);
 		if (NULL != pfs) {
 			pfs->num_gets++;
@@ -138,7 +133,7 @@ void stats_prefix_record_delete(const char *key) {
     PREFIX_STATS *pfs;
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud : volatle txn */
+	PTx { /* freud : volatle txn */
 		pfs = stats_prefix_find(key);
 		if (NULL != pfs) {
 			pfs->num_deletes++;
@@ -154,7 +149,7 @@ void stats_prefix_record_set(const char *key) {
     PREFIX_STATS *pfs;
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud : volatile txn */
+	PTx { /* freud : volatile txn */
 		pfs = stats_prefix_find(key);
 		if (NULL != pfs) {
 			pfs->num_sets++;
@@ -181,7 +176,7 @@ char *stats_prefix_dump(int *length) {
      * plus space for the "END" at the end.
      */
     //STATS_LOCK();
-		TM_ATOMIC { /* volatile txn freud */
+		PTx { /* volatile txn freud */
 		size = strlen(format) + total_prefix_size +
 			   num_prefixes * (strlen(format) - 2 /* %s */
 							   + 4 * (20 - 4)) /* %llu replaced by 20-digit num */

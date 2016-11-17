@@ -13,22 +13,13 @@
  * $Id: assoc.c 595 2007-07-10 06:30:07Z plindner $
  */
 
-#include "memcached.h"
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/signal.h>
 #include <sys/resource.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include "mnemosyne.h"
-#include "mtm.h"
-#include "pmalloc.h"
-#include "helper.h"
+#include <memcached.h>
 
 /*
  * Since the hash function does bit manipulation, it needs to know
@@ -490,14 +481,15 @@ void assoc_init(void) {
 		a chunk of memory. but why is it a 2d array ?
 		to handle collisions ???
 	 */
-    primary_hashtable = PMALLOC(hash_size);
+    primary_hashtable = (item**) pmalloc(hash_size);
     if (! primary_hashtable) {
         fprintf(stderr, "Failed to init hashtable.\n");
         exit(EXIT_FAILURE);
     }
-    memset(primary_hashtable, 0, hash_size);
+    txc_libc_memset(primary_hashtable, 0, hash_size);
 }
 
+TM_ATTR
 item *assoc_find(const char *key, const size_t nkey) {
     uint32_t hv = hash(key, nkey, 0);
     item *it;
@@ -524,7 +516,7 @@ item *assoc_find(const char *key, const size_t nkey) {
 
 /* returns the address of the item pointer before the key.  if *item == 0,
    the item wasn't found */
-
+TM_ATTR
 static item** _hashitem_before (const char *key, const size_t nkey) {
     uint32_t hv = hash(key, nkey, 0);
     item **pos;
@@ -538,23 +530,23 @@ static item** _hashitem_before (const char *key, const size_t nkey) {
         pos = &primary_hashtable[hv & hashmask(hashpower)];
     }
 
-    while (*pos && ((nkey != (*pos)->nkey) || memcmp(key, ITEM_key(*pos), nkey))) {
+    while (*pos && ((nkey != (*pos)->nkey) || txc_libc_memcmp(key, ITEM_key(*pos), nkey))) {
         pos = &(*pos)->h_next;
     }
     return pos;
 }
 
 /* grows the hashtable to the next power of 2. */
-__attribute__((tm_callable))
+TM_ATTR
 static void assoc_expand(void) {
     old_hashtable = primary_hashtable;
 	assert(0); // expand hashtable allocated in persistent heap
     primary_hashtable = calloc(hashsize(hashpower + 1), sizeof(void *));
     if (primary_hashtable) {
         if (settings.verbose > 1) {
-			__tm_waiver {
-	            fprintf(stderr, "Hash table expansion starting\n");
-			}	
+			//__tm_waiver {
+	           // fprintf(stderr, "Hash table expansion starting\n");
+		//	}	
 		}	
         hashpower++;
         expanding = true;
@@ -567,6 +559,7 @@ static void assoc_expand(void) {
 }
 
 /* migrates the next bucket to the primary hashtable if we're expanding. */
+TM_ATTR
 void do_assoc_move_next_bucket(void) {
     item *it, *next;
     int bucket;
@@ -587,15 +580,16 @@ void do_assoc_move_next_bucket(void) {
             expanding = false;
             free(old_hashtable);
             if (settings.verbose > 1) {
-				__tm_waiver {
-	                fprintf(stderr, "Hash table expansion done\n");
-				}
+			//	__tm_waiver {
+	                //fprintf(stderr, "Hash table expansion done\n");
+			//	}
 			}
         }
     }
 }
 
 /* Note: this isn't an assoc_update.  The key must not already exist to call this */
+TM_ATTR
 int assoc_insert(item *it) {
 	/* Sanketh, this where a brand new SET lands
 	 * Look for refs to SCM in here !
@@ -631,6 +625,7 @@ int assoc_insert(item *it) {
     return 1;
 }
 
+TM_ATTR
 void assoc_delete(const char *key, const size_t nkey) {
     item **before = _hashitem_before(key, nkey);
 

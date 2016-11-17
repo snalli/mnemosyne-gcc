@@ -1,20 +1,13 @@
 /* -*- Mode: C; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /* $Id: items.c 642 2007-11-16 09:36:07Z dormando $ */
-#include "memcached.h"
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/signal.h>
 #include <sys/resource.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <time.h>
-#include <assert.h>
-#include "helper.h"
-#include "tm.h"
+#include <memcached.h>
 
 /* Forward Declarations */
 static void item_link_q(item *it);
@@ -72,7 +65,8 @@ uint64_t get_cas_id() {
  *
  * Returns the total size of the header.
  */
-__attribute__((tm_pure))
+
+TM_ATTR
 static size_t item_make_header(const uint8_t nkey, const int flags, const int nbytes,
                      char *suffix, uint8_t *nsuffix) {
     /* suffix is defined at 40 chars elsewhere.. */
@@ -120,9 +114,9 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
             if (search->refcount == 0) {
                if (search->exptime == 0 || search->exptime > current_time) {
                        //STATS_LOCK();
-					   TM_ATOMIC { /* freud : volatile transactions */
+			// PTx { /* freud : volatile transactions */
                        	stats.evictions++;
-					   }
+			//		   }
                        //STATS_UNLOCK();
                 }
                 do_item_unlink(search);
@@ -152,7 +146,7 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
 	/* sanketh, possible ref to persistent memory */
     txc_libc_strcpy(ITEM_key(it), key);
     it->exptime = exptime;
-    memcpy(ITEM_suffix(it), suffix, (size_t)nsuffix);
+    txc_libc_memcpy(ITEM_suffix(it), suffix, (size_t)nsuffix);
     it->nsuffix = nsuffix;
     return it;
 }
@@ -183,7 +177,7 @@ bool item_size_ok(const size_t nkey, const int flags, const int nbytes) {
                                         prefix, &nsuffix)) != 0;
 }
 
-__attribute__((tm_callable))
+TM_ATTR
 static void item_link_q(item *it) { /* item is the new head */
     item **head, **tail;
     /* always true, warns: assert(it->slabs_clsid <= LARGEST_ID); */
@@ -202,7 +196,7 @@ static void item_link_q(item *it) { /* item is the new head */
     return;
 }
 
-__attribute__((tm_callable))
+TM_ATTR
 static void item_unlink_q(item *it) {
     item **head, **tail;
     /* always true, warns: assert(it->slabs_clsid <= LARGEST_ID); */
@@ -235,7 +229,8 @@ int do_item_link(item *it) {
     assoc_insert(it);
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud : volatile transactions */
+	//PTx { /* freud : volatile transactions */
+	{
     	stats.curr_bytes += ITEM_ntotal(it);
 	    stats.curr_items += 1;
     	stats.total_items += 1;
@@ -254,7 +249,8 @@ void do_item_unlink(item *it) {
     if ((it->it_flags & ITEM_LINKED) != 0) {
         it->it_flags &= ~ITEM_LINKED;
         //STATS_LOCK();
-		TM_ATOMIC { /* freud : volatile transactions */
+		// PTx { /* freud : volatile transactions */
+		{
         	stats.curr_bytes -= ITEM_ntotal(it);
         	stats.curr_items -= 1;
 		}
@@ -323,7 +319,7 @@ char *do_item_cachedump(const unsigned int slabs_clsid, const unsigned int limit
         it = it->next;
     }
 
-    memcpy(buffer + bufcurr, "END\r\n", 6);
+    txc_libc_memcpy(buffer + bufcurr, "END\r\n", 6);
     bufcurr += 5;
 
     *bytes = bufcurr;
@@ -356,7 +352,7 @@ char *do_item_stats(int *bytes) {
             }
         }
     }
-    memcpy(bufcurr, "END\r\n", 6);
+    txc_libc_memcpy(bufcurr, "END\r\n", 6);
     bufcurr += 5;
 
     *bytes = bufcurr - buffer;
@@ -378,7 +374,7 @@ char* do_item_stats_sizes(int *bytes) {
     }
 
     /* build the histogram */
-    memset(histogram, 0, (size_t)num_buckets * sizeof(int));
+    txc_libc_memset(histogram, 0, (size_t)num_buckets * sizeof(int));
     for (i = 0; i < LARGEST_ID; i++) {
         item *iter = heads[i];
         while (iter) {
@@ -404,7 +400,7 @@ char* do_item_stats_sizes(int *bytes) {
 
 /** returns true if a deleted item's delete-locked-time is over, and it
     should be removed from the namespace */
-__attribute__((tm_callable))
+TM_ATTR
 bool item_delete_lock_over (item *it) {
     assert(it->it_flags & ITEM_DELETED);
     return (current_time >= it->exptime);

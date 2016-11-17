@@ -15,16 +15,13 @@
 std *
  *  $Id: memcached.c 654 2007-12-02 02:06:51Z dormando $
  */
-#include "mnemosyne.h"
-#include "mtm.h"
-#include "pmalloc.h"
-#include "memcached.h"
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/signal.h>
 #include <sys/resource.h>
 #include <sys/uio.h>
+#include <memcached.h>
 
 /* some POSIX systems need the following definition
  * to get mlockall flags out of sys/mman.h.  */
@@ -47,7 +44,6 @@ std *
 #include <time.h>
 #include <assert.h>
 #include <limits.h>
-#include "tm.h"
 
 #include "mtrace-magic.h"
 
@@ -132,7 +128,8 @@ static int *buckets = 0; /* bucket->generation array for a managed instance */
  * unix time. Use the fact that delta can't exceed one month (and real time value can't
  * be that low).
  */
-__attribute__((tm_callable))
+
+TM_ATTR
 static rel_time_t realtime(const time_t exptime) {
     /* no. of seconds in 30 days - largest possible delta exptime */
 
@@ -168,8 +165,7 @@ static void stats_init(void) {
 
 static void stats_reset(void) {
     //STATS_LOCK();
-	TM_ATOMIC 
-	{ /* freud : volatile transactions */
+	PTx { /* freud : volatile transactions */
     	stats.total_items = stats.total_conns = 0;
 	    stats.get_cmds = stats.set_cmds = stats.get_hits = stats.get_misses = stats.evictions = 0;
     	stats.bytes_read = stats.bytes_written = 0;
@@ -203,7 +199,7 @@ static void settings_init(void) {
 
 /* returns true if a deleted item's delete-locked-time is over, and it
    should be removed from the namespace */
-__attribute__((tm_callable))
+TM_ATTR
 static bool item_delete_lock_over (item *it) {
     assert(it->it_flags & ITEM_DELETED);
     return (current_time >= it->exptime);
@@ -232,7 +228,7 @@ static int add_msghdr(conn *c)
 
     /* this wipes msg_iovlen, msg_control, msg_controllen, and
        msg_flags, the last 3 of which aren't defined on solaris: */
-    memset(msg, 0, sizeof(struct msghdr));
+    txc_libc_memset(msg, 0, sizeof(struct msghdr));
 
     msg->msg_iov = &c->iov[c->iovused];
 
@@ -353,7 +349,7 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
         }
 
         //STATS_LOCK();
-		TM_ATOMIC { /* freud : volatile transactions */
+		PTx { /* freud : volatile transactions */
         	stats.conn_structs++;
 		}
         //STATS_UNLOCK();
@@ -403,7 +399,7 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
     }
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud volatile transactions */
+	PTx { /* freud volatile transactions */
 	    stats.curr_conns++;
     	stats.total_conns++;
 	}	
@@ -482,7 +478,7 @@ static void conn_close(conn *c) {
     }
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud : volatile transactions */
+	PTx { /* freud : volatile transactions */
     	stats.curr_conns--;
 	}
     //STATS_UNLOCK();
@@ -765,8 +761,8 @@ static void out_string(conn *c, const char *str) {
         len = strlen(str);
     }
 
-    memcpy(c->wbuf, str, len);
-    memcpy(c->wbuf + len, "\r\n", 3);
+    txc_libc_memcpy(c->wbuf, str, len);
+    txc_libc_memcpy(c->wbuf + len, "\r\n", 3);
     c->wbytes = len + 2;
     c->wcurr = c->wbuf;
 
@@ -788,7 +784,7 @@ static void complete_nread(conn *c) {
     int ret;
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud : volatile transactions */
+	PTx { /* freud : volatile transactions */
 	    stats.set_cmds++;
 	}	
     //STATS_UNLOCK();
@@ -886,12 +882,12 @@ int do_store_item(item *it, int comm) {
             /* copy data from it and old_it to new_it */
 
             if (comm == NREAD_APPEND) {
-                memcpy(ITEM_data(new_it), ITEM_data(old_it), old_it->nbytes);
-                memcpy(ITEM_data(new_it) + old_it->nbytes - 2 /* CRLF */, ITEM_data(it), it->nbytes);
+                txc_libc_memcpy(ITEM_data(new_it), ITEM_data(old_it), old_it->nbytes);
+                txc_libc_memcpy(ITEM_data(new_it) + old_it->nbytes - 2 /* CRLF */, ITEM_data(it), it->nbytes);
             } else {
                 /* NREAD_PREPEND */
-                memcpy(ITEM_data(new_it), ITEM_data(it), it->nbytes);
-                memcpy(ITEM_data(new_it) + it->nbytes - 2 /* CRLF */, ITEM_data(old_it), old_it->nbytes);
+                txc_libc_memcpy(ITEM_data(new_it), ITEM_data(it), it->nbytes);
+                txc_libc_memcpy(ITEM_data(new_it) + it->nbytes - 2 /* CRLF */, ITEM_data(old_it), old_it->nbytes);
             }
 
             it = new_it;
@@ -1047,30 +1043,30 @@ static void process_stat(conn *c, token_t *tokens, const size_t ntokens) {
 #endif /* !WIN32 */
 
         //STATS_LOCK();
-		TM_ATOMIC { /* freud : volatile transactions */
+		PTx { /* freud : volatile transactions */
         pos += sprintf(pos, "STAT pid %u\r\n", pid);
         pos += sprintf(pos, "STAT uptime %u\r\n", now);
         pos += sprintf(pos, "STAT time %ld\r\n", now + stats.started);
         pos += sprintf(pos, "STAT version " VERSION "\r\n");
-        pos += sprintf(pos, "STAT pointer_size %d\r\n", 8 * sizeof(void *));
+        pos += sprintf(pos, "STAT pointer_size %lu\r\n", 8 * sizeof(void *));
 #ifndef WIN32
         pos += sprintf(pos, "STAT rusage_user %ld.%06ld\r\n", usage.ru_utime.tv_sec, usage.ru_utime.tv_usec);
         pos += sprintf(pos, "STAT rusage_system %ld.%06ld\r\n", usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
 #endif /* !WIN32 */
         pos += sprintf(pos, "STAT curr_items %u\r\n", stats.curr_items);
         pos += sprintf(pos, "STAT total_items %u\r\n", stats.total_items);
-        pos += sprintf(pos, "STAT bytes %llu\r\n", stats.curr_bytes);
+        pos += sprintf(pos, "STAT bytes %lu\r\n", stats.curr_bytes);
         pos += sprintf(pos, "STAT curr_connections %u\r\n", stats.curr_conns - 1); /* ignore listening conn */
         pos += sprintf(pos, "STAT total_connections %u\r\n", stats.total_conns);
         pos += sprintf(pos, "STAT connection_structures %u\r\n", stats.conn_structs);
-        pos += sprintf(pos, "STAT cmd_get %llu\r\n", stats.get_cmds);
-        pos += sprintf(pos, "STAT cmd_set %llu\r\n", stats.set_cmds);
-        pos += sprintf(pos, "STAT get_hits %llu\r\n", stats.get_hits);
-        pos += sprintf(pos, "STAT get_misses %llu\r\n", stats.get_misses);
-        pos += sprintf(pos, "STAT evictions %llu\r\n", stats.evictions);
-        pos += sprintf(pos, "STAT bytes_read %llu\r\n", stats.bytes_read);
-        pos += sprintf(pos, "STAT bytes_written %llu\r\n", stats.bytes_written);
-        pos += sprintf(pos, "STAT limit_maxbytes %llu\r\n", (uint64_t) settings.maxbytes);
+        pos += sprintf(pos, "STAT cmd_get %lu\r\n", stats.get_cmds);
+        pos += sprintf(pos, "STAT cmd_set %lu\r\n", stats.set_cmds);
+        pos += sprintf(pos, "STAT get_hits %lu\r\n", stats.get_hits);
+        pos += sprintf(pos, "STAT get_misses %lu\r\n", stats.get_misses);
+        pos += sprintf(pos, "STAT evictions %lu\r\n", stats.evictions);
+        pos += sprintf(pos, "STAT bytes_read %lu\r\n", stats.bytes_read);
+        pos += sprintf(pos, "STAT bytes_written %lu\r\n", stats.bytes_written);
+        pos += sprintf(pos, "STAT limit_maxbytes %lu\r\n", (uint64_t) settings.maxbytes);
         pos += sprintf(pos, "STAT threads %u\r\n", settings.num_threads);
         pos += sprintf(pos, "END");
 		}
@@ -1141,7 +1137,7 @@ static void process_stat(conn *c, token_t *tokens, const size_t ntokens) {
             free(wbuf); close(fd);
             return;
         }
-        memcpy(wbuf + res, "END\r\n", 5);
+        txc_libc_memcpy(wbuf + res, "END\r\n", 5);
         write_and_free(c, wbuf, res + 5);
         close(fd);
         return;
@@ -1237,7 +1233,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
 
             if(nkey > KEY_MAX_LENGTH) {
                 //STATS_LOCK();
-				TM_ATOMIC { /* freud : volatile txn */
+				PTx { /* freud : volatile txn */
         	        stats.get_cmds   += stats_get_cmds;
 	                stats.get_hits   += stats_get_hits;
                 	stats.get_misses += stats_get_misses;
@@ -1285,7 +1281,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
                   suffix = suffix_from_freelist();
                   if (suffix == NULL) {
                     //STATS_LOCK();
-					TM_ATOMIC { /* freud : volatile txn */
+					PTx { /* freud : volatile txn */
                     	stats.get_cmds   += stats_get_cmds;
                     	stats.get_hits   += stats_get_hits;
                     	stats.get_misses += stats_get_misses;
@@ -1295,7 +1291,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
                     return;
                   }
                   *(c->suffixlist + i) = suffix;
-                  sprintf(suffix, " %llu\r\n", it->cas_id);
+                  sprintf(suffix, " %lu\r\n", it->cas_id);
                   if (add_iov(c, "VALUE ", 6) != 0 ||
                       add_iov(c, ITEM_key(it), it->nkey) != 0 ||
                       add_iov(c, ITEM_suffix(it), it->nsuffix - 2) != 0 ||
@@ -1368,7 +1364,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
     }
 
     //STATS_LOCK();
-	TM_ATOMIC { /* freud : volatile txn */
+	PTx { /* freud : volatile txn */
 	    stats.get_cmds   += stats_get_cmds;
     	stats.get_hits   += stats_get_hits;
 	    stats.get_misses += stats_get_misses;
@@ -1541,7 +1537,7 @@ char *do_add_delta(item *it, const bool incr, const int64_t delta, char *buf) {
         if (delta >= value) value = 0;
         else value -= delta;
     }
-    sprintf(buf, "%llu", value);
+    sprintf(buf, "%lu", value);
     res = strlen(buf);
     if (res + 2 > it->nbytes) { /* need to realloc */
         item *new_it;
@@ -1549,13 +1545,13 @@ char *do_add_delta(item *it, const bool incr, const int64_t delta, char *buf) {
         if (new_it == 0) {
             return "SERVER_ERROR out of memory";
         }
-        memcpy(ITEM_data(new_it), buf, res);
-        memcpy(ITEM_data(new_it) + res, "\r\n", 3);
+        txc_libc_memcpy(ITEM_data(new_it), buf, res);
+        txc_libc_memcpy(ITEM_data(new_it) + res, "\r\n", 3);
         do_item_replace(it, new_it);
         do_item_remove(new_it);       /* release our reference */
     } else { /* replace in-place */
-        memcpy(ITEM_data(it), buf, res);
-        memset(ITEM_data(it) + res, ' ', it->nbytes - res - 2);
+        txc_libc_memcpy(ITEM_data(it), buf, res);
+        txc_libc_memset(ITEM_data(it) + res, ' ', it->nbytes - res - 2);
     }
 
     return buf;
@@ -1908,7 +1904,7 @@ static int try_read_udp(conn *c) {
     if (res > 8) {
         unsigned char *buf = (unsigned char *)c->rbuf;
         //STATS_LOCK();
-		TM_ATOMIC { /* freud : volatile txn */
+		PTx { /* freud : volatile txn */
 	        stats.bytes_read += res;
 		}
         //STATS_UNLOCK();
@@ -1979,7 +1975,7 @@ static int try_read_network(conn *c) {
         res = read(c->sfd, c->rbuf + c->rbytes, c->rsize - c->rbytes);
         if (res > 0) {
             //STATS_LOCK();
-			TM_ATOMIC { /* freud : volatile txn */
+			PTx { /* freud : volatile txn */
 	            stats.bytes_read += res;
 			}	
             //STATS_UNLOCK();
@@ -2059,7 +2055,7 @@ static int transmit(conn *c) {
         res = sendmsg(c->sfd, m, 0);
         if (res > 0) {
             //STATS_LOCK();
-			TM_ATOMIC { /* freud : volatile txn */
+			PTx { /* freud : volatile txn */
 	            stats.bytes_written += res;
 			}	
             //STATS_UNLOCK();
@@ -2195,7 +2191,7 @@ static void drive_machine(conn *c) {
 		/* Sanketh, data is getting copied into pmem here !!!!!!*/
 		/* Because Item was allocated out of persistent memory */
 		/* But this copy happens outside of the txn !! */
-                //memcpy(c->ritem, c->rcurr, tocopy);
+                //txc_libc_memcpy(c->ritem, c->rcurr, tocopy);
                 txc_libc_memcpy(c->ritem, c->rcurr, tocopy);
 		//fprintf(stderr, "Copying data  dst:%p %d bytes %s\n", c->ritem, tocopy, c->ritem);
                 c->ritem += tocopy;
@@ -2211,7 +2207,7 @@ static void drive_machine(conn *c) {
             res = read(c->sfd, c->ritem, c->rlbytes);
             if (res > 0) {
                 //STATS_LOCK();
-				TM_ATOMIC { /* freud : volatile txn */
+				PTx { /* freud : volatile txn */
 	                stats.bytes_read += res;
 				}
                 //STATS_UNLOCK();
@@ -2262,7 +2258,7 @@ static void drive_machine(conn *c) {
             res = read(c->sfd, c->rbuf, c->rsize > c->sbytes ? c->sbytes : c->rsize);
             if (res > 0) {
                 //STATS_LOCK();
-				TM_ATOMIC { /* freud : volatile txn */
+				PTx { /* freud : volatile txn */
 	                stats.bytes_read += res;
 				}	
                 //STATS_UNLOCK();
@@ -2493,7 +2489,7 @@ static int server_socket(const int port, const bool is_udp) {
      * the memset call clears nonstandard fields in some impementations
      * that otherwise mess things up.
      */
-    memset(&addr, 0, sizeof(addr));
+    txc_libc_memset(&addr, 0, sizeof(addr));
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -2561,7 +2557,7 @@ static int server_socket_unix(const char *path, int access_mask) {
      * the memset call clears nonstandard fields in some impementations
      * that otherwise mess things up.
      */
-    memset(&addr, 0, sizeof(addr));
+    txc_libc_memset(&addr, 0, sizeof(addr));
 
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, path);
@@ -2651,7 +2647,7 @@ static void delete_handler(const int fd, const short which, void *arg) {
 }
 
 /* Call run_deferred_deletes instead of this. */
-__attribute__((tm_callable)) void do_run_deferred_deletes(void)
+TM_ATTR void do_run_deferred_deletes(void)
 {
     int i, j = 0;
 
@@ -3050,7 +3046,7 @@ int main (int argc, char **argv) {
             fprintf(stderr, "failed to allocate the bucket array");
             exit(EXIT_FAILURE);
         }
-        memset(buckets, 0, sizeof(int) * MAX_BUCKETS);
+        txc_libc_memset(buckets, 0, sizeof(int) * MAX_BUCKETS);
     }
 
     /* lock paged memory if needed */

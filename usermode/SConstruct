@@ -50,6 +50,11 @@ AddOption('--enable-trace',
            action="store_true", dest='enable_trace',
            default = True,
            help='Enable tracing of NVM accesses [%default]')
+AddOption('--verbose',
+           action="store_true", dest='verbose',
+           default = False,
+           help='Set verbosity of compilation messages [%default]')
+
 
 
 # Custom help message. Overrides the help output of the local options.
@@ -83,6 +88,8 @@ if mainEnv['BUILD_CONFIG_NAME'] is None:
 	mainEnv['BUILD_CONFIG_NAME'] = 'default'
 mainEnv['TEST_FILTER'] = GetOption('test_filter')
 mainEnv['ENABLE_TRACE'] = GetOption('enable_trace')
+mainEnv['VERBOSE'] = GetOption('verbose')
+mainEnv.set_verbosity()
 
 rootDir = os.getcwd()
 mainEnv['MY_ROOT_DIR'] = rootDir

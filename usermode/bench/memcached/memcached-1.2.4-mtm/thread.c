@@ -572,9 +572,11 @@ char *mt_item_cachedump(unsigned int slabs_clsid, unsigned int limit, unsigned i
 char *mt_item_stats(int *bytes) {
     char *ret;
 
-    pthread_mutex_lock(&cache_lock);
-    ret = do_item_stats(bytes);
-    pthread_mutex_unlock(&cache_lock);
+//    pthread_mutex_lock(&cache_lock);
+    PTx {
+	    ret = do_item_stats(bytes);
+    }
+//    pthread_mutex_unlock(&cache_lock);
     return ret;
 }
 
@@ -584,9 +586,11 @@ char *mt_item_stats(int *bytes) {
 char *mt_item_stats_sizes(int *bytes) {
     char *ret;
 
-    pthread_mutex_lock(&cache_lock);
-    ret = do_item_stats_sizes(bytes);
-    pthread_mutex_unlock(&cache_lock);
+  //  pthread_mutex_lock(&cache_lock);
+    PTx {
+	    ret = do_item_stats_sizes(bytes);
+    }
+  //  pthread_mutex_unlock(&cache_lock);
     return ret;
 }
 

@@ -24,6 +24,7 @@
 #include <pmalloc.h>
 #include <tm_def.h>
 #include <helper.h>
+#include <pvar.h>
 
 TM_PURE void *realloc(void *ptr, size_t size);
 TM_PURE long int strtol(const char *nptr, char **endptr, int base);

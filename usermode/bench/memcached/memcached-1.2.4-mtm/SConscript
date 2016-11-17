@@ -26,17 +26,22 @@ myEnv.Append(LIBS = ['event'])
 
 # Hashtable & BDB kvdriver
 
-sources = Split("""
-		   assoc.c
-		   helper.c
-		   items.c
-		   memcached.c
-		   slabs.c
-		   stats.c
-		   thread.c
-                   """)
+if myEnv['BUILD_PVAR'] == True:
+        pvarLibrary = myEnv.SharedLibrary('pvar', 'pvar.c')
+        Return('pvarLibrary')
+else:
+	sources = Split("""
+			   assoc.c
+			   helper.c
+			   items.c
+			   memcached.c
+		   	   slabs.c
+			   stats.c
+			   thread.c
+                	   """)
 
-
-#myEnv.Append(CPPPATH = ['#bench/kvstore/kvdriver/ht'])
-#myEnv.Append(LIBS = [hashtableLibrary])
-myEnv.Program('memcached', sources)
+	#myEnv.Append(CPPPATH = ['#bench/kvstore/kvdriver/ht'])
+	#myEnv.Append(LIBS = [hashtableLibrary])
+	Import('pvarLibrary')
+	myEnv.Append(LIBS = [pvarLibrary])
+	myEnv.Program('memcached', sources)

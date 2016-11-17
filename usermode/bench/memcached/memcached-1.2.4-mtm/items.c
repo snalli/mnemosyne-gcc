@@ -172,6 +172,7 @@ void item_free(item *it) {
  * Returns true if an item will fit in the cache (its size does not exceed
  * the maximum for a cache entry.)
  */
+/* Never called in a PTx */
 bool item_size_ok(const size_t nkey, const int flags, const int nbytes) {
     char prefix[40];
     uint8_t nsuffix;
@@ -279,6 +280,7 @@ void do_item_remove(item *it) {
     }
 }
 
+TM_ATTR
 void do_item_update(item *it) {
     if (it->time < current_time - ITEM_UPDATE_INTERVAL) {
         assert((it->it_flags & ITEM_SLABBED) == 0);
@@ -291,6 +293,7 @@ void do_item_update(item *it) {
     }
 }
 
+TM_ATTR
 int do_item_replace(item *it, item *new_it) {
     assert((it->it_flags & ITEM_SLABBED) == 0);
 
@@ -299,6 +302,7 @@ int do_item_replace(item *it, item *new_it) {
 }
 
 /*@null@*/
+TM_ATTR
 char *do_item_cachedump(const unsigned int slabs_clsid, const unsigned int limit, unsigned int *bytes) {
     unsigned int memlimit = 2 * 1024 * 1024;   /* 2MB max response size */
     char *buffer;
@@ -332,6 +336,7 @@ char *do_item_cachedump(const unsigned int slabs_clsid, const unsigned int limit
     return buffer;
 }
 
+TM_ATTR
 char *do_item_stats(int *bytes) {
     size_t bufleft = (size_t) LARGEST_ID * 80;
     char *buffer = malloc(bufleft);
@@ -367,6 +372,7 @@ char *do_item_stats(int *bytes) {
 
 /** dumps out a list of objects of each size, with granularity of 32 bytes */
 /*@null@*/
+TM_ATTR
 char* do_item_stats_sizes(int *bytes) {
     const int num_buckets = 32768;   /* max 1MB object, divided into 32 bytes size buckets */
     unsigned int *histogram = (unsigned int *)malloc((size_t)num_buckets * sizeof(int));
@@ -448,6 +454,7 @@ item *item_get(const char *key, const size_t nkey) {
 }
 
 /** returns an item whether or not it's delete-locked or expired. */
+TM_ATTR
 item *do_item_get_nocheck(const char *key, const size_t nkey) {
     item *it = assoc_find(key, nkey);
     if (it) {

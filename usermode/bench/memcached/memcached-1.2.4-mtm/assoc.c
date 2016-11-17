@@ -483,16 +483,45 @@ void assoc_init(void) {
 		a chunk of memory. but why is it a 2d array ?
 		to handle collisions ???
 	 */
+	int v_hashtbl_zeroed = 1;
 	PTx {
-	    primary_hashtable = (item**) pmalloc(hash_size);
-	    if(primary_hashtable)
-	    	    txc_libc_memset(primary_hashtable, 0, hash_size);
+		primary_hashtable = (item**) PGET(p_primary_hashtbl);
+		if(!primary_hashtable) {
+		
+		    	primary_hashtable = (item**) pmalloc(hash_size);
+			if(primary_hashtable) {
+				PSET(p_primary_hashtbl, primary_hashtable);
+				v_hashtbl_zeroed = 0;
+			}
+		}
 	}
-
-	if (! primary_hashtable) {
+	
+	if(!primary_hashtable) {
+		assert(v_hashtbl_zeroed == 1);
 		fprintf(stderr, "Failed to init hashtable.\n");
 		exit(EXIT_FAILURE);
+	} else {
+		/* 
+		 * Don't put this inside the Tx, 
+		 * Triggers and expansion of the write-set of the Tx
+		 * which is not currently supported.
+		 */
+		if(!v_hashtbl_zeroed)	{
+			memset(primary_hashtable, 0, hash_size);
+			fprintf(stderr, "***************************************************\n");
+			fprintf(stderr, "  Allocated hash-table in CURRENT incarnation \n");
+			fprintf(stderr, "  primary_hashtable = %p\n", primary_hashtable);
+			fprintf(stderr, "***************************************************\n");
+
+		} else {
+			fprintf(stderr, "***************************************************\n");
+			fprintf(stderr, "  Using hash-table from PREVIOUS incarnation \n");
+			fprintf(stderr, "  primary_hashtable = %p\n", primary_hashtable);
+			fprintf(stderr, "***************************************************\n");
+		}
 	}
+
+
 }
 
 TM_ATTR
@@ -546,8 +575,8 @@ static item** _hashitem_before (const char *key, const size_t nkey) {
 TM_ATTR
 static void assoc_expand(void) {
     old_hashtable = primary_hashtable;
-	assert(0); // expand hashtable allocated in persistent heap
-    primary_hashtable = calloc(hashsize(hashpower + 1), sizeof(void *));
+    assert(0); // expand hashtable allocated in persistent heap
+    primary_hashtable = calloc(hashsize(hashpower + 1), sizeof(void *)); // freud : this shd be persistent 
     if (primary_hashtable) {
         if (settings.verbose > 1) {
 			//__tm_waiver {

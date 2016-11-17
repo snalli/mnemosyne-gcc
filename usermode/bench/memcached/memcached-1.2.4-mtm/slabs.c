@@ -301,6 +301,7 @@ void do_slabs_free(void *ptr, const size_t size) {
 }
 
 /*@null@*/
+TM_ATTR
 char* do_slabs_stats(int *buflen) {
     int i, total;
     char *buf = (char *)malloc(power_largest * 200 + 100);
@@ -317,8 +318,7 @@ char* do_slabs_stats(int *buflen) {
 
             slabs = p->slabs;
             perslab = p->perslab;
-		/*
-			__tm_waiver {
+	 {
 	            bufcurr += sprintf(bufcurr, "STAT %d:chunk_size %u\r\n", i, p->size);
     	        bufcurr += sprintf(bufcurr, "STAT %d:chunks_per_page %u\r\n", i, perslab);
         	    bufcurr += sprintf(bufcurr, "STAT %d:total_pages %u\r\n", i, slabs);
@@ -327,16 +327,15 @@ char* do_slabs_stats(int *buflen) {
     	        bufcurr += sprintf(bufcurr, "STAT %d:free_chunks %u\r\n", i, p->sl_curr);
         	    bufcurr += sprintf(bufcurr, "STAT %d:free_chunks_end %u\r\n", i, p->end_page_free);
 			}	
-	*/
             total++;
         }
     }
-	/*
-	__tm_waiver {
+	
+	{
 	    bufcurr += sprintf(bufcurr, "STAT active_slabs %d\r\nSTAT total_malloced %llu\r\n", total, (unsigned long long)mem_malloced);
     	bufcurr += sprintf(bufcurr, "END\r\n");
 	}
-	*/	
+	
     *buflen = bufcurr - buf;
     return buf;
 }
@@ -350,6 +349,7 @@ char* do_slabs_stats(int *buflen) {
    1 = success
    0 = fail
    -1 = tried. busy. send again shortly. */
+TM_ATTR
 int do_slabs_reassign(unsigned char srcid, unsigned char dstid) {
     void *slab, *slab_end;
     slabclass_t *p, *dp;
@@ -380,7 +380,7 @@ int do_slabs_reassign(unsigned char srcid, unsigned char dstid) {
         item *it = (item *)iter;
         if (it->slabs_clsid) {
             if (it->refcount) was_busy = true;
-            item_unlink(it);
+            do_item_unlink(it);
         }
     }
 

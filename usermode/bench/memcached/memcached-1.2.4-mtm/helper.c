@@ -8,8 +8,8 @@ txc_libc_memset (void *dest, int i, const int bytes)
 	int count;
 
 	{
-		for(q = dest, count = 0; count < bytes; q++, count++)
-			*q = c;
+		for(q = dest, count = 0; count < bytes; ++count)
+			*(q+count) = c;
 	}
 
 	return dest;

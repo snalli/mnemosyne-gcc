@@ -33,8 +33,9 @@ static PREFIX_STATS *prefix_stats[PREFIX_HASH_SIZE];
 static int num_prefixes = 0;
 static int total_prefix_size = 0;
 
+TM_ATTR
 void stats_prefix_init() {
-    memset(prefix_stats, 0, sizeof(prefix_stats));
+    txc_libc_memset(prefix_stats, 0, sizeof(prefix_stats));
 }
 
 /*

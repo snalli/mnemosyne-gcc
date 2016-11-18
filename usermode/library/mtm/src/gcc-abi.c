@@ -424,6 +424,7 @@ void _ITM_CALL_CONVENTION
 _ITM_changeTransactionMode(_ITM_transactionState __mode,
                            const _ITM_srcLocation * __loc)
 {
+	assert(0);
 	/* This mode is not implemented yet */
 	//TODO: Support compiler instructed switching of transaction execution mode
 	//assert (state == modeSerialIrrevocable);

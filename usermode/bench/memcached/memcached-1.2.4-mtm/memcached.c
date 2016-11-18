@@ -147,16 +147,18 @@ rel_time_t realtime(const time_t exptime) {
 }
 
 static void stats_init(void) {
-    stats.curr_items = stats.total_items = stats.curr_conns = stats.total_conns = stats.conn_structs = 0;
-    stats.get_cmds = stats.set_cmds = stats.get_hits = stats.get_misses = stats.evictions = 0;
-    stats.curr_bytes = stats.bytes_read = stats.bytes_written = 0;
+    PTx {
+	    stats.curr_items = stats.total_items = stats.curr_conns = stats.total_conns = stats.conn_structs = 0;
+	    stats.get_cmds = stats.set_cmds = stats.get_hits = stats.get_misses = stats.evictions = 0;
+	    stats.curr_bytes = stats.bytes_read = stats.bytes_written = 0;
 
     /* make the time we started always be 2 seconds before we really
        did, so time(0) - time.started is never zero.  if so, things
        like 'settings.oldest_live' which act as booleans as well as
        values are now false in boolean context... */
-    stats.started = time(0) - 2;
-    stats_prefix_init();
+	    stats.started = time(0) - 2;
+	    stats_prefix_init();
+   }
 }
 
 static void stats_reset(void) {
@@ -171,6 +173,7 @@ static void stats_reset(void) {
 }
 
 static void settings_init(void) {
+
     settings.access=0700;
     settings.port = 11211;
     settings.udpport = 0;
@@ -191,6 +194,7 @@ static void settings_init(void) {
 #endif
     settings.prefix_delimiter = ':';
     settings.detail_enabled = 0;
+ 
 }
 
 /*
@@ -343,6 +347,7 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
         //STATS_UNLOCK();
     }
 
+    
     if (settings.verbose > 1) {
         if (init_state == conn_listening)
             fprintf(stderr, "<%d server listening\n", sfd);
@@ -351,7 +356,7 @@ conn *conn_new(const int sfd, const int init_state, const int event_flags,
         else
             fprintf(stderr, "<%d new client connection\n", sfd);
     }
-
+    
     c->sfd = sfd;
     c->udp = is_udp;
     c->state = init_state;
@@ -453,8 +458,10 @@ static void conn_close(conn *c) {
     /* delete the event, the socket and the conn */
     event_del(&c->event);
 
+    
     if (settings.verbose > 1)
         fprintf(stderr, "<%d connection closed.\n", c->sfd);
+    
 
     close(c->sfd);
     accept_new_conns(true);
@@ -990,11 +997,11 @@ inline static void process_stats_detail(conn *c, const char *command) {
     assert(c != NULL);
 
     if (strcmp(command, "on") == 0) {
-        settings.detail_enabled = 1;
+        { settings.detail_enabled = 1; }
         out_string(c, "OK");
     }
     else if (strcmp(command, "off") == 0) {
-        settings.detail_enabled = 0;
+        { settings.detail_enabled = 0; }
         out_string(c, "OK");
     }
     else if (strcmp(command, "dump") == 0) {

@@ -116,9 +116,10 @@ item *do_item_alloc(char *key, const size_t nkey, const int flags, const rel_tim
             if (search->refcount == 0) {
                if (search->exptime == 0 || search->exptime > current_time) {
                        //STATS_LOCK();
-			// PTx { /* freud : volatile transactions */
+			// TM_ATOMIC 
+			{ /* freud : volatile transactions */
                        	stats.evictions++;
-			//		   }
+			}
                        //STATS_UNLOCK();
                 }
                 do_item_unlink(search);

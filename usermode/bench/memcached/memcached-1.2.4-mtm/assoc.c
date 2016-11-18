@@ -575,14 +575,16 @@ item** _hashitem_before (const char *key, const size_t nkey) {
 TM_ATTR
 void assoc_expand(void) {
     old_hashtable = primary_hashtable;
-    assert(0); // expand hashtable allocated in persistent heap
-    primary_hashtable = calloc(hashsize(hashpower + 1), sizeof(void *)); // freud : this shd be persistent 
+    // assert(0); // expand hashtable allocated in persistent heap
+    primary_hashtable = pmalloc(hashsize(hashpower + 1) * sizeof(void *)); // freud : this shd be persistent 
     if (primary_hashtable) {
+	
         if (settings.verbose > 1) {
 			//__tm_waiver {
 	           // fprintf(stderr, "Hash table expansion starting\n");
 		//	}	
 		}	
+        
         hashpower++;
         expanding = true;
         expand_bucket = 0;
@@ -609,16 +611,19 @@ void do_assoc_move_next_bucket(void) {
         }
 
         old_hashtable[expand_bucket] = NULL;
+	PSET(p_primary_hashtbl, primary_hashtable);
 
         expand_bucket++;
         if (expand_bucket == hashsize(hashpower - 1)) {
             expanding = false;
-            free(old_hashtable);
+            pfree(old_hashtable);
+		
             if (settings.verbose > 1) {
 			//	__tm_waiver {
 	                //fprintf(stderr, "Hash table expansion done\n");
 			//	}
 			}
+		
         }
     }
 }

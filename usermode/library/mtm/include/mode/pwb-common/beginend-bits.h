@@ -393,7 +393,7 @@ beginTransaction_internal (mtm_tx_t *tx,
 
 #ifdef _M_STATS_BUILD	
 	assert(m_stats_statset_create(&tx->statset) == M_R_SUCCESS);
-	assert(m_stats_statset_init(tx->statset, srcloc->psource) == M_R_SUCCESS);
+	assert(m_stats_statset_init(tx->statset, NULL /*srcloc->psource*/) == M_R_SUCCESS);
 #endif	
 
 	if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))

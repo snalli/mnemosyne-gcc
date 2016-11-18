@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MEMCACHED_DIR="/u/s/a/sankey/Desktop/mnemosyne/usermode/scripts"
+MEMCACHED_DIR="/u/s/a/sankey/Desktop/mnemosyne-gcc/usermode/scripts"
 
 source "$MEMCACHED_DIR/memcached_funcs.sh"
 

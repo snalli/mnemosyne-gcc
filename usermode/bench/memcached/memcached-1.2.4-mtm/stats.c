@@ -34,7 +34,7 @@ static int num_prefixes = 0;
 static int total_prefix_size = 0;
 
 void stats_prefix_init() {
-    txc_libc_memset(prefix_stats, 0, sizeof(prefix_stats));
+    memset(prefix_stats, 0, sizeof(prefix_stats));
 }
 
 /*
@@ -63,7 +63,7 @@ void stats_prefix_clear() {
  */
 /*@null@*/
 TM_ATTR
-static PREFIX_STATS *stats_prefix_find(const char *key) {
+PREFIX_STATS *stats_prefix_find(const char *key) {
     PREFIX_STATS *pfs;
     uint32_t hashval;
     size_t length;
@@ -176,14 +176,14 @@ char *stats_prefix_dump(int *length) {
      * plus space for the "END" at the end.
      */
     //STATS_LOCK();
-		PTx { /* volatile txn freud */
-		size = strlen(format) + total_prefix_size +
-			   num_prefixes * (strlen(format) - 2 /* %s */
+	PTx { /* volatile txn freud */
+		size = txc_libc_strlen(format) + total_prefix_size +
+			   num_prefixes * (txc_libc_strlen(format) - 2 /* %s */
 							   + 4 * (20 - 4)) /* %llu replaced by 20-digit num */
 							   + sizeof("END\r\n");
 		buf = malloc(size);
 		if (NULL == buf) {
-			perror("Can't allocate stats response: malloc");
+			// perror("Can't allocate stats response: malloc");
 			//STATS_UNLOCK();
 			return NULL;
 		}

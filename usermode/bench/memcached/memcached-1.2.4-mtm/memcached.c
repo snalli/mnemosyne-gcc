@@ -104,10 +104,6 @@ static void set_current_time(void);  /* update the global variable holding
 void pre_gdb(void);
 static void conn_free(conn *c);
 
-/** exported globals **/
-struct stats stats;
-struct settings settings;
-
 /** file scope variables **/
 static item **todelete = NULL;
 static int delcurr;
@@ -130,7 +126,7 @@ static int *buckets = 0; /* bucket->generation array for a managed instance */
  */
 
 TM_ATTR
-static rel_time_t realtime(const time_t exptime) {
+rel_time_t realtime(const time_t exptime) {
     /* no. of seconds in 30 days - largest possible delta exptime */
 
     if (exptime == 0) return 0; /* 0 means never expire */
@@ -197,14 +193,6 @@ static void settings_init(void) {
     settings.detail_enabled = 0;
 }
 
-/* returns true if a deleted item's delete-locked-time is over, and it
-   should be removed from the namespace */
-TM_ATTR
-static bool item_delete_lock_over (item *it) {
-    assert(it->it_flags & ITEM_DELETED);
-    return (current_time >= it->exptime);
-}
-
 /*
  * Adds a message header to a connection.
  *
@@ -228,7 +216,7 @@ static int add_msghdr(conn *c)
 
     /* this wipes msg_iovlen, msg_control, msg_controllen, and
        msg_flags, the last 3 of which aren't defined on solaris: */
-    txc_libc_memset(msg, 0, sizeof(struct msghdr));
+    memset(msg, 0, sizeof(struct msghdr));
 
     msg->msg_iov = &c->iov[c->iovused];
 
@@ -1020,7 +1008,9 @@ inline static void process_stats_detail(conn *c, const char *command) {
 }
 
 static void process_stat(conn *c, token_t *tokens, const size_t ntokens) {
-    rel_time_t now = current_time;
+	
+    rel_time_t now;
+    PTx { now = current_time; }
     char *command;
     char *subcommand;
 
@@ -1138,7 +1128,7 @@ static void process_stat(conn *c, token_t *tokens, const size_t ntokens) {
             free(wbuf); close(fd);
             return;
         }
-        txc_libc_memcpy(wbuf + res, "END\r\n", 5);
+        memcpy(wbuf + res, "END\r\n", 5);
         write_and_free(c, wbuf, res + 5);
         close(fd);
         return;
@@ -2491,7 +2481,7 @@ static int server_socket(const int port, const bool is_udp) {
      * the memset call clears nonstandard fields in some impementations
      * that otherwise mess things up.
      */
-    txc_libc_memset(&addr, 0, sizeof(addr));
+    memset(&addr, 0, sizeof(addr));
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -2559,7 +2549,7 @@ static int server_socket_unix(const char *path, int access_mask) {
      * the memset call clears nonstandard fields in some impementations
      * that otherwise mess things up.
      */
-    txc_libc_memset(&addr, 0, sizeof(addr));
+    memset(&addr, 0, sizeof(addr));
 
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, path);
@@ -2602,12 +2592,13 @@ void pre_gdb(void) {
  * rather than absolute UNIX timestamps, a space savings on systems where
  * sizeof(time_t) > sizeof(unsigned int).
  */
-volatile rel_time_t current_time;
 static struct event clockevent;
 
 /* time-sensitive callers can call it by hand with this, outside the normal ever-1-second timer */
 static void set_current_time(void) {
-    current_time = (rel_time_t) (time(0) - stats.started);
+
+    PTx { current_time = (rel_time_t) (time(0) - stats.started); }
+    /* current time is used by transactional routines */
 }
 
 static void clock_handler(const int fd, const short which, void *arg) {

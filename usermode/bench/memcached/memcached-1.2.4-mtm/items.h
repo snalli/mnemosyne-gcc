@@ -22,3 +22,5 @@ item *item_get(const char *key, const size_t nkey);
 
 TM_ATTR item *do_item_get_notedeleted(const char *key, const size_t nkey, bool *delete_locked);
 TM_ATTR item *do_item_get_nocheck(const char *key, const size_t nkey);
+TM_ATTR bool item_delete_lock_over (item *it);
+

@@ -552,7 +552,7 @@ item *assoc_find(const char *key, const size_t nkey) {
 /* returns the address of the item pointer before the key.  if *item == 0,
    the item wasn't found */
 TM_ATTR
-static item** _hashitem_before (const char *key, const size_t nkey) {
+item** _hashitem_before (const char *key, const size_t nkey) {
     uint32_t hv = hash(key, nkey, 0);
     item **pos;
     unsigned int oldbucket;
@@ -573,7 +573,7 @@ static item** _hashitem_before (const char *key, const size_t nkey) {
 
 /* grows the hashtable to the next power of 2. */
 TM_ATTR
-static void assoc_expand(void) {
+void assoc_expand(void) {
     old_hashtable = primary_hashtable;
     assert(0); // expand hashtable allocated in persistent heap
     primary_hashtable = calloc(hashsize(hashpower + 1), sizeof(void *)); // freud : this shd be persistent 

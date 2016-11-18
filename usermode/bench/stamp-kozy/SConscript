@@ -32,8 +32,8 @@ pvarLibrary = None
 stampEnv['BUILD_PVAR'] = True
 Export('stampEnv')
 pvarLibrary = SConscript(sconscript_path)
-
 Export('pvarLibrary')
+
 # Build STAMP benchmark
 stampEnv['BUILD_PVAR'] = False
 Export('stampEnv')

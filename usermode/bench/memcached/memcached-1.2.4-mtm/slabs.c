@@ -53,7 +53,7 @@ static int power_largest;
 /*
  * Forward Declarations
  */
-static int do_slabs_newslab(const unsigned int id);
+int do_slabs_newslab(const unsigned int id);
 
 #ifndef DONT_PREALLOC_SLABS
 /* Preallocate as many slab pages as possible (called from slabs_init)
@@ -99,7 +99,7 @@ void slabs_init(const size_t limit, const double factor) {
         size = 128;
 
     mem_limit = limit;
-    txc_libc_memset(slabclass, 0, sizeof(slabclass));
+    memset(slabclass, 0, sizeof(slabclass));
 
     while (++i < POWER_LARGEST && size <= POWER_BLOCK / 2) {
         /* Make sure items are always n-byte aligned */
@@ -162,7 +162,7 @@ static void slabs_preallocate (const unsigned int maxslabs) {
 #endif
 
 TM_ATTR
-static int grow_slab_list (const unsigned int id) {
+int grow_slab_list (const unsigned int id) {
     slabclass_t *p = &slabclass[id];
     if (p->slabs == p->list_size) {
         size_t new_size =  (p->list_size != 0) ? p->list_size * 2 : 16;
@@ -175,7 +175,7 @@ static int grow_slab_list (const unsigned int id) {
 }
 
 TM_ATTR
-static int do_slabs_newslab(const unsigned int id) {
+int do_slabs_newslab(const unsigned int id) {
     slabclass_t *p = &slabclass[id];
 #ifdef ALLOW_SLABS_REASSIGN
     int len = POWER_BLOCK;
@@ -197,8 +197,8 @@ static int do_slabs_newslab(const unsigned int id) {
 	 */
     ptr = pmalloc((size_t)len);
     if (ptr == 0) return 0;
-
-    txc_libc_memset(ptr, 0, (size_t)len);
+	// This eats up the Tx write-set, then let pmalloc zero the memory
+    // txc_libc_memset(ptr, 0, (size_t)len);
     p->end_page_ptr = ptr;
     p->end_page_free = p->perslab;
 

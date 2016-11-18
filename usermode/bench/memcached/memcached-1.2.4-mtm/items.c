@@ -10,9 +10,9 @@
 #include <memcached.h>
 
 /* Forward Declarations */
-static void item_link_q(item *it);
-static void item_unlink_q(item *it);
-static uint64_t get_cas_id();
+void item_link_q(item *it);
+void item_unlink_q(item *it);
+uint64_t get_cas_id();
 
 /*
  * We only reposition items in the LRU queue if they haven't been repositioned
@@ -68,7 +68,7 @@ uint64_t get_cas_id() {
  */
 
 TM_ATTR
-static size_t item_make_header(const uint8_t nkey, const int flags, const int nbytes,
+size_t item_make_header(const uint8_t nkey, const int flags, const int nbytes,
                      char *suffix, uint8_t *nsuffix) {
     /* suffix is defined at 40 chars elsewhere.. */
     *nsuffix = (uint8_t) snprintf(suffix, 40, " %d %d\r\n", flags, nbytes - 2);
@@ -182,7 +182,7 @@ bool item_size_ok(const size_t nkey, const int flags, const int nbytes) {
 }
 
 TM_ATTR
-static void item_link_q(item *it) { /* item is the new head */
+void item_link_q(item *it) { /* item is the new head */
     item **head, **tail;
     /* always true, warns: assert(it->slabs_clsid <= LARGEST_ID); */
     assert((it->it_flags & ITEM_SLABBED) == 0);
@@ -201,7 +201,7 @@ static void item_link_q(item *it) { /* item is the new head */
 }
 
 TM_ATTR
-static void item_unlink_q(item *it) {
+void item_unlink_q(item *it) {
     item **head, **tail;
     /* always true, warns: assert(it->slabs_clsid <= LARGEST_ID); */
     head = &heads[it->slabs_clsid];
@@ -386,7 +386,7 @@ char* do_item_stats_sizes(int *bytes) {
     }
 
     /* build the histogram */
-    txc_libc_memset(histogram, 0, (size_t)num_buckets * sizeof(int));
+    // txc_libc_memset(histogram, 0, (size_t)num_buckets * sizeof(int));
     for (i = 0; i < LARGEST_ID; i++) {
         item *iter = heads[i];
         while (iter) {
@@ -465,6 +465,7 @@ item *do_item_get_nocheck(const char *key, const size_t nkey) {
 }
 
 /* expires items that are more recent than the oldest_live setting. */
+TM_ATTR
 void do_item_flush_expired(void) {
     int i;
     item *iter, *next;

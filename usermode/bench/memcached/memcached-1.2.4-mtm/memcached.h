@@ -256,7 +256,7 @@ typedef struct {
 #define MAX_BUCKETS 32768
 
 /* current time of day (updated periodically) */
-extern volatile rel_time_t current_time;
+extern rel_time_t current_time;
 
 /* temporary hack */
 /* #define assert(x) if(!(x)) { printf("assert failure: %s\n", #x); pre_gdb(); }

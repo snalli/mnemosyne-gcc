@@ -311,6 +311,7 @@ rotateLeft (rbtree_t* s, node_t* x)
  * TMrotateLeft_rb
  * =============================================================================
  */
+TM_ATTR
 void
 TMrotateLeft_rb (TM_ARGDECL  rbtree_t* s, node_t* x)
 {
@@ -368,6 +369,7 @@ rotateRight (rbtree_t* s, node_t* x)
  * TMrotateRight_rb
  * =============================================================================
  */
+TM_ATTR
 void
 TMrotateRight_rb (TM_ARGDECL  rbtree_t* s, node_t* x)
 {
@@ -408,6 +410,7 @@ parentOf (node_t* n)
  * TMparentOf_rb
  * =============================================================================
  */
+TM_ATTR
 inline node_t*
 TMparentOf_rb (TM_ARGDECL  node_t* n)
 {
@@ -432,6 +435,7 @@ leftOf (node_t* n)
  * TMleftOf_rb
  * =============================================================================
  */
+TM_ATTR
 inline node_t*
 TMleftOf_rb (TM_ARGDECL  node_t* n)
 {
@@ -456,6 +460,7 @@ rightOf (node_t* n)
  * TMrightOf_rb
  * =============================================================================
  */
+TM_ATTR
 inline node_t*
 TMrightOf_rb (TM_ARGDECL  node_t* n)
 {
@@ -480,6 +485,7 @@ colorOf (node_t* n)
  * TMcolorOf_rb
  * =============================================================================
  */
+TM_ATTR
 inline long
 TMcolorOf_rb (TM_ARGDECL  node_t* n)
 {
@@ -506,6 +512,7 @@ setColor (node_t* n, long c)
  * TMsetColor_rb
  * =============================================================================
  */
+TM_ATTR
 inline void
 TMsetColor_rb (TM_ARGDECL  node_t* n, long c)
 {
@@ -580,6 +587,7 @@ fixAfterInsertion (rbtree_t* s, node_t* x)
  * TMfixAfterInsertion_rb
  * =============================================================================
  */
+TM_ATTR
 void
 TMfixAfterInsertion_rb (TM_ARGDECL  rbtree_t* s, node_t* x)
 {
@@ -803,6 +811,7 @@ successor (node_t* t)
  * TMsuccessor_rb
  * =============================================================================
  */
+TM_ATTR
 node_t*
 TMsuccessor_rb  (TM_ARGDECL  node_t* t)
 {
@@ -901,6 +910,7 @@ fixAfterDeletion (rbtree_t* s, node_t* x)
  * TMfixAfterDeletion_rb
  * =============================================================================
  */
+TM_ATTR
 void
 TMfixAfterDeletion_rb  (TM_ARGDECL  rbtree_t* s, node_t* x)
 {
@@ -1037,6 +1047,7 @@ delete_node (rbtree_t* s, node_t* p)
  * TMdelete_rb
  * =============================================================================
  */
+TM_ATTR
 node_t*
 TMdelete_rb (TM_ARGDECL  rbtree_t* s, node_t* p)
 {
@@ -1409,6 +1420,7 @@ getNode ()
  * TMgetNode_rb
  * =============================================================================
  */
+TM_ATTR
 node_t*
 TMgetNode_rb (TM_ARGDECL_ALONE)
 {

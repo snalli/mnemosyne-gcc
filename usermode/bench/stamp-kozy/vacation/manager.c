@@ -82,33 +82,20 @@
 #include "types.h"
 
 /* =============================================================================
- * DECLARATION OF PERSISTENT VARIABLES
- * =============================================================================
- */
-
-/*
-MNEMOSYNE_PERSISTENT MAP_T* glb_car_table_ptr = NULL;
-MNEMOSYNE_PERSISTENT MAP_T* glb_room_table_ptr = NULL;
-MNEMOSYNE_PERSISTENT MAP_T* glb_flight_table_ptr = NULL;
-MNEMOSYNE_PERSISTENT MAP_T* glb_customer_table_ptr = NULL;
-MNEMOSYNE_PERSISTENT int    glb_mgr_initialized    = 0;
-*/
-
-/* =============================================================================
  * DECLARATION OF TM_ATTR FUNCTIONS
  * =============================================================================
  */
 
 TM_ATTR
-static long 
+long 
 queryNumFree (TM_ARGDECL  MAP_T* tablePtr, long id);
 
 TM_ATTR
-static long 
+long 
 queryPrice (TM_ARGDECL  MAP_T* tablePtr, long id);
 
 TM_ATTR
-static bool_t 
+bool_t 
 reserve (TM_ARGDECL MAP_T* tablePtr, MAP_T* customerTablePtr, long customerId, long id, reservation_type_t type);
 
 TM_ATTR
@@ -300,7 +287,25 @@ bool_t
 manager_addCar (TM_ARGDECL
                 manager_t* managerPtr, long carId, long numCars, long price)
 {
-    return addReservation(TM_ARG  managerPtr->carTablePtr, carId, numCars, price);
+    bool_t ret = addReservation(TM_ARG  managerPtr->carTablePtr, carId, numCars, price);
+    if(ret) {
+	#if VACATION_DEBUG 
+		#if VACATION_MANAGER_DEBUG
+		fprintf(stderr, "%s ADDED id=%ld, n=%ld, price=%ld\n", __func__,
+			carId, numCars, price);
+		#endif
+	#endif
+	;
+    } else {
+	#if VACATION_DEBUG 
+		#if VACATION_MANAGER_DEBUG
+		fprintf(stderr, "%s FAILED id=%ld, n=%ld, price=%ld\n", __func__,
+			carId, numCars, price);
+		#endif
+	#endif
+	;
+    }
+    return ret;
 }
 
 
@@ -341,7 +346,26 @@ bool_t
 manager_addRoom (TM_ARGDECL
                  manager_t* managerPtr, long roomId, long numRoom, long price)
 {
-    return addReservation(TM_ARG  managerPtr->roomTablePtr, roomId, numRoom, price);
+    bool_t ret = addReservation(TM_ARG  managerPtr->roomTablePtr, roomId, numRoom, price);
+    if(ret) {
+	#if VACATION_DEBUG 
+		#if VACATION_MANAGER_DEBUG
+		fprintf(stderr, "%s ADDED id=%ld, n=%ld, price=%ld\n", __func__,
+			roomId, numRoom, price);
+		#endif
+	#endif
+	;
+    } else {
+	#if VACATION_DEBUG 
+		#if VACATION_MANAGER_DEBUG
+		fprintf(stderr, "%s FAILED id=%ld, n=%ld, price=%ld\n", __func__,
+			roomId, numRoom, price);
+		#endif
+	#endif
+	;
+    }
+    return ret;
+
 }
 
 
@@ -383,8 +407,26 @@ bool_t
 manager_addFlight (TM_ARGDECL
                    manager_t* managerPtr, long flightId, long numSeat, long price)
 {
-    return addReservation(TM_ARG
+    bool_t ret = addReservation(TM_ARG
                           managerPtr->flightTablePtr, flightId, numSeat, price);
+    if(ret) {
+	#if VACATION_DEBUG 
+		#if VACATION_MANAGER_DEBUG
+		fprintf(stderr, "%s ADDED id=%ld, n=%ld, price=%ld\n", __func__,
+			flightId, numSeat, price);
+		#endif
+	#endif
+	;
+    } else {
+	#if VACATION_DEBUG 
+		#if VACATION_MANAGER_DEBUG
+		fprintf(stderr, "%s FAILED id=%ld, n=%ld, price=%ld\n", __func__,
+			flightId, numSeat, price);
+		#endif
+	#endif
+	;
+    }
+    return ret;
 }
 
 
@@ -439,12 +481,27 @@ manager_addCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
     bool_t status;
 
     if (!TMMAP_CONTAINS(managerPtr->customerTablePtr, customerId)) {
+
     	customerPtr = CUSTOMER_ALLOC(customerId);
     	assert(customerPtr != NULL);
     	status = TMMAP_INSERT(managerPtr->customerTablePtr, customerId, customerPtr);
     	if (status == FALSE) {
         	TM_RESTART();
-    	}
+    	} else {
+		#if VACATION_DEBUG
+			#if VACATION_MANAGER_DEBUG
+			fprintf(stderr, "%s ADDED id=%ld\n", __func__, customerId);
+			#endif
+		#endif
+		;
+	}
+    } else {
+	#if VACATION_DEBUG
+		#if VACATION_MANAGER_DEBUG
+		fprintf(stderr, "%s PRESENT id=%ld\n", __func__, customerId);
+		#endif
+	#endif
+	;
     }
 
     return TRUE;
@@ -556,7 +613,7 @@ manager_deleteCustomer (TM_ARGDECL  manager_t* managerPtr, long customerId)
  * =============================================================================
  */
 TM_ATTR
-static long
+long
 queryNumFree (TM_ARGDECL  MAP_T* tablePtr, long id)
 {
     
@@ -579,7 +636,7 @@ queryNumFree (TM_ARGDECL  MAP_T* tablePtr, long id)
  * =============================================================================
  */
 TM_ATTR
-static long
+long
 queryPrice (TM_ARGDECL  MAP_T* tablePtr, long id)
 {
     long price = -1;
@@ -604,7 +661,14 @@ TM_ATTR
 long
 manager_queryCar (TM_ARGDECL  manager_t* managerPtr, long carId)
 {
-    return queryNumFree(TM_ARG  managerPtr->carTablePtr, carId);
+    long numFree = queryNumFree(TM_ARG  managerPtr->carTablePtr, carId);
+    #if VACATION_DEBUG
+	#if VACATION_MANAGER_DEBUG
+	fprintf(stderr, "%s id=%ld, nfree=%ld\n", __func__, carId, numFree);
+	#endif
+    #endif
+
+    return numFree;
 }
 
 
@@ -618,7 +682,13 @@ TM_ATTR
 long
 manager_queryCarPrice (TM_ARGDECL  manager_t* managerPtr, long carId)
 {
-    return queryPrice(TM_ARG  managerPtr->carTablePtr, carId);
+    long price = queryPrice(TM_ARG  managerPtr->carTablePtr, carId);
+    #if VACATION_DEBUG
+	#if VACATION_MANAGER_DEBUG
+	fprintf(stderr, "%s id=%ld, price=%ld\n",  __func__, carId, price);
+	#endif
+    #endif
+    return price;
 }
 
 
@@ -632,7 +702,13 @@ TM_ATTR
 long
 manager_queryRoom (TM_ARGDECL  manager_t* managerPtr, long roomId)
 {
-    return queryNumFree(TM_ARG  managerPtr->roomTablePtr, roomId);
+    long numFree = queryNumFree(TM_ARG  managerPtr->roomTablePtr, roomId);
+    #if VACATION_DEBUG
+	#if VACATION_MANAGER_DEBUG
+	fprintf(stderr, "%s id=%ld, nfree=%ld\n",  __func__, roomId, numFree);
+	#endif
+    #endif
+    return numFree;
 }
 
 
@@ -646,7 +722,13 @@ TM_ATTR
 long
 manager_queryRoomPrice (TM_ARGDECL  manager_t* managerPtr, long roomId)
 {
-    return queryPrice(TM_ARG  managerPtr->roomTablePtr, roomId);
+    long price = queryPrice(TM_ARG  managerPtr->roomTablePtr, roomId);
+    #if VACATION_DEBUG
+	#if VACATION_MANAGER_DEBUG
+	fprintf(stderr, "%s id=%ld, price=%ld\n",  __func__, roomId, price);
+	#endif
+    #endif
+    return price;
 }
 
 
@@ -660,7 +742,13 @@ TM_ATTR
 long
 manager_queryFlight (TM_ARGDECL  manager_t* managerPtr, long flightId)
 {
-    return queryNumFree(TM_ARG  managerPtr->flightTablePtr, flightId);
+    long numFree = queryNumFree(TM_ARG  managerPtr->flightTablePtr, flightId);
+    #if VACATION_DEBUG
+	#if VACATION_MANAGER_DEBUG
+	fprintf(stderr, "%s id=%ld, nfree=%ld\n",  __func__, flightId, numFree);
+	#endif
+    #endif
+    return numFree;
 }
 
 
@@ -674,7 +762,13 @@ TM_ATTR
 long
 manager_queryFlightPrice (TM_ARGDECL  manager_t* managerPtr, long flightId)
 {
-    return queryPrice(TM_ARG  managerPtr->flightTablePtr, flightId);
+    long price = queryPrice(TM_ARG  managerPtr->flightTablePtr, flightId);
+    #if VACATION_DEBUG
+	#if VACATION_MANAGER_DEBUG
+	fprintf(stderr, "%s id=%ld, price=%ld\n",  __func__, flightId, price);
+	#endif
+    #endif
+    return price;
 }
 
 
@@ -714,7 +808,7 @@ manager_queryCustomerBill (TM_ARGDECL  manager_t* managerPtr, long customerId)
  * =============================================================================
  */
 TM_ATTR
-static bool_t
+bool_t
 reserve (TM_ARGDECL
          MAP_T* tablePtr, MAP_T* customerTablePtr,
          long customerId, long id, reservation_type_t type)

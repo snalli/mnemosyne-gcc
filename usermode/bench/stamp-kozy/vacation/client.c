@@ -251,9 +251,6 @@ client_run (void* argPtr)
                 long customerId = random_generate(randomPtr) % queryRange + 1;
                 TM_BEGIN();
                 long bill = MANAGER_QUERY_CUSTOMER_BILL(managerPtr, customerId);
-                // if (bill >= 0) { If the bill is 0, then the customer has no reservations to be deleted !
-		// I think it is correct. Put it back TODO
-                // if (bill > 0) {
                 if (bill >= 0) {
                     MANAGER_DELETE_CUSTOMER(managerPtr, customerId);
                 }

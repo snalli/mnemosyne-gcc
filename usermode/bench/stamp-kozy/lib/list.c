@@ -83,11 +83,11 @@
  */
 
 TM_ATTR
-static list_node_t*
-TMfindPrevious (TM_ARGDECL  list_t* listPtr, void* dataPtr);
+list_node_t*
+TMfindPreviousList (TM_ARGDECL  list_t* listPtr, void* dataPtr);
 
 TM_ATTR
-static void
+void
 TMfreeList (TM_ARGDECL  list_node_t* nodePtr);
 
 TM_ATTR
@@ -95,12 +95,13 @@ void
 TMlist_free (TM_ARGDECL  list_t* listPtr);
 
 /* =============================================================================
- * compareDataPtrAddresses
+ * compareDataPtrAddressesList
  * -- Default compare function
  * =============================================================================
  */
-static long
-compareDataPtrAddresses (const void* a, const void* b)
+TM_ATTR
+long
+compareDataPtrAddressesList (const void* a, const void* b)
 {
     return ((long)a - (long)b);
 }
@@ -228,7 +229,7 @@ PallocNode (void* dataPtr)
  * =============================================================================
  */
 TM_ATTR
-static list_node_t*
+list_node_t*
 TMallocNode (TM_ARGDECL  void* dataPtr)
 {
     list_node_t* nodePtr = (list_node_t*)TM_MALLOC(sizeof(list_node_t));
@@ -262,7 +263,7 @@ list_alloc (long (*compare)(const void*, const void*))
     listPtr->size = 0;
 
     if (compare == NULL) {
-        listPtr->compare = &compareDataPtrAddresses; /* default */
+        listPtr->compare = compareDataPtrAddressesList; /* default */
     } else {
         listPtr->compare = compare;
     }
@@ -290,7 +291,7 @@ Plist_alloc (long (*compare)(const void*, const void*))
     listPtr->size = 0;
 
     if (compare == NULL) {
-        listPtr->compare = &compareDataPtrAddresses; /* default */
+        listPtr->compare = compareDataPtrAddressesList; /* default */
     } else {
         listPtr->compare = compare;
     }
@@ -319,8 +320,13 @@ TMlist_alloc (TM_ARGDECL  long (*compare)(const void*, const void*))
     listPtr->size = 0;					/* persistent */
 
     if (compare == NULL) {
-        listPtr->compare = &compareDataPtrAddresses; /* default, persistent */
+        listPtr->compare = compareDataPtrAddressesList; /* default, persistent */
     } else {
+	#if VACATION_DEBUG
+		#if VACATION_LIST_DEBUG
+		fprintf(stderr, "%s NOT DEFAULT compare=%p\n", __func__, (void*)listPtr->compare);
+		#endif
+	#endif
         listPtr->compare = compare;			/* persistent */
     }
 
@@ -355,7 +361,7 @@ PfreeNode (list_node_t* nodePtr)
  * =============================================================================
  */
 TM_ATTR
-static void
+void
 TMfreeNode (TM_ARGDECL  list_node_t* nodePtr)
 {
     TM_FREE(nodePtr);
@@ -395,7 +401,7 @@ PfreeList (list_node_t* nodePtr)
  * =============================================================================
  */
 TM_ATTR
-static void
+void
 TMfreeList (TM_ARGDECL  list_node_t* nodePtr)
 {
     if (nodePtr != NULL) {
@@ -517,21 +523,31 @@ findPrevious (list_t* listPtr, void* dataPtr)
 
 
 /* =============================================================================
- * TMfindPrevious
+ * TMfindPreviousList
  * =============================================================================
  */
 TM_ATTR
-static list_node_t*
-TMfindPrevious (TM_ARGDECL  list_t* listPtr, void* dataPtr)
+list_node_t*
+TMfindPreviousList (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 {
     list_node_t* prevPtr = &(listPtr->head);
     list_node_t* nodePtr;
+    long cmp;
 
     for (nodePtr = (list_node_t*)TM_SHARED_READ_P(prevPtr->nextPtr);
          nodePtr != NULL;
          nodePtr = (list_node_t*)TM_SHARED_READ_P(nodePtr->nextPtr))
     {
-        if (listPtr->compare(nodePtr->dataPtr, dataPtr) >= 0) {
+	if(listPtr && listPtr->compare)
+	{
+		if(listPtr->compare == compareDataPtrAddressesList)
+			cmp = compareDataPtrAddressesList(nodePtr->dataPtr, dataPtr);
+		else
+			cmp = listPtr->compare(nodePtr->dataPtr, dataPtr);
+	} else
+		assert(0);
+
+        if (cmp >= 0) {
             return prevPtr;
         }
         prevPtr = nodePtr;
@@ -573,12 +589,21 @@ void*
 TMlist_find (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 {
     list_node_t* nodePtr;
-    list_node_t* prevPtr = TMfindPrevious(TM_ARG  listPtr, dataPtr);
+    list_node_t* prevPtr = TMfindPreviousList(TM_ARG  listPtr, dataPtr);
+    long cmp;
 
     nodePtr = (list_node_t*)TM_SHARED_READ_P(prevPtr->nextPtr);
+    if(listPtr && listPtr->compare)
+    {
+	if(listPtr->compare == compareDataPtrAddressesList)
+		cmp = compareDataPtrAddressesList(nodePtr->dataPtr, dataPtr);
+	else
+		cmp = listPtr->compare(nodePtr->dataPtr, dataPtr);
+    } else
+	assert(0);
 
     if ((nodePtr == NULL) ||
-        (listPtr->compare(nodePtr->dataPtr, dataPtr) != 0)) {
+        (cmp != 0)) {
         return NULL;
     }
 
@@ -668,14 +693,25 @@ TMlist_insert (TM_ARGDECL  list_t* listPtr, void* dataPtr)
     list_node_t* prevPtr;
     list_node_t* nodePtr;
     list_node_t* currPtr;
+    long cmp;
 
-    prevPtr = TMfindPrevious(TM_ARG  listPtr, dataPtr);
+    prevPtr = TMfindPreviousList(TM_ARG  listPtr, dataPtr);
     currPtr = (list_node_t*)TM_SHARED_READ_P(prevPtr->nextPtr);
 
 #ifdef LIST_NO_DUPLICATES
-    if ((currPtr != NULL) &&
-        listPtr->compare(currPtr->dataPtr, dataPtr) == 0) {
-        return FALSE;
+    if ((currPtr != NULL)) {
+
+	if(listPtr && listPtr->compare)
+	{
+		if(listPtr->compare == compareDataPtrAddressesList)
+			cmp = compareDataPtrAddressesList(currPtr->dataPtr, dataPtr);
+		else
+			cmp = listPtr->compare(currPtr->dataPtr, dataPtr);
+	} else 
+		assert(0);
+
+        if(cmp == 0)
+	        return FALSE;
     }
 #endif
 
@@ -761,19 +797,28 @@ TMlist_remove (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 {
     list_node_t* prevPtr;
     list_node_t* nodePtr;
+    long cmp;
 
-    prevPtr = TMfindPrevious(TM_ARG  listPtr, dataPtr);
+    prevPtr = TMfindPreviousList(TM_ARG  listPtr, dataPtr);
 
     nodePtr = (list_node_t*)TM_SHARED_READ_P(prevPtr->nextPtr);
-    if ((nodePtr != NULL) &&
-        (listPtr->compare(nodePtr->dataPtr, dataPtr) == 0))
+    if (nodePtr != NULL)
     {
-        TM_SHARED_WRITE_P(prevPtr->nextPtr, TM_SHARED_READ_P(nodePtr->nextPtr));
-        TM_SHARED_WRITE_P(nodePtr->nextPtr, (struct list_node*)NULL);
-        TMfreeNode(TM_ARG  nodePtr);
-        TM_SHARED_WRITE(listPtr->size, (TM_SHARED_READ(listPtr->size) - 1));
-        assert(listPtr->size >= 0);
-        return TRUE;
+	if(listPtr && listPtr->compare)
+	{
+		if(listPtr->compare == compareDataPtrAddressesList)
+			cmp = compareDataPtrAddressesList(nodePtr->dataPtr, dataPtr);
+		else
+        		cmp = listPtr->compare(nodePtr->dataPtr, dataPtr);
+		
+        	TM_SHARED_WRITE_P(prevPtr->nextPtr, TM_SHARED_READ_P(nodePtr->nextPtr));
+	        TM_SHARED_WRITE_P(nodePtr->nextPtr, (struct list_node*)NULL);
+        	TMfreeNode(TM_ARG  nodePtr);
+	        TM_SHARED_WRITE(listPtr->size, (TM_SHARED_READ(listPtr->size) - 1));
+        	assert(listPtr->size >= 0);
+	        return TRUE;
+	} else
+		assert(0);
     }
 
     return FALSE;

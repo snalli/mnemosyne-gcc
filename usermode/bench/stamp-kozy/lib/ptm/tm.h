@@ -226,6 +226,12 @@ extern unsigned long v_free, nv_free;
 #define TM_THREAD_ENTER()             fprintf(OUT, "Starting thread %li\n", syscall(SYS_gettid));
 #define TM_THREAD_EXIT()              /* nothing */
 
+#define VACATION_DEBUG 0
+#define VACATION_MANAGER_DEBUG 0
+#define VACATION_LIST_DEBUG 0
+
+/* To prevent GCC from barfing on libc calls */
+TM_PURE fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
 TM_PURE extern
 void __assert_fail (const char *__assertion, const char *__file,
                     unsigned int __line, const char *__function)
@@ -263,7 +269,7 @@ void __assert_fail (const char *__assertion, const char *__file,
 #define TM_BEGIN()                    MNEMOSYNE_ATOMIC {
 #define TM_BEGIN_RO()                 MNEMOSYNE_ATOMIC { // What is the txn spans across multiple routines ?
 #define TM_END()                      }
-#define TM_RESTART()                  assert(0); // MNEMOSYNE_ATOMIC { if(1) __tm_retry; } How do you explicitly restart txns in M ?
+#define TM_RESTART()                  assert(0); // ICC : __tm_retry, GCC : unsup 
 
 #define TM_EARLY_RELEASE(var)         /* nothing */
 

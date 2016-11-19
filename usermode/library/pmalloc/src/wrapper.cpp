@@ -413,7 +413,9 @@ void mtm_pfree (void* ptr)
 	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
 	{
 		persistentheap->free (ptr);
-        }
+        } else {
+		GENERIC_PFREE (ptr);
+	}
 }
 
 extern "C"
@@ -425,6 +427,8 @@ size_t mtm_get_obj_size(void *ptr)
 	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
 	{
 		objSize = persistentHeap::objectSize (ptr);
+	} else {
+		objSize = GENERIC_OBJSIZE(ptr);
 	}
 	
 	return objSize;

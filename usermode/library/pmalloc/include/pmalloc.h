@@ -39,8 +39,12 @@
 extern "C" {
 #endif
 
-__attribute__((transaction_pure)) void *pmalloc(size_t sz);
-__attribute__((transaction_pure)) void pfree(void *);
+__attribute__((transaction_pure)) void *_ITM_pmalloc(size_t);
+#define pmalloc _ITM_pmalloc
+__attribute__((transaction_pure)) void _ITM_pfree(void *);
+#define pfree _ITM_pfree
+__attribute__((transaction_pure)) void *_ITM_pcalloc(size_t, size_t);
+#define pcalloc _ITM_pcalloc
 __attribute__((transaction_pure)) void *prealloc(void *, size_t);
 
 #if __cplusplus

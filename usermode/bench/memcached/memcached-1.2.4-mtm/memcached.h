@@ -19,10 +19,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include <mtm.h>
-#include <mnemosyne.h>
-#include <pmalloc.h>
-#include <tm_def.h>
+#include <ptx.h>
 #include <helper.h>
 #include <pvar.h>
 

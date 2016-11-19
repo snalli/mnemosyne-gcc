@@ -230,6 +230,11 @@ extern void * _ITM_malloc(size_t);
 extern void * _ITM_calloc(size_t, size_t);
 extern void _ITM_free(void *);
 
+extern _ITM_TRANSACTION_PURE void * _ITM_pmalloc(size_t);
+extern _ITM_TRANSACTION_PURE void * _ITM_pcalloc(size_t, size_t);
+extern _ITM_TRANSACTION_PURE void * _ITM_prealloc(void *, size_t);
+extern _ITM_TRANSACTION_PURE void _ITM_pfree(void *);
+
 /*** Loads ***/
 
 extern uint8_t _ITM_CALL_CONVENTION _ITM_RU1(const uint8_t *);

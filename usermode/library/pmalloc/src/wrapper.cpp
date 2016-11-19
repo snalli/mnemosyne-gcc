@@ -364,3 +364,68 @@ __attribute__((tm_wrapping(free))) void free_txn(void *ptr)
 {
 	free(ptr);
 }
+
+extern "C"
+void * mtm_pmalloc (size_t sz)
+{
+	void                  *addr;
+	static persistentHeap *persistentheap = getPersistentAllocator();
+	static processHeap    *pHeap = getAllocator(persistentheap);
+
+	if (sz == 0) {
+		sz = 1;
+	}
+
+        if (sz >= SUPERBLOCK_SIZE/2)
+        	addr = GENERIC_PMALLOC(sz);
+	else
+		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
+
+	return addr;
+}
+
+extern "C"
+void * mtm_pcalloc (size_t nelem, size_t elsize)
+{
+	void                  *addr;
+	static persistentHeap * persistentheap = getPersistentAllocator();
+	static processHeap    * pHeap = getAllocator(persistentheap);
+	size_t                  sz = nelem * elsize;
+
+	if (sz == 0) {
+		sz = 1;
+	}
+        if (sz >= SUPERBLOCK_SIZE/2)
+        	addr = GENERIC_PMALLOC(sz);
+	else
+		addr = pHeap->getHeap(pHeap->getHeapIndex()).malloc (sz);
+	PM_MEMSET(addr, 0, sz);
+	return addr;
+}
+
+
+extern "C"
+void mtm_pfree (void* ptr)
+{
+	static persistentHeap * persistentheap = getPersistentAllocator();
+
+	if ((uintptr_t) ptr >= ((uintptr_t) persistentheap->getPersistentSegmentBase()) &&
+	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
+	{
+		persistentheap->free (ptr);
+        }
+}
+
+extern "C"
+size_t mtm_get_obj_size(void *ptr)
+{
+	static persistentHeap * persistentheap = getPersistentAllocator();
+	size_t objSize = -1;
+	if ((uintptr_t) ptr >= ((uintptr_t) persistentheap->getPersistentSegmentBase()) &&
+	    (uintptr_t) ptr < ((uintptr_t) persistentheap->getPersistentSegmentBase() + PERSISTENTHEAP_SIZE))
+	{
+		objSize = persistentHeap::objectSize (ptr);
+	}
+	
+	return objSize;
+}

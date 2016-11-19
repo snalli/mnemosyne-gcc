@@ -42,6 +42,12 @@
 #include "useraction.h"
 #include <setjmp.h>
 
+extern void* mtm_pmalloc(size_t);
+extern void* mtm_pcalloc (size_t, size_t);
+extern void mtm_pfree (void*);
+extern void* mtm_prealloc (void *, size_t);
+extern size_t mtm_get_obj_size(void*);
+
 
 struct clone_entry
 {
@@ -469,4 +475,65 @@ void _ITM_free(void *ptr)
   free(ptr);
 }
 
+_ITM_TRANSACTION_PURE
+void * _ITM_pmalloc(size_t size)
+{
+  void *ptr = NULL;
+  ptr = mtm_pmalloc(size);
+  if(!ptr)
+	goto out;
 
+  mtm_tx_t *tx = mtm_get_tx();
+  if(tx)
+	_ITM_addUserUndoAction(mtm_pfree, ptr);
+out:
+  return ptr;
+}
+
+_ITM_TRANSACTION_PURE
+void * _ITM_pcalloc(size_t nm, size_t size)
+{
+  void *ptr = NULL;
+  ptr = mtm_pcalloc(nm, size);
+  if(!ptr)
+	goto out;
+
+  mtm_tx_t *tx = mtm_get_tx();
+  if(tx)
+	_ITM_addUserUndoAction(mtm_pfree, ptr);
+out:
+  return ptr;
+}   
+
+_ITM_TRANSACTION_PURE
+void _ITM_pfree(void *ptr)
+{   
+  mtm_tx_t *tx = mtm_get_tx();
+  if (tx) {
+    _ITM_addUserCommitAction(mtm_pfree, tx->id, ptr);
+    return;
+  }
+  mtm_pfree(ptr);
+}
+
+_ITM_TRANSACTION_PURE
+void * _ITM_prealloc (void * ptr, size_t sz)
+{
+	if(!ptr)
+		return _ITM_pmalloc(sz);
+	if(!sz) {
+		_ITM_pfree(ptr);
+		return NULL;
+	}
+
+	size_t obj_size = mtm_get_obj_size(ptr);
+	if(obj_size >= sz || obj_size == -1) 
+		return ptr;
+
+	assert(obj_size < sz);
+	void *buf = _ITM_pmalloc(sz);
+	_ITM_memcpyRtWt (buf, ptr, obj_size);
+	_ITM_pfree(ptr);
+
+	return buf;
+}

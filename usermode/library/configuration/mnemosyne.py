@@ -53,6 +53,19 @@ class Environment(SCons.Environment.Environment):
 			self['CC'] = mainEnv['CC'] 
 			self['CXX'] = mainEnv['CXX'] 
             
+		if mainEnv is not None and mainEnv['VERBOSE'] == False:
+			self.Replace(
+			                 CCCOMSTR = '(COMPILE)  $SOURCES',
+			                CXXCOMSTR = '(COMPILE)  $SOURCES',
+			              SHCXXCOMSTR = '(COMPILE)  $SOURCES',
+			               SHCCCOMSTR = '(COMPILE)  $SOURCES',
+			               ASPPCOMSTR = '(ASSEMBLE) $SOURCES',
+			                 ARCOMSTR = '(BUILD)    $TARGET',
+			             RANLIBCOMSTR = '(INDEX)    $TARGET',
+			               LINKCOMSTR = '(LINK)     $TARGET',
+			             SHLINKCOMSTR = '(LINK)     $TARGET'
+				    )
+
 	def set_verbosity(self):
 
 		# Make output pretty.
@@ -66,7 +79,8 @@ class Environment(SCons.Environment.Environment):
 			                 ARCOMSTR = '(BUILD)    $TARGET',
 			             RANLIBCOMSTR = '(INDEX)    $TARGET',
 			               LINKCOMSTR = '(LINK)     $TARGET',
-			             SHLINKCOMSTR = '(LINK)     $TARGET')
+			             SHLINKCOMSTR = '(LINK)     $TARGET'
+				    )
 
 	def _GetConfigurationVariables(self):
 		"""

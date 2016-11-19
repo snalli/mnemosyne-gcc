@@ -145,6 +145,7 @@ size_t VHALLOC_OBJSIZE(void *ptr)
 }
 
 
+TM_CALLABLE
 void *
 VHALLOC_PMALLOC(size_t sz)
 {
@@ -159,6 +160,7 @@ VHALLOC_PMALLOC(size_t sz)
 }
 
 
+TM_CALLABLE
 void 
 vhalloc_pfree(void *ptr)
 {

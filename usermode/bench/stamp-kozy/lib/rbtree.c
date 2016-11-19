@@ -140,23 +140,23 @@ void
 TMrotateRight_rb (TM_ARGDECL  rbtree_t* s, node_t* x);
 
 TM_ATTR
-inline node_t*
+node_t*
 TMparentOf_rb (TM_ARGDECL  node_t* n);
 
 TM_ATTR
-inline node_t*
+node_t*
 TMleftOf_rb (TM_ARGDECL  node_t* n);
 
 TM_ATTR
-inline node_t*
+node_t*
 TMrightOf_rb (TM_ARGDECL  node_t* n);
 
 TM_ATTR
-inline long
+long
 TMcolorOf_rb (TM_ARGDECL  node_t* n);
 
 TM_ATTR
-inline void
+void
 TMsetColor_rb (TM_ARGDECL  node_t* n, long c);
 
 TM_ATTR
@@ -411,7 +411,7 @@ parentOf (node_t* n)
  * =============================================================================
  */
 TM_ATTR
-inline node_t*
+node_t*
 TMparentOf_rb (TM_ARGDECL  node_t* n)
 {
    return (n ? TX_LDNODE(n,p) : NULL);
@@ -436,7 +436,7 @@ leftOf (node_t* n)
  * =============================================================================
  */
 TM_ATTR
-inline node_t*
+node_t*
 TMleftOf_rb (TM_ARGDECL  node_t* n)
 {
    return (n ? TX_LDNODE(n, l) : NULL);
@@ -461,7 +461,7 @@ rightOf (node_t* n)
  * =============================================================================
  */
 TM_ATTR
-inline node_t*
+node_t*
 TMrightOf_rb (TM_ARGDECL  node_t* n)
 {
     return (n ? TX_LDNODE(n, r) : NULL);
@@ -486,7 +486,7 @@ colorOf (node_t* n)
  * =============================================================================
  */
 TM_ATTR
-inline long
+long
 TMcolorOf_rb (TM_ARGDECL  node_t* n)
 {
     return (n ? (long)TX_LDF(n, c) : BLACK);
@@ -513,7 +513,7 @@ setColor (node_t* n, long c)
  * =============================================================================
  */
 TM_ATTR
-inline void
+void
 TMsetColor_rb (TM_ARGDECL  node_t* n, long c)
 {
     if (n != NULL) {

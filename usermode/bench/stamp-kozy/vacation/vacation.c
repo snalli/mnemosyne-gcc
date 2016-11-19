@@ -241,10 +241,10 @@ initializeManager ()
     };
     */
     bool_t (*manager_add[])(manager_t*, long, long, long) = {
-        &manager_addCar,
-        &manager_addFlight,
-        &manager_addRoom,
-        &addCustomer
+        manager_addCar,
+        manager_addFlight,
+        manager_addRoom,
+        addCustomer
     };
 
     long t;

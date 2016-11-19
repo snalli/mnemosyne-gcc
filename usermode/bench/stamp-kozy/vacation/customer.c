@@ -85,7 +85,7 @@
  * =============================================================================
  */
 TM_ATTR
-static long
+long
 compareReservationInfo (const void* aPtr, const void* bPtr)
 {
     return reservation_info_compare((reservation_info_t*)aPtr,
@@ -108,7 +108,7 @@ customer_alloc (TM_ARGDECL  long id)
 
     customerPtr->id = id;								/* persistent write */
 
-    customerPtr->reservationInfoListPtr = TMLIST_ALLOC(&compareReservationInfo);	/* persistent write */
+    customerPtr->reservationInfoListPtr = TMLIST_ALLOC(compareReservationInfo);	/* persistent write */
     assert(customerPtr->reservationInfoListPtr != NULL);
 
     return customerPtr;
@@ -125,7 +125,7 @@ customer_alloc_seq (long id)
 
     customerPtr->id = id;
 
-    customerPtr->reservationInfoListPtr = list_alloc(&compareReservationInfo);
+    customerPtr->reservationInfoListPtr = list_alloc(compareReservationInfo);
     assert(customerPtr->reservationInfoListPtr != NULL);
 
     return customerPtr;

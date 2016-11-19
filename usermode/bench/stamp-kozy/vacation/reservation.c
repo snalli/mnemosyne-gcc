@@ -83,7 +83,7 @@
  */
 
 TM_ATTR
-static void
+void
 checkReservation (TM_ARGDECL  reservation_t* reservationPtr);
 
 /* =============================================================================
@@ -142,7 +142,8 @@ reservation_info_compare (reservation_info_t* aPtr, reservation_info_t* bPtr)
  * -- Check if consistent
  * =============================================================================
  */
-static void
+TM_ATTR
+void
 checkReservation (TM_ARGDECL  reservation_t* reservationPtr)
 {
     long numUsed = (long)TM_SHARED_READ(reservationPtr->numUsed);
@@ -411,6 +412,7 @@ reservation_compare (reservation_t* aPtr, reservation_t* bPtr)
  * reservation_hash
  * =============================================================================
  */
+TM_ATTR
 ulong_t
 reservation_hash (reservation_t* reservationPtr)
 {

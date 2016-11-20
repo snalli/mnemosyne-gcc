@@ -118,7 +118,7 @@ rbtree_alloc (long (*compare)(const void*, const void*));
  */
 TM_ATTR
 rbtree_t*
-TMrbtree_alloc (TM_ARGDECL  long (*compare)(const void*, const void*));
+TMrbtree_alloc (TM_ATTR  long (*compare)(const void*, const void*));
 
 
 /* =============================================================================

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pmalloc.h>
+#include <pthread.h>
 
 unsigned long long cl_mask = 0xffffffffffffffc0;
 #define sz 32

@@ -92,6 +92,14 @@ compareReservationInfo (const void* aPtr, const void* bPtr)
                                     (reservation_info_t*)bPtr);
 }
 
+long
+compareReservationInfo_seq (const void* aPtr, const void* bPtr)
+{
+    return reservation_info_compare((reservation_info_t*)aPtr,
+                                    (reservation_info_t*)bPtr);
+}
+
+
 
 /* =============================================================================
  * customer_alloc
@@ -125,7 +133,7 @@ customer_alloc_seq (long id)
 
     customerPtr->id = id;
 
-    customerPtr->reservationInfoListPtr = list_alloc(compareReservationInfo);
+    customerPtr->reservationInfoListPtr = list_alloc(compareReservationInfo_seq);
     assert(customerPtr->reservationInfoListPtr != NULL);
 
     return customerPtr;

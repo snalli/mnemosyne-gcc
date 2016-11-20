@@ -101,7 +101,7 @@ typedef struct node {
 
 struct rbtree {
     node_t* root;
-    TM_PURE long (*compare)(const void*, const void*);   /* returns {-1,0,1}, 0 -> equal */
+    long TM_ATTR (*compare)(const void*, const void*);   /* returns {-1,0,1}, 0 -> equal */
 };
 
 #define LDA(a)              *(a)
@@ -1297,12 +1297,15 @@ rbtree_verify (rbtree_t* s, long verbose)
 rbtree_t*
 rbtree_alloc (long (*compare)(const void*, const void*))
 {
+    /*
     rbtree_t* n = (rbtree_t* )malloc(sizeof(*n));
     if (n) {
         n->compare = (compare ? compare : compareKeysDefault_rb);
         n->root = NULL;
     }
     return n;
+    */
+    assert(0); return NULL;
 }
 
 
@@ -1312,7 +1315,7 @@ rbtree_alloc (long (*compare)(const void*, const void*))
  */
 TM_ATTR
 rbtree_t*
-TMrbtree_alloc (TM_ARGDECL  long (*compare)(const void*, const void*))
+TMrbtree_alloc (TM_ATTR  long (*compare)(const void*, const void*))
 {
     rbtree_t* n = (rbtree_t* )TM_MALLOC(sizeof(*n));
     if (n){

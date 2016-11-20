@@ -231,7 +231,7 @@ extern unsigned long v_free, nv_free;
 #define VACATION_LIST_DEBUG 0
 
 /* To prevent GCC from barfing on libc calls */
-TM_PURE fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
+TM_PURE int fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
 TM_PURE extern
 void __assert_fail (const char *__assertion, const char *__file,
                     unsigned int __line, const char *__function)

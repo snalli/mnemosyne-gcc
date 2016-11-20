@@ -94,6 +94,11 @@ TM_ATTR
 void
 TMlist_free (TM_ARGDECL  list_t* listPtr);
 
+TM_ATTR
+long
+compareReservationInfo (const void* aPtr, const void* bPtr);
+
+
 /* =============================================================================
  * compareDataPtrAddressesList
  * -- Default compare function
@@ -253,6 +258,9 @@ TMallocNode (TM_ARGDECL  void* dataPtr)
 list_t*
 list_alloc (long (*compare)(const void*, const void*))
 {
+    assert(0);
+    return NULL;
+    /*
     list_t* listPtr = (list_t*)malloc(sizeof(list_t));
     if (listPtr == NULL) {
         return NULL;
@@ -263,12 +271,16 @@ list_alloc (long (*compare)(const void*, const void*))
     listPtr->size = 0;
 
     if (compare == NULL) {
-        listPtr->compare = compareDataPtrAddressesList; /* default */
+        listPtr->compare = compareDataPtrAddressesList; // default 
+    } else if (compare == compareReservationInfo) {
+	listPtr->compare = compareReservationInfo;
     } else {
-        listPtr->compare = compare;
+        // listPtr->compare = compare;
+        assert(0); // Unsup for Tx mode 
     }
 
     return listPtr;
+    */
 }
 
 
@@ -281,6 +293,10 @@ list_alloc (long (*compare)(const void*, const void*))
 list_t*
 Plist_alloc (long (*compare)(const void*, const void*))
 {
+    assert(0);
+    return NULL;
+
+    /*
     list_t* listPtr = (list_t*)P_MALLOC(sizeof(list_t));
     if (listPtr == NULL) {
         return NULL;
@@ -291,12 +307,16 @@ Plist_alloc (long (*compare)(const void*, const void*))
     listPtr->size = 0;
 
     if (compare == NULL) {
-        listPtr->compare = compareDataPtrAddressesList; /* default */
+        listPtr->compare = compareDataPtrAddressesList; // default 
+    } else if (compare == compareReservationInfo) {
+	listPtr->compare = compareReservationInfo;
     } else {
-        listPtr->compare = compare;
+        // listPtr->compare = compare;
+        assert(0); // Unsup for Tx mode 
     }
 
     return listPtr;
+    */
 }
 
 
@@ -308,7 +328,7 @@ Plist_alloc (long (*compare)(const void*, const void*))
  */
 TM_ATTR
 list_t*
-TMlist_alloc (TM_ARGDECL  long (*compare)(const void*, const void*))
+TMlist_alloc (TM_ATTR  long (*compare)(const void*, const void*))
 {
     list_t* listPtr = (list_t*)TM_MALLOC(sizeof(list_t));
     if (listPtr == NULL) {
@@ -321,13 +341,13 @@ TMlist_alloc (TM_ARGDECL  long (*compare)(const void*, const void*))
 
     if (compare == NULL) {
         listPtr->compare = compareDataPtrAddressesList; /* default, persistent */
+
+    } else if (compare == compareReservationInfo) {
+	listPtr->compare = compareReservationInfo;
+
     } else {
-	#if VACATION_DEBUG
-		#if VACATION_LIST_DEBUG
-		fprintf(stderr, "%s NOT DEFAULT compare=%p\n", __func__, (void*)listPtr->compare);
-		#endif
-	#endif
-        listPtr->compare = compare;			/* persistent */
+        // listPtr->compare = compare;			/* persistent */
+        assert(0); /* Unsup in Tx mode */
     }
 
     return listPtr;
@@ -540,8 +560,11 @@ TMfindPreviousList (TM_ARGDECL  list_t* listPtr, void* dataPtr)
     {
 	if(listPtr && listPtr->compare)
 	{
+		/* This is to ensure that Tx'nal version of the routine is called */
 		if(listPtr->compare == compareDataPtrAddressesList)
 			cmp = compareDataPtrAddressesList(nodePtr->dataPtr, dataPtr);
+		else if (listPtr->compare == compareReservationInfo)
+			cmp = compareReservationInfo(nodePtr->dataPtr, dataPtr);
 		else
 			cmp = listPtr->compare(nodePtr->dataPtr, dataPtr);
 	} else
@@ -597,6 +620,8 @@ TMlist_find (TM_ARGDECL  list_t* listPtr, void* dataPtr)
     {
 	if(listPtr->compare == compareDataPtrAddressesList)
 		cmp = compareDataPtrAddressesList(nodePtr->dataPtr, dataPtr);
+	else if (listPtr->compare == compareReservationInfo)
+		cmp = compareReservationInfo(nodePtr->dataPtr, dataPtr);
 	else
 		cmp = listPtr->compare(nodePtr->dataPtr, dataPtr);
     } else
@@ -705,6 +730,8 @@ TMlist_insert (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 	{
 		if(listPtr->compare == compareDataPtrAddressesList)
 			cmp = compareDataPtrAddressesList(currPtr->dataPtr, dataPtr);
+		else if (listPtr->compare == compareReservationInfo)
+			cmp = compareReservationInfo(currPtr->dataPtr, dataPtr);
 		else
 			cmp = listPtr->compare(currPtr->dataPtr, dataPtr);
 	} else 
@@ -808,6 +835,8 @@ TMlist_remove (TM_ARGDECL  list_t* listPtr, void* dataPtr)
 	{
 		if(listPtr->compare == compareDataPtrAddressesList)
 			cmp = compareDataPtrAddressesList(nodePtr->dataPtr, dataPtr);
+		else if (listPtr->compare == compareReservationInfo)
+			cmp = compareReservationInfo(nodePtr->dataPtr, dataPtr);
 		else
         		cmp = listPtr->compare(nodePtr->dataPtr, dataPtr);
 		

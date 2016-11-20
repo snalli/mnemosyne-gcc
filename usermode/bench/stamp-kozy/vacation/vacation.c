@@ -204,7 +204,6 @@ parseArgs (long argc, char* const argv[])
  * -- Wrapper function
  * =============================================================================
  */
-TM_ATTR
 static bool_t
 addCustomer (manager_t* managerPtr, long id, long num, long price)
 {
@@ -241,9 +240,9 @@ initializeManager ()
     };
     */
     bool_t (*manager_add[])(manager_t*, long, long, long) = {
-        manager_addCar,
-        manager_addFlight,
-        manager_addRoom,
+        manager_addCar_seq,
+        manager_addFlight_seq,
+        manager_addRoom_seq,
         addCustomer
     };
 
@@ -319,7 +318,17 @@ initializeManager ()
 			Do we need locking ? Can we disable lock mgmt ?
 			This act increases the time to initialize, but only the first time.
 		*/
-            	status = manager_add[t](managerPtr, id, num, price);
+		if(manager_add[t] == manager_addCar_seq)
+	            	status = manager_addCar(managerPtr, id, num, price);
+		else if(manager_add[t] == manager_addFlight_seq)
+	            	status = manager_addFlight(managerPtr, id, num, price);
+		else if(manager_add[t] == manager_addRoom_seq)
+	            	status = manager_addRoom(managerPtr, id, num, price);
+		else if(manager_add[t] == addCustomer)
+	            	status = manager_addCustomer(managerPtr, id);
+		else
+			assert(0);
+
 	    TM_END();
             assert(status);
         }

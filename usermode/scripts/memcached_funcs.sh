@@ -1,12 +1,12 @@
 #!/bin/bash -x
 
-MEMCACHED_DIR="/u/s/a/sankey/Desktop/mnemosyne-gcc/usermode"
+MEMCACHED_DIR=$HOME"/Desktop/mnemosyne-gcc/usermode"
 export LD_LIBRARY_PATH=$MEMCACHED_DIR/library
 
 MEMCACHED_LOAD_CNF="$MEMCACHED_DIR/scripts/load.cnf"
 MEMCACHED_RUN_CNF="$MEMCACHED_DIR/scripts/run.cnf"
 
-MEMASLAP_BIN="/u/s/a/sankey/Desktop/mnemosyne-gcc/usermode/memslap"
+MEMASLAP_BIN=$HOME"/Desktop/mnemosyne-gcc/usermode/memslap"
 MEMASLAP_KEY_SIZE="16" # i
 MEMASLAP_THREADS="16"  # i
 MEMASLAP_CONCURRENCY="32" # i

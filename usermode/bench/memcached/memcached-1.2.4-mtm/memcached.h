@@ -10,8 +10,8 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <event.h>
-#include <event_struct.h>
-#include <event_compat.h>
+//#include <event_struct.h>
+//#include <event_compat.h>
 
 #include <errno.h>
 #include <stdlib.h>
@@ -22,22 +22,6 @@
 #include <ptx.h>
 #include <helper.h>
 #include <pvar.h>
-
-TM_PURE void *realloc(void *ptr, size_t size);
-TM_PURE long int strtol(const char *nptr, char **endptr, int base);
-TM_PURE unsigned long long int strtoull(const char *nptr, char **endptr, int base);
-
-TM_PURE size_t __builtin_object_size (void * ptr, int type);
-TM_PURE int __builtin___sprintf_chk (char *s, int flag, size_t os, const char *fmt, ...);
-TM_PURE int __builtin___snprintf_chk (char *s, size_t maxlen, int flag, size_t os, const char *fmt, ...);
-TM_PURE int __builtin___vsprintf_chk (char *s, int flag, size_t os, const char *fmt, va_list ap);
-TM_PURE int __builtin___vsnprintf_chk (char *s, size_t maxlen, int flag, size_t os, const char *fmt, va_list ap);
-
-TM_PURE 
-void __assert_fail (const char *__assertion, const char *__file,
-                    unsigned int __line, const char *__function)
-     __THROW __attribute__ ((__noreturn__));
-
 
 #define DATA_BUFFER_SIZE 2048
 #define UDP_READ_BUFFER_SIZE 65536

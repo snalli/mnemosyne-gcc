@@ -45,7 +45,8 @@ __attribute__((transaction_pure)) void _ITM_pfree(void *);
 #define pfree _ITM_pfree
 __attribute__((transaction_pure)) void *_ITM_pcalloc(size_t, size_t);
 #define pcalloc _ITM_pcalloc
-__attribute__((transaction_pure)) void *prealloc(void *, size_t);
+__attribute__((transaction_pure)) void *_ITM_prealloc(void *, size_t);
+#define prealloc _ITM_prealloc
 
 #if __cplusplus
 }

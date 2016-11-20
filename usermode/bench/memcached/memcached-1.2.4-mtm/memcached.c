@@ -1618,6 +1618,7 @@ static void process_delete_command(conn *c, token_t *tokens, const size_t ntoken
  *
  * Returns the result to send to the client.
  */
+TM_ATTR
 char *do_defer_delete(item *it, time_t exptime)
 {
     if (delcurr >= deltotal) {

@@ -10,8 +10,11 @@
 #include <memcached.h>
 
 /* Forward Declarations */
+TM_ATTR
 void item_link_q(item *it);
+TM_ATTR
 void item_unlink_q(item *it);
+TM_ATTR
 uint64_t get_cas_id();
 
 /*

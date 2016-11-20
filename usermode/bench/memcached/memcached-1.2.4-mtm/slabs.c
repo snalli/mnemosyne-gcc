@@ -53,7 +53,7 @@ static int power_largest;
 /*
  * Forward Declarations
  */
-int do_slabs_newslab(const unsigned int id);
+TM_ATTR int do_slabs_newslab(const unsigned int id);
 
 #ifndef DONT_PREALLOC_SLABS
 /* Preallocate as many slab pages as possible (called from slabs_init)
@@ -166,7 +166,7 @@ int grow_slab_list (const unsigned int id) {
     slabclass_t *p = &slabclass[id];
     if (p->slabs == p->list_size) {
         size_t new_size =  (p->list_size != 0) ? p->list_size * 2 : 16;
-        void *new_list = prealloc(p->slab_list, new_size * sizeof(void *));
+        void *new_list = _ITM_prealloc(p->slab_list, new_size * sizeof(void *));
         if (new_list == 0) return 0;
         p->list_size = new_size;
         p->slab_list = new_list;
@@ -290,7 +290,7 @@ void do_slabs_free(void *ptr, const size_t size) {
 
     if (p->sl_curr == p->sl_total) { /* need more space on the free list */
         int new_size = (p->sl_total != 0) ? p->sl_total * 2 : 16;  /* 16 is arbitrary */
-        void **new_slots = prealloc(p->slots, new_size * sizeof(void *));
+        void **new_slots = _ITM_prealloc(p->slots, new_size * sizeof(void *));
         if (new_slots == 0)
             return;
         p->slots = new_slots;

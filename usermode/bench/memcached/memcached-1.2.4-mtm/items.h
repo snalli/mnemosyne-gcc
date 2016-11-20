@@ -13,10 +13,10 @@ TM_ATTR int  do_item_replace(item *it, item *new_it);
 
 /*@null@*/
 TM_ATTR char *do_item_cachedump(const unsigned int slabs_clsid, const unsigned int limit, unsigned int *bytes);
-char *do_item_stats(int *bytes);
+TM_ATTR char *do_item_stats(int *bytes);
 
 /*@null@*/
-char *do_item_stats_sizes(int *bytes);
+TM_ATTR char *do_item_stats_sizes(int *bytes);
 TM_ATTR void do_item_flush_expired(void);
 item *item_get(const char *key, const size_t nkey);
 

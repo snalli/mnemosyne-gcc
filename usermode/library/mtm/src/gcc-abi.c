@@ -201,10 +201,7 @@ uint32_t _ITM_CALL_CONVENTION MTM_begin_transaction(uint32_t attr, jmp_buf * buf
 	assert(tx != NULL);
 	ret = mtm_pwbetl_beginTransaction_internal(tx, attr, NULL, &env);
 
-  /*
-  env = int_stm_start(tx, _a); */
   /* Save thread context only when outermost transaction */
-  /* TODO check that the memcpy is fast. */
   	if (likely(env != NULL))
 		memcpy(env, buf, sizeof(jmp_buf)); /* TODO limit size to real size */
   // freud : This is where you intialized the jump buffer. 
@@ -246,18 +243,6 @@ void _ITM_CALL_CONVENTION _ITM_commitTransactionToId(const _ITM_transactionId ti
 	mtm_tx_t *tx = mtm_get_tx();
 	mtm_pwbetl_commitTransactionToId(tx, tid, __src);
 }
-
-/*
-TODO : Requires assembly-level hacking
-uint32_t
-mtm_pwbetl_beginTransaction_internal (mtm_tx_t *tx,
-                                   uint32_t prop,
-                                   _ITM_srcLocation *srcloc)
-{
-        PM_START_TX();
-        return beginTransaction_internal (tx, prop, srcloc, 1);
-}
-*/
 
 
 int _ITM_CALL_CONVENTION
@@ -346,14 +331,14 @@ void _ITM_CALL_CONVENTION
 _ITM_dropReferences (const void *start, size_t size)
 {
 	//TODO
+	assert(0);
 }
 
 
 void _ITM_CALL_CONVENTION 
 _ITM_registerThrownObject(const void *exception_object, size_t s)
 {
-
-
+	assert(0);
 }
 
 
@@ -405,6 +390,7 @@ _ITM_registerThreadFinalization (void (_ITM_CALL_CONVENTION * thread_fini_func) 
 {
 	/* Not yet implemented. */
 	//abort();
+	assert(0);
 }
 
 void _ITM_CALL_CONVENTION
@@ -518,6 +504,12 @@ void _ITM_pfree(void *ptr)
 
 _ITM_TRANSACTION_PURE
 void * _ITM_prealloc (void * ptr, size_t sz)
+{ return mtm_prealloc(ptr, sz); }
+
+/*
+ * Atomic version, but buggy
+_ITM_TRANSACTION_PURE
+void * _ITM_prealloc (void * ptr, size_t sz)
 {
 	if(!ptr)
 		return _ITM_pmalloc(sz);
@@ -537,3 +529,4 @@ void * _ITM_prealloc (void * ptr, size_t sz)
 
 	return buf;
 }
+*/

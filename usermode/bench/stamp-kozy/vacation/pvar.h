@@ -13,7 +13,7 @@
 #ifdef __PVAR_C__
 
 #define PVAR(type, var)	\
-	MNEMOSYNE_PERSISTENT type var;	\
+	__persist__ type var;				\
 	TM_ATTR type pset_##var(type __##var) 		\
 			{ return (var = __##var); }	\
 	TM_ATTR type pget_##var() { return var; }	\
@@ -22,7 +22,7 @@
 #else /* !__PVAR_C__ */
 
 #define PVAR(type, var)	\
-	extern MNEMOSYNE_PERSISTENT type var;	\
+	extern __persist__ type var;		\
 	extern TM_ATTR type pset_##var(type);	\
 	extern TM_ATTR type pget_##var();	\
 	extern TM_ATTR void* paddr_##var();	

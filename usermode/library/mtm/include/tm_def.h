@@ -5,15 +5,19 @@
 #define TM_CALL                         __attribute__((transaction_callable))
 #define TM_PURE                         __attribute__((transaction_pure))
 #define TM_ATTR                         TM_SAFE
+#define TM_ATOMIC       		__transaction_atomic
+#define TM_RELAXED      		__transaction_relaxed
+#define PTx				TM_RELAXED
+#define __persist__			__attribute__ ((section("PERSISTENT")))
 
+
+/* To prevent GCC from barfing on libc calls */
 TM_PURE extern
 void __assert_fail (const char *__assertion, const char *__file,
                     unsigned int __line, const char *__function)
      __THROW __attribute__ ((__noreturn__));
 
-#define TM_ATOMIC       __transaction_atomic
-#define TM_RELAXED      __transaction_relaxed
-#define PTx	TM_RELAXED
+TM_PURE int fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
 
 /*
  * The choice of relaxed over atomic transactions

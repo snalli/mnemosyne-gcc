@@ -75,9 +75,7 @@
 #define TM_H 1
 
 #include "../tm_common.h"
-#include <mnemosyne.h>
-#include <mtm.h>
-#include <pmalloc.h>
+#include <ptx.h>
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -215,10 +213,6 @@ extern unsigned long v_free, nv_free;
 #define TM_ARG_ALONE                  /* nothing */
 #define TM_ARGDECL                    /* nothing */
 #define TM_ARGDECL_ALONE              /* nothing */
-#define TM_SAFE		              	__attribute__((transaction_safe))
-#define TM_CALL				__attribute__((transaction_callable))
-#define TM_PURE		              	__attribute__((transaction_pure))
-#define TM_ATTR				TM_SAFE
 
 #define TM_STARTUP(numThread)         /* nothing */
 #define TM_SHUTDOWN()                 /* nothing */
@@ -229,13 +223,6 @@ extern unsigned long v_free, nv_free;
 #define VACATION_DEBUG 0
 #define VACATION_MANAGER_DEBUG 0
 #define VACATION_LIST_DEBUG 0
-
-/* To prevent GCC from barfing on libc calls */
-TM_PURE int fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
-TM_PURE extern
-void __assert_fail (const char *__assertion, const char *__file,
-                    unsigned int __line, const char *__function)
-     __THROW __attribute__ ((__noreturn__));
 
 #define P_MALLOC(size)              		\
 	({ 					\
@@ -266,8 +253,8 @@ void __assert_fail (const char *__assertion, const char *__file,
 		pfree(ptr);			\
 	})
 
-#define TM_BEGIN()                    MNEMOSYNE_ATOMIC {
-#define TM_BEGIN_RO()                 MNEMOSYNE_ATOMIC { // What is the txn spans across multiple routines ?
+#define TM_BEGIN()                    PTx {
+#define TM_BEGIN_RO()                 PTx { // What is the txn spans across multiple routines ?
 #define TM_END()                      }
 #define TM_RESTART()                  assert(0); // ICC : __tm_retry, GCC : unsup 
 

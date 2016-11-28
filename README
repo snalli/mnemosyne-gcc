@@ -23,6 +23,15 @@ find that Mnemosyne provides a 20--280 percent performance increase for
 small data sizes over alternative persistence strategies, such as 
 Berkeley DB or Boost serialization that are designed for disks.
 
+DEPENDENCIES:
+* scons
+* libconfig
+	- install libconfig-devel.x86_64
+	- install libconfig.x86_64
+* gelf
+	- install elfutils-libelf-devel.x86_64
+	- install elfutils-libelf.x86_64
+
 TO BUILD MNEMOSYNE
 $ cd usermode
 $ scons [--build-debug] [--build-stats] [--enable-trace]
@@ -81,3 +90,4 @@ Sanketh Nalli <nalli@wisc.edu>
 LICENSE:
 
 See license file under each module
+

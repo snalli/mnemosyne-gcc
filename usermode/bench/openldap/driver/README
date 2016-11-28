@@ -1,6 +1,0 @@
-Directory contents
-==================
-
-scripts/mnemosyne: scripts to run OpenLDAP using the mnemosyne backend
-scripts/query    : query scripts e.g. adding, searching entries
-slamd            : SLAMD driver and template

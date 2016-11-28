@@ -20,9 +20,6 @@ Export('benchEnv')
 
 if benchEnv['BUILD_BENCH'] == 'ALL':
 	bench_list = Split("""
-	                   kvstore
-			   stl
-			   ubench
 			   memcached
 			   stamp-kozy
 	                   """)

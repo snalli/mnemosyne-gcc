@@ -1,5 +1,0 @@
-dn: cn=lmessi, dc=example, dc=com
-cn: lmessi
-cn: Lionel
-sn: Messi
-objectClass: person

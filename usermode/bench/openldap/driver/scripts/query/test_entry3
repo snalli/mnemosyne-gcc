@@ -1,5 +1,0 @@
-dn: cn=dmaradona, dc=example, dc=com
-cn: dmaradona
-cn: Diego
-sn: Maradona
-objectClass: person

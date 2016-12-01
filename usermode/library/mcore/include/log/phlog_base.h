@@ -86,7 +86,7 @@ struct m_phlog_base_nvmd_s {
 	pcm_word_t head;                         
 	pcm_word_t tail;     
 	pcm_word_t reserved4;                /**< reserved for future use */
-	char padding[32];
+	// char padding[32];
 };/* 32 bytes, possibly. Two of these can reside in one cache line */
 
 
@@ -210,7 +210,7 @@ m_phlog_base_flush(pcm_storeset_t *set, m_phlog_base_t *log)
 	PCM_NT_STORE(set, (volatile pcm_word_t *) &log->nvmd->tail, 
 	             (pcm_word_t) log->tail);
 	PCM_WB_FENCE(set); /* freud : necessary fence */
-
+	// nvmd->tail and nvmd->head are in the same cacheline; hence self-dependency.
 	return M_R_SUCCESS;
 }
 

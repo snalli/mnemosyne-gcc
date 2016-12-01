@@ -51,9 +51,10 @@
 		({mtm_tid = syscall(SYS_gettid); mtm_tid;}) : mtm_tid), 	\
 	(time_since_start)				
 
-#ifdef _ENABLE_TRACE
 #define m_out stdout
 #define m_err stderr
+
+#ifdef _ENABLE_TRACE
 #define pm_trace_print(format, args ...)					\
     {										\
 	if(mtm_enable_trace) {							\
@@ -113,6 +114,7 @@
 
 /* PM flush */
 #define PM_FLUSH_MARKER                 "PM_L"
+#define PM_FLUSHOPT_MARKER              "PM_O"
 
 /* PM Delimiters */
 #define PM_TX_START                     "PM_XS"
@@ -359,6 +361,20 @@
                     LOC2                        	\
                 );                                  	\
     })
+
+#define PM_FLUSHOPT(pm_dst, count, done)               	\
+    ({                                              	\
+        PM_TRACE("%d:%llu:%s:%p:%u:%u:%s:%d\n",      	\
+			TENTRY_ID,		    	\
+                    PM_FLUSHOPT_MARKER,                	\
+                    (pm_dst),                       	\
+                    done,                           	\
+                    count,                          	\
+                    LOC1,                       	\
+                    LOC2                        	\
+                );                                  	\
+    })
+
 #define PM_COMMIT()                                 	\
     ({                                              	\
         PM_TRACE("%d:%llu:%s:%s:%d\n",		    	\

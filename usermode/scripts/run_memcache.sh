@@ -2,7 +2,7 @@
 
 #scons --build-bench=memcached
 #ldd ./build/bench/memcached/memcached-1.2.4-mtm/memcached
-./build/bench/memcached/memcached-1.2.4-mtm/memcached -u root -p 11211 -l 127.0.0.1 -t 4
+./build/bench/memcached/memcached-1.2.4-mtm/memcached -u root -p 11211 -l 127.0.0.1 -t 2
 #./build/bench/memcached/memcached-1.2.4-mtm/memcached -u root -p 11211 -l 127.0.0.1 -t 1 
 #./build/bench/memcached/memcached-1.2.4-mtm/memcached -u root -p 11211 -l 127.0.0.1 -t 1 -vv
 #./build/bench/memcached/memcached-1.2.4-mtm/memcached -u root -p 11211 -l 127.0.0.1 -t 1 -X 2 -T 5 -O 2 -vv

@@ -128,7 +128,7 @@ typedef struct _stritem {
     unsigned short  refcount;
     uint8_t         nsuffix;    /* length of flags-and-length string */
     uint8_t         it_flags;   /* ITEM_* above */
-    uint8_t         slabs_clsid;/* which slab class we're in */
+    uint8_t         slabs_clsid;/* slab class id : which slab class we're in */
     uint8_t         nkey;       /* key length, w/terminating null and padding */
     uint64_t        cas_id;     /* the CAS identifier */
     void * end[];

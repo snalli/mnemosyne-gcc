@@ -10,12 +10,6 @@ myEnv.Append(CCFLAGS = ' -D_GNU_SOURCE -DHAVE_CONFIG_H')
 myEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include','#library/mcore/include', '#library/pmalloc/include']
 myEnv.Append(CPPPATH = ['#library/common'])
 myEnv.Append(CPPPATH = ['#bench/memcached/memcached-1.2.4-mtm'])
-myEnv.Append(CPPPATH = ['#dep/libevent/include'])
-myEnv.Append(CPPPATH = ['#dep/libevent/include/event2'])
-
-#myEnv.Append(CPPPATH = myEnv['EXPLICIT_DEPENDENCY']['BDB_INCLUDE'] )
-#myEnv.Append(LINKFLAGS = '-Wl,--whole-archive %s -Wl,--no-whole-archive' % myEnv['EXPLICIT_DEPENDENCY']['BDB_LIB'])
-myEnv.Append(LINKFLAGS = '-L./dep/libevent/.libs')
 
 myEnv.Append(LIBS = [mcoreLibrary])
 myEnv.Append(LIBS = [mtmLibrary])

@@ -9,7 +9,7 @@ Import('mainEnv')  # read only -- clone if need to modify
 buildEnv = configuration.pmalloc.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
 
 OPTIMIZE_FLAG = '-fno-rtti -fno-exceptions -finline-functions'
-WARNINGS = '-w'
+WARNINGS = ' -w'
 #'-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
 DISABLE_WARNINGS = []
 

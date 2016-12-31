@@ -31,6 +31,12 @@ DEPENDENCIES:
 * gelf
 	- install elfutils-libelf-devel.x86_64
 	- install elfutils-libelf.x86_64
+* libevent
+      	$ cd dep/libevent
+	$ autconf
+    	$ ./configure
+     	$ make
+     	$ NO NEED TO MAKE INSTALL
 
 TO BUILD MNEMOSYNE
 $ cd usermode

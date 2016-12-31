@@ -15,3 +15,5 @@ pin/
 /dep/libevent-2.0.10/build
 /bench/memcached/memcached-1.2.4-mtm/build
 /bench/memcached/memcachedb-1.2.0/build/
+dep/
+dep/*

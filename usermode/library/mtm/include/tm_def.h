@@ -12,28 +12,31 @@
 
 
 /* To prevent GCC from barfing on libc calls */
-TM_PURE extern
+TM_PURE 
 void __assert_fail (const char *__assertion, const char *__file,
                     unsigned int __line, const char *__function)
      __THROW __attribute__ ((__noreturn__));
 
-TM_PURE int fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
 TM_PURE void *realloc(void *ptr, size_t size);
 TM_PURE long int strtol(const char *nptr, char **endptr, int base);
 TM_PURE unsigned long long int strtoull(const char *nptr, char **endptr, int base);
+/* Test for GCC > 6.2.1 */
+#if __GNUC__ > 6 || \
+	(__GNUC__ == 6 && (__GNUC_MINOR__ > 2 || \
+	(__GNUC_MINOR__ == 2 && \
+	__GNUC_PATCHLEVEL__ > 0)))
+TM_PURE int fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
+TM_PURE int sprintf (char *__restrict __s, const char *__restrict __format, ...) __THROWNL;
+TM_PURE int snprintf (char *__restrict __s, size_t __maxlen, const char *__restrict __format, ...)
+	__THROWNL __attribute__ ((__format__ (__printf__, 3, 4)));
+#endif
+
 
 TM_PURE size_t __builtin_object_size (void * ptr, int type);
 TM_PURE int __builtin___sprintf_chk (char *s, int flag, size_t os, const char *fmt, ...);
 TM_PURE int __builtin___snprintf_chk (char *s, size_t maxlen, int flag, size_t os, const char *fmt, ...);
 TM_PURE int __builtin___vsprintf_chk (char *s, int flag, size_t os, const char *fmt, va_list ap);
 TM_PURE int __builtin___vsnprintf_chk (char *s, size_t maxlen, int flag, size_t os, const char *fmt, va_list ap);
-TM_PURE
-extern int sprintf (char *__restrict __s,
-                    const char *__restrict __format, ...) __THROWNL;
-TM_PURE
-extern int snprintf (char *__restrict __s, size_t __maxlen,
-                     const char *__restrict __format, ...)
-     __THROWNL __attribute__ ((__format__ (__printf__, 3, 4)));
 
 
 

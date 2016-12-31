@@ -305,7 +305,7 @@ static void setup_thread(LIBEVENT_THREAD *me) {
 /*
  * Worker thread: main event loop
  */
-static void *worker_libevent(void *arg) {
+static void* worker_libevent(void *arg) {
     LIBEVENT_THREAD *me = arg;
 
     /* Any per-thread setup can happen here; thread_init() will block until
@@ -317,7 +317,8 @@ static void *worker_libevent(void *arg) {
     pthread_cond_signal(&init_cond);
     pthread_mutex_unlock(&init_lock);
 
-    return (void*) event_base_loop(me->base, 0);
+    event_base_loop(me->base, 0);
+    return 0;
 }
 
 

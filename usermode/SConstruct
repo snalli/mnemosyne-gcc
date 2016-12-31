@@ -49,7 +49,9 @@ AddOption('--test-filter',
 AddOption('--disable-trace',
            action="store_false", dest='disable_trace',
            default = False,
-           help='Disable tracing of NVM accesses [%default; Tracing NOT disabled by default]')
+           help='Disable compiling trace infrastructure for NVM accesses [%default; This is NOT disabled by default.\
+ But you can compile it anyways since a runtime parameter controls whether tracing actually takes place.\
+ Compiling it won't slow down your execution. Initiating the tracer will, however.]')
 AddOption('--verbose',
            action="store_true", dest='verbose',
            default = False,

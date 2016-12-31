@@ -89,6 +89,7 @@ extern unsigned long long tbuf_sz;
 extern pthread_spinlock_t tbuf_lock;
 extern int mtm_enable_trace;
 extern int mtm_debug_buffer;
+extern int trace_marker, tracing_on;
 extern struct timeval glb_time;
 extern unsigned long long start_buf_drain, end_buf_drain, buf_drain_period;
 extern unsigned long long glb_tv_sec, glb_tv_usec, glb_start_time;

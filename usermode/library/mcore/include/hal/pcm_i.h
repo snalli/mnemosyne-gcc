@@ -260,7 +260,7 @@ static inline unsigned long long asm_rdtscp(void)
 #define asm_clflush(addr)					\
 ({								\
 	__asm__ __volatile__ ("clflushopt %0" : : "m"(*addr));	\
-	PM_FLUSH((addr), PM_CL_SIZE, sizeof(addr));		\
+	/* PM_FLUSH((addr), PM_CL_SIZE, sizeof(addr)); */	\
 })
 /*
 #define asm_clflush(addr) {;}
@@ -380,14 +380,14 @@ emulate_latency_ns(int ns)
 											\
 		/* Complete write? */							\
 		if (mask == ((uint64_t) -1)) {						\
-			PM_EQU(*addr, val);						\
+			PM_EQU_DW(*addr, val);						\
 		} else {								\
 			valu.w = val;							\
 			a = (uintptr_t) addr;						\
 			trailing_0bytes = __builtin_ctzll(mask) >> 3;			\
 			leading_0bytes = __builtin_clzll(mask) >> 3;			\
 			for (i = trailing_0bytes; i<8-leading_0bytes;i++) {		\
-				PM_EQU(*((uint8_t *) (a+i)), valu.b[i]);		\
+				PM_EQU_DW(*((uint8_t *) (a+i)), valu.b[i]);		\
 			}								\
 		}									\
 	}										\

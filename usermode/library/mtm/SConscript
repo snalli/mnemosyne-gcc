@@ -37,8 +37,8 @@ else:
 if buildEnv['BUILD_STATS'] == True:
 	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
 
-if mainEnv['ENABLE_TRACE'] == True:
-        buildEnv.Append(CCFLAGS = '-D_ENABLE_TRACE')
+if mainEnv['ENABLE_FTRACE'] == True:
+        buildEnv.Append(CCFLAGS = '-D_ENABLE_FTRACE')
 
 
 

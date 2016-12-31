@@ -39,7 +39,9 @@
 #include "thrdesc.h"
 #include "debug.h"
 #include "config.h"
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
 //static pthread_cond_t  global_init_cond = PTHREAD_COND_INITIALIZER;
@@ -67,6 +69,7 @@ do_global_init(void)
 		return;
 	}
 	
+	#ifdef _ENABLE_TRACE
         gettimeofday(&glb_time, NULL);          
         glb_tv_sec  = glb_time.tv_sec;
         glb_tv_usec = glb_time.tv_usec;
@@ -78,6 +81,47 @@ do_global_init(void)
 	/* MAZ_TBUF_SZ influences how often we compress and hence the overall execution speed. */
 	if(!tbuf)
 		M_ERROR("Failed to allocate trace buffer. Abort now.");
+	#elif _ENABLE_FTRACE
+        int debug_fd = -1, ret = 0;
+        assert(trace_marker == -1);
+        assert(tracing_on == -1);
+
+        /* Turn off tracing from previous sessions */
+        debug_fd = open("/sys/kernel/debug/tracing/tracing_on", O_WRONLY);
+        if(debug_fd != -1){ ret = write(debug_fd, "0", 1); }
+        else{ ret = -1; goto fail; }
+        close(debug_fd);
+
+        /* Emtpy trace buffer */
+        debug_fd = open("/sys/kernel/debug/tracing/current_tracer", O_WRONLY);
+        if(debug_fd != -1){ ret = write(debug_fd, "nop", 3); }
+        else{ ret = -2; goto fail; }
+        close(debug_fd);
+
+        /* Pick a routine that EXISTS but will never be called, VVV IMP !*/
+        debug_fd = open("/sys/kernel/debug/tracing/set_ftrace_filter", O_WRONLY);
+        if(debug_fd != -1){ ret = write(debug_fd, "pmfs_mount", 10); }
+        else{ ret = -3; goto fail; }
+        close(debug_fd);
+
+        /* Enable function tracer */
+        debug_fd = open("/sys/kernel/debug/tracing/current_tracer", O_WRONLY);
+        if(debug_fd != -1){ ret = write(debug_fd, "function", 8); }
+        else{ ret = -4; goto fail; }
+        close(debug_fd);
+
+        trace_marker = open("/sys/kernel/debug/tracing/trace_marker", O_WRONLY);
+        if(trace_marker == -1){ ret = -5; goto fail; }
+
+        debug_fd = open("/sys/kernel/debug/tracing/tracing_on", O_WRONLY);
+        if(debug_fd != -1){ ret = write(debug_fd, "1", 1); }
+        else{ ret = -5; goto fail; }
+        close(debug_fd);
+
+fail:
+	if (ret < 0)
+		M_ERROR("failed to initialize tracing. need to be root. err = %d.\n",ret);
+	#endif
 		
 
 	pcm_storeset = pcm_storeset_get ();
@@ -116,6 +160,7 @@ do_global_fini(void)
 		m_logmgr_fini();
 		m_segmentmgr_fini();
 		mtm_fini_global();
+		#ifdef _ENABLE_TRACE
 		pthread_spin_lock(&tbuf_lock);
 		if(tbuf_sz && mtm_enable_trace)
 		{
@@ -134,6 +179,7 @@ do_global_fini(void)
 		}
 		pthread_spin_unlock(&tbuf_lock);
 		pthread_spin_destroy(&tbuf_lock);
+		#endif
 		mnemosyne_initialized = 0;
 
 		M_WARNING("Shutdown\n");

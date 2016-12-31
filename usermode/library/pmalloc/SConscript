@@ -41,8 +41,8 @@ buildEnv.Append(CPPPATH = ['#library/mcore/include/log'])
 buildEnv.Append(CPPPATH = ['#library/pmalloc/include'])
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 
-if mainEnv['ENABLE_TRACE'] == True:
-        buildEnv.Append(CCFLAGS = '-D_ENABLE_TRACE')
+if mainEnv['ENABLE_FTRACE'] == True:
+        buildEnv.Append(CCFLAGS = '-D_ENABLE_FTRACE')
 
 C_SRC = Split("""
               src/pdlmalloc.c 

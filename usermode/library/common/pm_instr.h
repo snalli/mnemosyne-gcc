@@ -97,6 +97,17 @@
 	pthread_spin_unlock(&tbuf_lock);					\
 	}									\
     }
+#elif _ENABLE_FTRACE
+/* Standard kernel-mode, non-blocking tracer.  */
+#define TENTRY_ID (int)0 ,(unsigned long long)0
+#define pm_trace_print(format, args ...)                                        \
+    {                                                                           \
+        if(mtm_enable_trace) {                                                  \
+                sprintf(tstr, format, args);                                    \
+                tsz = strlen(tstr);                                             \
+                write(trace_marker, tstr+4, tsz-4);                             \
+        }                                                                       \
+    }
 #else
 #define pm_trace_print(args ...)	{;}
 #endif
@@ -105,6 +116,8 @@
 
 /* Cacheable PM write */
 #define PM_WRT_MARKER                   "PM_W"
+#define PM_DWRT_MARKER                  "PM_DW"	/* Cache-able data write */
+#define PM_DI_MARKER                 	"PM_DI" /* Non-temporal data write */
 
 /* Cacheable PM read */
 #define PM_RD_MARKER                    "PM_R"
@@ -160,6 +173,31 @@
                         LOC2);                  	\
             pm_dst = y;                             	\
     })
+
+#define PM_EQU_DW(pm_dst, y)                            \
+    ({                                                  \
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",       \
+                        TENTRY_ID,                      \
+                        PM_DWRT_MARKER,                 \
+                        &(pm_dst),                      \
+                        sizeof((pm_dst)),               \
+                        LOC1,                           \
+                        LOC2);                          \
+            pm_dst = y;                                 \
+    })
+
+#define PM_EQU_DI(pm_dst, y)                            \
+    ({                                                  \
+            PM_TRACE("%d:%llu:%s:%p:%lu:%s:%d\n",       \
+                        TENTRY_ID,                      \
+                        PM_DI_MARKER,                 	\
+                        &(pm_dst),                      \
+                        sizeof((pm_dst)),               \
+                        LOC1,                           \
+                        LOC2);                          \
+            pm_dst = y;                                 \
+    })
+
 
 #define PM_OR_EQU(pm_dst, y)                        	\
     ({                                              	\

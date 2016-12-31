@@ -88,9 +88,9 @@ if mainEnv['BUILD_CONFIG_NAME'] is None:
 	mainEnv['BUILD_CONFIG_NAME'] = 'default'
 mainEnv['TEST_FILTER'] = GetOption('test_filter')
 if GetOption('disable_trace') == True:
-	mainEnv['ENABLE_TRACE'] = False
+	mainEnv['ENABLE_FTRACE'] = False
 else:
-	mainEnv['ENABLE_TRACE'] = True
+	mainEnv['ENABLE_FTRACE'] = True
 mainEnv['VERBOSE'] = GetOption('verbose')
 mainEnv.set_verbosity()
 

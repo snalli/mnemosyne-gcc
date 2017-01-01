@@ -11,32 +11,15 @@ AddOption('--build-bench',
            type='string',
            metavar='NAME',
            help='build this example')
-AddOption("--no-build-debug",
-           action="store_false", dest="build_debug", 
-           default = True,
-           help="build library with debug info [default]")
-AddOption("--build-debug",
-           action="store_true", dest="build_debug", 
-           default = True,
-           help="build library with debug info [default]")
 AddOption("--build-stats",
            action="store_true", dest="build_stats", 
            default = False,
-           help="build library with profiling support [default]")
-AddOption("--build-ubench",
-           action="store_true", dest="build_ubench", 
-           default = False,
-           help="build microbenchmarks")
+           help="build library with profiling support")
 AddOption('--config-name',
            action="store", dest='config_name',
            type='string',
            metavar='NAME',
            help='build using this configuration')
-AddOption("--linkage",
-          action="store", dest="linkage", 
-          type="choice", choices=["dynamic", "static"],
-          default = "dynamic",
-          help="library linkage: dynamic, static [default: %default]")
 AddOption("--test",
            action="store_true", dest="run_tests", 
            default = False,
@@ -49,13 +32,16 @@ AddOption('--test-filter',
 AddOption('--disable-trace',
            action="store_false", dest='disable_trace',
            default = False,
-           help='Disable compiling trace infrastructure for NVM accesses [%default; This is NOT disabled by default.\
- But you can compile it anyways since a runtime parameter controls whether tracing actually takes place.\
- Compiling it won't slow down your execution. Initiating the tracer will, however.]')
+           help='Disable compiling trace infrastructure for NVM accesses. \
+ Compiling the tracer in is NOT disabled by default. You should compile the tracer since only a runtime parameter in each of the shipped \
+ benchmarks controls whether tracing actually takes place during execution. Compiling the tracer won\'t slow down your execution. \
+ Initiating the tracer will.  \
+ [DEFAULT : %default]')
 AddOption('--verbose',
            action="store_true", dest='verbose',
            default = False,
-           help='Set verbosity of compilation messages [%default]')
+           help='Set verbosity of compilation messages \
+           [DEFAULT : %default]')
 
 
 
@@ -79,10 +65,9 @@ option_help = '\n'.join(help_lines[count-1:])
 Help(option_help)
 
 mainEnv = mnemosyne.Environment(None)
-mainEnv['BUILD_LINKAGE'] = GetOption('linkage')
-mainEnv['BUILD_DEBUG'] = GetOption('build_debug')
+mainEnv['BUILD_LINKAGE'] = "dynamic"
+mainEnv['BUILD_DEBUG'] = True
 mainEnv['BUILD_STATS'] = GetOption('build_stats')
-mainEnv['BUILD_UBENCH'] = GetOption('build_ubench')
 mainEnv['BUILD_EXAMPLE'] = GetOption('selected_example')
 mainEnv['BUILD_BENCH'] = GetOption('selected_bench')
 mainEnv['BUILD_CONFIG_NAME'] = GetOption('config_name')
@@ -111,22 +96,6 @@ pmallocLibrary = SConscript('library/pmalloc/SConscript', 'CommonObjects', varia
 mcoreLibrary = SConscript('library/mcore/SConscript', 'CommonObjects', variant_dir = 'build/library/mcore')
 mtmLibrary = SConscript('library/mtm/SConscript', variant_dir = 'build/library/mtm')
 
-#toolsEnv = mainEnv.Clone()
-#toolsEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
-#Export('toolsEnv')
-#Export('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
-#SConscript('tool/SConscript', variant_dir = os.path.join('build', 'tool'))
-
-# Explicit dependencies that were built outside SCons
-mainEnv['EXPLICIT_DEPENDENCY'] = {}
-mainEnv['EXPLICIT_DEPENDENCY']['BDB_LIB'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/libdb.a')
-mainEnv['EXPLICIT_DEPENDENCY']['BDB_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/bdb/build_unix/')
-
-mainEnv['EXPLICIT_DEPENDENCY']['TC_BASE_LIB'] = os.path.join(rootDir, 'bench/kvstore/tc/library-base/libtokyocabinet.a')
-mainEnv['EXPLICIT_DEPENDENCY']['TC_BASE_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/tc/library-base')
-mainEnv['EXPLICIT_DEPENDENCY']['TC_MTM_LIB'] = os.path.join(rootDir, 'bench/kvstore/tc/library-mtm/libtokyocabinet.a')
-mainEnv['EXPLICIT_DEPENDENCY']['TC_MTM_INCLUDE'] = os.path.join(rootDir, 'bench/kvstore/tc/library-mtm')
-
 if mainEnv['BUILD_EXAMPLE'] != None:
 	examplesEnv = mainEnv.Clone()
 	examplesEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
@@ -140,13 +109,6 @@ if mainEnv['BUILD_BENCH'] != None:
 	Export('benchEnv')
 	Export('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
 	SConscript('bench/SConscript', variant_dir = os.path.join('build', 'bench'))
-
-if mainEnv['BUILD_UBENCH'] == True:
-	ubenchEnv = mainEnv.Clone()
-	ubenchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
-	Export('ubenchEnv')
-	Export('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
-	SConscript('bench/ubench/SConscript', variant_dir = os.path.join('build', 'bench', 'ubench'))
 
 if GetOption('run_tests') == True:
 	if mainEnv['TEST_FILTER'] is None:

@@ -35,6 +35,9 @@ DEPENDENCIES:
 	- install libevent-devel.x86_64 
 * SCons: A software construction tool
 * Preferable, GCC 6.2.1 and above !
+* /dev/shm or mount point backed by persistent memory
+	- Look at usermode/mnemosyne.ini
+	- The heap will be placed in segments_dir
 
 TO BUILD MNEMOSYNE
 $ cd usermode

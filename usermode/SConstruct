@@ -29,11 +29,11 @@ AddOption('--test-filter',
            type='string',
            metavar='NAME',
            help='a regular expression used to match tests to run')
-AddOption('--disable-trace',
-           action="store_false", dest='disable_trace',
+AddOption('--config-ftrace',
+           action="store_true", dest='config_ftrace',
            default = False,
-           help='Disable compiling trace infrastructure for NVM accesses. \
- Compiling the tracer in is NOT disabled by default. You should compile the tracer since only a runtime parameter in each of the shipped \
+           help='Compile trace infrastructure for NVM accesses. \
+ Compiling the tracer does NOT initiate tracing. A runtime parameter in each of the shipped \
  benchmarks controls whether tracing actually takes place during execution. Compiling the tracer won\'t slow down your execution. \
  Initiating the tracer will.  \
  [DEFAULT : %default]')
@@ -74,10 +74,7 @@ mainEnv['BUILD_CONFIG_NAME'] = GetOption('config_name')
 if mainEnv['BUILD_CONFIG_NAME'] is None:
 	mainEnv['BUILD_CONFIG_NAME'] = 'default'
 mainEnv['TEST_FILTER'] = GetOption('test_filter')
-if GetOption('disable_trace') == True:
-	mainEnv['ENABLE_FTRACE'] = False
-else:
-	mainEnv['ENABLE_FTRACE'] = True
+mainEnv['ENABLE_FTRACE'] = GetOption('config_ftrace') 
 mainEnv['VERBOSE'] = GetOption('verbose')
 mainEnv.set_verbosity()
 

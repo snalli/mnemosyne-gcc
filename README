@@ -24,6 +24,9 @@ small data sizes over alternative persistence strategies, such as
 Berkeley DB or Boost serialization that are designed for disks.
 
 DEPENDENCIES:
+
+* SCons: A software construction tool
+* Preferable, GCC 6.2.1 and above !
 * libconfig
 	- install libconfig-devel.x86_64
 	- install libconfig.x86_64
@@ -33,15 +36,12 @@ DEPENDENCIES:
 * libevent (For memcached)
 	- install libevent.x86_64 
 	- install libevent-devel.x86_64 
-* SCons: A software construction tool
-* Preferable, GCC 6.2.1 and above !
 * /dev/shm or mount point backed by persistent memory
-	- Look at usermode/mnemosyne.ini
-	- The heap will be placed in segments_dir
+	- The heap will be placed in segments_dir defined in mnemosyne.ini
 
 TO BUILD MNEMOSYNE
 $ cd usermode
-$ scons [--build-debug] [--build-stats] [--disable-trace] [--verbose]
+$ scons [--build-stats] [--config-ftrace] [--verbose]
  
 * scons -h <For more options>
 
@@ -51,23 +51,17 @@ $ scons --build-bench=stamp-kozy [--verbose]
 $ scons --build-bench=memcached  [--verbose]
 $ scons --build-example=simple   [--verbose]
 
+TO INITIALIZE VACATION
+$ cd usermode
+$ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
+$ ./build/bench/stamp-kozy/vacation/vacation -c0 -n1 -r65536 -q100
+
 TO RUN VACATION
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
-$ ./build/bench/stamp-kozy/vacation/vacation -t1000 -u100 -c2
+$ ./build/bench/stamp-kozy/vacation/vacation -t1000 -c2 -n10 -r65536 -q90 -u100
 
-Initializing manager... 
-***************************************************
-Re-using tables from previous incarnation...
-
-Persistent table pointers.
-
-Car Table      = 0x100ba0035ff0
-Room Table     = 0x100ba0035fe0
-Flight Table   = 0x100ba0035fd0
-Customer Table = 0x100ba0035fc0
-***************************************************
-Initializing clients... done.
+    Table Index         = RBTREE
     Transactions        = 1000
     Clients             = 2
     Transactions/client = 500
@@ -76,10 +70,33 @@ Initializing clients... done.
     Query percent       = 90
     Query range         = 58982
     Percent user        = 100
-Running clients... done.
-Time = 0.196078 sec
+    Enable trace        = 0
+Initializing manager... 
+
+***************************************************
+
+Re-using tables from previous incarnation...
+
+Persistent table pointers.
+
+Car Table      = 0x100ba0035ff0
+Room Table     = 0x100ba0035fe0
+Flight Table   = 0x100ba0035fd0
+Customer Table = 0x100ba0035fc0
+
+***************************************************
+Initializing clients... done.
+
+Running clients...
+
+Starting thread 9201
+Thread-0 finished 0 queries
+Starting thread 9203
+Thread-1 finished 0 queries
+done.Time = 0.127621
 Deallocating memory... done.
 
+* Check scripts/ to learn more on how to run vacation and memcached.
 
 DOCUMENTATION:
 For further information please refer to the Doxygen generated documentation.

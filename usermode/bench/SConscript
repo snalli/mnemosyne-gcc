@@ -17,7 +17,7 @@ Export('benchEnv')
 if benchEnv['BUILD_BENCH'] == 'ALL':
 	bench_list = Split("""
 			   memcached
-			   stamp-kozy
+			   stamp-kozy 
 	                   """)
 else:
 	bench_list = benchEnv['BUILD_BENCH'].split(',')

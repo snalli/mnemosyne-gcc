@@ -131,6 +131,8 @@ displayUsage (const char* appName)
            PARAM_DEFAULT_QUERIES);
     fprintf(OUT, "    t <UINT>   Number of [t]ransactions              (%i)\n",
            PARAM_DEFAULT_TRANSACTIONS);
+    fprintf(OUT, "    r <UINT>   Number of [r]ows		       (%i)\n",
+           PARAM_DEFAULT_RELATIONS);
     fprintf(OUT, "    u <UINT>   Percentage of [u]ser transactions     (%i)\n",
            PARAM_DEFAULT_USER);
     fprintf(OUT, "    e <UINT>   Enable trac[e] collection             (%i)\n",
@@ -514,6 +516,7 @@ MAIN(argc, argv)
     else
     {
 	    numTransaction = 0;
+	    percentUser = 0;
 	    init_user = 1;
     }
     queryRange = (long)((double)percentQuery / 100.0 * (double)numRelation + 0.5);

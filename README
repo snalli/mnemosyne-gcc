@@ -81,8 +81,10 @@ TO BUILD AND RUN A COMPLEX BENCHMARK
 TO BUILD VACATION:
 $ cd usermode
 $ scons --build-bench=stamp-kozy [--verbose]
+
+TO BUILD MEMCACHED:
 $ scons --build-bench=memcached  [--verbose]
-$ scons --build-example=simple   [--verbose]
+* Check scripts/ to learn more on how to run memcached.
 
 TO INITIALIZE VACATION:
 $ cd usermode
@@ -128,8 +130,6 @@ Starting thread 9203
 Thread-1 finished 0 queries
 done.Time = 0.127621
 Deallocating memory... done.
-
-* Check scripts/ to learn more on how to run vacation and memcached.
 
 DOCUMENTATION:
 For further information please refer to the Doxygen generated documentation.

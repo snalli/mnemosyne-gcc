@@ -1,9 +1,0 @@
-Import('examplesEnv')
-Import('mcoreLibrary')
-Import('mtmLibrary')
-
-myEnv = examplesEnv.Clone() 
-
-myEnv.Append(LIBS = [mcoreLibrary])
-myEnv.Append(LIBS = [mtmLibrary])
-myEnv.Program('main.cxx')

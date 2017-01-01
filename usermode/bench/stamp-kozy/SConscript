@@ -18,12 +18,6 @@ stampEnv.Append(LIBS = ['pthread'])
 stamp_list = Split("""
 		   vacation
                    """)
-#kmeans labyrinth ssca2 genome
-#if stamEnv['BUILD_PVAR'] == True:
-
-
-# for stamp_item in stamp_list:
-#        sconscript_path = stamp_item + '/SConscript'
 
 sconscript_path = 'vacation/SConscript'
 

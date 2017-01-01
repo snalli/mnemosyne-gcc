@@ -11,12 +11,7 @@ examplesEnv.Append(LIBS = [pmallocLibrary])
 examplesEnv.Append(LIBS = [mtmLibrary])
 examplesEnv.Append(LIBS = [mcoreLibrary])
 examplesEnv.Append(LIBS = ['pthread'])
-
-
-if examplesEnv['BUILD_DEBUG'] == True:
-	examplesEnv.Append(CCFLAGS = ' -O0 -g')
-else:	
-	examplesEnv.Append(CCFLAGS = ' -O2')
+examplesEnv.Append(CCFLAGS = ' -O0 -g')
 
 examplesEnv.Append(CCFLAGS = ' -march=native')
 examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')

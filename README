@@ -39,24 +39,57 @@ DEPENDENCIES:
 * /dev/shm or mount point backed by persistent memory
 	- The heap will be placed in segments_dir defined in mnemosyne.ini
 
-TO BUILD MNEMOSYNE
+TO BUILD MNEMOSYNE:
 $ cd usermode
 $ scons [--build-stats] [--config-ftrace] [--verbose]
  
 * scons -h <For more options>
 
-TO BUILD VACATION
+TO BUILD AND RUN A SIMPLE EXAMPLE
+=================================
+
+* Simple example
+	- Read and modify value of persistent flag across executions
+	- Test pmalloc - persistent memory allocator
+	- Test concurrent reader and writer
+
+$ cd usermode
+$ scons --build-example=simple
+$ ./build/examples/simple/simple 
+persistent flag: 0 --> 1
+&persistent flag = 0x100020038000
+
+starting pmalloc bench
+persistent ptr =0x100ba0035fe0, sz=32
+persistent ptr & cl_mask = 0x100ba0035fc0
+(WRITER) persistent ptr =0x100ba0035fe0, sz=32
+(READER) persistent ptr =0x100ba0035fe0, sz=32
+
+$ ./build/examples/simple/simple 
+persistent flag: 1 --> 0
+&persistent flag = 0x100020038000
+
+starting pmalloc bench
+persistent ptr =0x100ba0035fc0, sz=32
+persistent ptr & cl_mask = 0x100ba0035fc0
+(WRITER) persistent ptr =0x100ba0035fc0, sz=32
+(READER) persistent ptr =0x100ba0035fc0, sz=32
+
+TO BUILD AND RUN A COMPLEX BENCHMARK
+====================================
+
+TO BUILD VACATION:
 $ cd usermode
 $ scons --build-bench=stamp-kozy [--verbose]
 $ scons --build-bench=memcached  [--verbose]
 $ scons --build-example=simple   [--verbose]
 
-TO INITIALIZE VACATION
+TO INITIALIZE VACATION:
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
 $ ./build/bench/stamp-kozy/vacation/vacation -c0 -n1 -r65536 -q100
 
-TO RUN VACATION
+TO RUN VACATION:
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
 $ ./build/bench/stamp-kozy/vacation/vacation -t1000 -c2 -n10 -r65536 -q90 -u100

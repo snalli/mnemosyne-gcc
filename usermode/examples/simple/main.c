@@ -12,21 +12,23 @@
 unsigned long long cl_mask = 0xffffffffffffffc0;
 #define sz 32
 #define count 100000
-long *ptr, *ptr1;
+long *ptr;
 pthread_t thr[2];
 
 void* reader()
 {
+	printf("(READER) persistent ptr =%p, sz=%d\n", ptr, sz);
 	int i = 0;
 	long rd;
 	while(i++ < count)
 	{
-		PTx { rd = *ptr1; } 	
+		PTx { rd = *ptr; } 	
 	}
 }
 
 void* writer()
 {
+	printf("(WRITER) persistent ptr =%p, sz=%d\n", ptr, sz);
 	int i = 0;
 	long wrt = 1;
 	while(i++ < count)
@@ -38,13 +40,11 @@ void* writer()
 void malloc_bench()
 {
 	ptr = NULL;
-	ptr = pmalloc(sz); /* */
-	ptr1 = pmalloc(sz);
-	if(ptr != NULL && ptr1 != NULL)
+	ptr = pmalloc(sz);
+	if(ptr != NULL)
 	{
-	       printf("ptr =%p, ptr1 =%p, sz=%d\n", ptr, ptr1, sz);
-	       printf("ptr & cl_mask = %p, ptr1 & cl_mask = %p\n", (void*)((unsigned long)ptr & cl_mask), (void*)((unsigned long)ptr1 & cl_mask));
-	       printf("ptr1-ptr = %ld\n", labs((unsigned long)ptr1-(unsigned long)ptr));
+	       printf("persistent ptr =%p, sz=%d\n", ptr, sz);
+	       printf("persistent ptr & cl_mask = %p\n", (void*)((unsigned long)ptr & cl_mask));
 	       pthread_create(&thr[0], NULL,
                           &writer, NULL);
 
@@ -58,7 +58,7 @@ void malloc_bench()
 
 int main (int argc, char const *argv[])
 {
-	printf("flag: %d", PGET(flag));
+	printf("persistent flag: %d", PGET(flag));
 
 	PTx {
 		if (PGET(flag) == 0) {
@@ -69,8 +69,9 @@ int main (int argc, char const *argv[])
 	}
 	
 	printf(" --> %d\n", PGET(flag));
-	printf("&flag = %p\n", PADDR(flag));
+	printf("&persistent flag = %p\n", PADDR(flag));
 
+	printf("\nstarting malloc bench\n");
 	malloc_bench();
 	return 0;
 }

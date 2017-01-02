@@ -34,8 +34,8 @@ DEPENDENCIES:
 	- install elfutils-libelf-devel.x86_64
 	- install elfutils-libelf.x86_64
 * libevent (For memcached)
-	- install libevent.x86_64 
 	- install libevent-devel.x86_64 
+	- install libevent.x86_64 
 * /dev/shm or mount point backed by persistent memory
 	- The heap will be placed in segments_dir defined in mnemosyne.ini
 
@@ -125,9 +125,9 @@ Initializing clients... done.
 Running clients...
 
 Starting thread 9201
-Thread-0 finished 0 queries
+Thread-0 finished 500 queries
 Starting thread 9203
-Thread-1 finished 0 queries
+Thread-1 finished 500 queries
 done.Time = 0.127621
 Deallocating memory... done.
 

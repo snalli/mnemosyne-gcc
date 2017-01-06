@@ -572,7 +572,7 @@ MAIN(argc, argv)
     GOTO_REAL();
     TIMER_READ(stop);
     // mtm_enable_trace = (int)0;
-    fprintf(OUT, "done.");
+    fprintf(OUT, "done.\n");
     fprintf(OUT, "Time = %0.6lf\n",
            TIMER_DIFF_SECONDS(start, stop));
     fflush(OUT);
@@ -582,7 +582,7 @@ MAIN(argc, argv)
 #endif
 
     /* Clean up */
-    fprintf(OUT, "Deallocating memory... ");
+    fprintf(OUT, "Deallocating memory... \n");
     fflush(OUT);
     freeClients(clients);
 #if 0
@@ -592,7 +592,8 @@ MAIN(argc, argv)
      */
     manager_free(managerPtr);
 #endif
-    fprintf(OUT, "done.");
+    fprintf(OUT, "TOTAL EPOCHS =%llu\n", get_tot_epoch_count());
+    fprintf(OUT, "done.\n");
     fflush(OUT);
     TM_SHUTDOWN();
     P_MEMORY_SHUTDOWN();

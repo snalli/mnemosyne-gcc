@@ -5,6 +5,7 @@
  *  $Id$
  */
 #include <memcached.h>
+#include <signal.h>
 
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -17,28 +18,12 @@
 #ifdef USE_THREADS
 
 #include <pthread.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 #define ITEMS_PER_ALLOC 64
 
-/* An item in the connection queue. */
-typedef struct conn_queue_item CQ_ITEM;
-struct conn_queue_item {
-    int     sfd;
-    int     init_state;
-    int     event_flags;
-    int     read_buffer_size;
-    int     is_udp;
-    CQ_ITEM *next;
-};
-
-/* A connection queue. */
-typedef struct conn_queue CQ;
-struct conn_queue {
-    CQ_ITEM *head;
-    CQ_ITEM *tail;
-    pthread_mutex_t lock;
-    pthread_cond_t  cond;
-};
+#include "thread.h"
 
 /* Lock for connection freelist */
 static pthread_mutex_t conn_lock;
@@ -59,20 +44,7 @@ static pthread_mutex_t stats_lock;
 static CQ_ITEM *cqi_freelist;
 static pthread_mutex_t cqi_freelist_lock;
 
-/*
- * Each libevent instance has a wakeup pipe, which other threads
- * can use to signal that they've put a new connection on its queue.
- */
-typedef struct {
-    pthread_t thread_id;        /* unique ID of this thread */
-    struct event_base *base;    /* libevent handle this thread uses */
-    struct event notify_event;  /* listen event for notify pipe */
-    int notify_receive_fd;      /* receiving end of notify pipe */
-    int notify_send_fd;         /* sending end of notify pipe */
-    CQ  new_conn_queue;         /* queue of new connections to handle */
-} LIBEVENT_THREAD;
-
-static LIBEVENT_THREAD *threads;
+LIBEVENT_THREAD *threads;
 
 /*
  * Number of threads that have finished setting themselves up.
@@ -301,7 +273,6 @@ static void setup_thread(LIBEVENT_THREAD *me) {
     cq_init(&me->new_conn_queue);
 }
 
-
 /*
  * Worker thread: main event loop
  */
@@ -311,7 +282,6 @@ static void* worker_libevent(void *arg) {
     /* Any per-thread setup can happen here; thread_init() will block until
      * all threads have finished initializing.
      */
-
     pthread_mutex_lock(&init_lock);
     init_count++;
     pthread_cond_signal(&init_cond);

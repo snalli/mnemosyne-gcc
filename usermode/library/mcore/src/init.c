@@ -121,6 +121,8 @@ do_global_init(void)
 fail:
 	if (ret < 0)
 		M_ERROR("failed to initialize tracing. need to be root. err = %d.\n",ret);
+	#else
+        pthread_spin_init(&tot_epoch_lock, PTHREAD_PROCESS_SHARED);
 	#endif
 		
 
@@ -179,6 +181,9 @@ do_global_fini(void)
 		}
 		pthread_spin_unlock(&tbuf_lock);
 		pthread_spin_destroy(&tbuf_lock);
+		#elif _ENABLE_FTRACE
+		#else
+		pthread_spin_destroy(&tot_epoch_lock);
 		#endif
 		mnemosyne_initialized = 0;
 

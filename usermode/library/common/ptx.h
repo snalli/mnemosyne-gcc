@@ -7,4 +7,5 @@
 #include <tm_def.h>
 
 extern unsigned long long get_epoch_count(void);
+extern unsigned long long get_tot_epoch_count(void);
 #endif

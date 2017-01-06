@@ -87,6 +87,7 @@ extern __thread unsigned long long tbuf_ptr;
 extern char *tbuf;
 extern unsigned long long tbuf_sz;
 extern pthread_spinlock_t tbuf_lock;
+extern pthread_spinlock_t tot_epoch_lock;
 extern int mtm_enable_trace;
 extern int mtm_debug_buffer;
 extern int trace_marker, tracing_on;

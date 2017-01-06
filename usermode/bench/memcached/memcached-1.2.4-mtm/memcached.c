@@ -2793,9 +2793,9 @@ static void remove_pidfile(const char *pid_file) {
 
 }
 
-
-static void sig_handler(const int sig) {
-    printf("SIGINT handled.\n");
+static void sigint_handler(const int sig) {
+    fprintf(stderr, "SIGINT handled.\n");
+    fprintf(stderr, "TOTAL EPOCHS : %llu\n", get_tot_epoch_count());
     exit(EXIT_SUCCESS);
 }
 
@@ -2812,7 +2812,7 @@ int main (int argc, char **argv) {
     struct rlimit rlim;
 
     /* handle SIGINT */
-    signal(SIGINT, sig_handler);
+    signal(SIGINT, sigint_handler);
 
     /* init settings */
     settings_init();

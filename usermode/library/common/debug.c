@@ -39,6 +39,11 @@
 #include <pthread.h>
 #include "debug.h"
 
+#define PSEGMENT_RESERVED_REGION_START   0x0000100000000000
+#define PSEGMENT_RESERVED_REGION_SIZE    0x0000010000000000 /* 1 TB */
+#define PSEGMENT_RESERVED_REGION_END     (PSEGMENT_RESERVED_REGION_START +    \
+                                          PSEGMENT_RESERVED_REGION_SIZE)
+
 /* Tracing infrastructure */
 __thread struct timeval mtm_time;
 __thread int mtm_tid = -1;
@@ -52,6 +57,7 @@ __thread unsigned long long n_epoch = 0;
 /* Can we make these thread local ? */
 char *tbuf;
 pthread_spinlock_t tbuf_lock;
+pthread_spinlock_t tot_epoch_lock;
 unsigned long long tbuf_sz;
 int mtm_enable_trace = 0;
 int mtm_debug_buffer = 1;
@@ -59,6 +65,7 @@ int trace_marker = -1, tracing_on = -1;
 struct timeval glb_time;
 unsigned long long start_buf_drain = 0, end_buf_drain = 0, buf_drain_period = 0;
 unsigned long long glb_tv_sec = 0, glb_tv_usec = 0, glb_start_time = 0;
+unsigned long long tot_epoch = 0;
 
 /*
  * Count the number of epochs on a thread. Tracing must be turned
@@ -80,14 +87,34 @@ void __pm_trace_print(char* format, ...)
 	va_start(__va_list, format);
 	va_arg(__va_list, int); /* ignore first arg */
         char* marker = va_arg(__va_list, char*);
-        if(!strcmp(marker, PM_FENCE_MARKER)) {
-                reg_write = 0;
-                n_epoch += 1;
+	unsigned long long addr = 0;
+
+        if(!strcmp(marker, PM_FENCE_MARKER) ||
+		!strcmp(marker, PM_TX_END)) {
+		/*
+		 * Applications are notorious for issuing
+		 * fences, even when they didn't write to 
+		 * PM. For eg., a fence for making a store
+		 * to local, volatile variable visible.
+		 */
+		if(reg_write) {
+        	        n_epoch += 1;
+
+			pthread_spin_lock(&tot_epoch_lock);
+			tot_epoch += 1;
+			pthread_spin_unlock(&tot_epoch_lock);
+		}
+	        reg_write = 0;
+
         } else if(!strcmp(marker, PM_WRT_MARKER) ||
                 !strcmp(marker, PM_DWRT_MARKER) ||
                 !strcmp(marker, PM_DI_MARKER) ||
                 !strcmp(marker, PM_NTI)) {
-                reg_write = 1;
+		addr = va_arg(__va_list, unsigned long long);
+
+		if((PSEGMENT_RESERVED_REGION_START < addr &&
+			addr < PSEGMENT_RESERVED_REGION_END))
+                	reg_write = 1;
         } else;
 	va_end(__va_list);
 }
@@ -96,6 +123,12 @@ unsigned long long get_epoch_count(void)
 {
 	return n_epoch;
 }
+
+unsigned long long get_tot_epoch_count(void)
+{
+	return tot_epoch;
+}
+
 void
 m_debug_print(char *file, int line, int fatal, const char *prefix,
               const char *strformat, ...) 

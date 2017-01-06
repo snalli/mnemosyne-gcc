@@ -2,7 +2,7 @@
 ._*
 *~
 *.pyc
-cscope.out
+*cscope.out*
 .DS_Store
 .segments
 pin/
@@ -17,3 +17,9 @@ pin/
 /bench/memcached/memcachedb-1.2.0/build/
 dep/
 dep/*
+memcached
+memdebug
+vacation
+*.stats
+*.swp*
+

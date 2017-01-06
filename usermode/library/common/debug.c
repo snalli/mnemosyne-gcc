@@ -46,6 +46,8 @@ __thread int mtm_tid = -1;
 __thread char tstr[TSTR_SZ];
 __thread int tsz = 0;
 __thread unsigned long long tbuf_ptr = 0;
+__thread int reg_write = 0;
+__thread unsigned long long n_epoch = 0;
 
 /* Can we make these thread local ? */
 char *tbuf;
@@ -58,7 +60,42 @@ struct timeval glb_time;
 unsigned long long start_buf_drain = 0, end_buf_drain = 0, buf_drain_period = 0;
 unsigned long long glb_tv_sec = 0, glb_tv_usec = 0, glb_start_time = 0;
 
+/*
+ * Count the number of epochs on a thread. Tracing must be turned
+ * off for this feature, as it slows down execution thus reducing
+ * the rate of epochs. The strcmp compares at most 4 bytes as the
+ * longest marker is that long, hence adding minimal overhead.
+ *
+ * If a write is encountered, we register it by setting a flag.
+ * If a fence is encountered, we reset the flag and increment
+ * the number of epochs on the thread. These operations are
+ * thread specific and operate on thread-local storage. We do
+ * not instrument reads to PM.
+ *
+ */
+#include <pm_instr.h>
+void __pm_trace_print(char* format, ...)
+{
+	va_list __va_list;
+	va_start(__va_list, format);
+	va_arg(__va_list, int); /* ignore first arg */
+        char* marker = va_arg(__va_list, char*);
+        if(!strcmp(marker, PM_FENCE_MARKER)) {
+                reg_write = 0;
+                n_epoch += 1;
+        } else if(!strcmp(marker, PM_WRT_MARKER) ||
+                !strcmp(marker, PM_DWRT_MARKER) ||
+                !strcmp(marker, PM_DI_MARKER) ||
+                !strcmp(marker, PM_NTI)) {
+                reg_write = 1;
+        } else;
+	va_end(__va_list);
+}
 
+unsigned long long get_epoch_count(void)
+{
+	return n_epoch;
+}
 void
 m_debug_print(char *file, int line, int fatal, const char *prefix,
               const char *strformat, ...) 

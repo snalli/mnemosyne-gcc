@@ -15,6 +15,7 @@
 #ifndef PM_INSTR_H
 #define PM_INSTR_H
 #include <stdio.h>
+#include <stdarg.h>
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -38,6 +39,33 @@
 #define TM_END()		{;}
 #endif
 
+#define m_out stdout
+#define m_err stderr
+
+/* Cacheable PM write */
+#define PM_WRT_MARKER                   "PM_W"
+#define PM_DWRT_MARKER                  "PM_DW"	/* Cache-able data write */
+#define PM_DI_MARKER                 	"PM_DI" /* Non-temporal data write */
+
+/* Cacheable PM read */
+#define PM_RD_MARKER                    "PM_R"
+
+/* Un-cacheable PM store */
+#define PM_NTI                          "PM_I"
+
+/* PM flush */
+#define PM_FLUSH_MARKER                 "PM_L"
+#define PM_FLUSHOPT_MARKER              "PM_O"
+
+/* PM Delimiters */
+#define PM_TX_START                     "PM_XS"
+#define PM_FENCE_MARKER                 "PM_N"
+#define PM_COMMIT_MARKER                "PM_C"
+#define PM_BARRIER_MARKER               "PM_B"
+#define PM_TX_END                       "PM_XE"
+
+
+#ifdef _ENABLE_TRACE
 #define time_since_start							\
 	({									\
 		gettimeofday(&mtm_time, NULL);					\
@@ -51,10 +79,6 @@
 		({mtm_tid = syscall(SYS_gettid); mtm_tid;}) : mtm_tid), 	\
 	(time_since_start)				
 
-#define m_out stdout
-#define m_err stderr
-
-#ifdef _ENABLE_TRACE
 #define pm_trace_print(format, args ...)					\
     {										\
 	if(mtm_enable_trace) {							\
@@ -109,32 +133,15 @@
         }                                                                       \
     }
 #else
-#define pm_trace_print(args ...)	{;}
+#define TENTRY_ID (int)0
+#define pm_trace_print(format, args ...)					\
+{										\
+	__pm_trace_print(format, args);						\
+}
 #endif
 
 #define PM_TRACE                        pm_trace_print
 
-/* Cacheable PM write */
-#define PM_WRT_MARKER                   "PM_W"
-#define PM_DWRT_MARKER                  "PM_DW"	/* Cache-able data write */
-#define PM_DI_MARKER                 	"PM_DI" /* Non-temporal data write */
-
-/* Cacheable PM read */
-#define PM_RD_MARKER                    "PM_R"
-
-/* Un-cacheable PM store */
-#define PM_NTI                          "PM_I"
-
-/* PM flush */
-#define PM_FLUSH_MARKER                 "PM_L"
-#define PM_FLUSHOPT_MARKER              "PM_O"
-
-/* PM Delimiters */
-#define PM_TX_START                     "PM_XS"
-#define PM_FENCE_MARKER                 "PM_N"
-#define PM_COMMIT_MARKER                "PM_C"
-#define PM_BARRIER_MARKER               "PM_B"
-#define PM_TX_END                       "PM_XE"
 
 /* PM Write macros */
 /* PM Write to variable */

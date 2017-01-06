@@ -6,4 +6,5 @@
 #include <pmalloc.h>
 #include <tm_def.h>
 
+extern unsigned long long get_epoch_count(void);
 #endif

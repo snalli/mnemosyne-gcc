@@ -218,7 +218,8 @@ extern unsigned long v_free, nv_free;
 #define TM_SHUTDOWN()                 /* nothing */
 
 #define TM_THREAD_ENTER()             fprintf(OUT, "Starting thread %li\n", syscall(SYS_gettid));
-#define TM_THREAD_EXIT()              /* nothing */
+#define TM_THREAD_EXIT()              fprintf(OUT, "THREAD %d executed %llu epochs\n", __m_tid__,\
+						get_epoch_count());
 
 #define VACATION_DEBUG 0
 #define VACATION_MANAGER_DEBUG 0

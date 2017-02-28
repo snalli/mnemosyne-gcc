@@ -1,10 +1,10 @@
 #!/bin/bash
+#meant to be run from mnemosyne-gcc/usermode/
 
+export LD_LIBRARY_PATH=$PWD/library/:$LD_LIBRARY_PATH
+MEMCACHED_RUN_CNF="$PWD/scripts/run.cnf"
 
-MEMCACHED_DIR=$HOME"/Desktop/mnemosyne-gcc/usermode"
-MEMCACHED_RUN_CNF="$MEMCACHED_DIR/scripts/run.cnf"
-
-MEMASLAP_BIN=memaslap
+MEMASLAP_BIN=$PWD/bench/memcached/memslap
 MEMASLAP_THREADS="4"  
 MEMASLAP_CONCURRENCY="4" 
 

@@ -1,10 +1,7 @@
-MNEMOSYNE OVERVIEW:
+#MNEMOSYNE
 
-New storage-class memory (SCM) technologies, such as phase-change memory, 
-STT-RAM, and memristors, promise user-level access to non-volatile storage 
-through regular memory instructions. These memory devices enable fast 
-user-mode access to persistence, allowing regular in-memory data structures 
-to survive system crashes.
+###Mnemosyne: Lightweight persistent memory
+Haris Volos, Andres Jaan Tack and Michael M. Swift. ASPLOS 2012
 
 Mnemosyne provides a simple interface for programming with persistent 
 memory. Mnemosyne addresses two challenges: how to create and manage such 
@@ -23,36 +20,44 @@ find that Mnemosyne provides a 20--280 percent performance increase for
 small data sizes over alternative persistence strategies, such as 
 Berkeley DB or Boost serialization that are designed for disks.
 
-DEPENDENCIES:
+#DEPENDENCIES:
 
 * SCons: A software construction tool
 * Preferable, GCC 6.2.1 and above !
 * libconfig
-	- install libconfig-devel.x86_64
-	- install libconfig.x86_64
+```
+	$ apt-get install libconfig-devel.x86_64
+	$ apt-get install libconfig.x86_64
+```
 * gelf
-	- install elfutils-libelf-devel.x86_64
-	- install elfutils-libelf.x86_64
+```
+	$ apt-get install elfutils-libelf-devel.x86_64
+	$ apt-get install elfutils-libelf.x86_64
+```
 * libevent (For memcached)
-	- install libevent-devel.x86_64 
-	- install libevent.x86_64 
+```
+	$ apt-get install libevent-devel.x86_64 
+	$ apt-get install libevent.x86_64 
+```
 * /dev/shm or mount point backed by persistent memory
 	- The heap will be placed in segments_dir defined in mnemosyne.ini
+	- Ensure you have at least 1.00 GB of space for the heap.
 
-TO BUILD MNEMOSYNE:
+#TO BUILD :
+```
 $ cd usermode
 $ scons [--build-stats] [--config-ftrace] [--verbose]
  
 * scons -h <For more options>
+```
 
-TO BUILD AND RUN A SIMPLE EXAMPLE
-=================================
+#TO BUILD AND RUN A SIMPLE EXAMPLE:
 
 * Simple example
 	- Read and modify value of persistent flag across executions
 	- Test pmalloc - persistent memory allocator
 	- Test concurrent reader and writer
-
+```
 $ cd usermode
 $ scons --build-example=simple
 $ ./build/examples/simple/simple 
@@ -74,24 +79,30 @@ persistent ptr =0x100ba0035fc0, sz=32
 persistent ptr & cl_mask = 0x100ba0035fc0
 (WRITER) persistent ptr =0x100ba0035fc0, sz=32
 (READER) persistent ptr =0x100ba0035fc0, sz=32
+```
 
-TO BUILD AND RUN A COMPLEX BENCHMARK
-====================================
+#TO BUILD AND RUN A COMPLEX BENCHMARK:
 
-TO BUILD VACATION:
+##TO BUILD VACATION:
+```
 $ cd usermode
 $ scons --build-bench=stamp-kozy [--verbose]
-
-TO BUILD MEMCACHED:
+```
+##TO BUILD MEMCACHED:
+```
 $ scons --build-bench=memcached  [--verbose]
 * Check scripts/ to learn more on how to run memcached.
+```
 
-TO INITIALIZE VACATION:
+##TO INITIALIZE VACATION:
+```
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
 $ ./build/bench/stamp-kozy/vacation/vacation -c0 -n1 -r65536 -q100
+```
 
-TO RUN VACATION:
+##TO RUN VACATION:
+```
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
 $ ./build/bench/stamp-kozy/vacation/vacation -t1000 -c2 -n10 -r65536 -q90 -u100
@@ -130,8 +141,9 @@ Starting thread 9203
 Thread-1 finished 500 queries
 done.Time = 0.127621
 Deallocating memory... done.
+```
 
-DOCUMENTATION:
+#DOCUMENTATION:
 For further information please refer to the Doxygen generated documentation.
 Running doxygen will create documentation under mnemosyne/doc/html
 
@@ -139,14 +151,15 @@ $ cd ./usermode/..
 $ doxygen
 
 
-AUTHORS:
+#AUTHORS:
 
 Haris Volos   <hvolos@cs.wisc.edu>
 Andres Jaan Tack   <tack@cs.wisc.edu>
 Sanketh Nalli <nalli@wisc.edu>
 
 
-LICENSE:
+#LICENSE:
 
+GPL-V2
 See license file under each module
 

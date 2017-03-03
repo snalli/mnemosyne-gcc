@@ -1,6 +1,6 @@
 #MNEMOSYNE
 
-###Mnemosyne: Lightweight persistent memory
+###Mnemosyne: Lightweight Persistent Memory
 Haris Volos, Andres Jaan Tack and Michael M. Swift. ASPLOS 2012
 
 Mnemosyne provides a simple interface for programming with persistent 

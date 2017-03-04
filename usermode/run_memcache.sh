@@ -1,4 +1,11 @@
 #!/bin/bash
+bin=./build/bench/memcached/memcached-1.2.4-mtm/memcached
+action=$1
+
+if [[ $action == '-h' ]]
+then
+	$bin -h
+else
 
 #scons --build-bench=memcached
 #ldd ./build/bench/memcached/memcached-1.2.4-mtm/memcached
@@ -13,3 +20,5 @@
 #strace ./build/bench/memcached/memcached-1.2.4-mtm/memcached -u root -p 11211 -l 127.0.0.1 -t 1 -vv
 #gdb --args ./build/bench/memcached/memcached-1.2.4-mtm/memcached -u root -p 11211 -l 127.0.0.1 -t 1 -vv
 #objdump -D ./build/bench/memcached/memcached-1.2.4-mtm/memcached
+
+fi

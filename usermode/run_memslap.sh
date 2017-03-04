@@ -12,6 +12,12 @@ VALUE_SIZE_ARR=( 64 128 256 512 )
 SERVER_IP="127.0.0.1"
 SERVER_PORT=11211
 
+action=$1
+
+if [[ $action == '-h' ]]
+then
+	$MEMASLAP -h
+else
 idx=0
 for (( idx=0; idx<${#VALUE_SIZE_ARR[@]}; idx++ ))
 do
@@ -22,6 +28,7 @@ do
 	#$MEMASLAP_BIN -s $SERVER_IP:$SERVER_PORT -c $MEMASLAP_CONCURRENCY -T $MEMASLAP_THREADS -X $val_size -F $MEMCACHED_RUN_CNF -d 1 -t $run_time
 	sleep 1
 done
+fi
 
 exit
 

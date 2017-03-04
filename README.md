@@ -143,7 +143,7 @@ done.Time = 0.127621
 Deallocating memory... done.
 ```
 
-#DOCUMENTATION:
+##DOCUMENTATION:
 For further information please refer to the Doxygen generated documentation.
 Running doxygen will create documentation under mnemosyne/doc/html
 
@@ -151,14 +151,14 @@ $ cd ./usermode/..
 $ doxygen
 
 
-#AUTHORS:
+##AUTHORS:
 
 Haris Volos   <hvolos@cs.wisc.edu>
 Andres Jaan Tack   <tack@cs.wisc.edu>
 Sanketh Nalli <nalli@wisc.edu>
 
 
-#LICENSE:
+##LICENSE:
 
 GPL-V2
 See license file under each module

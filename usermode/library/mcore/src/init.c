@@ -80,7 +80,7 @@ do_global_init(void)
 	tbuf = (char*)mmap(0, MAX_TBUF_SZ, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	/* MAZ_TBUF_SZ influences how often we compress and hence the overall execution speed. */
 	if(!tbuf)
-		M_ERROR("Failed to allocate trace buffer. Abort now.");
+		M_WARNING("Failed to allocate trace buffer. Abort now.");
 	#elif _ENABLE_FTRACE
         int debug_fd = -1, ret = 0;
         assert(trace_marker == -1);
@@ -120,7 +120,7 @@ do_global_init(void)
 
 fail:
 	if (ret < 0)
-		M_ERROR("failed to initialize tracing. need to be root. err = %d.\n",ret);
+		M_WARNING("failed to initialize tracing. need to be root. err = %d.\n",ret);
 	#else
         pthread_spin_init(&tot_epoch_lock, PTHREAD_PROCESS_SHARED);
 	#endif

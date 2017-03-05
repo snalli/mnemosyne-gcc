@@ -2,7 +2,7 @@
 #meant to be run from mnemosyne-gcc/usermode/
 
 export LD_LIBRARY_PATH=$PWD/library/:$LD_LIBRARY_PATH
-MEMCACHED_RUN_CNF="$PWD/scripts/run.cnf"
+MEMCACHED_RUN_CNF="$PWD/run.cnf"
 
 MEMASLAP_BIN=$PWD/bench/memcached/memslap
 MEMASLAP_THREADS="4"  

@@ -23,7 +23,7 @@ Berkeley DB or Boost serialization that are designed for disks.
 #DEPENDENCIES:
 
 * SCons: A software construction tool
-* Preferable, GCC 6.2.1 and above !
+* Preferable, GCC 6.2.1 and above 
 * libconfig
 ```
 	$ apt-get install libconfig-devel.x86_64

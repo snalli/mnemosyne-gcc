@@ -91,7 +91,7 @@ $ scons --build-bench=stamp-kozy [--verbose]
 ##TO BUILD MEMCACHED:
 ```
 $ scons --build-bench=memcached  [--verbose]
-* Check scripts/ to learn more on how to run memcached.
+* Check run_*.sh scripts to learn more on how to run memcached.
 ```
 
 ##TO INITIALIZE VACATION:

@@ -26,22 +26,22 @@ Berkeley DB or Boost serialization that are designed for disks.
 * Preferable, GCC 6.2.1 and above 
 * libconfig
 ```
-	$ apt-get install libconfig-devel.x86_64
-	$ apt-get install libconfig.x86_64
+	Fedora : $ dnf install libconfig-devel.x86_64 libconfig.x86_64
+	Ubuntu : $ apt-get install libconfig-dev libconfig9
 ```
 * gelf
 ```
-	$ apt-get install elfutils-libelf-devel.x86_64
-	$ apt-get install elfutils-libelf.x86_64
+	Fedora : $ dnf install elfutils-libelf-devel.x86_64 elfutils-libelf.x86_64
+	Ubuntu : $ apt-get install libelf-dev elfutils
 ```
 * libevent (For memcached)
 ```
-	$ apt-get install libevent-devel.x86_64 
-	$ apt-get install libevent.x86_64 
+	Fedora : $ dnf install libevent-devel.x86_64 
+	Ubuntu : $ apt-get install libevent-dev
 ```
 * /dev/shm or mount point backed by persistent memory
 	- The heap will be placed in segments_dir defined in mnemosyne.ini
-	- Ensure you have at least 1.00 GB of space for the heap.
+	- Please ensure you have at least 1.00 GB of space for the heap.
 
 #TO BUILD :
 ```

@@ -153,9 +153,9 @@ $ doxygen
 
 ##AUTHORS:
 
-Haris Volos   <hvolos@cs.wisc.edu>
-Andres Jaan Tack   <tack@cs.wisc.edu>
-Sanketh Nalli <nalli@wisc.edu>
+* Haris Volos   <hvolos@cs.wisc.edu>
+* Andres Jaan Tack   <tack@cs.wisc.edu>
+* Sanketh Nalli <nalli@wisc.edu>
 
 
 ##LICENSE:

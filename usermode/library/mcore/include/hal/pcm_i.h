@@ -259,7 +259,8 @@ static inline unsigned long long asm_rdtscp(void)
 /* Flush updates */
 #define asm_clflush(addr)					\
 ({								\
-	__asm__ __volatile__ ("clflushopt %0" : : "m"(*addr));	\
+	__asm__ __volatile__ ("clflush %0" : : "m"(*addr));	\
+	/* __asm__ __volatile__ ("clflushopt %0" : : "m"(*addr)); */	\
 	/* PM_FLUSH((addr), PM_CL_SIZE, sizeof(addr)); */	\
 })
 /*

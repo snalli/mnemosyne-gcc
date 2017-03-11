@@ -15,9 +15,9 @@ DISABLE_WARNINGS = []
 
 
 if buildEnv['BUILD_DEBUG'] == True:
-	CCFLAGS= ' -g -D_M_BUILD_DEBUG -D_MNEMOSYNE_BUILD_DEBUG '
+	CCFLAGS= ' -std=gnu++11 -g -D_M_BUILD_DEBUG -D_MNEMOSYNE_BUILD_DEBUG '
 else:
-	CCFLAGS= ' -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
+	CCFLAGS= ' -std=gnu++11 -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
 
 if buildEnv['BUILD_STATS'] == True:
 	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
@@ -39,34 +39,23 @@ buildEnv.Append(CPPPATH = ['#library/mcore/include'])
 buildEnv.Append(CPPPATH = ['#library/mcore/include/hal'])
 buildEnv.Append(CPPPATH = ['#library/mcore/include/log'])
 buildEnv.Append(CPPPATH = ['#library/pmalloc/include'])
+
+buildEnv.Append(CPPPATH = ['/home/volos/workspace/alps-github/include'])
+buildEnv.Append(LIBS = ['alps'])
+buildEnv.Append(LIBPATH = ['/home/volos/workspace/alps-github/build/src'])
+buildEnv.Append(RPATH = ['/home/volos/workspace/alps-github/build/src'])
+
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 
 if mainEnv['ENABLE_FTRACE'] == True:
         buildEnv.Append(CCFLAGS = '-D_ENABLE_FTRACE')
 
-C_SRC = Split("""
-              src/pdlmalloc.c 
-              src/vhalloc.c 
-              src/vistaheap.c
-              """)
-
 CXX_SRC = Split("""
-                src/arch-specific.cpp
-                src/hoardheap.cpp
-                src/persistentheap.cpp
-                src/processheap.cpp
-                src/superblock.cpp
-                src/threadheap.cpp
-                src/wrapper.cpp
+                src/heap.cc
+                src/wrapper.cc
                 """)
 
-#Not sure what to do with these files:
-DEPRECATED_CXX_SRC = Split("""
-                src/mallocwrap.cpp
-                """)
-
-
-SRC = C_SRC + CXX_SRC
+SRC = CXX_SRC
 
 
 if buildEnv['BUILD_LINKAGE'] == 'dynamic':

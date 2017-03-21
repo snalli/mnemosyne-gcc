@@ -62,6 +62,7 @@ CC_SRC = Split("""
                src/gcc-abi.c
                src/local.c
                src/mode/mode.c
+               src/mode/pwbnl.c
                src/mode/common/common.c
                src/mode/pwb-common/pwb.c
                src/mode/pwbetl/beginend.c

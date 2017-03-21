@@ -11,6 +11,9 @@
 #include <mtm_i.h>
 #include <itm.h>
 
+extern "C" void _ITM_nl_load_bytes(const void *src, void *dest, size_t size);
+extern "C" void _ITM_nl_store_bytes(const void *src, void *dest, size_t size);
+
 class Context {
 public:
     Context(bool _do_v = true, bool _do_nv = true)
@@ -27,9 +30,7 @@ public:
     void load(uint8_t* src, uint8_t *dest, size_t size)
     {
         if (td) {
-            // FIXME: for multithreading we need a version of _ITM_memcpy that 
-            // performs just versioning without isolation
-            _ITM_memcpyRtWt(dest, src, size);
+            _ITM_nl_load_bytes(src, dest, size);
         } else {
             memcpy(dest, src, size);
         }
@@ -38,9 +39,7 @@ public:
     void store(uint8_t* src, uint8_t *dest, size_t size)
     {
         if (td) {
-            // FIXME: for multithreading we need a version of _ITM_memcpy that 
-            // performs just versioning without isolation
-            _ITM_memcpyRtWt(dest, src, size);
+            _ITM_nl_store_bytes(src, dest, size);
         } else {
             memcpy(dest, src, size);
         }

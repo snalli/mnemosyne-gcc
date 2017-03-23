@@ -1,7 +1,7 @@
 #ifndef __TM_DEF_H__
 #define __TM_DEF_H__
 
-// #include <sys/cdefs.h>
+#include <features.h>
 
 #define TM_SAFE                         __attribute__((transaction_safe))
 #define TM_CALL                         __attribute__((transaction_callable))
@@ -23,14 +23,15 @@ TM_PURE void *realloc(void *ptr, size_t size);
 TM_PURE long int strtol(const char *nptr, char **endptr, int base);
 TM_PURE unsigned long long int strtoull(const char *nptr, char **endptr, int base);
 
-/*
-TM_PURE extern int fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
-TM_PURE __fortify_function int sprintf (char *__restrict __s, const char *__restrict __format, ...) __THROWNL;
-TM_PURE __fortify_function int snprintf (char *__restrict __s, size_t __maxlen, const char *__restrict __format, ...)
+
+#if (__GLIBC__ == 2 && __GLIBC_MINOR__ > 19)
+TM_PURE int fprintf (FILE *__restrict __stream, const char *__restrict __fmt, ...);
+TM_PURE int sprintf (char *__restrict __s, const char *__restrict __format, ...) __THROWNL;
+TM_PURE int snprintf (char *__restrict __s, size_t __maxlen, const char *__restrict __format, ...)
 	__THROWNL __attribute__ ((__format__ (__printf__, 3, 4)));
-TM_PURE __fortify_function int vsprintf (char *__restrict __s, const char *__restrict __fmt, _G_va_list __ap);
-TM_PURE __fortify_function int vsnprintf (char *__restrict __s, size_t __n, const char *__restrict __fmt, _G_va_list __ap);
-*/
+TM_PURE int vsprintf (char *__restrict __s, const char *__restrict __fmt, _G_va_list __ap);
+TM_PURE int vsnprintf (char *__restrict __s, size_t __n, const char *__restrict __fmt, _G_va_list __ap);
+#endif
 
 TM_PURE size_t __builtin_object_size (void * ptr, int type);
 TM_PURE int __fprintf_chk (FILE *__restrict __stream, int __flag,

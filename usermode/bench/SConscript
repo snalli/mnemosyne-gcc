@@ -8,7 +8,6 @@ Import('benchEnv')
 
 benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
 benchEnv.Append(CCFLAGS = ' -fgnu-tm -fPIC ')
-benchEnv.Append(CCFLAGS = ' -O2 -g')
 
 benchEnv.Append(CCFLAGS = ' -m64 ')
 benchEnv.Append(LINKFLAGS = ' -T '+ benchEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')

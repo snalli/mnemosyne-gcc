@@ -4,7 +4,6 @@ Import('mtmLibrary')
 Import('pmallocLibrary')
 
 myEnv = memcachedEnv.Clone() 
-myEnv.Append(CCFLAGS = ' -O2')
 
 myEnv.Append(CCFLAGS = ' -D_GNU_SOURCE -DHAVE_CONFIG_H')
 myEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include','#library/mcore/include', '#library/pmalloc/include']

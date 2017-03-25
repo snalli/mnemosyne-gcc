@@ -55,10 +55,12 @@ typedef alps::SlabHeap<Context, alps::TPtr, alps::PPtr> SlabHeap_t;
 typedef alps::ExtentHeap<Context, alps::TPtr, alps::PPtr> ExtentHeap_t;
 typedef alps::HybridHeap<Context, alps::TPtr, alps::PPtr, SlabHeap_t, ExtentHeap_t> HybridHeap_t;
 
-class Heap {
+class ThreadHeap
+{
 public:
-
-    int init();
+    ThreadHeap(HybridHeap_t* hheap)
+        : hheap_(hheap)
+    { }
 
     void* pmalloc(size_t sz);
     void pmalloc_undo(void* ptr);
@@ -66,9 +68,19 @@ public:
     void pfree_commit(void* ptr);
 
 private:
+    HybridHeap_t* hheap_;
+};
+
+class Heap {
+public:
+
+    int init();
+    ThreadHeap* threadheap();
+
+private:
     ExtentHeap_t* exheap_;
     SlabHeap_t* slheap_;
-    HybridHeap_t* hheap_;
+    size_t bigsize_;
 };
 
 #endif // _MNEMOSYNE_HEAP_HEAP_HH

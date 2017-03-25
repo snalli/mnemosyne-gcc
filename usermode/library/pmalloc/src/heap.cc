@@ -21,7 +21,8 @@ int Heap::init()
     size_t region_size = 1024*1024;
     size_t block_log2size = 13;
     size_t slabsize = 1 << block_log2size;
-    size_t bigsize = slabsize;
+    
+    bigsize_ = slabsize;
 
     PREGION_BASE = (void*) m_pmap((void *) PREGION_BASE, region_size, PROT_READ|PROT_WRITE, 0);
 
@@ -31,13 +32,16 @@ int Heap::init()
 
     slheap_ = new SlabHeap_t(slabsize, NULL, exheap_);
     slheap_->init(ctx);
-
-    hheap_ = new HybridHeap_t(bigsize, slheap_, exheap_);
 }
 
+ThreadHeap* Heap::threadheap()
+{
+    HybridHeap_t* hheap = new HybridHeap_t(bigsize_, slheap_, exheap_);
+    ThreadHeap* thp = new ThreadHeap(hheap);
+    return thp;
+}
 
-
-void* Heap::pmalloc(size_t sz)
+void* ThreadHeap::pmalloc(size_t sz)
 {
     Context ctx(true, true);
     
@@ -49,21 +53,21 @@ void* Heap::pmalloc(size_t sz)
     return ptr.get();
 }
 
-void Heap::pmalloc_undo(void* ptr) 
+void ThreadHeap::pmalloc_undo(void* ptr) 
 {
     Context ctx(true, false);
     
     hheap_->free(ctx, ptr);
 }
 
-void Heap::pfree_prepare(void* ptr) 
+void ThreadHeap::pfree_prepare(void* ptr) 
 {
     Context ctx(false, true);
     
     hheap_->free(ctx, ptr);
 }
 
-void Heap::pfree_commit(void* ptr) 
+void ThreadHeap::pfree_commit(void* ptr) 
 {
     Context ctx(true, false);
     

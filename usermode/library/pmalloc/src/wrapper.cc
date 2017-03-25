@@ -1,30 +1,45 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <mutex>
+
 #include "heap.hh"
 
 #include <mtm_i.h>
 #include <itm.h>
 
-
+thread_local ThreadHeap* threadheap = NULL;
 static Heap* heap;
+std::mutex heapmtx;
 
-inline static Heap * getHeap (void) {
+inline static Heap * getHeap (void) 
+{
+    heapmtx.lock();
     if (heap) {
+        heapmtx.unlock();
         return heap;
     }
     heap = new Heap();
     heap->init();
+    heapmtx.unlock();
     return heap;
 }
 
+inline static ThreadHeap* getThreadHeap (void)
+{
+    if (threadheap) {
+        return threadheap;
+    }
+    Heap* heap = getHeap();
+    return heap->threadheap();
+}
 
 extern "C"
 void * mtm_pmalloc (size_t sz)
 {
     void* addr;
 
-    Heap* heap = getHeap();
+    ThreadHeap* heap = getThreadHeap();
     addr = heap->pmalloc(sz);
     
 	return addr;
@@ -33,7 +48,7 @@ void * mtm_pmalloc (size_t sz)
 extern "C"
 void mtm_pmalloc_undo (void* ptr)
 {
-    Heap* heap = getHeap();
+    ThreadHeap* heap = getThreadHeap();
     heap->pmalloc_undo(ptr);
 }
 
@@ -60,14 +75,14 @@ void mtm_pfree (void* ptr)
 extern "C"
 void mtm_pfree_prepare (void* ptr)
 {
-    Heap* heap = getHeap();
+    ThreadHeap* heap = getThreadHeap();
     heap->pfree_prepare(ptr);
 }
 
 extern "C"
 void mtm_pfree_commit (void* ptr)
 {
-    Heap* heap = getHeap();
+    ThreadHeap* heap = getThreadHeap();
     heap->pfree_commit(ptr);
 }
 

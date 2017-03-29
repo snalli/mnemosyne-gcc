@@ -39,6 +39,11 @@ Berkeley DB or Boost serialization that are designed for disks.
 	Fedora : $ dnf install libevent-devel.x86_64 
 	Ubuntu : $ apt-get install libevent-dev
 ```
+* Boost library
+```
+ 	Ubuntu : sudo apt-get install libboost-all-dev
+```
+
 * /dev/shm or mount point backed by persistent memory
 	- The heap will be placed in segments_dir defined in mnemosyne.ini
 	- Please ensure you have at least 1.00 GB of space for the heap.

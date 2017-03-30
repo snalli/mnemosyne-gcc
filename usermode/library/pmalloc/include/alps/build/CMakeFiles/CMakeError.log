@@ -1,0 +1,109 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec2352334029/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2352334029.dir/build.make CMakeFiles/cmTryCompileExec2352334029.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2352334029.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTryCompileExec2352334029.dir/CheckSymbolExists.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec2352334029
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec2352334029.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec2352334029.dir/CheckSymbolExists.c.o  -o cmTryCompileExec2352334029 -rdynamic 
+CMakeFiles/cmTryCompileExec2352334029.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+make[1]: *** [cmTryCompileExec2352334029] Error 1
+make: *** [cmTryCompileExec2352334029/fast] Error 2
+
+File /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec2451296420/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2451296420.dir/build.make CMakeFiles/cmTryCompileExec2451296420.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2451296420.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -fPIE   -o CMakeFiles/cmTryCompileExec2451296420.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec2451296420
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec2451296420.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTryCompileExec2451296420.dir/CheckFunctionExists.c.o  -o cmTryCompileExec2451296420 -rdynamic -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+make[1]: *** [cmTryCompileExec2451296420] Error 1
+make: *** [cmTryCompileExec2451296420/fast] Error 2
+
+
+Determining if the function getexecname exists failed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3708715580/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3708715580.dir/build.make CMakeFiles/cmTryCompileExec3708715580.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec3708715580.dir/CheckFunctionExists.c.o
+/usr/bin/cc  -D_GNU_SOURCE -DCHECK_FUNCTION_EXISTS=getexecname -fPIE   -o CMakeFiles/cmTryCompileExec3708715580.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec3708715580
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec3708715580.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=getexecname    CMakeFiles/cmTryCompileExec3708715580.dir/CheckFunctionExists.c.o  -o cmTryCompileExec3708715580 -rdynamic 
+CMakeFiles/cmTryCompileExec3708715580.dir/CheckFunctionExists.c.o: In function `main':
+CheckFunctionExists.c:(.text+0x15): undefined reference to `getexecname'
+collect2: error: ld returned 1 exit status
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+make[1]: *** [cmTryCompileExec3708715580] Error 1
+make: *** [cmTryCompileExec3708715580/fast] Error 2
+
+
+Determining if the include file dwarf.h exists failed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec2115395159/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2115395159.dir/build.make CMakeFiles/cmTryCompileExec2115395159.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2115395159.dir/CheckIncludeFile.c.o
+/usr/bin/cc  -D_GNU_SOURCE -fPIE   -o CMakeFiles/cmTryCompileExec2115395159.dir/CheckIncludeFile.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:19: fatal error: dwarf.h: No such file or directory
+ #include <dwarf.h>
+                   ^
+compilation terminated.
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+make[1]: *** [CMakeFiles/cmTryCompileExec2115395159.dir/CheckIncludeFile.c.o] Error 1
+make: *** [cmTryCompileExec2115395159/fast] Error 2
+
+
+Determining if the include file libdwarf/dwarf.h exists failed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec506220019/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec506220019.dir/build.make CMakeFiles/cmTryCompileExec506220019.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec506220019.dir/CheckIncludeFile.c.o
+/usr/bin/cc  -D_GNU_SOURCE -fPIE   -o CMakeFiles/cmTryCompileExec506220019.dir/CheckIncludeFile.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c:1:28: fatal error: libdwarf/dwarf.h: No such file or directory
+ #include <libdwarf/dwarf.h>
+                            ^
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTryCompileExec506220019.dir/CheckIncludeFile.c.o] Error 1
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+make: *** [cmTryCompileExec506220019/fast] Error 2
+
+

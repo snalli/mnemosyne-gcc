@@ -41,7 +41,7 @@ void* writer()
 void malloc_bench()
 {
 	ptr = NULL;
-	ptr = pmalloc(sz);
+	PTx { ptr = pmalloc(sz); }
 	if(ptr != NULL)
 	{
 	       printf("persistent ptr =%p, sz=%d\n", ptr, sz);

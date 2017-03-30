@@ -7,9 +7,18 @@ Import('mcoreLibrary')
 
 examplesEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
 examplesEnv.Append(CCFLAGS = ' -fgnu-tm -fpic')
-examplesEnv.Append(LIBS = [pmallocLibrary])
+# The order of linking matters. Always link the libraries in the order below:
+# mtm, mcore, pmalloc, alps, pvar.
+# pthread can be anywhere.
+# The order of linking is right to left.
 examplesEnv.Append(LIBS = [mtmLibrary])
 examplesEnv.Append(LIBS = [mcoreLibrary])
+examplesEnv.Append(LIBS = [pmallocLibrary])
+examplesEnv.Append(LIBS = ['alps'])
+examplesEnv.Append(LIBPATH = ['#library/pmalloc/include/alps/build/src'])
+# RPATH is for runtime library search
+examplesEnv.Append(RPATH = ['library/pmalloc/include/alps/build/src'])
+
 examplesEnv.Append(LIBS = ['pthread'])
 examplesEnv.Append(CCFLAGS = ' -O0 -g')
 
@@ -22,8 +31,8 @@ sconscript_path = example + '/SConscript'
 examplesEnv['BUILD_PVAR'] = True
 Export('examplesEnv')
 pvarLibrary = SConscript(sconscript_path)
-Export('pvarLibrary')
 
 examplesEnv['BUILD_PVAR'] = False
+examplesEnv.Append(LIBS = [pvarLibrary])
 Export('examplesEnv')
 SConscript(sconscript_path)

@@ -1,0 +1,549 @@
+The system is: Linux - 3.13.0-112-generic - x86_64
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: /usr/bin/cc 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+
+The C compiler identification is GNU, found in "/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/2.8.12.2/CompilerIdC/a.out"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /usr/bin/c++ 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+
+The CXX compiler identification is GNU, found in "/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/2.8.12.2/CompilerIdCXX/a.out"
+
+Determining if the C compiler works passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec4200883512/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec4200883512.dir/build.make CMakeFiles/cmTryCompileExec4200883512.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec4200883512.dir/testCCompiler.c.o
+/usr/bin/cc    -o CMakeFiles/cmTryCompileExec4200883512.dir/testCCompiler.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTryCompileExec4200883512
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec4200883512.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec4200883512.dir/testCCompiler.c.o  -o cmTryCompileExec4200883512 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Detecting C compiler ABI info compiled with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec1545456734/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1545456734.dir/build.make CMakeFiles/cmTryCompileExec1545456734.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o
+/usr/bin/cc    -o CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-2.8/Modules/CMakeCCompilerABI.c
+Linking C executable cmTryCompileExec1545456734
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1545456734.dir/link.txt --verbose=1
+/usr/bin/cc     -v CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o  -o cmTryCompileExec1545456734 -rdynamic  
+Using built-in specs.
+COLLECT_GCC=/usr/bin/cc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.8/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 4.8.4-2ubuntu1~14.04.3' --with-bugurl=file:///usr/share/doc/gcc-4.8/README.Bugs --enable-languages=c,c++,java,go,d,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.8 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.8 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --disable-libmudflap --enable-plugin --with-system-zlib --disable-browser-plugin --enable-java-awt=gtk --enable-gtk-cairo --with-java-home=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64/jre --enable-java-home --with-jvm-root-dir=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64 --with-jvm-jar-dir=/usr/lib/jvm-exports/java-1.5.0-gcj-4.8-amd64 --with-arch-directory=amd64 --with-ecj-jar=/usr/share/java/eclipse-ecj.jar --enable-objc-gc --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.8.4 (Ubuntu 4.8.4-2ubuntu1~14.04.3) 
+COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/
+LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTryCompileExec1545456734' '-rdynamic' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o cmTryCompileExec1545456734 /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Parsed C implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:/usr/bin/make "cmTryCompileExec1545456734/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTryCompileExec1545456734.dir/build.make CMakeFiles/cmTryCompileExec1545456734.dir/build]
+  ignore line: [make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp']
+  ignore line: [/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1]
+  ignore line: [Building C object CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/usr/bin/cc    -o CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-2.8/Modules/CMakeCCompilerABI.c]
+  ignore line: [Linking C executable cmTryCompileExec1545456734]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1545456734.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/cc     -v CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o  -o cmTryCompileExec1545456734 -rdynamic  ]
+  ignore line: [Using built-in specs.]
+  ignore line: [COLLECT_GCC=/usr/bin/cc]
+  ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.8/lto-wrapper]
+  ignore line: [Target: x86_64-linux-gnu]
+  ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 4.8.4-2ubuntu1~14.04.3' --with-bugurl=file:///usr/share/doc/gcc-4.8/README.Bugs --enable-languages=c,c++,java,go,d,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.8 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.8 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --disable-libmudflap --enable-plugin --with-system-zlib --disable-browser-plugin --enable-java-awt=gtk --enable-gtk-cairo --with-java-home=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64/jre --enable-java-home --with-jvm-root-dir=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64 --with-jvm-jar-dir=/usr/lib/jvm-exports/java-1.5.0-gcj-4.8-amd64 --with-arch-directory=amd64 --with-ecj-jar=/usr/share/java/eclipse-ecj.jar --enable-objc-gc --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu]
+  ignore line: [Thread model: posix]
+  ignore line: [gcc version 4.8.4 (Ubuntu 4.8.4-2ubuntu1~14.04.3) ]
+  ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/]
+  ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../:/lib/:/usr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTryCompileExec1545456734' '-rdynamic' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o cmTryCompileExec1545456734 /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o]
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/collect2] ==> ignore
+    arg [--sysroot=/] ==> ignore
+    arg [--build-id] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [-m] ==> ignore
+    arg [elf_x86_64] ==> ignore
+    arg [--hash-style=gnu] ==> ignore
+    arg [--as-needed] ==> ignore
+    arg [-export-dynamic] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+    arg [-zrelro] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTryCompileExec1545456734] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o] ==> ignore
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8]
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu]
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib]
+    arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+    arg [-L/lib/../lib] ==> dir [/lib/../lib]
+    arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+    arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../..]
+    arg [CMakeFiles/cmTryCompileExec1545456734.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [-lgcc] ==> lib [gcc]
+    arg [--as-needed] ==> ignore
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [--no-as-needed] ==> ignore
+    arg [-lc] ==> lib [c]
+    arg [-lgcc] ==> lib [gcc]
+    arg [--as-needed] ==> ignore
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [--no-as-needed] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o] ==> ignore
+  remove lib [gcc]
+  remove lib [gcc_s]
+  remove lib [gcc]
+  remove lib [gcc_s]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8] ==> [/usr/lib/gcc/x86_64-linux-gnu/4.8]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib] ==> [/usr/lib]
+  collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+  collapse library dir [/lib/../lib] ==> [/lib]
+  collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+  collapse library dir [/usr/lib/../lib] ==> [/usr/lib]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../..] ==> [/usr/lib]
+  implicit libs: [c]
+  implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/4.8;/usr/lib/x86_64-linux-gnu;/usr/lib;/lib/x86_64-linux-gnu;/lib]
+  implicit fwks: []
+
+
+Determining if the CXX compiler works passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3674936164/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3674936164.dir/build.make CMakeFiles/cmTryCompileExec3674936164.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec3674936164.dir/testCXXCompiler.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTryCompileExec3674936164.dir/testCXXCompiler.cxx.o -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTryCompileExec3674936164
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec3674936164.dir/link.txt --verbose=1
+/usr/bin/c++        CMakeFiles/cmTryCompileExec3674936164.dir/testCXXCompiler.cxx.o  -o cmTryCompileExec3674936164 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec4142211112/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec4142211112.dir/build.make CMakeFiles/cmTryCompileExec4142211112.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o
+/usr/bin/c++     -o CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-2.8/Modules/CMakeCXXCompilerABI.cpp
+Linking CXX executable cmTryCompileExec4142211112
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec4142211112.dir/link.txt --verbose=1
+/usr/bin/c++      -v CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o  -o cmTryCompileExec4142211112 -rdynamic  
+Using built-in specs.
+COLLECT_GCC=/usr/bin/c++
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.8/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 4.8.4-2ubuntu1~14.04.3' --with-bugurl=file:///usr/share/doc/gcc-4.8/README.Bugs --enable-languages=c,c++,java,go,d,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.8 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.8 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --disable-libmudflap --enable-plugin --with-system-zlib --disable-browser-plugin --enable-java-awt=gtk --enable-gtk-cairo --with-java-home=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64/jre --enable-java-home --with-jvm-root-dir=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64 --with-jvm-jar-dir=/usr/lib/jvm-exports/java-1.5.0-gcj-4.8-amd64 --with-arch-directory=amd64 --with-ecj-jar=/usr/share/java/eclipse-ecj.jar --enable-objc-gc --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.8.4 (Ubuntu 4.8.4-2ubuntu1~14.04.3) 
+COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/
+LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTryCompileExec4142211112' '-rdynamic' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o cmTryCompileExec4142211112 /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Parsed CXX implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:/usr/bin/make "cmTryCompileExec4142211112/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTryCompileExec4142211112.dir/build.make CMakeFiles/cmTryCompileExec4142211112.dir/build]
+  ignore line: [make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp']
+  ignore line: [/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1]
+  ignore line: [Building CXX object CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/usr/bin/c++     -o CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-2.8/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Linking CXX executable cmTryCompileExec4142211112]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec4142211112.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/c++      -v CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o  -o cmTryCompileExec4142211112 -rdynamic  ]
+  ignore line: [Using built-in specs.]
+  ignore line: [COLLECT_GCC=/usr/bin/c++]
+  ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.8/lto-wrapper]
+  ignore line: [Target: x86_64-linux-gnu]
+  ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 4.8.4-2ubuntu1~14.04.3' --with-bugurl=file:///usr/share/doc/gcc-4.8/README.Bugs --enable-languages=c,c++,java,go,d,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.8 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.8 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --disable-libmudflap --enable-plugin --with-system-zlib --disable-browser-plugin --enable-java-awt=gtk --enable-gtk-cairo --with-java-home=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64/jre --enable-java-home --with-jvm-root-dir=/usr/lib/jvm/java-1.5.0-gcj-4.8-amd64 --with-jvm-jar-dir=/usr/lib/jvm-exports/java-1.5.0-gcj-4.8-amd64 --with-arch-directory=amd64 --with-ecj-jar=/usr/share/java/eclipse-ecj.jar --enable-objc-gc --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu]
+  ignore line: [Thread model: posix]
+  ignore line: [gcc version 4.8.4 (Ubuntu 4.8.4-2ubuntu1~14.04.3) ]
+  ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/]
+  ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../:/lib/:/usr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTryCompileExec4142211112' '-rdynamic' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -z relro -o cmTryCompileExec4142211112 /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/4.8 -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../.. CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o]
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/collect2] ==> ignore
+    arg [--sysroot=/] ==> ignore
+    arg [--build-id] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [-m] ==> ignore
+    arg [elf_x86_64] ==> ignore
+    arg [--hash-style=gnu] ==> ignore
+    arg [--as-needed] ==> ignore
+    arg [-export-dynamic] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+    arg [-zrelro] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTryCompileExec4142211112] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crt1.o] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crti.o] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/crtbegin.o] ==> ignore
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8]
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu]
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib]
+    arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+    arg [-L/lib/../lib] ==> dir [/lib/../lib]
+    arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+    arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
+    arg [-L/usr/lib/gcc/x86_64-linux-gnu/4.8/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../..]
+    arg [CMakeFiles/cmTryCompileExec4142211112.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [-lstdc++] ==> lib [stdc++]
+    arg [-lm] ==> lib [m]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lc] ==> lib [c]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-lgcc] ==> lib [gcc]
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/crtend.o] ==> ignore
+    arg [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu/crtn.o] ==> ignore
+  remove lib [gcc_s]
+  remove lib [gcc]
+  remove lib [gcc_s]
+  remove lib [gcc]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8] ==> [/usr/lib/gcc/x86_64-linux-gnu/4.8]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../lib] ==> [/usr/lib]
+  collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+  collapse library dir [/lib/../lib] ==> [/lib]
+  collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+  collapse library dir [/usr/lib/../lib] ==> [/usr/lib]
+  collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/4.8/../../..] ==> [/usr/lib]
+  implicit libs: [stdc++;m;c]
+  implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/4.8;/usr/lib/x86_64-linux-gnu;/usr/lib;/lib/x86_64-linux-gnu;/lib]
+  implicit fwks: []
+
+
+Determining if files pthread.h exist passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec2357224075/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2357224075.dir/build.make CMakeFiles/cmTryCompileExec2357224075.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2357224075.dir/CheckIncludeFiles.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTryCompileExec2357224075.dir/CheckIncludeFiles.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckIncludeFiles.c
+Linking C executable cmTryCompileExec2357224075
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec2357224075.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec2357224075.dir/CheckIncludeFiles.c.o  -o cmTryCompileExec2357224075 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Determining if the function pthread_create exists in the pthread passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec1522515197/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1522515197.dir/build.make CMakeFiles/cmTryCompileExec1522515197.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1522515197.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -fPIE   -o CMakeFiles/cmTryCompileExec1522515197.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec1522515197
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1522515197.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTryCompileExec1522515197.dir/CheckFunctionExists.c.o  -o cmTryCompileExec1522515197 -rdynamic -lpthread 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Determining if the _Unwind_Backtrace exist passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec1918055462/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1918055462.dir/build.make CMakeFiles/cmTryCompileExec1918055462.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1918055462.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTryCompileExec1918055462.dir/CheckSymbolExists.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec1918055462
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1918055462.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec1918055462.dir/CheckSymbolExists.c.o  -o cmTryCompileExec1918055462 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+File /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <unwind.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef _Unwind_Backtrace
+  return ((int*)(&_Unwind_Backtrace))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the _Unwind_GetIPInfo exist passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3372392813/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3372392813.dir/build.make CMakeFiles/cmTryCompileExec3372392813.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec3372392813.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTryCompileExec3372392813.dir/CheckSymbolExists.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec3372392813
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec3372392813.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec3372392813.dir/CheckSymbolExists.c.o  -o cmTryCompileExec3372392813 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+File /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <unwind.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef _Unwind_GetIPInfo
+  return ((int*)(&_Unwind_GetIPInfo))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Performing C SOURCE FILE Test FLAG_UNWIND_TABLES succeded with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3345125001/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3345125001.dir/build.make CMakeFiles/cmTryCompileExec3345125001.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec3345125001.dir/src.c.o
+/usr/bin/cc   -DFLAG_UNWIND_TABLES -fPIE   -funwind-tables -o CMakeFiles/cmTryCompileExec3345125001.dir/src.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec3345125001
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec3345125001.dir/link.txt --verbose=1
+/usr/bin/cc   -DFLAG_UNWIND_TABLES    CMakeFiles/cmTryCompileExec3345125001.dir/src.c.o  -o cmTryCompileExec3345125001 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main(void) { return 0; }
+Performing C SOURCE FILE Test HAVE_SYNC_FUNCTIONS succeded with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec84937221/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec84937221.dir/build.make CMakeFiles/cmTryCompileExec84937221.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec84937221.dir/src.c.o
+/usr/bin/cc   -DHAVE_SYNC_FUNCTIONS -fPIE   -o CMakeFiles/cmTryCompileExec84937221.dir/src.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTryCompileExec84937221
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec84937221.dir/link.txt --verbose=1
+/usr/bin/cc   -DHAVE_SYNC_FUNCTIONS    CMakeFiles/cmTryCompileExec84937221.dir/src.c.o  -o cmTryCompileExec84937221 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+Source file was:
+int i;
+    int main() {
+    __sync_bool_compare_and_swap (&i, i, i);
+    __sync_lock_test_and_set (&i, 1);
+    __sync_lock_release (&i);}
+Determining if the mmap exist passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec2510172139/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2510172139.dir/build.make CMakeFiles/cmTryCompileExec2510172139.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2510172139.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTryCompileExec2510172139.dir/CheckSymbolExists.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec2510172139
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec2510172139.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec2510172139.dir/CheckSymbolExists.c.o  -o cmTryCompileExec2510172139 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+File /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <sys/mman.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef mmap
+  return ((int*)(&mmap))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the MAP_ANONYMOUS exist passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3973957502/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3973957502.dir/build.make CMakeFiles/cmTryCompileExec3973957502.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec3973957502.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTryCompileExec3973957502.dir/CheckSymbolExists.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec3973957502
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec3973957502.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec3973957502.dir/CheckSymbolExists.c.o  -o cmTryCompileExec3973957502 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+File /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <sys/mman.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef MAP_ANONYMOUS
+  return ((int*)(&MAP_ANONYMOUS))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the MAP_ANON exist passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3195225533/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3195225533.dir/build.make CMakeFiles/cmTryCompileExec3195225533.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec3195225533.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTryCompileExec3195225533.dir/CheckSymbolExists.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec3195225533
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec3195225533.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec3195225533.dir/CheckSymbolExists.c.o  -o cmTryCompileExec3195225533 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+File /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <sys/mman.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef MAP_ANON
+  return ((int*)(&MAP_ANON))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the dl_iterate_phdr exist passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec616289949/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec616289949.dir/build.make CMakeFiles/cmTryCompileExec616289949.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec616289949.dir/CheckSymbolExists.c.o
+/usr/bin/cc  -D_GNU_SOURCE -fPIE   -o CMakeFiles/cmTryCompileExec616289949.dir/CheckSymbolExists.c.o   -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTryCompileExec616289949
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec616289949.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec616289949.dir/CheckSymbolExists.c.o  -o cmTryCompileExec616289949 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+File /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <link.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef dl_iterate_phdr
+  return ((int*)(&dl_iterate_phdr))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function fcntl exists passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec989699444/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec989699444.dir/build.make CMakeFiles/cmTryCompileExec989699444.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec989699444.dir/CheckFunctionExists.c.o
+/usr/bin/cc  -D_GNU_SOURCE -DCHECK_FUNCTION_EXISTS=fcntl -fPIE   -o CMakeFiles/cmTryCompileExec989699444.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec989699444
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec989699444.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=fcntl    CMakeFiles/cmTryCompileExec989699444.dir/CheckFunctionExists.c.o  -o cmTryCompileExec989699444 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Determining if the function strnlen exists passed with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3179978064/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3179978064.dir/build.make CMakeFiles/cmTryCompileExec3179978064.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec3179978064.dir/CheckFunctionExists.c.o
+/usr/bin/cc  -D_GNU_SOURCE -DCHECK_FUNCTION_EXISTS=strnlen -fPIE   -o CMakeFiles/cmTryCompileExec3179978064.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec3179978064
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec3179978064.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=strnlen    CMakeFiles/cmTryCompileExec3179978064.dir/CheckFunctionExists.c.o  -o cmTryCompileExec3179978064 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+
+Performing C++ SOURCE FILE Test FLAG_WEXTRA succeded with the following output:
+Change Dir: /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec475598888/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec475598888.dir/build.make CMakeFiles/cmTryCompileExec475598888.dir/build
+make[1]: Entering directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec475598888.dir/src.cxx.o
+/usr/bin/c++    -std=c++11 -Wall -O0 -g -w -DFLAG_WEXTRA -fPIE   -Wextra -o CMakeFiles/cmTryCompileExec475598888.dir/src.cxx.o -c /nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTryCompileExec475598888
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec475598888.dir/link.txt --verbose=1
+/usr/bin/c++   -std=c++11 -Wall -O0 -g -w -DFLAG_WEXTRA    CMakeFiles/cmTryCompileExec475598888.dir/src.cxx.o  -o cmTryCompileExec475598888 -rdynamic 
+make[1]: Leaving directory `/nobackup/whisper/mnemosyne-gcc/usermode/library/pmalloc/include/alps/build/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main() { return 0;}

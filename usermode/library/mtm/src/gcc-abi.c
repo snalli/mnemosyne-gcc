@@ -43,8 +43,11 @@
 #include <setjmp.h>
 
 extern void* mtm_pmalloc(size_t);
+extern void* mtm_pmalloc_undo(size_t);
 extern void* mtm_pcalloc (size_t, size_t);
 extern void mtm_pfree (void*);
+extern void mtm_pfree_prepare (void*);
+extern void mtm_pfree_commit (void*);
 extern void* mtm_prealloc (void *, size_t);
 extern size_t mtm_get_obj_size(void*);
 
@@ -471,7 +474,7 @@ void * _ITM_pmalloc(size_t size)
 
   mtm_tx_t *tx = mtm_get_tx();
   if(tx)
-	_ITM_addUserUndoAction(mtm_pfree, ptr);
+	_ITM_addUserUndoAction(mtm_pmalloc_undo, ptr);
 out:
   return ptr;
 }
@@ -496,7 +499,8 @@ void _ITM_pfree(void *ptr)
 {   
   mtm_tx_t *tx = mtm_get_tx();
   if (tx) {
-    _ITM_addUserCommitAction(mtm_pfree, tx->id, ptr);
+    mtm_pfree_prepare(ptr);
+    _ITM_addUserCommitAction(mtm_pfree_commit, tx->id, ptr);
     return;
   }
   mtm_pfree(ptr);

@@ -1,19 +1,19 @@
 Import('benchEnv')
 stampEnv = benchEnv.Clone()
 
-# Shouldn't benchEnv already contain these ?
-Import('mcoreLibrary')
-Import('mtmLibrary')
-Import('pmallocLibrary')
-
-stampEnv.Append(CCFLAGS = '-Ibench/stamp-kozy/lib -Ibench/stamp-kozy/lib/ptm')
-stampEnv.Append(CPPPATH = ['#library/common'])
-stampEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
-stampEnv.Append(LIBS = [mcoreLibrary])
-stampEnv.Append(LIBS = [mtmLibrary])
-stampEnv.Append(LIBS = [pmallocLibrary])
-stampEnv.Append(LIBS = ['pthread'])
+# $(CC) $(CCFLAGS) $(CPPPATH)
+# Use O0 flag only else GCC itself segfaults !
 stampEnv.Append(CCFLAGS = ' -O0')
+stampEnv.Append(CCFLAGS = '-fno-omit-frame-pointer')
+
+# Not sure why the order matters but these files should 
+# be included first, before any other headers. Therefore they
+# part of the CCFLAGS and not CPPPATH. I don't care how the files
+# find their way into the object file so long as they do. 
+# This doesn't make any sense. This is GCC-specific, and not 
+# a problem with vacation or Mnemosyne.
+stampEnv.Append(CCFLAGS = '-Ibench/stamp-kozy/lib')
+stampEnv.Append(CCFLAGS = '-Ibench/stamp-kozy/lib/ptm')
 
 stamp_list = Split("""
 		   vacation
@@ -28,7 +28,8 @@ Export('stampEnv')
 pvarLibrary = SConscript(sconscript_path)
 Export('pvarLibrary')
 
-# Build STAMP benchmark
+# Build STAMP benchmark using the library 
+# we just built for handling persistent variables
 stampEnv['BUILD_PVAR'] = False
 Export('stampEnv')
 SConscript(sconscript_path)

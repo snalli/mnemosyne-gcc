@@ -10,6 +10,7 @@ buildEnv.Append(CCFLAGS = ' -DHAVE_CONFIG_H -pthread -D_GNU_SOURCE -march=native
 buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
 
 buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
+buildEnv.Append(CPPPATH = ['#library/common'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])

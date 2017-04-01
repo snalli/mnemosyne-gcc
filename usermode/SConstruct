@@ -102,7 +102,6 @@ if mainEnv['BUILD_EXAMPLE'] != None:
 
 if mainEnv['BUILD_BENCH'] != None:
 	benchEnv = mainEnv.Clone()
-	benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include']
 	Export('benchEnv')
 	Export('mcoreLibrary', 'pmallocLibrary', 'mtmLibrary')
 	SConscript('bench/SConscript', variant_dir = os.path.join('build', 'bench'))

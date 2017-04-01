@@ -28,6 +28,7 @@ CCFLAGS = CCFLAGS + ' -m64 '
 buildEnv.Append(CCFLAGS = CCFLAGS)
 buildEnv.Append(CXXFLAGS = CCFLAGS)
 buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
+buildEnv.Append(CPPPATH = ['#library/common'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
 buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])

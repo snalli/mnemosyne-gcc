@@ -1,16 +1,39 @@
-import os
-
-Import('pmallocLibrary')
-Import('mcoreLibrary')
 Import('mtmLibrary')
+Import('mcoreLibrary')
+Import('pmallocLibrary')
 Import('benchEnv')
 
-
-benchEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
+# $(CC) $(CCFLAGS) $(CPPPATH)
+benchEnv.Append(CCFLAGS = ' -m64 ')
 benchEnv.Append(CCFLAGS = ' -fgnu-tm -fPIC ')
 
-benchEnv.Append(CCFLAGS = ' -m64 ')
+benchEnv.Append(CPPPATH = ['#library/common'])
+benchEnv.Append(CPPPATH = ['#library/mcore/include'])
+benchEnv.Append(CPPPATH = ['#library/mtm/include'])
+benchEnv.Append(CPPPATH = ['#library/pmalloc/include'])
+
+# (CC) $(LINKFLAGS) $(RPATH)
 benchEnv.Append(LINKFLAGS = ' -T '+ benchEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
+
+# The order of linking matters. Always link the libraries in the order below:
+# mtm, mcore, pmalloc, alps, pvar.
+# pthread can be anywhere.
+# The order of linking in the command line is right to left. The libraries on
+# the right are linked first followed by the ones of their left. This translates
+# to the order below. alps appears on the right and gets linked in first followed
+# by pthread, pmalloc, mcore and mtm at the end.
+benchEnv.Append(LIBS = [mtmLibrary])
+benchEnv.Append(LIBS = [mcoreLibrary])
+benchEnv.Append(LIBS = [pmallocLibrary])
+benchEnv.Append(LIBS = ['pthread'])
+benchEnv.Append(LIBS = ['alps'])
+benchEnv.Append(LIBPATH = ['#library/pmalloc/include/alps/build/src'])
+
+# RPATH is the path for library search during runtime.
+# It is baked into the executable so you don't need the 
+# LD_LIBRARY_PATH crap.
+benchEnv.Append(RPATH = ['library/pmalloc/include/alps/build/src'])
+
 Export('benchEnv')
 
 if benchEnv['BUILD_BENCH'] == 'ALL':

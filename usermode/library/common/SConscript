@@ -6,6 +6,8 @@ Import('mainEnv')  # read only -- clone if need to modify
 
 buildEnv = mnemosyne.Environment(mainEnv)
 buildEnv.Append(CCFLAGS = ['-fPIC'])
+buildEnv.Append(CPPPATH = ['#library/common'])
+
 
 SRC = Split("""
             debug.c

@@ -28,14 +28,11 @@ class Environment(SCons.Environment.Environment):
 
 		configuration_variables = Environment._GetConfigurationVariables(self)
 		configuration_variables.Update(self)
-		self.Append(CPPPATH = '#library/common')
-
-
 	
 		self.Append(CPPDEFINES = mnemosyneDirectives.getPreprocessorDefinitions())
 
-
-        # Disable some remark messages when using Intel CC 
+        	# Disable some remark messages when using Intel CC
+		# We don't use ICC anymore but GCC only.
 		if mainEnv is not None and mainEnv['CC'] == 'icc': 
 			DISABLE_WARNINGS = ['-wd869',  #remark  #869 : parameter "XYZ" was never referenced
                                ]

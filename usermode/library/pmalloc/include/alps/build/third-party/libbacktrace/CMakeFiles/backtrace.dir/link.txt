@@ -1,2 +1,0 @@
-/usr/bin/ar cr libbacktrace.a  CMakeFiles/backtrace.dir/backtrace.c.o CMakeFiles/backtrace.dir/simple.c.o CMakeFiles/backtrace.dir/unknown.c.o CMakeFiles/backtrace.dir/mmapio.c.o CMakeFiles/backtrace.dir/mmap.c.o CMakeFiles/backtrace.dir/atomic.c.o CMakeFiles/backtrace.dir/fileline.c.o CMakeFiles/backtrace.dir/posix.c.o CMakeFiles/backtrace.dir/print.c.o CMakeFiles/backtrace.dir/sort.c.o CMakeFiles/backtrace.dir/state.c.o
-/usr/bin/ranlib libbacktrace.a

@@ -1,1 +1,0 @@
-/usr/bin/c++   -std=c++11 -Wall -O0 -g -w -g    CMakeFiles/sandbox.dir/sandbox.cpp.o  -o sandbox -rdynamic ../libyaml-cpp.a 

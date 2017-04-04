@@ -108,6 +108,7 @@ public:
             
         if (slab) {
             *ptr = alloc_block(ctx, slab);
+            assert(*ptr != null_ptr);
         }
         unlock(); 
 
@@ -160,7 +161,7 @@ public:
         bool empty = slab->empty();
         int old_fullness = slab->fullness();
         ptr = slab->alloc_block(ctx);
-        if (!ptr) {
+        if (ptr != null_ptr) {
             int new_fullness = slab->fullness();
             int szclass = slab->sizeclass();
             LOG(info) << "Allocate block: " << "new_fullness: " << new_fullness << " old_fullness: " << old_fullness;

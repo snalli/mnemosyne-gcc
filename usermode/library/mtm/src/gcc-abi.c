@@ -506,12 +506,12 @@ void _ITM_pfree(void *ptr)
   mtm_pfree(ptr);
 }
 
+/*
 _ITM_TRANSACTION_PURE
 void * _ITM_prealloc (void * ptr, size_t sz)
 { return mtm_prealloc(ptr, sz); }
+*/
 
-/*
- * Atomic version, but buggy
 _ITM_TRANSACTION_PURE
 void * _ITM_prealloc (void * ptr, size_t sz)
 {
@@ -533,4 +533,4 @@ void * _ITM_prealloc (void * ptr, size_t sz)
 
 	return buf;
 }
-*/
+

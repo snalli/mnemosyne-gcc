@@ -12,8 +12,7 @@
 
 
 //MNEMOSYNE_PERSISTENT void* PREGION_BASE = 0;
-//__attribute__ ((section("PERSISTENT"))) void* PREGION_BASE = 0;
-static void* PREGION_BASE = 0;
+__attribute__ ((section("PERSISTENT"))) void* PREGION_BASE = 0;
 
 int Heap::init()
 {
@@ -30,17 +29,19 @@ int Heap::init()
     unsigned long long n_gb = 8;
     unsigned long long region_size = 1024*1024*1024;
     region_size *= n_gb; 
-    printf("region_size = %llu\n", region_size);
     size_t block_log2size = 13;
     size_t slabsize = 1 << block_log2size;
     
     bigsize_ = slabsize;
 
-    PREGION_BASE = (void*) m_pmap((void *) PREGION_BASE, region_size, PROT_READ|PROT_WRITE, 0);
-
-    void* region = PREGION_BASE;
-
-    exheap_ = ExtentHeap_t::make(region, region_size, block_log2size);
+    if (PREGION_BASE == 0) {
+        PREGION_BASE = (void*) m_pmap((void *) PREGION_BASE, region_size, PROT_READ|PROT_WRITE, 0);
+        void* region = PREGION_BASE;
+        exheap_ = ExtentHeap_t::make(region, region_size, block_log2size);
+    } else {
+        void* region = PREGION_BASE;
+        exheap_ = ExtentHeap_t::load(region);
+    }
 
     slheap_ = new SlabHeap_t(slabsize, NULL, exheap_);
     slheap_->init(ctx);

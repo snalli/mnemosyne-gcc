@@ -155,7 +155,7 @@ static void slabs_preallocate (const unsigned int maxslabs) {
     for (i = POWER_SMALLEST; i <= POWER_LARGEST; i++) {
         if (++prealloc > maxslabs)
             return;
-        do_slabs_newslab(i);
+        PTx { do_slabs_newslab(i); }
     }
 
 }
@@ -214,7 +214,8 @@ void *do_slabs_alloc(const size_t size) {
 
 	// getting the slab id here 
     unsigned int id = slabs_clsid(size);
-	// If the item is out of the range of sizes
+
+	//iIf the item is out of the range of sizes
 	// supported by memcached, return null !!!
     if (id < POWER_SMALLEST || id > power_largest)
         return NULL;
@@ -223,6 +224,7 @@ void *do_slabs_alloc(const size_t size) {
 	// in the slab class id
 	// all slabs are persistent !!! 
     p = &slabclass[id];
+
     assert(p->sl_curr == 0 || ((item *)p->slots[p->sl_curr - 1])->slabs_clsid == 0);
 
 // Have to disable this to prevent 

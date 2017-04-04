@@ -1,6 +1,6 @@
 #!/bin/bash
 #meant to be run from mnemosyne-gcc/usermode/
-
+PWD=`pwd`
 export LD_LIBRARY_PATH=$PWD/library/:$LD_LIBRARY_PATH
 MEMCACHED_RUN_CNF="$PWD/run.cnf"
 
@@ -16,7 +16,7 @@ action=$1
 
 if [[ $action == '-h' ]]
 then
-	$MEMASLAP -h
+	$MEMASLAP_BIN -h
 else
 idx=0
 for (( idx=0; idx<${#VALUE_SIZE_ARR[@]}; idx++ ))

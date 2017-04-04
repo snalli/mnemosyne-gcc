@@ -1,4 +1,5 @@
 #!/bin/bash
+killall memcached
 bin=./build/bench/memcached/memcached-1.2.4-mtm/memcached
 
 if [[ $1 == '-h' ]]

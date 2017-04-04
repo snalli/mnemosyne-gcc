@@ -132,10 +132,10 @@ verify_backing_stores(m_segtbl_t *segtbl)
 
 static
 int 
-create_backing_store(char *file, size_t size)
+create_backing_store(char *file, unsigned long long size)
 {
 	int      fd;
-	ssize_t  roundup_size;
+	unsigned long long  roundup_size;
 	char     buf[1]; 
 	
 	fd = open(file, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR | S_IWUSR);
@@ -154,8 +154,9 @@ create_backing_store(char *file, size_t size)
 	 *
 	 * Another way would be to bypass the file cache and use DIRECT I/O.
 	 */
+	printf("file = %s, size = %llu, size_of_pages = %llu \n", file, size, SIZEOF_PAGES(size));
 	roundup_size = SIZEOF_PAGES(size);
-	assert(lseek(fd, roundup_size, SEEK_SET) !=  (off_t) -1);
+	assert(lseek64(fd, roundup_size, SEEK_SET) !=  (off_t) -1);
 	write(fd, buf, 1);
 	fsync(fd); /* make sure the file metadata is synced */
 	/* FIXME: sync directory as well to reflect the new file entry. */
@@ -621,7 +622,7 @@ segment_reincarnate_segments(m_segtbl_t *segtbl)
 
 static
 void *
-pmap_internal_abs(void *start, size_t length, int prot, int flags, 
+pmap_internal_abs(void *start, unsigned long long length, int prot, int flags, 
                   m_segidx_entry_t **entryp, uint32_t segtbl_entry_flags, uint64_t module_id)
 {
 	char             path[256];
@@ -701,7 +702,7 @@ out:
 
 static
 void *
-pmap_internal(void *start, size_t length, int prot, int flags, 
+pmap_internal(void *start, unsigned long long length, int prot, int flags, 
               m_segidx_entry_t **entryp, uint32_t segtbl_entry_flags, uint64_t module_id)
 {
 	uintptr_t        start_addr = SEGMENT_MAP_START + (uintptr_t) start;
@@ -869,7 +870,7 @@ m_segment_find_using_addr(void *addr, m_segidx_entry_t **entryp)
  * Start address is offset by SEGMENT_MAP_START.
  */
 void *
-m_pmap(void *start, size_t length, int prot, int flags)
+m_pmap(void *start, unsigned long long length, int prot, int flags)
 {
 	m_segidx_entry_t *ientry;
 	void             *rv;
@@ -884,7 +885,7 @@ m_pmap(void *start, size_t length, int prot, int flags)
  *
  */
 void *
-m_pmap2(void *start, size_t length, int prot, int flags)
+m_pmap2(void *start, unsigned long long length, int prot, int flags)
 {
 	m_segidx_entry_t *ientry;
 	void             *rv;

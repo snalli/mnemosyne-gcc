@@ -110,7 +110,7 @@ extern m_segtbl_t m_segtbl;
 m_result_t m_segmentmgr_init();
 m_result_t m_segmentmgr_fini();
 
-void *m_pmap2(void *start, size_t length, int prot, int flags);
+void *m_pmap2(void *start, unsigned long long length, int prot, int flags);
 m_result_t m_segment_find_using_addr(void *addr, m_segidx_entry_t **entryp);
 
 #endif /* _MNEMOSYNE_SEGMENT_H */

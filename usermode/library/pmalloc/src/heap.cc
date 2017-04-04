@@ -18,7 +18,19 @@ static void* PREGION_BASE = 0;
 int Heap::init()
 {
     Context ctx;
-    size_t region_size = 1024*1024;
+    /* Clean up multiple definitions of PSEGMENT_* */
+    /*
+     * Do not combine n_gb and region_size in the defn
+     * of region_size. it causes compiler to generate wrong
+     * (my guess), which can actually be observed as an overflow 
+     * during runtime.
+     * splitting the values as n_gb and region_size does not
+     * cause any absurd overflows during runtime.
+     */
+    unsigned long long n_gb = 8;
+    unsigned long long region_size = 1024*1024*1024;
+    region_size *= n_gb; 
+    printf("region_size = %llu\n", region_size);
     size_t block_log2size = 13;
     size_t slabsize = 1 << block_log2size;
     

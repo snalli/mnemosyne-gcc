@@ -88,9 +88,9 @@ extern "C" {
  */
 void mnemosyne_reincarnation_callback_register(void(*initializer)());
 
-void *m_pmap(void *start, size_t length, int prot, int flags);
-void *m_pmap2(void *start, size_t length, int prot, int flags);
-int  m_punmap(void *start, size_t length);
+void *m_pmap(void *start, unsigned long long length, int prot, int flags);
+void *m_pmap2(void *start, unsigned long long  length, int prot, int flags);
+int  m_punmap(void *start, unsigned long long length);
 
 void mnemosyne_init_global(void);
 

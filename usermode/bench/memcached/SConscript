@@ -1,12 +1,14 @@
 Import('benchEnv')
-Import('mcoreLibrary')
-Import('mtmLibrary')
-Import('pmallocLibrary')
-
 memcachedEnv = benchEnv.Clone() 
+
+# $(CC) $(CCFLAGS) $(CPPPATH)
+memcachedEnv.Append(CCFLAGS = ' -O2')
+memcachedEnv.Append(CCFLAGS = ' -fno-omit-frame-pointer')
 memcachedEnv.Append(CCFLAGS = ' -D_GNU_SOURCE ')
-memcachedEnv.Append(CPPPATH = ['#library/common'])
-memcachedEnv.Append(CCFLAGS = ' -O2 -fno-omit-frame-pointer')
+memcachedEnv.Append(CCFLAGS = ' -DHAVE_CONFIG_H ')
+
+memcachedEnv.Append(CPPPATH = ['#bench/memcached/memcached-1.2.4-mtm'])
+
 sconscript_path = 'memcached-1.2.4-mtm/SConscript'
 
 # Build library for persistent variables
@@ -16,7 +18,8 @@ Export('memcachedEnv')
 pvarLibrary = SConscript(sconscript_path)
 Export('pvarLibrary')
 
-# Build Memcached
+# Build Memcached using the library for 
+# handling persistent variables
 memcachedEnv['BUILD_PVAR'] = False
 Export('memcachedEnv')
 SConscript(sconscript_path)

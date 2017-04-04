@@ -7,10 +7,13 @@ Import('benchEnv')
 benchEnv.Append(CCFLAGS = ' -m64 ')
 benchEnv.Append(CCFLAGS = ' -fgnu-tm -fPIC ')
 
-benchEnv.Append(CPPPATH = ['#library/common'])
+# The order of including the files also matters.
+# lib/common appears on the right in the cmd before
+# any others and is included first.
 benchEnv.Append(CPPPATH = ['#library/mcore/include'])
 benchEnv.Append(CPPPATH = ['#library/mtm/include'])
 benchEnv.Append(CPPPATH = ['#library/pmalloc/include'])
+benchEnv.Append(CPPPATH = ['#library/common'])
 
 # (CC) $(LINKFLAGS) $(RPATH)
 benchEnv.Append(LINKFLAGS = ' -T '+ benchEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')

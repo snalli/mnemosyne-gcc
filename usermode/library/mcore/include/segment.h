@@ -93,7 +93,7 @@ struct m_segidx_s {
 struct m_segtbl_entry_s {
 	uint32_t  flags;
 	uintptr_t start;
-	uint32_t  size;
+	unsigned long long  size;
 };
 
 

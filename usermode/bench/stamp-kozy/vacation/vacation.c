@@ -73,6 +73,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <signal.h>
 #include "client.h"
 #include "customer.h"
 #include "list.h"
@@ -489,8 +490,30 @@ freeClients (client_t** clients)
  * main
  * =============================================================================
  */
+void
+termination_handler (int signum)
+{
+        fprintf(OUT, "\nIn %s()\n", __func__);
+        fprintf(OUT, "Total volatile memory consumption     = %llu bytes\n", v_mem_total);
+        fprintf(OUT, "Total non-volatile memory consumption = %llu bytes\n", nv_mem_total);
+        fprintf(OUT, "Total volatile memory free()'s        = %lu\n", v_free);
+        fprintf(OUT, "Total non-volatile memory free()'s    = %lu\n", nv_free);
+	exit(-1);
+}
+
 MAIN(argc, argv)
 {
+  struct sigaction new_action, old_action;
+
+  /* Set up the structure to specify the new action. */
+  new_action.sa_handler = termination_handler;
+  sigemptyset (&new_action.sa_mask);
+  new_action.sa_flags = 0;
+
+  sigaction (SIGSEGV, NULL, &old_action);
+  if (old_action.sa_handler != SIG_IGN)
+    sigaction (SIGSEGV, &new_action, NULL);
+
     manager_t* managerPtr;
     client_t** clients;
     TIMER_T start;

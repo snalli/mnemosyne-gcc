@@ -1,23 +1,6 @@
 Import('memcachedEnv')
-Import('mcoreLibrary')
-Import('mtmLibrary')
-Import('pmallocLibrary')
 
 myEnv = memcachedEnv.Clone() 
-
-myEnv.Append(CCFLAGS = ' -D_GNU_SOURCE -DHAVE_CONFIG_H')
-myEnv['CPPPATH'] = ['#library/mnemosyne/include', '#library/mtm/include','#library/mcore/include', '#library/pmalloc/include']
-myEnv.Append(CPPPATH = ['#library/common'])
-myEnv.Append(CPPPATH = ['#bench/memcached/memcached-1.2.4-mtm'])
-
-myEnv.Append(LIBS = [mcoreLibrary])
-myEnv.Append(LIBS = [mtmLibrary])
-myEnv.Append(LIBS = [pmallocLibrary])
-myEnv.Append(LIBS = ['pthread'])
-myEnv.Append(LIBS = ['event'])
-
-
-# Hashtable & BDB kvdriver
 
 if myEnv['BUILD_PVAR'] == True:
         pvarLibrary = myEnv.SharedLibrary('pvar', 'pvar.c')
@@ -33,8 +16,7 @@ else:
 			   thread.c
                 	   """)
 
-	#myEnv.Append(CPPPATH = ['#bench/kvstore/kvdriver/ht'])
-	#myEnv.Append(LIBS = [hashtableLibrary])
 	Import('pvarLibrary')
 	myEnv.Append(LIBS = [pvarLibrary])
+	myEnv.Append(LIBS = ['event'])
 	myEnv.Program('memcached', sources)

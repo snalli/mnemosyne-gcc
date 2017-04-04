@@ -1437,7 +1437,7 @@ static void process_update_command(conn *c, token_t *tokens, const size_t ntoken
         if (! item_size_ok(nkey, flags, vlen + 2))
             out_string(c, "SERVER_ERROR object too large for cache");
         else
-            out_string(c, "SERVER_ERROR out of memory");
+            out_string(c, "XXX SERVER_ERROR out of memory");
         /* swallow the data line */
         c->write_and_go = conn_swallow;
         c->sbytes = vlen + 2;

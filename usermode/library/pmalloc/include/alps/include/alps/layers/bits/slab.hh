@@ -306,7 +306,6 @@ public:
             LOG(info) << "Allocate block: " << "nvslab: " << nvslab_ << " block: " << bid;
         } else {
             LOG(info) << "Allocate block: FAILED: no free space";
-	    raise(SIGSEGV); // Will kill the pgm if allocation fails. REMOVE later
             ptr = 0;
         }
         return ptr;

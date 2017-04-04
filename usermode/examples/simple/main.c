@@ -41,7 +41,16 @@ void* writer()
 void malloc_bench()
 {
 	ptr = NULL;
-	PTx { ptr = pmalloc(sz); }
+	int i = 0;
+	while (i*sz < 16384) {
+		PTx { ptr = pmalloc(sz); }
+		if(!ptr) {
+			printf("FAIL : total size = %d\n", i*sz);
+			return;
+		}
+		++i;
+	}
+	printf("OK: total size = %d\n", i*sz);
 	if(ptr != NULL)
 	{
 	       printf("persistent ptr =%p, sz=%d\n", ptr, sz);

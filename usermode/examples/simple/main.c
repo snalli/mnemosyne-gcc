@@ -9,11 +9,13 @@
 #include <stdlib.h>
 #include <pmalloc.h>
 #include <pthread.h>
+#include <signal.h>
 
 unsigned long long cl_mask = 0xffffffffffffffc0;
 #define sz 32
 #define count 100000
 long *ptr;
+int i = 0;
 pthread_t thr[2];
 
 void* reader()
@@ -41,13 +43,8 @@ void* writer()
 void malloc_bench()
 {
 	ptr = NULL;
-	int i = 0;
 	while (i*sz < 16384) {
 		PTx { ptr = pmalloc(sz); }
-		if(!ptr) {
-			printf("FAIL : total size = %d\n", i*sz);
-			return;
-		}
 		++i;
 	}
 	printf("OK: total size = %d\n", i*sz);
@@ -66,8 +63,26 @@ void malloc_bench()
 	pthread_join(thr[1], NULL);
 }
 
+void
+termination_handler (int signum)
+{
+	printf("FAIL : total size = %d\n", i*sz);
+	exit(-1);
+}
+
 int main (int argc, char const *argv[])
 {
+  struct sigaction new_action, old_action;
+
+  /* Set up the structure to specify the new action. */
+  new_action.sa_handler = termination_handler;
+  sigemptyset (&new_action.sa_mask);
+  new_action.sa_flags = 0;
+
+  sigaction (SIGSEGV, NULL, &old_action);
+  if (old_action.sa_handler != SIG_IGN)
+    sigaction (SIGSEGV, &new_action, NULL);
+
 	printf("persistent flag: %d", PGET(flag));
 
 	PTx {

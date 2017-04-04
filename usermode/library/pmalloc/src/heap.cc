@@ -86,3 +86,11 @@ void ThreadHeap::pfree_commit(void* ptr)
     
     hheap_->free(ctx, ptr);
 }
+
+
+size_t ThreadHeap::getsize(void* ptr)
+{
+    Context ctx(true, true);
+
+    return hheap_->getsize(ptr);
+}

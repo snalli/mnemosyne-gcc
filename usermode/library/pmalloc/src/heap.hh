@@ -66,6 +66,7 @@ public:
     void pmalloc_undo(void* ptr);
     void pfree_prepare(void* ptr);
     void pfree_commit(void* ptr);
+    size_t getsize(void* ptr);
 
 private:
     HybridHeap_t* hheap_;

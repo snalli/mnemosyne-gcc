@@ -89,11 +89,8 @@ void mtm_pfree_commit (void* ptr)
 extern "C"
 size_t mtm_get_obj_size(void *ptr)
 {
-    //TODO
-
-	size_t objSize = -1;
-	
-	return objSize;
+    ThreadHeap* heap = getThreadHeap();
+    return heap->getsize(ptr);
 }
 
 extern "C" void * mtm_prealloc (void * ptr, size_t sz)

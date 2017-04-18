@@ -45,7 +45,13 @@ Berkeley DB or Boost serialization that are designed for disks.
 	
 * ALPS persistent memory allocator
 ```
-Learn here how to compile alps : 
+	$ cd usermode/library/pmalloc/include/alps
+	$ mkdir build
+	$ cd build
+	$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Release
+	$ make
+	
+Learn more here on how to compile alps : 
 github.com/snalli/mnemosyne-gcc/tree/alps/usermode/library/pmalloc/include/alps
 ```
 

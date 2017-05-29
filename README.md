@@ -42,9 +42,22 @@ Berkeley DB or Boost serialization that are designed for disks.
 * /dev/shm or mount point backed by persistent memory
 	- The heap will be placed in segments_dir defined in mnemosyne.ini
 	- Please ensure you have at least 1.00 GB of space for the heap.
-	
+
 * ALPS persistent memory allocator
 ```
+ALPS Dependencies (on Ubuntu) :
+	cmake
+    	libattr1-dev
+    	libboost-all-dev
+    	libevent-dev
+    	libnuma1
+    	libnuma-dev
+    	libyaml-cpp-dev
+	
+Install the above dependencies and then type the commands below
+at your terminal. Please find equivalent packages for your 
+flavor of Linux. 
+
 	$ cd usermode/library/pmalloc/include/alps
 	$ mkdir build
 	$ cd build

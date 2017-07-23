@@ -1,26 +1,20 @@
 # Mnemosyne
 
-### Mnemosyne: Lightweight Persistent Memory
-Haris Volos, Andres Jaan Tack and Michael M. Swift. ASPLOS 2012
+### Mnemosyne: Lightweight Persistent Memory (PM)
 
 Mnemosyne provides a simple interface for programming with persistent 
-memory. Mnemosyne addresses two challenges: how to create and manage such 
-memory, and how to ensure consistency in the presence of failures. Without 
-additional mechanisms, a system failure may leave data structures in SCM in 
-an invalid state, crashing the program the next time it starts.
-
-In Mnemosyne, programmers declare global persistent data with the keyword 
+memory. Programmers declare global persistent data with the keyword 
 persistent or allocate it dynamically. Mnemosyne provides primitives for 
 directly modifying persistent variables and supports consistent updates 
-through a lightweight transaction mechanism. Compared to past work on 
-disk-based persistent memory, Mnemosyne is much lighter weight, as it can 
-store data items as small as a word rather than a virtual memory page. In 
-tests emulating the performance characteristics of forthcoming SCMs, we 
-find that Mnemosyne provides a 20--280 percent performance increase for 
-small data sizes over alternative persistence strategies, such as 
-Berkeley DB or Boost serialization that are designed for disks.
+through a lightweight transaction mechanism. 
 
-# Dependencies:
+### Authors:
+
+* Haris Volos   <hvolos@cs.wisc.edu>
+* Andres Jaan Tack   <tack@cs.wisc.edu>
+* Sanketh Nalli <nalli@wisc.edu>
+
+### Dependencies:
 
 * SCons: A software construction tool
 * Preferable, GCC 6.2.1 and above 
@@ -68,7 +62,7 @@ Learn more here on how to compile alps :
 github.com/snalli/mnemosyne-gcc/tree/alps/usermode/library/pmalloc/include/alps
 ```
 
-# Build Mnemosyne:
+### Build Mnemosyne:
 ```
 $ cd usermode
 $ scons [--build-stats] [--config-ftrace] [--verbose]
@@ -76,7 +70,7 @@ $ scons [--build-stats] [--config-ftrace] [--verbose]
 * scons -h <For more options>
 ```
 
-# Run a simple example:
+### Run a simple example:
 
 * Simple example
 	- Read and modify value of persistent flag across executions
@@ -106,22 +100,22 @@ persistent ptr & cl_mask = 0x100ba0035fc0
 (READER) persistent ptr =0x100ba0035fc0, sz=32
 ```
 
-# Run a complex benchmark:
+### Run a complex benchmark:
 
-## Build Vacation:
+### Build Vacation:
 ```
 $ cd usermode
 $ scons --build-bench=stamp-kozy [--verbose]
 ```
 
-## Initialize Vacation:
+### Initialize Vacation:
 ```
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
 $ ./build/bench/stamp-kozy/vacation/vacation -c0 -n1 -r65536 -q100
 ```
 
-## Run Vacation:
+### Run Vacation:
 ```
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
@@ -162,28 +156,20 @@ Thread-1 finished 500 queries
 done.Time = 0.127621
 Deallocating memory... done.
 ```
-## Build Memcached:
+### Build Memcached:
 ```
 $ scons --build-bench=memcached  [--verbose]
 * Check run_*.sh scripts to learn more on how to run memcached.
 ```
 
-## Documentation:
+### Documentation:
 For further information please refer to the Doxygen generated documentation.
 Running doxygen will create documentation under mnemosyne/doc/html
 
 $ cd ./usermode/..
 $ doxygen
 
-
-## Authors:
-
-* Haris Volos   <hvolos@cs.wisc.edu>
-* Andres Jaan Tack   <tack@cs.wisc.edu>
-* Sanketh Nalli <nalli@wisc.edu>
-
-
-## License:
+### License:
 
 GPL-V2
 See license file under each module

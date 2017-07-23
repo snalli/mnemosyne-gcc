@@ -1,4 +1,4 @@
-# MNEMOSYNE
+# Mnemosyne
 
 ### Mnemosyne: Lightweight Persistent Memory
 Haris Volos, Andres Jaan Tack and Michael M. Swift. ASPLOS 2012
@@ -20,7 +20,7 @@ find that Mnemosyne provides a 20--280 percent performance increase for
 small data sizes over alternative persistence strategies, such as 
 Berkeley DB or Boost serialization that are designed for disks.
 
-# DEPENDENCIES:
+# Dependencies:
 
 * SCons: A software construction tool
 * Preferable, GCC 6.2.1 and above 
@@ -68,7 +68,7 @@ Learn more here on how to compile alps :
 github.com/snalli/mnemosyne-gcc/tree/alps/usermode/library/pmalloc/include/alps
 ```
 
-# TO BUILD :
+# Build Mnemosyne:
 ```
 $ cd usermode
 $ scons [--build-stats] [--config-ftrace] [--verbose]
@@ -76,7 +76,7 @@ $ scons [--build-stats] [--config-ftrace] [--verbose]
 * scons -h <For more options>
 ```
 
-# TO BUILD AND RUN A SIMPLE EXAMPLE:
+# Run a simple example:
 
 * Simple example
 	- Read and modify value of persistent flag across executions
@@ -106,27 +106,22 @@ persistent ptr & cl_mask = 0x100ba0035fc0
 (READER) persistent ptr =0x100ba0035fc0, sz=32
 ```
 
-# TO BUILD AND RUN A COMPLEX BENCHMARK:
+# Run a complex benchmark:
 
-## TO BUILD VACATION:
+## Build Vacation:
 ```
 $ cd usermode
 $ scons --build-bench=stamp-kozy [--verbose]
 ```
-## TO BUILD MEMCACHED:
-```
-$ scons --build-bench=memcached  [--verbose]
-* Check run_*.sh scripts to learn more on how to run memcached.
-```
 
-## TO INITIALIZE VACATION:
+## Initialize Vacation:
 ```
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
 $ ./build/bench/stamp-kozy/vacation/vacation -c0 -n1 -r65536 -q100
 ```
 
-## TO RUN VACATION:
+## Run Vacation:
 ```
 $ cd usermode
 $ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
@@ -167,8 +162,13 @@ Thread-1 finished 500 queries
 done.Time = 0.127621
 Deallocating memory... done.
 ```
+## Build Memcached:
+```
+$ scons --build-bench=memcached  [--verbose]
+* Check run_*.sh scripts to learn more on how to run memcached.
+```
 
-## DOCUMENTATION:
+## Documentation:
 For further information please refer to the Doxygen generated documentation.
 Running doxygen will create documentation under mnemosyne/doc/html
 
@@ -176,14 +176,14 @@ $ cd ./usermode/..
 $ doxygen
 
 
-## AUTHORS:
+## Authors:
 
 * Haris Volos   <hvolos@cs.wisc.edu>
 * Andres Jaan Tack   <tack@cs.wisc.edu>
 * Sanketh Nalli <nalli@wisc.edu>
 
 
-## LICENSE:
+## License:
 
 GPL-V2
 See license file under each module

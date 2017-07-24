@@ -20,7 +20,7 @@ public:
         : do_v(_do_v),
           do_nv(_do_nv)
     { 
-        if (_ITM_inTransaction) {
+        if (_ITM_inTransaction()) {
             td = _ITM_getTransaction();
         } else {
             td = NULL;

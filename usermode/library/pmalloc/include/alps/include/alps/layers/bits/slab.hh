@@ -40,16 +40,16 @@ namespace alps {
  */
 template<typename Context, template<typename> class TPtr>
 struct nvSlabHeader {
-    // When adding a member field, ensure method size_of() includes that field too
     uint32_t header_size;
     uint16_t sizeclass;
     uint32_t nblocks;
     void* slab; // pointer to the slab's volatile descriptor for quick lookup
-    nvBitMap<Context> block_map; // variable size structure
+    nvBitMap<Context> block_map; // variable size structure. Must be last field.
 
     // total size of the fixed part of the header
     static size_t size_of() {
-        return sizeof(header_size) + sizeof(sizeclass) + sizeof(nblocks) + sizeof(void*);
+    	//return the offset of block_map, which is also the size of the fixed part of the header
+        return (size_t)(void*)(&((nvSlabHeader*)0)->block_map);
     }
 
     static TPtr<nvSlabHeader> make(Context& ctx, TPtr<nvSlabHeader> header, size_t slab_size, int size_class)

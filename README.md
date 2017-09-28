@@ -17,7 +17,8 @@ through a lightweight transaction mechanism.
 ### Dependencies:
 
 * SCons: A software construction tool
-* Preferable, GCC 6.2.1 and above 
+* GCC 6.2.1 or above
+* GLIBC 2.19 or above
 * libconfig
 ```
 	Fedora : $ dnf install libconfig-devel.x86_64 libconfig.x86_64

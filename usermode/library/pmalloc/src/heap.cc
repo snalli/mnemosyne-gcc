@@ -16,6 +16,10 @@ __attribute__ ((section("PERSISTENT"))) void* PREGION_BASE = 0;
 
 int Heap::init()
 {
+    alps::DebugOptions dbgopt;
+    dbgopt.log_level = "error"; // Disable logging output
+    alps::init_log(dbgopt);
+
     Context ctx;
     /* Clean up multiple definitions of PSEGMENT_* */
     /*
@@ -49,7 +53,12 @@ int Heap::init()
 
 ThreadHeap* Heap::threadheap()
 {
-    HybridHeap_t* hheap = new HybridHeap_t(bigsize_, slheap_, exheap_);
+    Context ctx;
+
+    SlabHeap_t* slheap = new SlabHeap_t(bigsize_, NULL, exheap_);
+    slheap_->init(ctx);
+
+    HybridHeap_t* hheap = new HybridHeap_t(bigsize_, slheap, exheap_);
     ThreadHeap* thp = new ThreadHeap(hheap);
     return thp;
 }

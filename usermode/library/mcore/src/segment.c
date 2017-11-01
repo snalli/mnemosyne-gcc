@@ -137,6 +137,7 @@ create_backing_store(char *file, unsigned long long size)
 	int      fd;
 	unsigned long long  roundup_size;
 	char     buf[1]; 
+	buf[0] = 0;        /* Keeps valgrind happy by writting a well defined byte */
 	
 	fd = open(file, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd < 0) {

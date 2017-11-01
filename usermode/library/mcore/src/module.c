@@ -232,7 +232,7 @@ m_module_create_module_dsr_list(struct list_head *module_dsr_listp)
 	uint64_t  start, end, inode, foo;
 	char      prev_mapname[M_MODULE_PATH_MAX];
 	module_dsr_t *module_dsr = NULL;
-
+	prev_mapname[0] = '\0';  /* Without it we get undefined behavior for strcmp() below */
 	
 	/* Get our PID and build the name of the link in /proc */
 	pid = getpid();

@@ -1,0 +1,24 @@
+# This is used to execute the benchmarks with Mnemosyne inside the mnemosyne repository.
+# To execute it, just copy the entire 'romulus' folder under mnemosyne-gcc/usermode/examples
+# and then run the command
+# scons --build-example=romulus
+# This will create a binary with our benchmarks in mnemosyne-gcc/usermode/build/examples/bench
+Import('examplesEnv')
+
+myEnv = examplesEnv.Clone()
+
+# Added by Pedro:
+myEnv['CXX'] = 'g++-7'
+myEnv['CC'] = 'g++-7'
+myEnv['CPPPATH'] = [
+	'#library/mcore/include', 
+	'#library/mtm/include', 
+	'#library/pmalloc/include']
+myEnv.Append(CCFLAGS = ' -O0 -march=native -std=c++14')
+
+if myEnv['BUILD_PVAR'] == True:
+	pvarLibrary = myEnv.SharedLibrary('pvar', 'pvar.c')
+	Return('pvarLibrary')
+else:
+	sources = Split("""rbench.cpp""")
+	myEnv.Program('rbench', sources)

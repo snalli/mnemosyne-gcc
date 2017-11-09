@@ -18,7 +18,7 @@ int Heap::init()
 {
     alps::DebugOptions dbgopt;
     dbgopt.log_level = "error"; // Disable logging output
-    alps::init_log(dbgopt);
+    //alps::init_log(dbgopt);
 
     Context ctx;
     /* Clean up multiple definitions of PSEGMENT_* */
@@ -34,8 +34,12 @@ int Heap::init()
     unsigned long long region_size = 1024*1024*1024;
     region_size *= n_gb; 
     size_t block_log2size = 13;
+
+    /* Slab must be smaller than the smaller extent size to ensure 
+       slab data and metadata fit within the extent */
     size_t slabsize = 1 << block_log2size;
-    
+    slabsize /= 2; 
+
     bigsize_ = slabsize;
 
     if (PREGION_BASE == 0) {

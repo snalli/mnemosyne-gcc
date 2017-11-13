@@ -547,7 +547,11 @@ restart_no_load:
 			/* Don't need a CAS; just use a regular STORE. */
 			/* We also set the lock bit to ensure that the next write will 
 			 * see the write entry as valid. */
+# if CM == CM_PRIORITY
+			*lock = LOCK_SET_ADDR((mtm_word_t)w, tx->priority);
+# else
 			*lock = LOCK_SET_ADDR((mtm_word_t)w);
+# endif
 		}
 		
 		w_entry_t* initialized_entry = 	initialize_write_set_entry(w, addr, value, mask, version, lock, access_is_nonvolatile);

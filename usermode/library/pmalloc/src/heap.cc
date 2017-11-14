@@ -18,7 +18,7 @@ int Heap::init()
 {
     alps::DebugOptions dbgopt;
     dbgopt.log_level = "error"; // Disable logging output
-    //alps::init_log(dbgopt);
+    alps::init_log(dbgopt);
 
     Context ctx;
     /* Clean up multiple definitions of PSEGMENT_* */
@@ -35,12 +35,12 @@ int Heap::init()
     region_size *= n_gb; 
     size_t block_log2size = 13;
 
-    /* Slab must be smaller than the smaller extent size to ensure 
-       slab data and metadata fit within the extent */
-    size_t slabsize = 1 << block_log2size;
-    slabsize /= 2; 
+    slabsize_ = 1 << block_log2size;
+    //slabsize /= 2; 
 
-    bigsize_ = slabsize;
+    /* Max block allocated from slabheap must be smaller than the slab extent size 
+     * to ensure slab data and metadata fit within the slab extent */
+    bigsize_ = slabsize_/2;
 
     if (PREGION_BASE == 0) {
         PREGION_BASE = (void*) m_pmap((void *) PREGION_BASE, region_size, PROT_READ|PROT_WRITE, 0);
@@ -51,7 +51,7 @@ int Heap::init()
         exheap_ = ExtentHeap_t::load(region);
     }
 
-    slheap_ = new SlabHeap_t(slabsize, NULL, exheap_);
+    slheap_ = new SlabHeap_t(slabsize_, NULL, exheap_);
     slheap_->init(ctx);
 }
 
@@ -59,7 +59,7 @@ ThreadHeap* Heap::threadheap()
 {
     Context ctx;
 
-    SlabHeap_t* slheap = new SlabHeap_t(bigsize_, NULL, exheap_);
+    SlabHeap_t* slheap = new SlabHeap_t(slabsize_, NULL, exheap_);
     slheap_->init(ctx);
 
     HybridHeap_t* hheap = new HybridHeap_t(bigsize_, slheap, exheap_);

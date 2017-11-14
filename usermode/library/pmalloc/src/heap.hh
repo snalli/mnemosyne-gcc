@@ -82,6 +82,7 @@ private:
     ExtentHeap_t* exheap_;
     SlabHeap_t* slheap_;
     size_t bigsize_;
+    size_t slabsize_;
 };
 
 #endif // _MNEMOSYNE_HEAP_HEAP_HH

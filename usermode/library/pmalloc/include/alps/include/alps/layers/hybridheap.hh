@@ -53,6 +53,8 @@ public:
 
     void free(Context& ctx, TPtr<void> ptr) 
     {
+        LOG(info) << "Free ptr==" << ptr.get() << " size==" << sh_->getsize(ptr);  
+
         if (sh_->getsize(ptr) < bigsize_) {
             return sh_->free(ctx, ptr);
         } else {

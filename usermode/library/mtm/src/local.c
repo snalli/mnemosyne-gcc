@@ -152,6 +152,9 @@ mtm_local_rollback (mtm_tx_t *tx)
 			local_undo_entry = NULL;
 		}
 	}
+
+	local_undo->last_entry = NULL;
+	local_undo->n = 0;
 }
 
 

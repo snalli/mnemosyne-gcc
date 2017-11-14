@@ -18,7 +18,6 @@ struct PersistentArray;
 #include "Mnemosyne.hpp"
 
 
-/* FAILURE: If the arraySize is 512*1024 then we get an assert on mtm_pwb_restart_transaction() */
 static const int arraySize=512;
 
 
@@ -194,7 +193,7 @@ public:
                     // Check that the array is consistent
                     int64_t sum = 0;
                     for (int i = 0; i < arraySize; i++) {
-                        sum += parray->counters[i].pload()->val;
+                        sum += parray->counters[i].val;
                     }
                     assert(sum == 0);
                 }
@@ -225,7 +224,7 @@ public:
             *ops = tcount;
             pe.transaction([&pe,&parray] () {
                 for(int i=0;i<arraySize;i++){
-                    pe.free(parray->counters[i].pload());
+                    pe.free(parray->counters[i]);
                 }
                 // This free() causes Mnemosyne to crash, don't know why (yet)
                 pe.free(parray);
@@ -287,7 +286,7 @@ public:
                 // Check that the array is consistent
                 int64_t sum = 0;
                 for (int i = 0; i < arraySize; i++) {
-                    sum += parray->counters[i].pload()->val;
+                    sum += parray->counters[i]->val;
                 }
                 assert(sum == 0);
                 //pe.compare_main_and_back();
@@ -316,15 +315,16 @@ public:
                         pe.free(old);
                     }
                 } );
-
+/*
                 pe.read_transaction([this,&seed,&parray,&numWordsPerTransaction,&pe] () {
                     // Check that the array is consistent
                     int64_t sum = 0;
                     for (int i = 0; i < arraySize; i++) {
-                        sum += parray->counters[i].pload()->val;
+                        sum += parray->counters[i]->val;
                     }
                     assert(sum == 0);
                 } );
+*/
                 tcount=tcount+2;
             }
             *ops = tcount;
@@ -345,15 +345,16 @@ public:
             quit.store(false);
         }
 
+        printf("Calling pfree()\n");
         pe.write_transaction([&pe,&parray] () {
             for(int i=0;i<arraySize;i++){
-                pe.free(parray->counters[i].pload());
+                pe.free(parray->counters[i]);
             }
             // This free() causes Mnemosyne to crash, don't know why (yet)
             pe.free(parray);
             pe.template put_object<PersistentArray<PE>>(PIDX_ARRAY, nullptr);
-
         });
+        printf("pfree() call ok\n");
         // Accounting
         vector<long long> agg(numRuns);
         for (int irun = 0; irun < numRuns; irun++) {
@@ -480,9 +481,9 @@ public:
 public:
 
     static void allThroughputTests() {
-        vector<int> threadList = { 16 };
+        vector<int> threadList = { 2, 4, 8 /*, 16 */ };
         vector<long> wordsPerTransList = { /*4, 8, 16, 32, 64, 128,*/ 256 };
-        const seconds testLength = 20s;   // 20s for the paper
+        const seconds testLength = 2s;   // 20s for the paper
         const int numRuns = 1;            // 5 runs for the paper
 
 
@@ -495,7 +496,11 @@ public:
 			bench.arrayBenchmark<mnemosyne::Mnemosyne, WrapperM>(testLength, nWords, numRuns);
 		}*/
 
-/*
+
+		/* FAILURE: 
+		rbench: /home/vagrant/mnemosyne-gcc/usermode/library/pmalloc/include/alps/src/layers/extentmap.cc:176: 
+		void alps::ExtentMap::insert(const alps::Exl&): Assertion `verify_maplen_equivalent_to_mapaddr() == true' failed.
+		*/
 		// Wrapper Array Benchmarks multi-threaded
         for (int nThreads : threadList) {
             for (int nWords : wordsPerTransList) {
@@ -504,9 +509,9 @@ public:
                 bench.arrayBenchmark_rw<mnemosyne::Mnemosyne, WrapperM>(testLength, nWords, numRuns);
             }
         }
-*/
 
-        /* FAILURE: With 16 threads, 256 words per transaction, this one gives core dump on mtm_local_rollback() */
+
+/*
         // Integer Array Benchmarks multi-threaded
         for (int nThreads : threadList) {
             for (int nWords : wordsPerTransList) {
@@ -515,7 +520,7 @@ public:
                 bench.integerArrayBenchmark_rw<mnemosyne::Mnemosyne>(testLength, nWords, numRuns);
             }
         }
-
+*/
     }
 };
 

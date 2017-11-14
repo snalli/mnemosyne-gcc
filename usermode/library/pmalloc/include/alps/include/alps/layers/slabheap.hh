@@ -147,7 +147,11 @@ public:
             return 0;
         }
         size_t exsz = extentheap_->blocksize() * ex.len(); 
-        if (exsz == slabsize_) {
+        // if pointer does not point to the beginning of an extent 
+        // then it is a block within a slab
+        if (exsz == slabsize_ && 
+            (TPtr<char>(ptr) - TPtr<char>(ex.nvextent())) != 0)
+        {
             SlabT* slab = SlabT::slab(ex.nvextent());
             return slab->block_size();
         }

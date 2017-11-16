@@ -56,6 +56,7 @@
 #define ITM_NORETURN	__attribute__((noreturn))
 
 #include <xmmintrin.h>
+#include <immintrin.h>
 
 typedef uint8_t  _ITM_TYPE_U1;
 typedef uint16_t _ITM_TYPE_U2;
@@ -66,6 +67,7 @@ typedef double   _ITM_TYPE_D;
 typedef long double _ITM_TYPE_E;
 typedef __m64  _ITM_TYPE_M64;
 typedef __m128  _ITM_TYPE_M128;
+typedef __m256  _ITM_TYPE_M256;
 typedef float _Complex _ITM_TYPE_CF;
 typedef double _Complex _ITM_TYPE_CD;
 typedef long double _Complex _ITM_TYPE_CE;

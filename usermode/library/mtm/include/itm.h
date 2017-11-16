@@ -36,6 +36,10 @@ extern "C" {
 # include <xmmintrin.h>
 #endif
 
+#ifdef __AVX__
+# include <immintrin.h>
+#endif
+
 # include <stddef.h>
 
 /* ################################################################### *
@@ -279,6 +283,13 @@ extern __m128 _ITM_CALL_CONVENTION _ITM_RaWM128(const __m128 *);
 extern __m128 _ITM_CALL_CONVENTION _ITM_RfWM128(const __m128 *);
 #endif /* __SSE__ */
 
+#ifdef __AVX__
+extern __m256 _ITM_CALL_CONVENTION _ITM_RM256(const __m256 *);
+extern __m256 _ITM_CALL_CONVENTION _ITM_RaRM256(const __m256 *);
+extern __m256 _ITM_CALL_CONVENTION _ITM_RaWM256(const __m256 *);
+extern __m256 _ITM_CALL_CONVENTION _ITM_RfWM256(const __m256 *);
+#endif /* __AVX__ */
+
 extern float _Complex _ITM_CALL_CONVENTION _ITM_RCF(const float _Complex *);
 extern float _Complex _ITM_CALL_CONVENTION _ITM_RaRCF(const float _Complex *);
 extern float _Complex _ITM_CALL_CONVENTION _ITM_RaWCF(const float _Complex *);
@@ -331,6 +342,12 @@ extern void _ITM_CALL_CONVENTION _ITM_WaRM128(const __m128 *, __m128);
 extern void _ITM_CALL_CONVENTION _ITM_WaWM128(const __m128 *, __m128);
 #endif /* __SSE__ */
 
+#ifdef __AVX__
+extern void _ITM_CALL_CONVENTION _ITM_WM256(const __m256 *, __m256);
+extern void _ITM_CALL_CONVENTION _ITM_WaRM256(const __m256 *, __m256);
+extern void _ITM_CALL_CONVENTION _ITM_WaWM256(const __m256 *, __m256);
+#endif /* __AVX__ */
+
 extern void _ITM_CALL_CONVENTION _ITM_WCF(const float _Complex *, float _Complex);
 extern void _ITM_CALL_CONVENTION _ITM_WaRCF(const float _Complex *, float _Complex);
 extern void _ITM_CALL_CONVENTION _ITM_WaWCF(const float _Complex *, float _Complex);
@@ -353,13 +370,19 @@ extern void _ITM_CALL_CONVENTION _ITM_LU8(const uint64_t *);
 extern void _ITM_CALL_CONVENTION _ITM_LF(const float *);
 extern void _ITM_CALL_CONVENTION _ITM_LD(const double *);
 extern void _ITM_CALL_CONVENTION _ITM_LE(const long double *);
-extern void _ITM_CALL_CONVENTION _ITM_LM64(const __m64 *);
-extern void _ITM_CALL_CONVENTION _ITM_LM128(const __m128 *);
 extern void _ITM_CALL_CONVENTION _ITM_LCF(const float _Complex *);
 extern void _ITM_CALL_CONVENTION _ITM_LCD(const double _Complex *);
 extern void _ITM_CALL_CONVENTION _ITM_LCE(const long double _Complex *);
 extern void _ITM_CALL_CONVENTION _ITM_LB(const void *, size_t);
 
+#ifdef __SSE__
+extern void _ITM_CALL_CONVENTION _ITM_LM64(const __m64 *);
+extern void _ITM_CALL_CONVENTION _ITM_LM128(const __m128 *);
+#endif /* __SSE__ */
+
+#ifdef __AVX__
+extern void _ITM_CALL_CONVENTION _ITM_LM256(const __m256 *);
+#endif /* __AVX__ */
 
 /*** memcpy functions ***/
 
@@ -436,6 +459,7 @@ GENERATE (ACTION, double,D, __VA_ARGS__)                                \
 GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
 GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
 GENERATE (ACTION, __m128,M128, __VA_ARGS__)                             \
+GENERATE (ACTION, __m256,M256, __VA_ARGS__)                             \
 GENERATE (ACTION, float _Complex, CF, __VA_ARGS__)                      \
 GENERATE (ACTION, double _Complex, CD, __VA_ARGS__)                     \
 GENERATE (ACTION, long double _Complex, CE, __VA_ARGS__) 
@@ -449,7 +473,8 @@ GENERATE (ACTION, float,F, __VA_ARGS__)                                 \
 GENERATE (ACTION, double,D, __VA_ARGS__)                                \
 GENERATE (ACTION, long double,E, __VA_ARGS__)                           \
 GENERATE (ACTION, __m64,M64, __VA_ARGS__)                               \
-GENERATE (ACTION, __m128,M128, __VA_ARGS__)
+GENERATE (ACTION, __m128,M128, __VA_ARGS__)                             \
+GENERATE (ACTION, __m256,M256, __VA_ARGS__)
 # endif
 
 # define _ITM_FOREACH_MEMCPY0(ACTION, NAME, ...)                                                            \

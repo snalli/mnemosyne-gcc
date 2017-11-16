@@ -28,7 +28,13 @@
 using namespace alps;
 
 class Context {
+public:
+    Context()
+        : do_v(true), do_nv(true)
+    { }
 
+    bool do_v;
+    bool do_nv;
 };
 
 typedef nvExtentHeap<Context, TPtr, PPtr> nvExtentHeap_t;

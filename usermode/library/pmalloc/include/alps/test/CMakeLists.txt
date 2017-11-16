@@ -25,7 +25,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_definitions(${ARCH_DEFS})
 
-add_subdirectory(unit)
+#add_subdirectory(unit)
 #add_subdirectory(integration)
 
 

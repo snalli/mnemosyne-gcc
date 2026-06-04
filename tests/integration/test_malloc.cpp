@@ -8,8 +8,10 @@
 
 extern "C" {
 #include <mnemosyne.h>
+#include <mtm.h>
 #include <pmalloc.h>
 }
+#include "tm_def.h"
 
 /* Persistent pointer lives in the PERSISTENT section */
 __attribute__((section("PERSISTENT"))) static void *ptr = nullptr;

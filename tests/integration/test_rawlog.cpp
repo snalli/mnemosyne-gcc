@@ -12,6 +12,7 @@ extern "C" {
 #include <mnemosyne.h>
 #include <pcm.h>
 #include <log.h>
+#include <mtm_i.h>
 }
 
 #define SEQUENCE_END 0xDEADBEEFDEADBEEFULL

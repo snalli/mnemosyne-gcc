@@ -48,7 +48,13 @@ endfunction()
 
 add_unit_test(test_atomics       SOURCES test_atomics.cpp)
 add_unit_test(test_hrtime        SOURCES test_hrtime.cpp)
-add_unit_test(test_spinlock      SOURCES test_spinlock.cpp)
+# Concurrent test excluded from valgrind — no heap allocs, and spinlocks
+# under valgrind's instrumentation are orders of magnitude slower.
+add_executable(test_spinlock test_spinlock.cpp)
+target_include_directories(test_spinlock PRIVATE ${UNIT_INCLUDES})
+target_compile_options(test_spinlock PRIVATE ${UNIT_FLAGS})
+target_link_libraries(test_spinlock PRIVATE GTest::gtest_main Threads::Threads)
+gtest_discover_tests(test_spinlock)
 add_unit_test(test_simd_types    SOURCES test_simd_types.cpp)
 add_unit_test(test_memory_barriers SOURCES test_memory_barriers.cpp)
 

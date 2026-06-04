@@ -16,6 +16,7 @@ target_include_directories(simple PRIVATE
 target_compile_options(simple PRIVATE -fgnu-tm)
 target_link_options(simple PRIVATE
     -T${CMAKE_SOURCE_DIR}/tool/linker/linker_script_persistent_segment
+    -no-pie   # ASLR would randomize the PERSISTENT section address; mnemosyne needs it fixed
 )
 target_link_libraries(simple
     mnemosyne

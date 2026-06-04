@@ -44,13 +44,13 @@ function(add_integration_test name src)
         mnemosyne          # the combined shared library
     )
     target_link_options(${name} PRIVATE -T${LINKER_SCRIPT})
-    # PRE_TEST: defer discovery to test-run time so the binary isn't
-    # executed during cmake/build (mnemosyne needs /dev/shm/psegments).
-    gtest_discover_tests(${name}
+    # Register the whole binary as one CTest entry — avoids running the
+    # binary at configure/build time (mnemosyne needs /dev/shm/psegments).
+    add_test(NAME ${name}
+        COMMAND ${name}
         WORKING_DIRECTORY ${MNEMOSYNE_SRC}
-        PROPERTIES TIMEOUT 30
-        DISCOVERY_MODE PRE_TEST
     )
+    set_tests_properties(${name} PROPERTIES TIMEOUT 30)
 endfunction()
 
 add_integration_test(itest_pmap    test_pmap.cpp)

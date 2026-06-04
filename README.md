@@ -132,4 +132,4 @@ mnemosyne-gcc/
 
 ## License
 
-GPL-2.0 — see `src/COPYING`.
+GPL-3.0 — see `src/COPYING`.

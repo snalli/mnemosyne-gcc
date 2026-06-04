@@ -54,7 +54,7 @@ add_executable(test_spinlock test_spinlock.cpp)
 target_include_directories(test_spinlock PRIVATE ${UNIT_INCLUDES})
 target_compile_options(test_spinlock PRIVATE ${UNIT_FLAGS})
 target_link_libraries(test_spinlock PRIVATE GTest::gtest_main Threads::Threads)
-gtest_discover_tests(test_spinlock)
+gtest_discover_tests(test_spinlock PROPERTIES TIMEOUT 30)
 add_unit_test(test_simd_types    SOURCES test_simd_types.cpp)
 add_unit_test(test_memory_barriers SOURCES test_memory_barriers.cpp)
 

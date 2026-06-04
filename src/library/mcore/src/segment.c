@@ -98,7 +98,7 @@ verify_backing_stores(m_segtbl_t *segtbl)
 	uint32_t         segment_id; 
 	uint64_t         segment_module_id; /* This is valid for the .persistent backing stores */
 	m_segidx_entry_t *ientry;
-	char             complete_path[256];
+	char             complete_path[512];
 
 	d = opendir(SEGMENTS_DIR);
 	if (d) {
@@ -110,7 +110,7 @@ verify_backing_stores(m_segtbl_t *segtbl)
 				/* Backing store has a valid entry in the segment table? */
 				if (!(segtbl->entries[index].flags & SGTB_VALID_ENTRY)) {
 					/* No valid entry; erase backing store */
-					sprintf(complete_path, "%s/%s", SEGMENTS_DIR, dir->d_name);
+					snprintf(complete_path, sizeof(complete_path), "%s/%s", SEGMENTS_DIR, dir->d_name);
 					M_DEBUG_PRINT(M_DEBUG_SEGMENT, "Remove backing store: %s\n", complete_path);
 					unlink(complete_path);
 				}	
@@ -256,7 +256,7 @@ out:
 }
 
 
-static
+static __attribute__((unused))
 m_result_t
 segidx_destroy(m_segidx_t *segidx)
 {
@@ -478,10 +478,11 @@ segment_table_print(m_segtbl_t *segtbl)
 		              (tentry->flags & SGTB_TYPE_SECTION)? 'S': '-'
 			         );
 	}
+	(void)start; (void)end;
 }
 
 
-void 
+void
 m_segment_table_print()
 {
 	segment_table_print(&m_segtbl);
@@ -617,6 +618,7 @@ segment_reincarnate_segments(m_segtbl_t *segtbl)
 		if (map_addr == MAP_FAILED) {
 			M_INTERNALERROR("Cannot reincarnate persistent segment.\n");
 		}
+		(void)end;
 	}
 }
 
@@ -735,6 +737,7 @@ segment_create_sections(m_segtbl_t *segtbl)
 	Elf_Data         *elfdata;
 
 	rv = m_module_create_module_dsr_list(&module_dsr_list);
+	(void)rv;
 
 	list_for_each_entry(module_dsr, &module_dsr_list, list) {
 		M_DEBUG_PRINT(M_DEBUG_SEGMENT, "module_path = %s\n", module_dsr->module_path);

@@ -41,6 +41,7 @@
 #define __SSE4_1__
 /* System header files */
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdlib.h>
 /* Mnemosyne common header files */
@@ -80,7 +81,7 @@ m_phlog_tornbit_check_consistency(m_phlog_tornbit_nvmd_t *nvmd,
 	uint64_t          i;
 	uint64_t          tornbit;
 	uint64_t          valid_tornbit;
-	int               flip_tornbit = 0;
+	int               flip_tornbit __attribute__((unused)) = 0;
 
 	valid_tornbit = LF_TORNBIT & nvmd->flags;
 	i = head_index = nvmd->flags & LF_HEAD_MASK;
@@ -112,7 +113,7 @@ tornbit_format_nvlog (pcm_storeset_t *set,
                       m_phlog_tornbit_nvmd_t *nvmd, 
                       pcm_word_t *nvphlog)
 {
-	int i;
+	uint32_t i;
 
 	PCM_NT_STORE(set, (volatile pcm_word_t *) &nvmd->flags, head_index | tornbit);
 	for (i=0; i<PHYSICAL_LOG_NUM_ENTRIES; i++) {
@@ -143,7 +144,7 @@ m_phlog_tornbit_format (pcm_storeset_t *set,
 {
 	m_result_t             rv = M_R_FAILURE;
 	
-	if ((nvmd->generic_flags & LF_TYPE_MASK) == type) {
+	if ((nvmd->generic_flags & LF_TYPE_MASK) == (uint64_t)type) {
 		/* 
 		 * TODO: Optimization: check consistency and perform a quick format 
 		 * instead.
@@ -241,9 +242,9 @@ m_phlog_tornbit_truncate_async(pcm_storeset_t *set, m_phlog_tornbit_t *phlog)
 
 void m_phlog_print_buffer(m_phlog_tornbit_t *log)
 {
-	int i;
+	uint64_t i;
 	for (i=0; i<log->buffer_count; i++) {
-		printf("buffer[%d] = %lX (", i, log->buffer[i]);
+		printf("buffer[%" PRIu64 "] = %lX (", i, log->buffer[i]);
 		print_binary64(log->buffer[i]);
 		printf(")\n");
 	}

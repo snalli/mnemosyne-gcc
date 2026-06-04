@@ -106,7 +106,7 @@
 				tbuf + tbuf_ptr);				\
 		}								\
 		tbuf_sz = 0; 							\
-		memset(tbuf,'\0', MAX_TBUF_SZ);					\
+		memset(tbuf,'\0', MAX_TBUF_SZ * sizeof(tbuf[0]));			\
 		if(mtm_debug_buffer)						\
 		{								\
 			fprintf(m_err, 						\
@@ -178,7 +178,7 @@
                         sizeof((pm_dst)),           	\
                         LOC1,                   	\
                         LOC2);                  	\
-            pm_dst = y;                             	\
+            pm_dst = (uintptr_t)(y);                	\
     })
 
 #define PM_EQU_DW(pm_dst, y)                            \
@@ -264,8 +264,8 @@
                         (unsigned long)sz,          	\
                         LOC1,                   	\
                         LOC2);                  	\
-            memset(pm_dst, val, sz);                	\
-    }) 
+            do { void *_p = (void *)(pm_dst); memset(_p, val, (size_t)(sz)); } while(0); \
+    })
 
 #define PM_MEMCPY(pm_dst, src, sz)                  	\
     ({                                              	\

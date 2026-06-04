@@ -482,7 +482,7 @@ void * _ITM_pmalloc(size_t size)
 
   mtm_tx_t *tx = mtm_get_tx();
   if(tx)
-	_ITM_addUserUndoAction(mtm_pmalloc_undo, ptr);
+	_ITM_addUserUndoAction((_ITM_userUndoFunction)mtm_pmalloc_undo, ptr);
 out:
   return ptr;
 }
@@ -531,7 +531,7 @@ void * _ITM_prealloc (void * ptr, size_t sz)
 	}
 
 	size_t obj_size = mtm_get_obj_size(ptr);
-	if(obj_size >= sz || obj_size == -1) 
+	if(obj_size >= sz || obj_size == (size_t)-1)
 		return ptr;
 
 	assert(obj_size < sz);

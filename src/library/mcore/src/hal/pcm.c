@@ -103,7 +103,7 @@ pcm_storeset_list_t pcm_storeset_list = { 0,
 
 /* CDF for a cacheline partial crash. */
 
-#define NO_PARTIAL_CRASH {{0,0,0,0,0,0,0,0,1000000}}
+#define NO_PARTIAL_CRASH {.word = {[CACHELINE_SIZE/sizeof(pcm_word_t)] = 1000000}}
 
 cacheline_crash_cdf_t cacheline_crash_cdf = NO_PARTIAL_CRASH;
 
@@ -232,7 +232,7 @@ crash_save_oldvalue(pcm_storeset_t *set, volatile pcm_word_t *addr)
 	uintptr_t           byte_addr;
 	uintptr_t           block_byte_addr;
 	uintptr_t           index_byte_addr;
-	int                 i;
+	size_t              i;
 	cacheline_t         *cacheline;
 	cacheline_bitmask_t bitmask;
 	uint8_t             byte_oldvalue;
@@ -265,7 +265,7 @@ crash_restore_unflushed_values(pcm_storeset_t *set)
 {
 	uintptr_t           byte_addr;
 	uintptr_t           block_byte_addr;
-	int                 i;
+	size_t              i;
 	int                 j;
 	cacheline_t         *cacheline;
 	cacheline_bitmask_t bitmask;
@@ -297,7 +297,7 @@ crash_flush_cacheline(pcm_storeset_t *set, volatile pcm_word_t *addr, int allow_
 	uintptr_t           byte_addr;
 	uintptr_t           block_byte_addr;
 	int                 random_number;
-	int                 i;
+	size_t              i;
 	int                 sum;
 	int                 successfully_flushed_words_num=0;
 	cacheline_t         *cacheline;
@@ -365,8 +365,8 @@ static inline
 void
 crash_flush_cachelines(pcm_storeset_t *set, int all, int likelihood_flush_cacheline)
 {
-	int                 i;
-	int                 count;
+	size_t              i;
+	size_t              count;
 	int                 random_number;
 	int                 do_flush;
 	PointerHashRecord   *ra[1024];
@@ -401,7 +401,7 @@ crash_flush_cachelines(pcm_storeset_t *set, int all, int likelihood_flush_cachel
 void 
 pcm_trigger_crash(pcm_storeset_t *set, int wait_storesets_halt)
 {
-	int             waiters;
+	uint32_t        waiters;
 	pcm_storeset_t  *set_iter;
 
 
@@ -464,8 +464,8 @@ static inline
 void
 nt_flush_buffers(pcm_storeset_t *set)
 {
-	int                 i;
-	int                 count;
+	size_t              i;
+	size_t              count;
 	PointerHashRecord   *ra[WRITE_COMBINING_BUFFERS_NUM];
 
 	assert(set->in_crash_emulation_code);

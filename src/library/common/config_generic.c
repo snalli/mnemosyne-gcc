@@ -141,6 +141,7 @@ m_config_setting_lookup_int(config_t *cfg,
 	int              list_length;
 	int              i;
 	int              val;
+	int              lval;
 	int              listval;
 	va_list          ap;
 	int              found_val  = 0;
@@ -149,7 +150,8 @@ m_config_setting_lookup_int(config_t *cfg,
 		found_val = 1;
 	} else {	
 		group = config_lookup(cfg, group_name);
-	    if (group && config_setting_lookup_int(group, member_name , (long int *) &val) == CONFIG_TRUE) {
+	    if (group && config_setting_lookup_int(group, member_name, &lval) == CONFIG_TRUE) {
+			val = lval;
 			found_val = 1;
 		}
 	}

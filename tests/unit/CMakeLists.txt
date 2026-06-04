@@ -40,6 +40,7 @@ function(add_unit_test name)
                 --errors-for-leak-kinds=definite,indirect
                 $<TARGET_FILE:${name}>
         )
+        set_tests_properties(${name}_valgrind PROPERTIES TIMEOUT 120)
     endif()
 endfunction()
 

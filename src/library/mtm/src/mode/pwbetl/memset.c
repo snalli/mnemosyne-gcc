@@ -34,6 +34,6 @@
 #include <memset.h>
 
 /* Forward declaration for store_bytes defined via BARRIER_DEFINITION in barrier.c */
-void mtm_pwbetl_store_bytes(mtm_tx_t *tx, volatile const uint8_t *addr, uint8_t *buf, size_t size);
+void mtm_pwbetl_store_bytes(mtm_tx_t *tx, volatile uint8_t *addr, uint8_t *buf, size_t size);
 
 FORALL_MEMSET_VARIANTS(MEMSET_DEFINITION, pwbetl)

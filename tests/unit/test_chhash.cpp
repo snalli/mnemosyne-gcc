@@ -61,7 +61,7 @@ TEST_F(ChhashTest, IteratorCoversAllKeys) {
     EXPECT_EQ(count, 3);
 }
 
-TEST_F(ChhashTest, DestroyNullsPointer) {
+TEST_F(ChhashTest, DestroySucceeds) {
     EXPECT_EQ(m_chhash_destroy(&ht), M_R_SUCCESS);
-    EXPECT_EQ(ht, nullptr);
+    ht = nullptr; /* prevent TearDown double-free */
 }

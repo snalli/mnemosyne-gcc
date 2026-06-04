@@ -44,10 +44,12 @@ function(add_integration_test name src)
         mnemosyne          # the combined shared library
     )
     target_link_options(${name} PRIVATE -T${LINKER_SCRIPT})
-    # Run from src/ so mnemosyne.ini is found
+    # PRE_TEST: defer discovery to test-run time so the binary isn't
+    # executed during cmake/build (mnemosyne needs /dev/shm/psegments).
     gtest_discover_tests(${name}
         WORKING_DIRECTORY ${MNEMOSYNE_SRC}
         PROPERTIES TIMEOUT 30
+        DISCOVERY_MODE PRE_TEST
     )
 endfunction()
 

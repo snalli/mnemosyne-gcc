@@ -115,7 +115,7 @@ void __pm_trace_print(char* format, ...)
 		if((PSEGMENT_RESERVED_REGION_START < addr &&
 			addr < PSEGMENT_RESERVED_REGION_END))
                 	reg_write = 1;
-        } else;
+        } else { /* empty */ }
 	va_end(__va_list);
 }
 
@@ -209,7 +209,7 @@ m_print_trace (void)
      
        printf ("Obtained %d stack frames.\n", size);
      
-       for (i = 0; i < size; i++)
+       for (i = 0; i < (size_t)size; i++)
           printf ("%s\n", strings[i]);
      
        free (strings);

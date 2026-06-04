@@ -32,7 +32,9 @@ target_include_directories(mnemosyne_iface INTERFACE
 target_compile_options(mnemosyne_iface INTERFACE
     -fgnu-tm
     -fno-omit-frame-pointer
-    -w
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
     -g
     -O0
 )

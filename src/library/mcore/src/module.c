@@ -84,7 +84,7 @@ m_module_relocate_symbols(uintptr_t got_start,
 	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "relocate.new_start = %lx\n", new_start);
 	M_DEBUG_PRINT(M_DEBUG_SEGMENT, "relocate.new_end   = %lx\n", new_end);
 
-	mprotect(got_start - (got_start % 4096), got_end - (got_start - (got_start % 4096)), PROT_READ | PROT_WRITE | PROT_EXEC);
+	mprotect((void *)(got_start - (got_start % 4096)), got_end - (got_start - (got_start % 4096)), PROT_READ | PROT_WRITE | PROT_EXEC);
 	
 	for (entry = got_start; entry < got_end; entry+=sizeof(uintptr_t)) {
 		symbol_old_addr = *((uintptr_t *) entry);
@@ -205,7 +205,7 @@ out:
 }
 
 
-static 
+static __attribute__((unused))
 void
 persistent_shdr_close(module_dsr_t *module_dsr)
 {

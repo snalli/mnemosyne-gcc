@@ -62,6 +62,11 @@
 #include "sysdeps/x86/target.h"
 #include "stats.h"
 
+/* Forward declarations for functions defined in other translation units */
+void mtm_config_init(void);
+m_result_t mtm_pwbetl_create(mtm_tx_t *tx, mtm_mode_data_t **datap);
+m_result_t mtm_pwbetl_destroy(mtm_mode_data_t *data);
+
 /* Definitions for the tx_count group declared extern in mtm_i.h */
 pthread_mutex_t tx_count_mutex;
 pthread_cond_t  tx_reset;
@@ -78,8 +83,8 @@ m_statsmgr_t *mtm_statsmgr;
 /*
  * Catch signal (to emulate non-faulting load).
  */
-static 
-void 
+static __attribute__((unused))
+void
 signal_catcher(int sig)
 {
 	mtm_tx_t *tx = mtm_get_tx();
@@ -112,7 +117,7 @@ init_global()
 #if CM == CM_PRIORITY
 	char             *s;
 #endif /* CM == CM_PRIORITY */
-	struct sigaction act;
+	struct sigaction act __attribute__((unused));
 	pcm_storeset_t   *pcm_storeset;
 
 	PRINT_DEBUG("==> mtm_init()\n");

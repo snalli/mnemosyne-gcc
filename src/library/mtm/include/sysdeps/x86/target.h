@@ -14,8 +14,12 @@
 #include <stdint.h>
 
 /* Cache-line size: use 64 bytes everywhere (safe for all modern CPUs). */
+#ifndef CACHELINE_SIZE
 #define CACHELINE_SIZE     64
+#endif
+#ifndef CACHELINE_SIZE_LOG
 #define CACHELINE_SIZE_LOG 6
+#endif
 
 /* -----------------------------------------------------------------------
  * mtm_jmpbuf_t
@@ -71,10 +75,7 @@ atomic_write_barrier(void)
 static inline uintptr_t *
 get_stack_pointer(void)
 {
-    /* __builtin_frame_address(0) gives the current frame, not rsp; use
-     * the address of a local as a portable approximation of rsp.       */
-    volatile uintptr_t dummy = 0;
-    return (uintptr_t *)(uintptr_t)&dummy;
+    return (uintptr_t *)__builtin_frame_address(0);
 }
 
 static inline uintptr_t *

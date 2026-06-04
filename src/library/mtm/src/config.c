@@ -50,7 +50,6 @@ config_init_internal(char *config_file)
 void
 mtm_config_init()
 {
-	char buf[128];
 	char *config_file;
 	config_file = getenv("MNEMOSYNE_CONFIG");
 	if (config_file) {

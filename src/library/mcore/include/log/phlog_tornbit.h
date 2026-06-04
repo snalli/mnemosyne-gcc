@@ -162,8 +162,8 @@ struct m_phlog_tornbit_s {
 };
 
 
-static 
-void 
+static __attribute__((unused))
+void
 print_binary64(uint64_t val)
 {
 	int i;

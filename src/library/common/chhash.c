@@ -63,10 +63,10 @@ struct m_chhash_s {
 };
 
 
-m_result_t 
+m_result_t
 m_chhash_create(m_chhash_t** hp, unsigned int table_size, bool mtsafe)
 {
-	int i;
+	unsigned int i;
 
 	*hp = (m_chhash_t *) MALLOC(sizeof(m_chhash_t));
 	if (*hp == NULL) 
@@ -99,9 +99,9 @@ m_chhash_destroy(m_chhash_t** hp)
 {
 	m_chhash_bucket_t *bucket;
 	m_chhash_bucket_t *next_bucket;
-	int               i;
+	unsigned int      i;
 
-	if (*hp == NULL) 
+	if (*hp == NULL)
 	{
 		return M_R_SUCCESS;
 	}
@@ -294,7 +294,7 @@ m_chhash_iter_init(m_chhash_t *chhash, m_chhash_iter_t *iter)
 	iter->bucket = NULL;
 
 	for (i=0; i<chhash->tbl_size; i++) {
-		if (bucket = chhash->tbl[i].head) {
+		if ((bucket = chhash->tbl[i].head)) {
 			iter->bucket = bucket;
 			iter->index = i;
 			break;
@@ -326,7 +326,7 @@ m_chhash_iter_next(m_chhash_iter_t *iter,
 	} else {	
 		iter->bucket = NULL;
 		for (i=iter->index+1; i<chhash->tbl_size; i++) {
-			if (bucket = chhash->tbl[i].head) {
+			if ((bucket = chhash->tbl[i].head)) {
 				iter->bucket = bucket;
 				iter->index = i;
 				break;
@@ -338,9 +338,9 @@ m_chhash_iter_next(m_chhash_iter_t *iter,
 }
 
 
-void 
+void
 m_chhash_print(m_chhash_t *h) {
-	int i;
+	unsigned int i;
 	m_chhash_bucket_list_t *bucket_list;
 	m_chhash_bucket_t      *bucket;
 
@@ -348,19 +348,19 @@ m_chhash_print(m_chhash_t *h) {
 	for (i=0;i<h->tbl_size; i++)
 	{
 		bucket_list = &h->tbl[i];
-		if (bucket = bucket_list->head) {
-			fprintf(M_DEBUG_OUT, "[%d]: head", i);
+		if ((bucket = bucket_list->head)) {
+			fprintf(M_DEBUG_OUT, "[%u]: head", i);
 			for (; bucket != NULL; bucket=bucket->next)
 			{
-				fprintf(M_DEBUG_OUT, " --> (%u, %p)", bucket->key, bucket->value);
+				fprintf(M_DEBUG_OUT, " --> (%lu, %p)", (long unsigned int)bucket->key, bucket->value);
 			}
 			fprintf(M_DEBUG_OUT, "\n");
 		}
-		if (bucket = bucket_list->free) {
-			fprintf(M_DEBUG_OUT, "[%d]: free", i);
+		if ((bucket = bucket_list->free)) {
+			fprintf(M_DEBUG_OUT, "[%u]: free", i);
 			for (; bucket != NULL; bucket=bucket->next)
 			{
-				fprintf(M_DEBUG_OUT, " --> (%u, %p)", bucket->key, bucket->value);
+				fprintf(M_DEBUG_OUT, " --> (%lu, %p)", (long unsigned int)bucket->key, bucket->value);
 			}
 			fprintf(M_DEBUG_OUT, "\n");
 		}

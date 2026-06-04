@@ -68,7 +68,7 @@ static pthread_mutex_t      logmgr_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static m_logmgr_t           *logmgr = NULL;
 static volatile char        logmgr_initialized = 0; /* reads and writes to single-byte memory locations are guaranteed to be atomic. Don't need to bother with alignment. */
 
-#define NULL_LOG_OPS { NULL, NULL, NULL, NULL, NULL}
+#define NULL_LOG_OPS { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
 
 /**
  * Static log operations.
@@ -273,7 +273,7 @@ register_logtype(m_logmgr_t *mgr, int type, m_log_ops_t *ops, int lock)
 	list_add_tail(&(logtype_entry->list), &(mgr->known_logtypes_list));
 	/* Update the ops field of any pending log of the newly registered type and allocate a log. */
 	list_for_each_entry(log_dsc, &(mgr->pending_logs_list), list) {
-		if ((log_dsc->nvmd->generic_flags & LF_TYPE_MASK)  == type) {
+		if ((log_dsc->nvmd->generic_flags & LF_TYPE_MASK)  == (uint64_t)type) {
 			log_dsc->ops = ops;
 			assert(log_dsc->ops->alloc(log_dsc) == M_R_SUCCESS);
 		}	
@@ -419,8 +419,8 @@ m_logmgr_alloc_log(pcm_storeset_t *set, int type, uint64_t flags, m_log_dsc_t **
 
 	pthread_mutex_lock(&(logmgr->mutex));
 	list_for_each_entry(log_dsc, &(logmgr->free_logs_list), list) {
-		if (((log_dsc->nvmd->generic_flags & LF_TYPE_MASK) ==  type) &&
-		    free_log_dsc == NULL) 
+		if (((log_dsc->nvmd->generic_flags & LF_TYPE_MASK) ==  (uint64_t)type) &&
+		    free_log_dsc == NULL)
 		{
 			free_log_dsc = log_dsc;
 		}

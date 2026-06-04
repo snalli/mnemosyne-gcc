@@ -215,4 +215,5 @@ m_logtrunc_signal()
 	// We don't worry about lost signals, as if the signal is lost, then 
 	// the async trunc thread was already truncating the log 
 	pthread_cond_signal(&logmgr->logtrunc_cond);
+	return M_R_SUCCESS;
 }

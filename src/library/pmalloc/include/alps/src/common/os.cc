@@ -345,12 +345,9 @@ void fs_remove_matched(const boost::filesystem::path& dir, const std::regex rege
     std::list<boost::filesystem::path> lst;
     fs_list_entries(dir, &lst);
     for (auto& entry: lst) {
-        if (std::regex_match(boost::filesystem::basename(entry), regex)) {
-            struct stat stat_buf;
-            //The correct way is to wait for allocated blocks to be reclaimed, but 
+        if (std::regex_match(entry.stem().string(), regex)) {
+            //The correct way is to wait for allocated blocks to be reclaimed, but
             //LFS does not correctly report the number of allocated blocks.
-            //assert(stat(entry.string().c_str(), &stat_buf) == 0);
-            //deleted_blocks += (stat_buf.st_blocks * 512) / block_size;
             deleted_blocks += boost::filesystem::file_size(entry) / block_size;
             boost::filesystem::remove(entry);
         }

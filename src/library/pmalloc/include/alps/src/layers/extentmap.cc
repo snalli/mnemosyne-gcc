@@ -89,7 +89,7 @@ void ExtentMap::insert(const ExtentInterval& e)
     MapAddr::iterator it_hint = map_addr_.lower_bound(e.start());
 
     std::pair<MapAddr::iterator, ExtentInterval*> prev = prev_addr(it_hint, e);
-    MapAddr::iterator it_prev = prev.first;
+    MapAddr::iterator it_prev __attribute__((unused)) = prev.first;
     ExtentInterval* ex_prev = prev.second;
 
     std::pair<MapAddr::iterator, ExtentInterval*> next = next_addr(it_hint, e);

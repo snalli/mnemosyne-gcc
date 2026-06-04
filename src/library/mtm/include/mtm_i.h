@@ -231,6 +231,10 @@ extern int cm_threshold;
 # pragma GCC visibility push(hidden)
 #endif
 
+/* Forward declarations for noreturn helpers defined in arch.c */
+extern void __attribute__((noreturn)) _ITM_siglongjmp(mtm_jmpbuf_t *jb, int val);
+extern void __attribute__((noreturn)) mtm_longjmp(mtm_jmpbuf_t *jb, int val);
+
 #include "mode/mode.h"
 #include "sysdeps/x86/target.h"
 #include "rwlock.h"

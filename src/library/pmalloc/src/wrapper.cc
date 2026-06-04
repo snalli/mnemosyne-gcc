@@ -57,10 +57,8 @@ void mtm_pmalloc_undo (void* ptr)
 extern "C"
 void * mtm_pcalloc (size_t nelem, size_t elsize)
 {
-    void* addr;
-    // TODO
-
-	return addr;
+    // TODO: implement pcalloc
+    return NULL;
 }
 
 

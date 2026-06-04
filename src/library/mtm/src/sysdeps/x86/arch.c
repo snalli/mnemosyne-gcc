@@ -61,7 +61,7 @@ _ITM_beginTransaction(uint32_t flags, mtm_jmpbuf_t *jb)
     /* Record where we should longjmp back to on abort */
     jb->abendPC = (uint64_t)(uintptr_t)__builtin_return_address(0);
     /* Approximate sp: one frame up */
-    jb->sp      = (uint64_t)(uintptr_t)__builtin_frame_address(1);
+    jb->sp      = (uint64_t)(uintptr_t)__builtin_frame_address(0);
     /* Callee-saved GPRs cannot be captured portably in C; zero them so
      * the jmpbuf is at least deterministic.  mtm_longjmp is never actually
      * called when the TM runtime uses the C path (it uses siglongjmp from

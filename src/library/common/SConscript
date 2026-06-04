@@ -1,0 +1,17 @@
+import sys
+sys.path.append('%s/library' % (Dir('#').abspath))
+from configuration import mnemosyne
+
+Import('mainEnv')  # read only -- clone if need to modify
+
+buildEnv = mnemosyne.Environment(mainEnv)
+buildEnv.Append(CCFLAGS = ['-fPIC'])
+buildEnv.Append(CPPPATH = ['#library/common'])
+
+
+SRC = Split("""
+            debug.c
+            """)
+
+CommonObjects = buildEnv.StaticLibrary('mnemosyne_common', SRC)
+Return('CommonObjects')

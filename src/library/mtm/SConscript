@@ -1,0 +1,94 @@
+import sys, os
+sys.path.append('%s/library' % (Dir('#').abspath))
+import configuration.mtm
+
+Import('mainEnv')  # read only -- clone if need to modify
+
+buildEnv = configuration.mtm.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
+
+# FIXME: Currently we use GCC to build the TM library because we rely on GCC 
+# atomic intrinsics such as __sync_add_and_fetch_4, which are not available
+# in the version of ICC we use. We would like to fix this issue.
+
+buildEnv.Append(CCFLAGS = ' -march=native -fPIC -w -fno-omit-frame-pointer ')
+buildEnv.Append(ASFLAGS = ' -DHAVE_CONFIG_H ')
+buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
+buildEnv.Append(CPPPATH = ['#library/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwb-common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwbetl'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/linux'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/x86'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/hal'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/log'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include'])
+buildEnv.Append(CPPPATH = 'src')
+buildEnv.Append(CPPPATH = 'src/common')
+buildEnv.Append(CPPPATH = 'src/sysdeps/x86')
+buildEnv.Append(CPPPATH = 'src/sysdeps/linux')
+
+if buildEnv['BUILD_DEBUG'] == True:
+	buildEnv.Append(CCFLAGS = ' -O0 -g -D_MTM_BUILD_DEBUG -D_M_BUILD_DEBUG')
+else:
+	buildEnv.Append(CCFLAGS = ' -O2')
+
+if buildEnv['BUILD_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
+
+if mainEnv['ENABLE_FTRACE'] == True:
+        buildEnv.Append(CCFLAGS = '-D_ENABLE_FTRACE')
+
+
+
+# For common source files we need to manually specify the object creation rules 
+# to avoid getting the following error:
+#   scons: warning: Two different environments were specified for target ... 
+#   but they appear to have the same actions: ...
+
+COMMON_SRC = [
+              ('src/config_generic', '../common/config_generic.c'), 
+              ('src/chhash', '../common/chhash.c'),
+              ('src/debug', '../common/debug.c'), 
+             ]
+
+COMMON_OBJS = [buildEnv.SharedObject(src[0], src[1]) for src in COMMON_SRC]
+
+CC_SRC = Split("""
+               src/config.c
+               src/gc.c
+               src/init.c
+               src/gcc-abi.c
+               src/local.c
+               src/mode/mode.c
+               src/mode/pwbnl.c
+               src/mode/common/common.c
+               src/mode/pwb-common/pwb.c
+               src/mode/pwbetl/beginend.c
+               src/mode/pwbetl/memcpy.c
+               src/mode/pwbetl/memset.c
+               src/mode/pwbetl/pwbetl.c
+               src/mode/pwbetl/barrier.c
+	       src/mode/pwb-common/tmlog_base.c
+	       src/mode/pwb-common/tmlog_tornbit.c
+               src/mtm.c
+               src/stats.c
+               src/txlock.c
+               src/useraction.c
+               src/sysdeps/linux/rwlock.c
+               """)
+
+S_SRC = Split("""
+		src/sysdeps/x86/arch.S
+	      """)
+# src/sysdeps/x86/sjlj.S
+SRC = CC_SRC + S_SRC + COMMON_OBJS
+
+if buildEnv['BUILD_LINKAGE'] == 'dynamic':
+	mtmLibrary = buildEnv.SharedLibrary('mtm', SRC)
+else:
+	mtmLibrary = buildEnv.StaticLibrary('mtm', SRC)
+
+Return('mtmLibrary')

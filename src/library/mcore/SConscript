@@ -1,0 +1,76 @@
+import os
+import sys
+sys.path.append('%s/library' % (Dir('#').abspath))
+import configuration.mcore
+
+Import('mainEnv')
+buildEnv = configuration.mcore.Environment(mainEnv)
+
+buildEnv.Append(CCFLAGS = ' -DHAVE_CONFIG_H -pthread -D_GNU_SOURCE -march=native -w -fno-omit-frame-pointer')
+buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
+
+buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
+buildEnv.Append(CPPPATH = ['#library/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwb-common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwbetl'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/linux'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/x86'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/hal'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/log'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include'])
+
+buildEnv.Append(LIBS = ['config', 'elf', 'pthread'])
+
+
+if buildEnv['BUILD_DEBUG'] == True:
+	buildEnv.Append(CCFLAGS = ' -g -O0 -D_MNEMOSYNE_BUILD_DEBUG')
+else:
+	buildEnv.Append(CCFLAGS = ' -O2')
+
+if buildEnv['BUILD_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
+
+# For common source files we need to manually specify the object creation rules 
+# to avoid getting the following error:
+#   scons: warning: Two different environments were specified for target ... 
+#   but they appear to have the same actions: ...
+
+if mainEnv['ENABLE_FTRACE'] == True:
+	buildEnv.Append(CCFLAGS = '-D_ENABLE_FTRACE')
+
+COMMON_SRC = [
+              ('src/config_generic', '../common/config_generic.c'),
+              ('src/debug', '../common/debug.c'), 
+             ]
+
+COMMON_OBJS = [buildEnv.SharedObject(src[0], src[1]) for src in COMMON_SRC]
+	
+C_SRC = Split("""
+              src/config.c
+              src/module.c
+              src/files.c
+              src/init.c
+              src/reincarnation_callback.c
+              src/segment.c
+              src/hal/pcm.c
+              """)
+
+LOG_C_SRC = Split("""
+                  src/log/mgr.c
+                  src/log/phlog_base.c
+                  src/log/phlog_tornbit.c
+                  src/log/logtrunc.c
+              """)
+
+
+SRC = C_SRC + LOG_C_SRC + COMMON_OBJS
+
+if buildEnv['BUILD_LINKAGE'] == 'dynamic':
+	mcoreLibrary = buildEnv.SharedLibrary('mcore', SRC)
+else:
+	mcoreLibrary = buildEnv.StaticLibrary('mcore', SRC)
+Return('mcoreLibrary')

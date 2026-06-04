@@ -1,0 +1,70 @@
+import os
+import sys
+import string
+sys.path.append('%s/library' % (Dir('#').abspath))
+import configuration.pmalloc
+
+Import('mainEnv')  # read only -- clone if need to modify
+
+buildEnv = configuration.pmalloc.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
+
+OPTIMIZE_FLAG = '-fno-rtti -fno-exceptions -finline-functions'
+WARNINGS = ' -w'
+#'-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
+DISABLE_WARNINGS = []
+
+
+if buildEnv['BUILD_DEBUG'] == True:
+	CCFLAGS= ' -std=gnu++11 -g -D_M_BUILD_DEBUG -D_MNEMOSYNE_BUILD_DEBUG '
+else:
+	CCFLAGS= ' -std=gnu++11 -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
+
+if buildEnv['BUILD_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
+
+CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -fgnu-tm -fpic -fno-omit-frame-pointer'
+CCFLAGS = CCFLAGS + ' -m64 '
+
+buildEnv.Append(CCFLAGS = CCFLAGS)
+buildEnv.Append(CXXFLAGS = CCFLAGS)
+buildEnv.Append(CPPPATH = ['#library/atomic_ops'])
+buildEnv.Append(CPPPATH = ['#library/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwb-common'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/mode/pwbetl'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/linux'])
+buildEnv.Append(CPPPATH = ['#library/mtm/include/sysdeps/x86'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/hal'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include/log'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include'])
+
+# Just include everything
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include/alps/'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include/alps/include/'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include/alps/include/alps'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include/alps/include/alps/common'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include/alps/include/alps/layers'])
+buildEnv.Append(CPPPATH = ['#library/pmalloc/include/alps/include/alps/pegasus'])
+
+buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
+
+if mainEnv['ENABLE_FTRACE'] == True:
+        buildEnv.Append(CCFLAGS = '-D_ENABLE_FTRACE')
+
+CXX_SRC = Split("""
+                src/heap.cc
+                src/wrapper.cc
+                """)
+
+SRC = CXX_SRC
+
+
+if buildEnv['BUILD_LINKAGE'] == 'dynamic':
+	pmallocLibrary = buildEnv.SharedLibrary('pmalloc', SRC)
+else:
+	pmallocLibrary = buildEnv.StaticLibrary('pmalloc', SRC)
+
+Return('pmallocLibrary')

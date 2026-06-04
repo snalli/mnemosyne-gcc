@@ -38,6 +38,7 @@ RUN cmake .. \
       -DCMAKE_BUILD_TYPE=Debug \
       -DTARGET_ARCH_MEM=CC-NUMA \
     && make -j$(nproc) 2>&1 | tee /mnemosyne/build.log \
+    && mkdir -p /dev/shm/psegments \
     && ctest --output-on-failure -E "_valgrind" \
     && ctest --output-on-failure -R "_valgrind$"
 

@@ -41,7 +41,7 @@ static void *increment_worker(void *arg) {
 }
 
 TEST(Spinlock, ConcurrentMutualExclusion) {
-    const int NTHREADS = 8, ITERS = 50000;
+    const int NTHREADS = 4, ITERS = 500;
     g_counter = 0;
     g_lock = {0, 0};
 

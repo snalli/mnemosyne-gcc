@@ -18,7 +18,9 @@ int main(void)
 
     assert(_Alignof(_ITM_TYPE_M64)  >= 8);
     assert(_Alignof(_ITM_TYPE_M128) >= 16);
-    assert(_Alignof(_ITM_TYPE_M256) >= 32);
+    /* __m256 alignment is 32 only with -mavx; without it GCC uses 16.
+     * Accept >= 16 so the test is valid on all x86 and non-x86 targets. */
+    assert(_Alignof(_ITM_TYPE_M256) >= 16);
 
     return 0;
 }

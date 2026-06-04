@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /mnemosyne
 
 COPY src/ src/
+COPY tests/ tests/
 
 # Optional: run clang-format dry-run as a non-fatal style check
 RUN find /mnemosyne/src -name "*.c" -o -name "*.cc" -o -name "*.h" -o -name "*.hh" \
@@ -33,6 +34,7 @@ WORKDIR /mnemosyne/src/build
 RUN cmake .. \
       -DCMAKE_BUILD_TYPE=Debug \
       -DTARGET_ARCH_MEM=CC-NUMA \
-    && make -j$(nproc) 2>&1 | tee /mnemosyne/build.log
+    && make -j$(nproc) 2>&1 | tee /mnemosyne/build.log \
+    && ctest --output-on-failure
 
 CMD ["/bin/bash"]

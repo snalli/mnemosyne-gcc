@@ -46,6 +46,14 @@ extern void* mtm_pmalloc(size_t);
 extern void* mtm_pmalloc_undo(size_t);
 extern void* mtm_pcalloc (size_t, size_t);
 extern void mtm_pfree (void*);
+
+/* Forward declarations for pwbetl mode functions (defined in mode/pwbetl/) */
+extern uint32_t mtm_pwbetl_beginTransaction_internal(mtm_tx_t *, uint32_t, void *, jmp_buf **);
+extern void     mtm_pwbetl_commitTransaction(mtm_tx_t *, const _ITM_srcLocation *);
+extern void     mtm_pwbetl_commitTransactionToId(mtm_tx_t *, _ITM_transactionId, const _ITM_srcLocation *);
+extern void     mtm_pwbetl_abortTransaction(mtm_tx_t *, _ITM_abortReason, const _ITM_srcLocation *);
+extern void     mtm_pwbetl_rollbackTransaction(mtm_tx_t *, const _ITM_srcLocation *);
+extern bool     mtm_pwbetl_tryCommitTransaction(mtm_tx_t *, const _ITM_srcLocation *);
 extern void mtm_pfree_prepare (void*);
 extern void mtm_pfree_commit (void*);
 extern void* mtm_prealloc (void *, size_t);

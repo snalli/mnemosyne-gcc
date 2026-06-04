@@ -43,6 +43,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+/* Forward declaration for mtm_fini_global (defined in mtm/src/init.c) */
+void mtm_fini_global(void);
+
 static pthread_mutex_t global_init_lock = PTHREAD_MUTEX_INITIALIZER;
 //static pthread_cond_t  global_init_cond = PTHREAD_COND_INITIALIZER;
 //static pthread_mutex_t global_fini_lock = PTHREAD_MUTEX_INITIALIZER;

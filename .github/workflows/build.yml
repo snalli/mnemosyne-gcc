@@ -1,0 +1,50 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    name: Build and test (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake gcc g++ \
+            libconfig-dev libelf-dev elfutils \
+            libboost-all-dev libnuma-dev \
+            libyaml-cpp-dev libattr1-dev \
+            clang-format cppcheck
+
+      - name: Configure
+        run: |
+          mkdir -p src/build
+          cd src/build
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DTARGET_ARCH_MEM=CC-NUMA
+
+      - name: Build
+        run: cmake --build src/build --parallel $(nproc)
+
+      - name: Run tests
+        run: |
+          cd src/build
+          ctest --output-on-failure
+
+      - name: Static analysis (cppcheck)
+        run: cmake --build src/build --target analysis
+        continue-on-error: true
+
+      - name: clang-format check
+        run: |
+          find src/library/mcore src/library/mtm src/library/common \
+            -name "*.c" -o -name "*.h" \
+            | xargs clang-format --dry-run -Werror
+        continue-on-error: true

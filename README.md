@@ -1,177 +1,135 @@
 # Mnemosyne
 
-### Mnemosyne: Lightweight Persistent Memory (PM)
+Lightweight Persistent Memory (PM) library. Mnemosyne lets programmers declare
+persistent global variables with the `persistent` keyword and allocate persistent
+heap objects dynamically. Consistent updates are provided through a lightweight
+software transactional memory (STM) mechanism built on GCC's `-fgnu-tm` extension.
 
-Mnemosyne provides a simple interface for programming with persistent 
-memory. Programmers declare global persistent data with the keyword 
-persistent or allocate it dynamically. Mnemosyne provides primitives for 
-directly modifying persistent variables and supports consistent updates 
-through a lightweight transaction mechanism. 
+## Authors
 
-### Authors:
+- Haris Volos — hvolos@cs.wisc.edu
+- Andres Jaan Tack — tack@cs.wisc.edu
+- Sanketh Nalli — nalli@wisc.edu
 
-* Haris Volos   <hvolos@cs.wisc.edu>
-* Andres Jaan Tack   <tack@cs.wisc.edu>
-* Sanketh Nalli <nalli@wisc.edu>
+## Architecture
 
-### Dependencies:
-
-* SCons: A software construction tool
-* GCC 6.2.1 or above
-* GLIBC 2.19 or above
-* libconfig
 ```
-	Fedora : $ dnf install libconfig-devel.x86_64 libconfig.x86_64
-	Ubuntu : $ apt-get install libconfig-dev libconfig9
-```
-* gelf
-```
-	Fedora : $ dnf install elfutils-libelf-devel.x86_64 elfutils-libelf.x86_64
-	Ubuntu : $ apt-get install libelf-dev elfutils
-```
-* libevent (For memcached)
-```
-	Fedora : $ dnf install libevent-devel.x86_64 
-	Ubuntu : $ apt-get install libevent-dev
-```
-* /dev/shm or mount point backed by persistent memory
-	- The heap will be placed in segments_dir defined in mnemosyne.ini
-	- Please ensure you have at least 1.00 GB of space for the heap.
-
-* ALPS persistent memory allocator
-```
-ALPS Dependencies (on Ubuntu) :
-	cmake
-    	libattr1-dev
-    	libboost-all-dev
-    	libevent-dev
-    	libnuma1
-    	libnuma-dev
-    	libyaml-cpp-dev
-	
-Install the above dependencies and then type the commands below
-at your terminal. Please find equivalent packages for your 
-flavor of Linux. 
-
-	$ cd usermode/library/pmalloc/include/alps
-	$ mkdir build
-	$ cd build
-	$ cmake .. -DTARGET_ARCH_MEM=CC-NUMA -DCMAKE_BUILD_TYPE=Release
-	$ make
-	
-Learn more here on how to compile alps : 
-github.com/snalli/mnemosyne-gcc/tree/alps/usermode/library/pmalloc/include/alps
+libmnemosyne.so
+├── mcore   — persistent memory core (segment management, logging, PCM emulation)
+├── mtm     — GCC TM ABI implementation (transactions, write-set, commit/abort)
+└── pmalloc — persistent heap allocator (built on ALPS layer-based allocator)
 ```
 
-### Build Mnemosyne:
-```
-$ cd usermode
-$ scons [--build-stats] [--config-ftrace] [--verbose]
- 
-* scons -h <For more options>
-```
+All three components are compiled as static libraries and combined into a single
+`libmnemosyne.so` shared library.
 
-### Run a simple example:
+## Build
 
-* Simple example
-	- Read and modify value of persistent flag across executions
-	- Test pmalloc - persistent memory allocator
-	- Test concurrent reader and writer
-```
-$ cd usermode
-$ scons --build-example=simple
-$ ./build/examples/simple/simple 
-persistent flag: 0 --> 1
-&persistent flag = 0x100020038000
+### Docker (recommended)
 
-starting pmalloc bench
-persistent ptr =0x100ba0035fe0, sz=32
-persistent ptr & cl_mask = 0x100ba0035fc0
-(WRITER) persistent ptr =0x100ba0035fe0, sz=32
-(READER) persistent ptr =0x100ba0035fe0, sz=32
-
-$ ./build/examples/simple/simple 
-persistent flag: 1 --> 0
-&persistent flag = 0x100020038000
-
-starting pmalloc bench
-persistent ptr =0x100ba0035fc0, sz=32
-persistent ptr & cl_mask = 0x100ba0035fc0
-(WRITER) persistent ptr =0x100ba0035fc0, sz=32
-(READER) persistent ptr =0x100ba0035fc0, sz=32
+```bash
+docker build -t mnemosyne .
+docker run -it mnemosyne
 ```
 
-### Run a complex benchmark:
+The image is based on Ubuntu 24.04 and builds natively on both x86-64 and ARM64.
 
-### Build Vacation:
-```
-$ cd usermode
-$ scons --build-bench=stamp-kozy [--verbose]
-```
+### Native (Linux)
 
-### Initialize Vacation:
-```
-$ cd usermode
-$ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
-$ ./build/bench/stamp-kozy/vacation/vacation -c0 -n1 -r65536 -q100
-```
+**Dependencies**
 
-### Run Vacation:
-```
-$ cd usermode
-$ export LD_LIBRARY_PATH=`pwd`/library:$LD_LIBRARY_PATH
-$ ./build/bench/stamp-kozy/vacation/vacation -t1000 -c2 -n10 -r65536 -q90 -u100
-
-    Table Index         = RBTREE
-    Transactions        = 1000
-    Clients             = 2
-    Transactions/client = 500
-    Queries/transaction = 10
-    Relations           = 65536
-    Query percent       = 90
-    Query range         = 58982
-    Percent user        = 100
-    Enable trace        = 0
-Initializing manager... 
-
-***************************************************
-
-Re-using tables from previous incarnation...
-
-Persistent table pointers.
-
-Car Table      = 0x100ba0035ff0
-Room Table     = 0x100ba0035fe0
-Flight Table   = 0x100ba0035fd0
-Customer Table = 0x100ba0035fc0
-
-***************************************************
-Initializing clients... done.
-
-Running clients...
-
-Starting thread 9201
-Thread-0 finished 500 queries
-Starting thread 9203
-Thread-1 finished 500 queries
-done.Time = 0.127621
-Deallocating memory... done.
-```
-### Build Memcached:
-```
-$ scons --build-bench=memcached  [--verbose]
-* Check run_*.sh scripts to learn more on how to run memcached.
+```bash
+# Ubuntu / Debian
+sudo apt-get install -y \
+    build-essential cmake gcc g++ \
+    libconfig-dev libelf-dev elfutils \
+    libboost-all-dev libnuma-dev \
+    libyaml-cpp-dev libattr1-dev
 ```
 
-### Documentation:
-For further information please refer to the Doxygen generated documentation.
-Running doxygen will create documentation under mnemosyne/doc/html
+**Build**
 
-$ cd ./usermode/..
-$ doxygen
+```bash
+cd src
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DTARGET_ARCH_MEM=CC-NUMA
+make -j$(nproc)
+```
 
-### License:
+Produces:
+- `src/build/libmnemosyne.so` — combined library
+- `src/build/examples/simple/simple` — persistent-flag example
 
-GPL-V2
-See license file under each module
+**Run tests**
 
+```bash
+ctest --output-on-failure   # from src/build/
+```
+
+## Usage
+
+### Persistent variables
+
+```c
+#include <mnemosyne.h>
+#include <mtm.h>
+
+MNEMOSYNE_PERSISTENT int my_counter = 0;
+
+__transaction_relaxed {
+    my_counter++;
+}
+```
+
+### Persistent heap allocation
+
+```c
+#include <pmalloc.h>
+
+long *p;
+PTx { p = pmalloc(sizeof(long) * 1024); }
+```
+
+### Run the simple example
+
+```bash
+./build/examples/simple/simple
+# persistent flag: 0 --> 1
+
+./build/examples/simple/simple
+# persistent flag: 1 --> 0
+```
+
+## Development
+
+**Code style**
+
+```bash
+clang-format -i $(find src -name "*.c" -o -name "*.h")
+```
+
+**Static analysis**
+
+```bash
+cmake --build src/build --target analysis
+```
+
+**Requirements:** GCC 13+ with `-fgnu-tm`, CMake 3.12+
+
+## Project layout
+
+```
+mnemosyne-gcc/
+├── src/                   Library source
+│   ├── library/mcore/     Persistent memory core
+│   ├── library/mtm/       Transaction manager (GCC TM ABI)
+│   ├── library/pmalloc/   Persistent allocator + ALPS
+│   └── examples/simple/   Hello-world example
+├── tests/unit/            Portability unit tests (CTest)
+├── Dockerfile
+└── .clang-format
+```
+
+## License
+
+GPL-2.0 — see `src/COPYING`.

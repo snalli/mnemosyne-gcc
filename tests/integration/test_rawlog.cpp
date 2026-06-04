@@ -12,8 +12,14 @@ extern "C" {
 #include <mnemosyne.h>
 #include <pcm.h>
 #include <log.h>
-#include <mtm_i.h>
 }
+
+/* LF_TYPE_TM_TORNBIT defined in tmlog_tornbit.h via mtm_i.h, but that
+ * header chain pulls in C-only internals that break C++ compilation.
+ * Define the constant directly — its value is stable. */
+#ifndef LF_TYPE_TM_TORNBIT
+#  define LF_TYPE_TM_TORNBIT 3
+#endif
 
 #define SEQUENCE_END 0xDEADBEEFDEADBEEFULL
 

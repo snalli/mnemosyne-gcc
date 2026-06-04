@@ -8,10 +8,14 @@
 
 extern "C" {
 #include <mnemosyne.h>
-#include <mtm.h>
 #include <pmalloc.h>
 }
-#include "tm_def.h"
+
+/* PTx = __transaction_relaxed (from tm_def.h, included here directly
+ * to avoid _G_va_list issues when that header is compiled as C++) */
+#ifndef PTx
+#  define PTx __transaction_relaxed
+#endif
 
 /* Persistent pointer lives in the PERSISTENT section */
 __attribute__((section("PERSISTENT"))) static void *ptr = nullptr;

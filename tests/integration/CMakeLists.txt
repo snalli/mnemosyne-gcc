@@ -12,7 +12,6 @@ set(INTEG_INCLUDES
     ${MNEMOSYNE_SRC}/library/mtm/include/mode/pwbetl
     ${MNEMOSYNE_SRC}/library/mtm/include/sysdeps/x86
     ${MNEMOSYNE_SRC}/library/mtm/include/sysdeps/linux
-    ${MNEMOSYNE_SRC}/library/mtm/src
     ${MNEMOSYNE_SRC}/library/pmalloc/include
     ${MNEMOSYNE_SRC}/library/common
     ${MNEMOSYNE_SRC}/library/atomic_ops

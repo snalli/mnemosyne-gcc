@@ -1,8 +1,7 @@
 enable_testing()
+find_package(GTest REQUIRED)
 
-# Include paths needed by the portability-layer tests.
-# These tests do NOT link against libmnemosyne — they only test headers.
-set(PORTABILITY_INCLUDES
+set(UNIT_INCLUDES
     ${MNEMOSYNE_SRC}/library/common
     ${MNEMOSYNE_SRC}/library/mtm/include
     ${MNEMOSYNE_SRC}/library/mtm/include/sysdeps/x86
@@ -11,28 +10,48 @@ set(PORTABILITY_INCLUDES
     ${MNEMOSYNE_SRC}/library/atomic_ops
 )
 
-# Shared compile flags matching the library build
-set(PORTABILITY_FLAGS
+set(UNIT_FLAGS
     -fgnu-tm
     -fno-omit-frame-pointer
-    -w
+    -Wall -Wextra -Wno-unused-parameter
     -g
-    -D_GNU_SOURCE
-    -DHAVE_CONFIG_H
-    -DM_PCM_CPUFREQ=2500
-    -DM_PCM_LATENCY_WRITE=150
-    -DM_PCM_BANDWIDTH_MB=1200
+    -D_GNU_SOURCE -DHAVE_CONFIG_H
+    -DM_PCM_CPUFREQ=2500 -DM_PCM_LATENCY_WRITE=150 -DM_PCM_BANDWIDTH_MB=1200
     -DMCORE_KERNEL_PMAP
 )
 
-function(add_portability_test name src)
-    add_executable(${name} ${src})
-    target_include_directories(${name} PRIVATE ${PORTABILITY_INCLUDES})
-    target_compile_options(${name} PRIVATE ${PORTABILITY_FLAGS})
-    add_test(NAME ${name} COMMAND ${name})
+find_program(VALGRIND valgrind)
+
+# Helper: register a test and optionally a valgrind variant
+function(add_unit_test name)
+    cmake_parse_arguments(ARG "" "" "SOURCES;EXTRA_LIBS" ${ARGN})
+    add_executable(${name} ${ARG_SOURCES})
+    target_include_directories(${name} PRIVATE ${UNIT_INCLUDES})
+    target_compile_options(${name} PRIVATE ${UNIT_FLAGS})
+    target_link_libraries(${name} PRIVATE GTest::gtest_main Threads::Threads ${ARG_EXTRA_LIBS})
+    gtest_discover_tests(${name})
+
+    if(VALGRIND)
+        add_test(NAME ${name}_valgrind
+            COMMAND ${VALGRIND}
+                --error-exitcode=1
+                --leak-check=full
+                --show-leak-kinds=definite,indirect
+                --errors-for-leak-kinds=definite,indirect
+                $<TARGET_FILE:${name}>
+        )
+    endif()
 endfunction()
 
-add_portability_test(test_portable_atomics  test_portable_atomics.c)
-add_portability_test(test_portable_hrtime   test_portable_hrtime.c)
-add_portability_test(test_portable_spinlock test_portable_spinlock.c)
-add_portability_test(test_simd_typesizes    test_simd_typesizes.c)
+# ---- tests ----
+
+add_unit_test(test_atomics       SOURCES test_atomics.cpp)
+add_unit_test(test_hrtime        SOURCES test_hrtime.cpp)
+add_unit_test(test_spinlock      SOURCES test_spinlock.cpp)
+add_unit_test(test_simd_types    SOURCES test_simd_types.cpp)
+add_unit_test(test_memory_barriers SOURCES test_memory_barriers.cpp)
+
+# chhash compiles chhash.c directly into the test binary
+add_unit_test(test_chhash
+    SOURCES test_chhash.cpp ${MNEMOSYNE_SRC}/library/common/chhash.c
+)

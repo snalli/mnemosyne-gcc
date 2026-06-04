@@ -22,7 +22,7 @@ jobs:
             libconfig-dev libelf-dev elfutils \
             libboost-all-dev libnuma-dev \
             libyaml-cpp-dev libattr1-dev \
-            clang-format cppcheck
+            clang-format cppcheck valgrind libgtest-dev libgmock-dev
 
       - name: Configure
         run: |
@@ -36,7 +36,12 @@ jobs:
       - name: Run tests
         run: |
           cd src/build
-          ctest --output-on-failure
+          ctest --output-on-failure -E "_valgrind"
+
+      - name: Valgrind memcheck
+        run: |
+          cd src/build
+          ctest --output-on-failure -R "_valgrind$"
 
       - name: Static analysis (cppcheck)
         run: cmake --build src/build --target analysis

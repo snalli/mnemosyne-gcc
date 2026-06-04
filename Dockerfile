@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y \
     clang-format \
     cppcheck \
     valgrind \
+    libgtest-dev \
+    libgmock-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /mnemosyne
@@ -36,10 +38,7 @@ RUN cmake .. \
       -DCMAKE_BUILD_TYPE=Debug \
       -DTARGET_ARCH_MEM=CC-NUMA \
     && make -j$(nproc) 2>&1 | tee /mnemosyne/build.log \
-    && ctest --output-on-failure \
-    && ctest --output-on-failure \
-         -T memcheck \
-         --overwrite MemoryCheckCommandOptions="--leak-check=full --error-exitcode=1" \
-         2>&1 | tee /mnemosyne/valgrind.log || true
+    && ctest --output-on-failure -E "_valgrind" \
+    && ctest --output-on-failure -R "_valgrind$"
 
 CMD ["/bin/bash"]

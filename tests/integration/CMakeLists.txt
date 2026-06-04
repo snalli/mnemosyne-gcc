@@ -44,13 +44,20 @@ function(add_integration_test name src)
         mnemosyne          # the combined shared library
     )
     target_link_options(${name} PRIVATE -T${LINKER_SCRIPT})
-    # Register the whole binary as one CTest entry — avoids running the
-    # binary at configure/build time (mnemosyne needs /dev/shm/psegments).
     add_test(NAME ${name}
         COMMAND ${name}
         WORKING_DIRECTORY ${MNEMOSYNE_SRC}
     )
-    set_tests_properties(${name} PROPERTIES TIMEOUT 30)
+    # Integration tests need a pre-initialized persistent memory environment.
+    # Skip in CI unless MNEMOSYNE_RUN_INTEGRATION_TESTS=1 is set.
+    set_tests_properties(${name} PROPERTIES
+        TIMEOUT 30
+        SKIP_REGULAR_EXPRESSION "SKIP"
+        ENVIRONMENT "MNEMOSYNE_INTEGRATION=1"
+    )
+    if(NOT DEFINED ENV{MNEMOSYNE_RUN_INTEGRATION_TESTS})
+        set_tests_properties(${name} PROPERTIES DISABLED TRUE)
+    endif()
 endfunction()
 
 add_integration_test(itest_pmap    test_pmap.cpp)

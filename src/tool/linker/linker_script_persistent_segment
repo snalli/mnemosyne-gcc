@@ -1,0 +1,20 @@
+/*
+ * Portable linker script for Mnemosyne persistent memory section.
+ *
+ * This script adds a .persistent ELF section that holds all objects
+ * placed in the "PERSISTENT" section via:
+ *   __attribute__((section("PERSISTENT")))
+ *
+ * It uses INSERT to extend the default linker script rather than
+ * replacing it, so it works on any architecture.
+ */
+
+SECTIONS
+{
+    .persistent ALIGN(0x1000) :
+    {
+        *(PERSISTENT)
+    }
+    . = ALIGN(0x1000);
+}
+INSERT AFTER .data;

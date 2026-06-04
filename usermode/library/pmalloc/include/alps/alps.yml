@@ -1,8 +1,0 @@
-# Configuration file 
-
-DebugOptions:
-  log_filename: test.log
-  log_level: error
-
-TmpfsOptions:
-  book_size_bytes: 8M

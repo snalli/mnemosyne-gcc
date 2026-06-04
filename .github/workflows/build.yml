@@ -36,7 +36,12 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p /dev/shm/psegments
-          cd src/build
+          # Prime the persistent segments by running the simple example.
+          # mnemosyne creates and formats segment files on first run;
+          # integration tests then find them properly initialized.
+          cd src
+          LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/simple/simple || true
+          cd build
           ctest --output-on-failure -E "_valgrind"
 
       - name: Valgrind memcheck

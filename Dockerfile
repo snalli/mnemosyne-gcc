@@ -39,6 +39,7 @@ RUN cmake .. \
       -DTARGET_ARCH_MEM=CC-NUMA \
     && make -j$(nproc) 2>&1 | tee /mnemosyne/build.log \
     && mkdir -p /dev/shm/psegments \
+    && (cd /mnemosyne/src && LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/simple/simple || true) \
     && ctest --output-on-failure -E "_valgrind" \
     && ctest --output-on-failure -R "_valgrind$"
 

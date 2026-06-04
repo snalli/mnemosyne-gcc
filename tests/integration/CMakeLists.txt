@@ -43,6 +43,7 @@ function(add_integration_test name src)
         Threads::Threads
         mnemosyne          # the combined shared library
     )
+    target_link_options(${name} PRIVATE -T${LINKER_SCRIPT})
     add_test(NAME ${name}
         COMMAND ${name}
         WORKING_DIRECTORY ${MNEMOSYNE_SRC}

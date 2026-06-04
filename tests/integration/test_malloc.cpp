@@ -17,7 +17,7 @@ extern "C" {
 #  define PTx __transaction_relaxed
 #endif
 
-static void *ptr = nullptr;
+__attribute__((section("PERSISTENT"))) static void *ptr = nullptr;
 
 TEST(PersistentMalloc, SmallAllocationSucceeds) {
     PTx { ptr = pmalloc(16); }

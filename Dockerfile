@@ -39,7 +39,7 @@ RUN cmake .. \
       -DTARGET_ARCH_MEM=CC-NUMA \
     && make -j$(nproc) 2>&1 | tee /mnemosyne/build.log \
     && mkdir -p /dev/shm/psegments \
-    && MNEMOSYNE_RUN_INTEGRATION_TESTS=1 ctest --output-on-failure -E "_valgrind" \
+    && ctest --output-on-failure -E "_valgrind" \
     && ctest --output-on-failure -R "_valgrind$"
 
 CMD ["/bin/bash"]

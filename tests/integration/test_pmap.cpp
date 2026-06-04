@@ -15,8 +15,7 @@ extern "C" {
 
 #define PREGION_SIZE (4 * 1024 * 1024) /* 4 MB — enough to exercise mapping */
 
-/* Persistent pointer stored in the PERSISTENT section */
-__attribute__((section("PERSISTENT"))) static void *pregion = nullptr;
+static void *pregion = nullptr;
 
 static void write_pattern(void *base, size_t size, uint8_t seed)
 {

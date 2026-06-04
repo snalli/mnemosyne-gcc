@@ -87,7 +87,7 @@ mtm_pwbetl_abortTransaction (mtm_tx_t *tx,
 		 * free_tx (td, tx);
 		 */
 
-		_ITM_siglongjmp (tx->jb, a_abortTransaction | a_restoreLiveVariables);
+		_ITM_siglongjmp ((mtm_jmpbuf_t *)tx->jb, a_abortTransaction | a_restoreLiveVariables);
 	} else if (reason == userRetry) {
 		mtm_pwb_restart_transaction(tx, RESTART_USER_RETRY);
 	}

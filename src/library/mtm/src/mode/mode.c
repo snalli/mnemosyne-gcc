@@ -69,6 +69,7 @@ mtm_str2mode(char *str)
 			return (mtm_mode_t) i;
 		}
 	}
+	return (mtm_mode_t) -1;
 }
 
 

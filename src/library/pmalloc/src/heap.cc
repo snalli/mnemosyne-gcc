@@ -53,6 +53,7 @@ int Heap::init()
 
     slheap_ = new SlabHeap_t(slabsize_, NULL, exheap_);
     slheap_->init(ctx);
+    return 0;
 }
 
 ThreadHeap* Heap::threadheap()

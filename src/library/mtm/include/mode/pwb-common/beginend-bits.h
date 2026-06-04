@@ -411,7 +411,7 @@ beginTransaction_internal (mtm_tx_t *tx,
 }
 
 
-static 
+static __attribute__((unused))
 bool
 trycommit_transaction (mtm_tx_t *tx, int enable_isolation)
 {

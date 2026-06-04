@@ -126,7 +126,7 @@ m_stats_threadstat_create(m_statsmgr_t *statsmgr,
                           m_stats_threadstat_t **threadstatp)
 {
 	m_stats_threadstat_t *threadstat;
-	int                  i;
+	int                  i __attribute__((unused));
 
 	threadstat = (m_stats_threadstat_t *) MALLOC(sizeof(m_stats_threadstat_t));
 
@@ -231,7 +231,7 @@ void
 stats_aggregate(m_stats_statset_t *dest_statset, 
                 m_stats_statset_t *source_statset)
 {
-	int i;
+	int i __attribute__((unused));
 
 	dest_statset->count++;
 	for (i=0; i<m_stats_numofstats; i++) {
@@ -247,7 +247,7 @@ stats_aggregate(m_stats_statset_t *dest_statset,
 void 
 m_stats_threadstat_aggregate(m_stats_threadstat_t *threadstat, m_stats_statset_t *source_statset)
 {
-	m_stats_statset_t    *statset_all;
+	m_stats_statset_t    *statset_all __attribute__((unused));
 	m_result_t           result;
 
 
@@ -274,7 +274,7 @@ m_stats_statset_print(FILE *fout,
                       int shiftlen,
                       int print_header)
 {
-	int                     i;
+	int                     i __attribute__((unused));
 	char                    header[512];
 	double                  mean;
 	m_stats_statcounter_t max;
@@ -333,8 +333,8 @@ stats_threadstat_print(FILE *fout,
 	m_chhash_key_t    key;
 	m_chhash_value_t  value;
 	m_stats_statset_t *statset;
-	m_stats_statset_t statset_all;
-	int               i;
+	m_stats_statset_t statset_all __attribute__((unused));
+	int               i __attribute__((unused));
 
 	fprintf(fout, "Thread %u\n", threadstat->tid);
 	m_stats_statset_print(fout, &threadstat->summary_statset, 0, false);
@@ -360,7 +360,7 @@ stats_summarize_all(m_statsmgr_t *statsmgr, m_stats_threadstat_t *summary)
 	m_stats_statset_t    *statset_summary;
 	m_chhash_key_t       key;
 	m_chhash_value_t     value;
-	int                  i;
+	int                  i __attribute__((unused));
 	m_result_t           result;
 
 
@@ -421,7 +421,7 @@ m_stats_print(m_statsmgr_t *statsmgr)
 	m_chhash_value_t     value;
 	m_stats_statset_t    *statset;
 	m_stats_statset_t    statset_grand_total;
-	int                  i;
+	int                  i __attribute__((unused));
 	FILE                 *fout;
 
 	if (statsmgr->output_file) {

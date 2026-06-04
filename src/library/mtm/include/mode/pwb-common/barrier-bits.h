@@ -591,7 +591,7 @@ pwb_load_internal(mtm_tx_t *tx, volatile mtm_word_t *addr, int enable_isolation)
 
 	/* Check status */
 	if (tx->status != TX_ACTIVE) {
-		printf("%p, tx->status = %d\n", tx, tx->status);
+		printf("%p, tx->status = %lu\n", (void *)tx, (unsigned long)tx->status);
 	}
 	assert(tx->status == TX_ACTIVE);
 

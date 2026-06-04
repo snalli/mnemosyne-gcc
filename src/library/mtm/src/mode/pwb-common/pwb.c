@@ -62,7 +62,7 @@ mtm_pwb_restart_transaction (mtm_tx_t *tx, mtm_restart_reason r)
 	//	actions = a_runUninstrumentedCode | a_restoreLiveVariables;
 	//}	
 	
-	_ITM_siglongjmp (tx->jb, actions);
+	_ITM_siglongjmp ((mtm_jmpbuf_t *)tx->jb, actions);
 }
 
 

@@ -117,4 +117,5 @@ mtm_pwbetl_destroy(mtm_mode_data_t *_data)
 	free(data->r_set.entries);
 	free(data->w_set.entries);
 #endif /* ! EPOCH_GC */
+	return M_R_SUCCESS;
 }

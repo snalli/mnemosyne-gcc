@@ -38,6 +38,7 @@
  * \author Haris Volos <hvolos@cs.wisc.edu>
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <assert.h>
 #include <mnemosyne.h>
@@ -117,9 +118,9 @@ truncation_prepare(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	uint64_t          sqn = INV_LOG_ORDER;
 	uintptr_t         addr;
 	pcm_word_t        mask;
-	uintptr_t         block_addr;
-	int               val;
-	int               i;
+	uintptr_t         block_addr __attribute__((unused));
+	int               val __attribute__((unused));
+	int               i __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("truncation_prepare: log_dsc = %p\n", log_dsc);
@@ -203,9 +204,9 @@ m_tmlog_base_truncation_prepare_next(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 m_result_t 
 m_tmlog_base_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 {
-	int            i;
+	int            i __attribute__((unused));
 	m_tmlog_base_t *tmlog = (m_tmlog_base_t *) log_dsc->log;
-	uintptr_t      block_addr;
+	uintptr_t      block_addr __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("m_tmlog_base_truncation_do: START: log_dsc = %p\n", log_dsc);
@@ -242,9 +243,9 @@ recovery_prepare_next(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	uint64_t          sqn = INV_LOG_ORDER;
 	uintptr_t         addr;
 	pcm_word_t        mask;
-	uintptr_t         block_addr;
-	int               val;
-	uint64_t          readindex_checkpoint;
+	uintptr_t         block_addr __attribute__((unused));
+	int               val __attribute__((unused));
+	uint64_t          readindex_checkpoint __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("recovery_prepare_next: log_dsc = %p\n", log_dsc);
@@ -328,9 +329,9 @@ m_tmlog_base_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	uint64_t          sqn = INV_LOG_ORDER;
 	uintptr_t         addr;
 	pcm_word_t        mask;
-	uintptr_t         block_addr;
-	int               val;
-	uint64_t          readindex_checkpoint;
+	uintptr_t         block_addr __attribute__((unused));
+	int               val __attribute__((unused));
+	uint64_t          readindex_checkpoint __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("m_tmlog_base_recovery_do: %lu\n", log_dsc->logorder);
@@ -380,8 +381,9 @@ m_tmlog_base_report_stats(m_log_dsc_t *log_dsc)
 	m_phlog_base_t *phlog = &(tmlog->phlog_base);
 
 	printf("PRINT BASE STATS\n");
-	printf("wait_for_trunc               : %llu\n", phlog->stat_wait_for_trunc);
+	printf("wait_for_trunc               : %" PRIu64 "\n", phlog->stat_wait_for_trunc);
 	if (phlog->stat_wait_for_trunc > 0) {
-		printf("AVG(stat_wait_time_for_trunc): %llu\n", phlog->stat_wait_time_for_trunc / phlog->stat_wait_for_trunc);
-	}	
+		printf("AVG(stat_wait_time_for_trunc): %" PRIu64 "\n", phlog->stat_wait_time_for_trunc / phlog->stat_wait_for_trunc);
+	}
+	return M_R_SUCCESS;
 }

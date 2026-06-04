@@ -62,8 +62,8 @@ static inline
 int 
 cm_conflict(mtm_tx_t *tx, volatile mtm_word_t *lock, mtm_word_t *l)
 {
-	mode_data_t *modedata = (mode_data_t *) tx->modedata[tx->mode];
-	w_entry_t   *w;
+	mode_data_t *modedata __attribute__((unused)) = (mode_data_t *) tx->modedata[tx->mode];
+	w_entry_t   *w __attribute__((unused));
 
 #if CM == CM_PRIORITY
 	if (tx->retries >= cm_threshold) {

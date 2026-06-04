@@ -45,7 +45,7 @@ void _ITM_CALL_CONVENTION _ITM_memset##VARIANT(         void *dst,             \
   mtm_tx_t *tx = mtm_get_tx();						       \
   volatile uint8_t *daddr=dst;                                                 \
   uint8_t          buf[BUFSIZE];                                               \
-  int              i;                                                          \
+  size_t           i;                                                          \
                                                                                \
   if (size == 0) {                                                             \
     return;                                                                    \

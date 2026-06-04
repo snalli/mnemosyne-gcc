@@ -127,7 +127,7 @@ mtm_local_rollback (mtm_tx_t *tx)
 {
 	mtm_local_undo_t       *local_undo = &tx->local_undo;
 	mtm_local_undo_entry_t *local_undo_entry;
-	char                   *buf;
+	char                   *buf __attribute__((unused));
 	uintptr_t              entryp;
 	void                   *addr;
     uintptr_t              *sp;
@@ -164,7 +164,7 @@ log_arbitrarily (mtm_tx_t *tx, const volatile void *ptr, size_t len)
 {
 	mtm_local_undo_t       *local_undo = &tx->local_undo;
 	mtm_local_undo_entry_t *local_undo_entry;
-	char                   *buf;
+	char                   *buf __attribute__((unused));
 
 	if ((local_undo->n + len + sizeof(mtm_local_undo_entry_t)) > local_undo->size) {
 		local_allocate(tx, 1);	

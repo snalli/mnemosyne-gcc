@@ -21,11 +21,12 @@ void* reader()
 {
 	printf("(READER) persistent ptr =%p, sz=%d\n", ptr, sz);
 	int i = 0;
-	long rd;
+	volatile long rd __attribute__((unused));
 	while(i++ < count)
 	{
-		PTx { rd = *ptr; } 	
+		PTx { rd = *ptr; }
 	}
+	return NULL;
 }
 
 void* writer()
@@ -35,8 +36,9 @@ void* writer()
 	long wrt = 1;
 	while(i++ < count)
 	{
-		PTx { *ptr = wrt; } 	
+		PTx { *ptr = wrt; }
 	}
+	return NULL;
 }
 
 void malloc_bench()

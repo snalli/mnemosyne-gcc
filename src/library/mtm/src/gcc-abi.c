@@ -47,6 +47,9 @@ extern void* mtm_pmalloc_undo(size_t);
 extern void* mtm_pcalloc (size_t, size_t);
 extern void mtm_pfree (void*);
 
+/* Wrapper to adapt mtm_pmalloc_undo (void*(*)(size_t)) to _ITM_userUndoFunction (void(*)(void*)) */
+static void pmalloc_undo_wrapper(void *ptr) { mtm_pmalloc_undo((size_t)(uintptr_t)ptr); }
+
 /* Forward declarations for pwbetl mode functions (defined in mode/pwbetl/) */
 extern uint32_t mtm_pwbetl_beginTransaction_internal(mtm_tx_t *, uint32_t, void *, jmp_buf **);
 extern void     mtm_pwbetl_commitTransaction(mtm_tx_t *, const _ITM_srcLocation *);
@@ -482,7 +485,7 @@ void * _ITM_pmalloc(size_t size)
 
   mtm_tx_t *tx = mtm_get_tx();
   if(tx)
-	_ITM_addUserUndoAction((_ITM_userUndoFunction)mtm_pmalloc_undo, ptr);
+	_ITM_addUserUndoAction(pmalloc_undo_wrapper, ptr);
 out:
   return ptr;
 }

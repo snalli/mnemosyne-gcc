@@ -47,6 +47,7 @@ int
 mtm_rwlock_init (mtm_rwlock_t *lock)
 {
 	// TODO: implement me
+	return 0;
 }
 
 
@@ -54,6 +55,7 @@ int
 mtm_rwlock_rdlock (mtm_rwlock_t *lock)
 {
 	// TODO: implement me
+	return 0;
 }
 
 
@@ -61,6 +63,7 @@ int
 mtm_rwlock_wrlock (mtm_rwlock_t *lock)
 {
 	// TODO: implement me
+	return 0;
 }
 
 
@@ -68,6 +71,7 @@ int
 mtm_rwlock_trywrlock (mtm_rwlock_t *lock)
 {
 	// TODO: implement me
+	return 0;
 }
 
 
@@ -75,4 +79,5 @@ int
 mtm_rwlock_unlock (mtm_rwlock_t *lock)
 {
 	// TODO: implement me
+	return 0;
 }

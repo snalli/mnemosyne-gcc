@@ -34,8 +34,8 @@
 #include <memcpy.h>
 
 /* Forward declarations for load/store_bytes defined via BARRIER_DEFINITION in barrier.c */
-void mtm_pwbetl_load_bytes(mtm_tx_t *tx, const uint8_t *addr, uint8_t *buf, size_t size);
-void mtm_pwbetl_store_bytes(mtm_tx_t *tx, const uint8_t *addr, uint8_t *buf, size_t size);
+void mtm_pwbetl_load_bytes(mtm_tx_t *tx, volatile const uint8_t *addr, uint8_t *buf, size_t size);
+void mtm_pwbetl_store_bytes(mtm_tx_t *tx, volatile const uint8_t *addr, uint8_t *buf, size_t size);
 
 FORALL_MEMCOPY_VARIANTS(MEMCPY_DEFINITION, pwbetl)
 FORALL_MEMMOVE_VARIANTS(MEMMOVE_DEFINITION, pwbetl)

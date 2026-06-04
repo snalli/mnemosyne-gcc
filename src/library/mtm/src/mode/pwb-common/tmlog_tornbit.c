@@ -38,6 +38,7 @@
  * \author Haris Volos <hvolos@cs.wisc.edu>
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <assert.h>
 #include <mnemosyne.h>
@@ -145,8 +146,8 @@ truncation_prepare(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	uint64_t          sqn = INV_LOG_ORDER;
 	uintptr_t         addr;
 	pcm_word_t        mask;
-	uintptr_t         block_addr;
-	int               val;
+	uintptr_t         block_addr __attribute__((unused));
+	int               val __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("prepare_truncate: log_dsc = %p\n", log_dsc);
@@ -225,7 +226,7 @@ m_tmlog_tornbit_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 {
 	int               i;
 	m_tmlog_tornbit_t *tmlog = (m_tmlog_tornbit_t *) log_dsc->log;
-	uintptr_t         block_addr;
+	uintptr_t         block_addr __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("m_tmlog_tornbit_truncation_do: START\n");
@@ -233,9 +234,9 @@ m_tmlog_tornbit_truncation_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 #endif
 
 #ifdef FLUSH_CACHELINE_ONCE
-	for(i = 0; i < ((PointerHash *) tmlog->flush_set)->size; i++) {
+	for(i = 0; i < (int)((PointerHash *) tmlog->flush_set)->size; i++) {
 		PointerHashRecord *r = PointerHashRecords_recordAt_(((PointerHash *) tmlog->flush_set)->records, i);
-		if (block_addr = (uintptr_t) r->k) {
+		if ((block_addr = (uintptr_t) r->k)) {
 			//PointerHash_removeKey_noshrink((PointerHash *) tmlog->flush_set, (void *) block_addr);
 			PointerHash_removeKey_((PointerHash *) tmlog->flush_set, (void *) block_addr);
 			PCM_WB_FLUSH(set, (volatile pcm_word_t *) block_addr);
@@ -261,9 +262,9 @@ recovery_prepare_next(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	uint64_t          sqn = INV_LOG_ORDER;
 	uintptr_t         addr;
 	pcm_word_t        mask;
-	uintptr_t         block_addr;
-	int               val;
-	uint64_t          readindex_checkpoint;
+	uintptr_t         block_addr __attribute__((unused));
+	int               val __attribute__((unused));
+	uint64_t          readindex_checkpoint __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("recovery_prepare_next: log_dsc = %p\n", log_dsc);
@@ -346,9 +347,9 @@ m_tmlog_tornbit_recovery_do(pcm_storeset_t *set, m_log_dsc_t *log_dsc)
 	uint64_t          sqn = INV_LOG_ORDER;
 	uintptr_t         addr;
 	pcm_word_t        mask;
-	uintptr_t         block_addr;
-	int               val;
-	uint64_t          readindex_checkpoint;
+	uintptr_t         block_addr __attribute__((unused));
+	int               val __attribute__((unused));
+	uint64_t          readindex_checkpoint __attribute__((unused));
 
 #ifdef _DEBUG_THIS
 	printf("m_tmlog_tornbit_recovery_do: %lu\n", log_dsc->logorder);
@@ -405,8 +406,9 @@ m_tmlog_tornbit_report_stats(m_log_dsc_t *log_dsc)
 	m_phlog_tornbit_t *phlog = &(tmlog->phlog_tornbit);
 
 	printf("PRINT TORNBIT STATS\n");
-	printf("wait_for_trunc               : %llu\n", phlog->stat_wait_for_trunc);
+	printf("wait_for_trunc               : %" PRIu64 "\n", phlog->stat_wait_for_trunc);
 	if (phlog->stat_wait_for_trunc > 0) {
-		printf("AVG(stat_wait_time_for_trunc): %llu\n", phlog->stat_wait_time_for_trunc / phlog->stat_wait_for_trunc);
+		printf("AVG(stat_wait_time_for_trunc): %" PRIu64 "\n", phlog->stat_wait_time_for_trunc / phlog->stat_wait_for_trunc);
 	}
+	return M_R_SUCCESS;
 }

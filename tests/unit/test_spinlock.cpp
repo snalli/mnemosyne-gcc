@@ -6,13 +6,13 @@ extern "C" {
 }
 
 TEST(Spinlock, LockUnlockOnce) {
-    arch_spinlock_t lock = {0};
+    arch_spinlock_t lock = {0, 0};
     __ticket_spin_lock(&lock);
     __ticket_spin_unlock(&lock);
 }
 
 TEST(Spinlock, LockUnlockTwice) {
-    arch_spinlock_t lock = {0};
+    arch_spinlock_t lock = {0, 0};
     __ticket_spin_lock(&lock);
     __ticket_spin_unlock(&lock);
     __ticket_spin_lock(&lock);
@@ -20,10 +20,10 @@ TEST(Spinlock, LockUnlockTwice) {
 }
 
 TEST(Spinlock, CountersBalancedAfterRelease) {
-    arch_spinlock_t lock = {0};
+    arch_spinlock_t lock = {0, 0};
     __ticket_spin_lock(&lock);
     __ticket_spin_unlock(&lock);
-    EXPECT_EQ(lock.slock & 0xFF, (lock.slock >> 8) & 0xFF);
+    EXPECT_EQ(lock.head, lock.tail); /* head caught up to tail */
 }
 
 /* Concurrent mutual-exclusion test */
@@ -41,9 +41,9 @@ static void *increment_worker(void *arg) {
 }
 
 TEST(Spinlock, ConcurrentMutualExclusion) {
-    const int NTHREADS = 4, ITERS = 1000;
+    const int NTHREADS = 8, ITERS = 50000;
     g_counter = 0;
-    g_lock = {0};
+    g_lock = {0, 0};
 
     pthread_t threads[8];
     int iters = ITERS;

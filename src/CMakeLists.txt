@@ -95,7 +95,6 @@ add_subdirectory(examples/prime)
 
 enable_testing()
 set(MNEMOSYNE_SRC ${CMAKE_CURRENT_SOURCE_DIR})
+# All GTest tests (unit + integration) live in tests/unit.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit
                  ${CMAKE_CURRENT_BINARY_DIR}/tests/unit)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../tests/integration
-                 ${CMAKE_CURRENT_BINARY_DIR}/tests/integration)

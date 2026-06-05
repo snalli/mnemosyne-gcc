@@ -27,7 +27,7 @@ TEST(Spinlock, CountersBalancedAfterRelease) {
 }
 
 /* Concurrent mutual-exclusion test */
-static arch_spinlock_t g_lock = {0};
+static arch_spinlock_t g_lock = {0, 0};
 static volatile long   g_counter = 0;
 
 static void *increment_worker(void *arg) {

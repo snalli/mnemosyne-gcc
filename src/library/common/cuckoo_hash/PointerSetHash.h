@@ -36,13 +36,13 @@ BASEKIT_API void PointerSetHash_compact(PointerSetHash *self);
 
 // --- private methods ----------------------------------------
 
-BASEKIT_API void PointerSetHash_setSize_(PointerSetHash *self, size_t size); 
-BASEKIT_API void PointerSetHash_insert_(PointerSetHash *self, PointerSetHashRecord *x); 
-BASEKIT_API void PointerSetHash_grow(PointerSetHash *self); 
-BASEKIT_API void PointerSetHash_shrinkIfNeeded(PointerSetHash *self); 
-BASEKIT_API void PointerSetHash_shrink(PointerSetHash *self); 
+BASEKIT_API void PointerSetHash_setSize_(PointerSetHash *self, size_t size);
+BASEKIT_API void PointerSetHash_insert_(PointerSetHash *self, PointerSetHashRecord *x);
+BASEKIT_API void PointerSetHash_grow(PointerSetHash *self);
+BASEKIT_API void PointerSetHash_shrinkIfNeeded(PointerSetHash *self);
+BASEKIT_API void PointerSetHash_shrink(PointerSetHash *self);
 BASEKIT_API void PointerSetHash_show(PointerSetHash *self);
-BASEKIT_API void PointerSetHash_updateMask(PointerSetHash *self); 
+BASEKIT_API void PointerSetHash_updateMask(PointerSetHash *self);
 
 #include "PointerSetHash_inline.h"
 

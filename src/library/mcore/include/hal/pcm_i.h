@@ -1,10 +1,10 @@
 /*
-    Copyright (C) 2011 Computer Sciences Department, 
+    Copyright (C) 2011 Computer Sciences Department,
     University of Wisconsin -- Madison
 
     ----------------------------------------------------------------------
 
-    This file is part of Mnemosyne: Lightweight Persistent Memory, 
+    This file is part of Mnemosyne: Lightweight Persistent Memory,
     originally developed at the University of Wisconsin -- Madison.
 
     Mnemosyne was originally developed primarily by Haris Volos
@@ -16,7 +16,7 @@
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation, version 2
     of the License.
- 
+
     Mnemosyne is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -24,7 +24,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+    Foundation, Inc., 51 Franklin Street, Fifth Floor,
     Boston, MA  02110-1301, USA.
 
 ### END HEADER ###
@@ -45,71 +45,64 @@
 #include "cuckoo_hash/PointerHashInline.h"
 #include "pm_instr.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-/** 
- * Stores may block wait to find space in the cache (write buffer is full and 
- * must wait to evict other cacheline from the cache) or to find an empty 
+/**
+ * Stores may block wait to find space in the cache (write buffer is full and
+ * must wait to evict other cacheline from the cache) or to find an empty
  * write-combining buffer.
- * 
+ *
  * For write-back, we emulate by using some probability to block-wait.
- * For write-combining, we keep track of the number of WC buffers being 
+ * For write-combining, we keep track of the number of WC buffers being
  * used. We conservatively assume that no implicit evictions happen.
  */
-//#define M_PCM_EMULATE_LATENCY_BLOCKING_STORES 0x1
+// #define M_PCM_EMULATE_LATENCY_BLOCKING_STORES 0x1
 #undef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
 
-
-/** 
- * Machine has the RDTSCP instruction. 
- * 
+/**
+ * Machine has the RDTSCP instruction.
+ *
  * RDTSCP can be handy when measuring short intervals because it doesn't need
- * to serialize the processor first. Thus, it can be used to measure the actual 
+ * to serialize the processor first. Thus, it can be used to measure the actual
  * latency of instructions such as CLFLUSH. This allows us to add an extra latency
  * to meet the desirable emulated latency instead of adding a fixed latency.
  */
-//#define HAS_RDTSCP
+// #define HAS_RDTSCP
 #undef HAS_RDTSCP
 
 /** The number of available write-combining buffers. */
 #define WRITE_COMBINING_BUFFERS_NUM 8
 
 /** The size of the WC-buffer hash table. Must be a power of 2. */
-#define WCBUF_HASHTBL_SIZE WRITE_COMBINING_BUFFERS_NUM*4
+#define WCBUF_HASHTBL_SIZE WRITE_COMBINING_BUFFERS_NUM * 4
 
 /** The memory banking factor. Must be a power of 2. */
 #define MEMORY_BANKING_FACTOR 8
 
-
-/* 
- * Probabilities are derived using total number of outcomes equal to 
+/*
+ * Probabilities are derived using total number of outcomes equal to
  * TOTAL_OUTCOMES_NUMTENCY_PCM_WRITE
  */
 #define TOTAL_OUTCOMES_NUM 1000000
 
 #if (RAND_MAX < TOTAL_OUTCOMES_NUM)
-# error "RAND_MAX must be at least equal to PROB_TOTAL_OUTCOMES_NUM."
+#error "RAND_MAX must be at least equal to PROB_TOTAL_OUTCOMES_NUM."
 #endif
-
 
 #define NS2CYCLE(__ns) ((__ns) * M_PCM_CPUFREQ / 1000)
 #define CYCLE2NS(__cycles) ((__cycles) * 1000 / M_PCM_CPUFREQ)
 
-
-#define likely(x)	__builtin_expect(!!(x), 1)
-#define unlikely(x)	__builtin_expect(!!(x), 0)
-
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 /* Memory Pages */
 
 #define PAGE_SIZE 4096
 
 /* Returns the number of pages */
-#define NUM_PAGES(size) ((((size) % PAGE_SIZE) == 0? 0 : 1) + (size)/PAGE_SIZE)
+#define NUM_PAGES(size) ((((size) % PAGE_SIZE) == 0 ? 0 : 1) + (size) / PAGE_SIZE)
 
 /* Returns the size at page granularity */
 #define SIZEOF_PAGES(size) (NUM_PAGES((size)) * PAGE_SIZE)
@@ -117,20 +110,18 @@ extern "C" {
 /* Returns the size at page granularity */
 #define PAGE_ALIGN(addr) (NUM_PAGES((addr)) * PAGE_SIZE)
 
-
 /* Hardware Cache */
 
 #ifdef __x86_64__
-# define CACHELINE_SIZE     64
-# define CACHELINE_SIZE_LOG 6
+#define CACHELINE_SIZE 64
+#define CACHELINE_SIZE_LOG 6
 #else
-# define CACHELINE_SIZE     32
-# define CACHELINE_SIZE_LOG 5
+#define CACHELINE_SIZE 32
+#define CACHELINE_SIZE_LOG 5
 #endif
 
-#define BLOCK_ADDR(addr) ( (pcm_word_t *) (((pcm_word_t) (addr)) & ~(CACHELINE_SIZE - 1)) )
-#define INDEX_ADDR(addr) ( (pcm_word_t *) (((pcm_word_t) (addr)) & (CACHELINE_SIZE - 1)) )
-
+#define BLOCK_ADDR(addr) ((pcm_word_t *)(((pcm_word_t)(addr)) & ~(CACHELINE_SIZE - 1)))
+#define INDEX_ADDR(addr) ((pcm_word_t *)(((pcm_word_t)(addr)) & (CACHELINE_SIZE - 1)))
 
 /* Public types */
 
@@ -141,51 +132,48 @@ typedef uint64_t pcm_hrtime_t;
 typedef struct pcm_storeset_s pcm_storeset_t;
 typedef struct cacheline_tbl_s cacheline_tbl_t;
 
-
-
-/** 
+/**
  * Per client bookkeeping data structure that keeps several information
  * necessary to emulate latency and crashes for PCM on top of DRAM.
  */
 struct pcm_storeset_s {
-	uint32_t              id;
-	uint32_t              state;
-	unsigned int          rand_seed;
-	PointerHash           *hashtbl;
-	uint16_t              wcbuf_hashtbl[WCBUF_HASHTBL_SIZE];
-	uint16_t              wcbuf_hashtbl_count;
-	uint32_t              seqstream_len;
-	cacheline_tbl_t       *cacheline_tbl;
-	struct list_head      list;
-	volatile unsigned int in_crash_emulation_code;
-	uint64_t              seqstream_write_TS_array[8]; /* timestamp of writes */
-	int                   seqstream_write_TS_index; 
+    uint32_t id;
+    uint32_t state;
+    unsigned int rand_seed;
+    PointerHash *hashtbl;
+    uint16_t wcbuf_hashtbl[WCBUF_HASHTBL_SIZE];
+    uint16_t wcbuf_hashtbl_count;
+    uint32_t seqstream_len;
+    cacheline_tbl_t *cacheline_tbl;
+    struct list_head list;
+    volatile unsigned int in_crash_emulation_code;
+    uint64_t seqstream_write_TS_array[8]; /* timestamp of writes */
+    int seqstream_write_TS_index;
 };
 
 /*
  * Locally defined global variables.
- */ 
+ */
 
 /*
  * Externally defined global variables.
- */ 
+ */
 
-extern unsigned int pcm_likelihood_store_blockwaits;  
+extern unsigned int pcm_likelihood_store_blockwaits;
 extern volatile arch_spinlock_t ticket_lock;
 
-/* 
+/*
  * Prototypes
  */
 
 int pcm_storeset_create(pcm_storeset_t **setp);
 void pcm_storeset_destroy(pcm_storeset_t *set);
-pcm_storeset_t* pcm_storeset_get(void);
+pcm_storeset_t *pcm_storeset_get(void);
 void pcm_storeset_put(void);
 void pcm_wb_store_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val);
 void pcm_wb_flush_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr);
 void pcm_nt_store_emulate_crash(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val);
 void pcm_nt_flush_emulate_crash(pcm_storeset_t *set);
-
 
 /*
  * Helper functions.
@@ -198,70 +186,62 @@ static inline void asm_cpuid(void) {
 
 /* Portable monotonic clock in nanoseconds — replaces rdtsc */
 #include <time.h>
-static inline unsigned long long asm_rdtsc(void)
-{
+static inline unsigned long long asm_rdtsc(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (unsigned long long)ts.tv_sec * 1000000000ULL
-         + (unsigned long long)ts.tv_nsec;
+    return (unsigned long long)ts.tv_sec * 1000000000ULL + (unsigned long long)ts.tv_nsec;
 }
 
 /* rdtscp variant: same implementation (no serialisation difference needed) */
-static inline unsigned long long asm_rdtscp(void)
-{
+static inline unsigned long long asm_rdtscp(void) {
     return asm_rdtsc();
 }
-
 
 /* Portable 64-byte block write: plain stores (no non-temporal hint).
  * clflush is a no-op on non-x86; non-temporal stores degrade to regular
  * stores on architectures that do not have the instruction.            */
-#define asm_sse_write_block64(addr, val)  \
-({                                        \
-    (addr)[0] = (val)[0];                 \
-    (addr)[1] = (val)[1];                 \
-    (addr)[2] = (val)[2];                 \
-    (addr)[3] = (val)[3];                 \
-    (addr)[4] = (val)[4];                 \
-    (addr)[5] = (val)[5];                 \
-    (addr)[6] = (val)[6];                 \
-    (addr)[7] = (val)[7];                 \
-})
+#define asm_sse_write_block64(addr, val)                                                           \
+    ({                                                                                             \
+        (addr)[0] = (val)[0];                                                                      \
+        (addr)[1] = (val)[1];                                                                      \
+        (addr)[2] = (val)[2];                                                                      \
+        (addr)[3] = (val)[3];                                                                      \
+        (addr)[4] = (val)[4];                                                                      \
+        (addr)[5] = (val)[5];                                                                      \
+        (addr)[6] = (val)[6];                                                                      \
+        (addr)[7] = (val)[7];                                                                      \
+    })
 
 /* Portable non-temporal store: falls back to a regular store */
-#define asm_movnti(addr, val)                                       \
-({                                                                  \
-    *(addr) = (val);                                                \
-    PM_MOVNTI(addr, sizeof(pcm_word_t), sizeof(pcm_word_t));        \
-})
+#define asm_movnti(addr, val)                                                                      \
+    ({                                                                                             \
+        *(addr) = (val);                                                                           \
+        PM_MOVNTI(addr, sizeof(pcm_word_t), sizeof(pcm_word_t));                                   \
+    })
 
 /* clflush: no portable equivalent — treated as a no-op.
  * Cache coherency is still maintained by the CPU's memory model.   */
 #define asm_clflush(addr) ((void)(addr))
 
 /* Full memory barrier — replaces mfence / sfence */
-#define asm_mfence()   \
-({                     \
-    PM_FENCE();        \
-    __sync_synchronize(); \
-})
+#define asm_mfence()                                                                               \
+    ({                                                                                             \
+        PM_FENCE();                                                                                \
+        __sync_synchronize();                                                                      \
+    })
 
-#define asm_sfence()   \
-({                     \
-    PM_FENCE();        \
-    __sync_synchronize(); \
-})
+#define asm_sfence()                                                                               \
+    ({                                                                                             \
+        PM_FENCE();                                                                                \
+        __sync_synchronize();                                                                      \
+    })
 
-
-static inline
-int rand_int(unsigned int *seed)
-{
-    *seed=*seed*196314165+907633515;
+static inline int rand_int(unsigned int *seed) {
+    *seed = *seed * 196314165 + 907633515;
     return *seed;
 }
 
-
-# ifdef _EMULATE_LATENCY_USING_NOPS
+#ifdef _EMULATE_LATENCY_USING_NOPS
 /* Portable busy-loop: issue 10 compiler barriers to approximate nop latency */
 static inline void asm_nop10() {
     __atomic_thread_fence(__ATOMIC_SEQ_CST);
@@ -276,50 +256,44 @@ static inline void asm_nop10() {
     __atomic_thread_fence(__ATOMIC_SEQ_CST);
 }
 
-static inline
-void
-emulate_latency_ns(int ns)
-{
-	int          i;
-	pcm_hrtime_t cycles;
-	pcm_hrtime_t start;
-	pcm_hrtime_t stop;
-	
-	cycles = NS2CYCLE(ns);
-	for (i=0; i<cycles; i+=5) {
-		asm_nop10(); /* each nop is 1 cycle */
-	}
+static inline void emulate_latency_ns(int ns) {
+    int i;
+    pcm_hrtime_t cycles;
+    pcm_hrtime_t start;
+    pcm_hrtime_t stop;
+
+    cycles = NS2CYCLE(ns);
+    for (i = 0; i < cycles; i += 5) {
+        asm_nop10(); /* each nop is 1 cycle */
+    }
 }
 
-# else
+#else
 
-static inline
-void
-emulate_latency_ns(int ns)
-{
-	pcm_hrtime_t cycles;
-	pcm_hrtime_t start;
-	pcm_hrtime_t stop;
-	
-	start = asm_rdtsc();
-	cycles = NS2CYCLE(ns);
+static inline void emulate_latency_ns(int ns) {
+    pcm_hrtime_t cycles;
+    pcm_hrtime_t start;
+    pcm_hrtime_t stop;
 
-	do { 
-		/* RDTSC doesn't necessarily wait for previous instructions to complete 
-		 * so a serializing instruction is usually used to ensure previous 
-		 * instructions have completed. However, in our case this is a desirable
-		 * property since we want to overlap the latency we emulate with the
-		 * actual latency of the emulated instruction. 
-		 */
-		stop = asm_rdtsc();
-	} while (stop - start < cycles);
+    start = asm_rdtsc();
+    cycles = NS2CYCLE(ns);
+
+    do {
+        /* RDTSC doesn't necessarily wait for previous instructions to complete
+         * so a serializing instruction is usually used to ensure previous
+         * instructions have completed. However, in our case this is a desirable
+         * property since we want to overlap the latency we emulate with the
+         * actual latency of the emulated instruction.
+         */
+        stop = asm_rdtsc();
+    } while (stop - start < cycles);
 }
 
-# endif
+#endif
 
 /**
  * \brief Writes a masked word.
- * 
+ *
  * x86 memory model guarantees that single-byte stores are atomic, and
  * also that word-aligned word-size stores are atomic. If we wrote a
  * word-aligned word by reading its old value, masking-in the new value
@@ -329,82 +303,65 @@ emulate_latency_ns(int ns)
  * Normally there is no race because we touch different parts. However
  * because we do word-size writes we introduce non-existing races. We
  * resolve this problem by writing each byte individually in the case
- * when we don't write the whole word. 
- * 
+ * when we don't write the whole word.
+ *
  * Note: Mask MUST not be zero.
  */
-// static inline 
+// static inline
 // void
-//  write_aligned_masked(pcm_word_t *addr, pcm_word_t val, pcm_word_t mask)		
-#define write_aligned_masked(addr, val, mask)						\
-(											\
-	{										\
-		uintptr_t a;								\
-		int       i;								\
-		int       trailing_0bytes;						\
-		int       leading_0bytes;						\
-											\
-		union convert_u {							\
-			pcm_word_t w;							\
-			uint8_t    b[sizeof(pcm_word_t)];				\
-		} valu;									\
-											\
-		/* Complete write? */							\
-		if (mask == ((uint64_t) -1)) {						\
-			PM_EQU_DW(*addr, val);						\
-		} else {								\
-			valu.w = val;							\
-			a = (uintptr_t) addr;						\
-			trailing_0bytes = __builtin_ctzll(mask) >> 3;			\
-			leading_0bytes = __builtin_clzll(mask) >> 3;			\
-			for (i = trailing_0bytes; i<8-leading_0bytes;i++) {		\
-				PM_EQU_DW(*((uint8_t *) (a+i)), valu.b[i]);		\
-			}								\
-		}									\
-	}										\
-)		
+//  write_aligned_masked(pcm_word_t *addr, pcm_word_t val, pcm_word_t mask)
+#define write_aligned_masked(addr, val, mask)                                                      \
+    ({                                                                                             \
+        uintptr_t a;                                                                               \
+        int i;                                                                                     \
+        int trailing_0bytes;                                                                       \
+        int leading_0bytes;                                                                        \
+                                                                                                   \
+        union convert_u {                                                                          \
+            pcm_word_t w;                                                                          \
+            uint8_t b[sizeof(pcm_word_t)];                                                         \
+        } valu;                                                                                    \
+                                                                                                   \
+        /* Complete write? */                                                                      \
+        if (mask == ((uint64_t) - 1)) {                                                            \
+            PM_EQU_DW(*addr, val);                                                                 \
+        } else {                                                                                   \
+            valu.w = val;                                                                          \
+            a = (uintptr_t)addr;                                                                   \
+            trailing_0bytes = __builtin_ctzll(mask) >> 3;                                          \
+            leading_0bytes = __builtin_clzll(mask) >> 3;                                           \
+            for (i = trailing_0bytes; i < 8 - leading_0bytes; i++) {                               \
+                PM_EQU_DW(*((uint8_t *)(a + i)), valu.b[i]);                                       \
+            }                                                                                      \
+        }                                                                                          \
+    })
 
-#define PCM_WB_STORE_MASKED(set, addr, val, mask)				\
-		write_aligned_masked(addr, val, mask);				
+#define PCM_WB_STORE_MASKED(set, addr, val, mask) write_aligned_masked(addr, val, mask);
 
-#define PCM_WB_STORE_ALIGNED_MASKED(set, addr, val, mask)			\
-		PCM_WB_STORE_MASKED(set, addr, val, mask);
+#define PCM_WB_STORE_ALIGNED_MASKED(set, addr, val, mask) PCM_WB_STORE_MASKED(set, addr, val, mask);
 
-#define PCM_WB_FENCE(set)							\
-	asm_mfence(); 
+#define PCM_WB_FENCE(set) asm_mfence();
 
-#define PCM_WB_FLUSH(set, addr)							\
-	asm_clflush(addr); 							\
+#define PCM_WB_FLUSH(set, addr) asm_clflush(addr);
 
-#define PCM_NT_STORE(set, addr, val)						\
-	asm_movnti(addr, val);
+#define PCM_NT_STORE(set, addr, val) asm_movnti(addr, val);
 
-#define PCM_NT_FLUSH(set)							\
-	asm_sfence();
+#define PCM_NT_FLUSH(set) asm_sfence();
 
-#define PCM_SEQSTREAM_STORE(set, addr, val)					\
-	asm_movnti(addr, val);
+#define PCM_SEQSTREAM_STORE(set, addr, val) asm_movnti(addr, val);
 
-#define PCM_SEQSTREAM_STORE_64B_FIRST_WORD(set, addr, val)			\
-	asm_movnti(addr, val);
+#define PCM_SEQSTREAM_STORE_64B_FIRST_WORD(set, addr, val) asm_movnti(addr, val);
 
-#define PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, addr, val)			\
-	asm_movnti(addr, val);
+#define PCM_SEQSTREAM_STORE_64B_NEXT_WORD(set, addr, val) asm_movnti(addr, val);
 
-#define PCM_SEQSTREAM_STORE_64B(set, addr, val)					\
-	asm_sse_write_block64(addr, val);
+#define PCM_SEQSTREAM_STORE_64B(set, addr, val) asm_sse_write_block64(addr, val);
 
-#define PCM_SEQSTREAM_FLUSH(set)						\
-	asm_sfence();
+#define PCM_SEQSTREAM_FLUSH(set) asm_sfence();
 
-#define PCM_SEQSTREAM_INIT(set) {;}
-
+#define PCM_SEQSTREAM_INIT(set)                                                                    \
+    { ; }
 
 /****************************** DO NOT SCROLL ***************************************/
-
-
-
-
 
 #if 0
 
@@ -433,14 +390,14 @@ PCM_WB_STORE(pcm_storeset_t *set, volatile pcm_word_t *addr, pcm_word_t val)
 	*addr = val;
 
 #ifdef M_PCM_EMULATE_LATENCY
-# ifdef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
+#ifdef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
 	if (pcm_likelihood_store_blockwaits > 0) {
 		int random_number = rand_int(&set->rand_seed) % TOTAL_OUTCOMES_NUM;
 		if (random_number < pcm_likelihood_store_blockwaits) {
 			emulate_latency_ns(M_PCM_LATENCY_WRITE);
 		}
 	}
-# endif
+#endif
 #endif
 }
 
@@ -460,14 +417,14 @@ PCM_WB_STORE_MASKED(pcm_storeset_t *set,
 	write_aligned_masked((pcm_word_t *) addr, val, mask);
 
 #ifdef M_PCM_EMULATE_LATENCY
-# ifdef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
+#ifdef M_PCM_EMULATE_LATENCY_BLOCKING_STORES
 	if (pcm_likelihood_store_blockwaits > 0) {
 		int random_number = rand_int(&set->rand_seed) % TOTAL_OUTCOMES_NUM;
 		if (random_number < pcm_likelihood_store_blockwaits) {
 			emulate_latency_ns(M_PCM_LATENCY_WRITE);
 		}
 	}
-# endif
+#endif
 #endif
 }
 
@@ -525,11 +482,11 @@ PCM_WB_FLUSH(pcm_storeset_t *set, volatile pcm_word_t *addr)
 		emulate_latency_ns(M_PCM_LATENCY_WRITE);
 #endif		
 		asm_mfence(); 
-	}	
+	}
 
-#else /* !M_PCM_EMULATE_LATENCY */ 
+#else  /* !M_PCM_EMULATE_LATENCY */ 
 	asm_clflush(addr); 	
-	asm_mfence(); 
+	asm_mfence();
 #endif /* !M_PCM_EMULATE_LATENCY */ 
 
 }
@@ -619,7 +576,7 @@ PCM_SEQSTREAM_INIT(pcm_storeset_t *set)
 {
 #ifdef M_PCM_EMULATE_CRASH
 
-#endif	
+#endif
 
 #ifdef M_PCM_EMULATE_LATENCY
 	set->seqstream_len = 0;
@@ -727,7 +684,7 @@ PCM_SEQSTREAM_FLUSH(pcm_storeset_t *set)
 {
 #ifdef M_PCM_EMULATE_CRASH
 
-#endif	
+#endif
 
 #ifdef M_PCM_EMULATE_LATENCY
 	int          pcm_bandwidth_MB = M_PCM_BANDWIDTH_MB;

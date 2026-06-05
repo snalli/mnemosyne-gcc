@@ -15,7 +15,7 @@
 
 /* Cache-line size: use 64 bytes everywhere (safe for all modern CPUs). */
 #ifndef CACHELINE_SIZE
-#define CACHELINE_SIZE     64
+#define CACHELINE_SIZE 64
 #endif
 #ifndef CACHELINE_SIZE_LOG
 #define CACHELINE_SIZE_LOG 6
@@ -49,21 +49,15 @@ struct mtm_jmpbuf_s {
  * ----------------------------------------------------------------------- */
 
 /* Hint to the CPU that we are in a spin-wait loop */
-static inline void
-cpu_relax(void)
-{
+static inline void cpu_relax(void) {
     __atomic_thread_fence(__ATOMIC_SEQ_CST);
 }
 
-static inline void
-atomic_read_barrier(void)
-{
+static inline void atomic_read_barrier(void) {
     __atomic_thread_fence(__ATOMIC_ACQUIRE);
 }
 
-static inline void
-atomic_write_barrier(void)
-{
+static inline void atomic_write_barrier(void) {
     __atomic_thread_fence(__ATOMIC_RELEASE);
 }
 
@@ -72,23 +66,17 @@ atomic_write_barrier(void)
  * Implemented via GCC built-ins so they work on every architecture.
  * ----------------------------------------------------------------------- */
 
-static inline uintptr_t *
-get_stack_pointer(void)
-{
+static inline uintptr_t *get_stack_pointer(void) {
     return (uintptr_t *)__builtin_frame_address(0);
 }
 
-static inline uintptr_t *
-get_frame_pointer(void)
-{
+static inline uintptr_t *get_frame_pointer(void) {
     return (uintptr_t *)(uintptr_t)__builtin_frame_address(0);
 }
 
 /* Walk the frame-pointer chain to find the stack base.
  * Requires -fno-omit-frame-pointer (already set in mnemosyne_iface). */
-static inline uintptr_t
-get_stack_base(void)
-{
+static inline uintptr_t get_stack_base(void) {
     uintptr_t fp = (uintptr_t)__builtin_frame_address(0);
     uintptr_t base = fp;
     while (fp) {

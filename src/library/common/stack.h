@@ -22,20 +22,19 @@
 #endif
 
 typedef struct stk_stack_node {
-  DATA_TYPE info;
-  struct stk_stack_node * next;
+    DATA_TYPE info;
+    struct stk_stack_node *next;
 } stk_stack_node;
 
-typedef struct stk_stack { 
-  stk_stack_node * top;
-  stk_stack_node * tail;
-} stk_stack ;
+typedef struct stk_stack {
+    stk_stack_node *top;
+    stk_stack_node *tail;
+} stk_stack;
 
 /*  These functions are all very straightforward and self-commenting so */
 /*  I didn't think additional comments would be useful */
-stk_stack * StackJoin(stk_stack * stack1, stk_stack * stack2);
-stk_stack * StackCreate();
-void StackPush(stk_stack * theStack, DATA_TYPE newInfoPointer);
-void * StackPop(stk_stack * theStack);
+stk_stack *StackJoin(stk_stack *stack1, stk_stack *stack2);
+stk_stack *StackCreate();
+void StackPush(stk_stack *theStack, DATA_TYPE newInfoPointer);
+void *StackPop(stk_stack *theStack);
 int StackNotEmpty(stk_stack *);
-

@@ -1,10 +1,10 @@
 /*
-    Copyright (C) 2011 Computer Sciences Department, 
+    Copyright (C) 2011 Computer Sciences Department,
     University of Wisconsin -- Madison
 
     ----------------------------------------------------------------------
 
-    This file is part of Mnemosyne: Lightweight Persistent Memory, 
+    This file is part of Mnemosyne: Lightweight Persistent Memory,
     originally developed at the University of Wisconsin -- Madison.
 
     Mnemosyne was originally developed primarily by Haris Volos
@@ -16,7 +16,7 @@
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation, version 2
     of the License.
- 
+
     Mnemosyne is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -24,7 +24,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+    Foundation, Inc., 51 Franklin Street, Fifth Floor,
     Boston, MA  02110-1301, USA.
 
 ### END HEADER ###
@@ -46,10 +46,10 @@
 /*!
  * Creates a directory with the given path. This will create directories
  * to satisfy the full path if necessary.
- * 
+ *
  * e.g. mkdir_r("/a/b/c", S_IRWXU), supposing none of a b or c exists,
  *  will create a, then a/b, then a/b/c.
- * 
+ *
  * \param dir is the path of the directory to be created. This may be
  *  relative or absolute.
  * \param mode is a permission setting to fix on the new directory(s). e.g. S_IRWXU
@@ -59,7 +59,7 @@ void mkdir_r(const char *dir, mode_t mode);
 /*!
  * Given a full path, finds the last component of it (which is the unqualified
  * file name).
- * 
+ *
  * \param path is a path to a file, whether relative or not. This must not be NULL.
  * \param file is an output parameter, set to point to the beginning of the filename
  *  component of path. This must not be NULL.

@@ -1,10 +1,10 @@
 /*
-    Copyright (C) 2011 Computer Sciences Department, 
+    Copyright (C) 2011 Computer Sciences Department,
     University of Wisconsin -- Madison
 
     ----------------------------------------------------------------------
 
-    This file is part of Mnemosyne: Lightweight Persistent Memory, 
+    This file is part of Mnemosyne: Lightweight Persistent Memory,
     originally developed at the University of Wisconsin -- Madison.
 
     Mnemosyne was originally developed primarily by Haris Volos
@@ -16,7 +16,7 @@
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation, version 2
     of the License.
- 
+
     Mnemosyne is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -24,7 +24,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+    Foundation, Inc., 51 Franklin Street, Fifth Floor,
     Boston, MA  02110-1301, USA.
 
 ### END HEADER ###
@@ -39,9 +39,9 @@
  *
  *
  * To add a new transaction dynamic execution mode:
- * 
+ *
  * 1) mode.c
- * 
+ *
  *    - Add extern mtm_dtable_t mtm_XXX_dtable;
  *
  * 2) mode.h
@@ -52,22 +52,19 @@
  * 3) Look into pwbnl as a template
  *
  *    - barrier.c: at the end of file there are barrier definitions
- * 
+ *
  */
 
 #ifndef _MODE_H_891AKK
 #define _MODE_H_891AKK
 
-
-# define FOREACH_MODE(ACTION)   \
-    ACTION(pwbetl)               
-
+#define FOREACH_MODE(ACTION) ACTION(pwbetl)
 
 typedef enum {
-	MTM_MODE_none  = -1,
-	MTM_MODE_pwbnl = 0,
-	MTM_MODE_pwbetl = 1,
-	MTM_NUM_MODES
+    MTM_MODE_none = -1,
+    MTM_MODE_pwbnl = 0,
+    MTM_MODE_pwbetl = 1,
+    MTM_NUM_MODES
 } mtm_mode_t;
 
 /* This type is private to the STM implementation.  */

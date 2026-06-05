@@ -21,8 +21,7 @@ typedef struct arch_spinlock {
 } arch_spinlock_t;
 
 static __attribute__((always_inline)) inline void
-__ticket_spin_lock(volatile arch_spinlock_t *lock)
-{
+__ticket_spin_lock(volatile arch_spinlock_t *lock) {
     /* Claim a ticket by incrementing the tail. */
     uint16_t ticket = __atomic_fetch_add(&lock->tail, 1u, __ATOMIC_SEQ_CST);
 
@@ -32,8 +31,7 @@ __ticket_spin_lock(volatile arch_spinlock_t *lock)
 }
 
 static __attribute__((always_inline)) inline void
-__ticket_spin_unlock(volatile arch_spinlock_t *lock)
-{
+__ticket_spin_unlock(volatile arch_spinlock_t *lock) {
     /* Advance head — only touches head, never tail. */
     uint16_t h = __atomic_load_n(&lock->head, __ATOMIC_RELAXED);
     __atomic_store_n(&lock->head, (uint16_t)(h + 1u), __ATOMIC_RELEASE);

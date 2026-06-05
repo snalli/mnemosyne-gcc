@@ -61,3 +61,12 @@ target_compile_definitions(mtm PRIVATE
 # Assemble arch.S with the C preprocessor so the per-arch block is selected.
 enable_language(ASM)
 set_source_files_properties(src/sysdeps/x86/arch.S PROPERTIES LANGUAGE ASM)
+
+# barrier.c instantiates the GCC TM-ABI read/write barriers for *every* _ITM
+# type, including the 256-bit vector type (_ITM_RM256 / _ITM_WM256). On x86
+# without -mavx, passing/returning __m256 by value trips -Wpsabi (an ABI
+# *advisory*, not a bug). The signatures are fixed by the GCC TM ABI, so we
+# can neither change them nor force -mavx at runtime; -Wno-psabi is GCC's
+# sanctioned way to acknowledge the vector ABI here.
+set_source_files_properties(src/mode/pwbetl/barrier.c
+    PROPERTIES COMPILE_OPTIONS -Wno-psabi)

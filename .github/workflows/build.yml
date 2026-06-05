@@ -36,7 +36,7 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p /dev/shm/psegments
-          # Prime the persistent segments by running the simple example.
+          # Prime the persistent segments by running the simple example first.
           # mnemosyne creates and formats segment files on first run;
           # integration tests then find them properly initialized.
           cd src

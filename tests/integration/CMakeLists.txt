@@ -45,7 +45,7 @@ function(add_integration_test name src)
     )
     target_link_options(${name} PRIVATE
         -T${LINKER_SCRIPT}
-        -no-pie   # keep PERSISTENT section at its fixed ELF address
+        -no-pie
     )
     add_test(NAME ${name}
         COMMAND ${name}

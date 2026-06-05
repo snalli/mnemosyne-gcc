@@ -20,7 +20,7 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake gcc g++ \
             libconfig-dev libelf-dev elfutils \
-            libboost-all-dev libnuma-dev \
+            libboost-all-dev libnuma-dev libevent-dev \
             libyaml-cpp-dev libattr1-dev \
             clang-format cppcheck valgrind libgtest-dev libgmock-dev
 
@@ -46,6 +46,9 @@ jobs:
           MNEMOSYNE_PHEAP_SIZE_MB=32 LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/prime/prime
           cd build
           ctest --output-on-failure -E "_valgrind"
+
+      - name: Memcached smoke test
+        run: tests/bench/memcached/smoke_test.sh "$PWD/src/build"
 
       - name: Valgrind memcheck
         run: |

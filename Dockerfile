@@ -41,7 +41,8 @@ RUN cmake .. \
     && mkdir -p /dev/shm/psegments \
     && (cd /mnemosyne/src && MNEMOSYNE_PHEAP_SIZE_MB=32 LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/prime/prime || true) \
     && ctest --output-on-failure -E "_valgrind" \
-    && ctest --output-on-failure -R "_valgrind$"
+    && ctest --output-on-failure -R "_valgrind$" \
+    && /mnemosyne/tests/bench/memcached/smoke_test.sh /mnemosyne/src/build
 
 # NOTE: the persistent segments live under /dev/shm. Docker's default tmpfs is
 # 64 MiB; if the test step above hits a Bus error, build with a larger shm:

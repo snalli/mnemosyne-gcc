@@ -98,3 +98,6 @@ set(MNEMOSYNE_SRC ${CMAKE_CURRENT_SOURCE_DIR})
 # All GTest tests (unit + integration) live in tests/unit.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit
                  ${CMAKE_CURRENT_BINARY_DIR}/tests/unit)
+# Persistent-memory memcached benchmark.
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../tests/bench/memcached
+                 ${CMAKE_CURRENT_BINARY_DIR}/tests/bench/memcached)

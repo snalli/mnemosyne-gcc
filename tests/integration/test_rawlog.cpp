@@ -12,31 +12,39 @@ extern "C" {
 #include <mnemosyne.h>
 #include <pcm.h>
 #include <log.h>
+
+/* The TORNBIT log type (used below) is registered with the log manager
+ * by MTM's initialisation, which normally runs lazily on the first
+ * transaction. This test allocates a log directly without ever entering
+ * a transaction, so we force MTM init up front via this ABI entry point. */
+int _ITM_initializeProcess(void);
 }
 
-/* LF_TYPE_TM_TORNBIT defined in tmlog_tornbit.h via mtm_i.h, but that
- * header chain pulls in C-only internals that break C++ compilation.
- * Define the constant directly — its value is stable. */
-#ifndef LF_TYPE_TM_TORNBIT
-#  define LF_TYPE_TM_TORNBIT 3
+/* The library is built with TMLOG_TYPE=TMLOG_TYPE_BASE, so MTM registers the
+ * BASE persistent-log type (LF_TYPE_TM_BASE = 2) with the log manager. This
+ * test exercises that same raw physical-log type. The enum lives in
+ * tmlog_base.h via mtm_i.h, but that header chain pulls in C-only internals
+ * that break C++ compilation, so we define the stable constant directly. */
+#ifndef LF_TYPE_TM_BASE
+#  define LF_TYPE_TM_BASE 2
 #endif
 
 #define SEQUENCE_END 0xDEADBEEFDEADBEEFULL
 
 /* ---- minimal Sequence helper (was sequence.helper.h) ---- */
 
-typedef struct m_rawlog_tornbit_s m_rawlog_tornbit_t;
-struct m_rawlog_tornbit_s { m_phlog_tornbit_t phlog_tornbit; };
+typedef struct m_rawlog_base_s m_rawlog_base_t;
+struct m_rawlog_base_s { m_phlog_base_t phlog_base; };
 
-static m_result_t rawlog_write(pcm_storeset_t *set, m_rawlog_tornbit_t *log, pcm_word_t val)
+static m_result_t rawlog_write(pcm_storeset_t *set, m_rawlog_base_t *log, pcm_word_t val)
 {
-    PHLOG_WRITE(tornbit, set, &log->phlog_tornbit, val);
+    PHLOG_WRITE(base, set, &log->phlog_base, val);
     return M_R_SUCCESS;
 }
 
-static m_result_t rawlog_flush(pcm_storeset_t *set, m_rawlog_tornbit_t *log)
+static m_result_t rawlog_flush(pcm_storeset_t *set, m_rawlog_base_t *log)
 {
-    PHLOG_FLUSH(tornbit, set, &log->phlog_tornbit);
+    PHLOG_FLUSH(base, set, &log->phlog_base);
     return M_R_SUCCESS;
 }
 
@@ -54,7 +62,7 @@ static std::vector<pcm_word_t> make_sequence(int len, int seed)
     return v;
 }
 
-static void write_sequence(pcm_storeset_t *set, m_rawlog_tornbit_t *log,
+static void write_sequence(pcm_storeset_t *set, m_rawlog_base_t *log,
                            const std::vector<pcm_word_t> &seq)
 {
     for (auto w : seq)
@@ -64,13 +72,13 @@ static void write_sequence(pcm_storeset_t *set, m_rawlog_tornbit_t *log,
 }
 
 static std::vector<pcm_word_t> read_sequence(pcm_storeset_t *set,
-                                              m_rawlog_tornbit_t *log)
+                                              m_rawlog_base_t *log)
 {
     std::vector<pcm_word_t> v;
     pcm_word_t val;
-    while (m_phlog_tornbit_read(&log->phlog_tornbit, &val) == M_R_SUCCESS) {
+    while (m_phlog_base_read(&log->phlog_base, &val) == M_R_SUCCESS) {
         if (val == SEQUENCE_END) {
-            m_phlog_tornbit_next_chunk(&log->phlog_tornbit);
+            m_phlog_base_next_chunk(&log->phlog_base);
             break;
         }
         v.push_back(val);
@@ -82,16 +90,18 @@ static std::vector<pcm_word_t> read_sequence(pcm_storeset_t *set,
 
 class RawlogTest : public ::testing::Test {
 protected:
-    pcm_storeset_t     *pcm_storeset = nullptr;
-    m_log_dsc_t        *log_dsc      = nullptr;
-    m_rawlog_tornbit_t *rawlog       = nullptr;
+    pcm_storeset_t  *pcm_storeset = nullptr;
+    m_log_dsc_t     *log_dsc      = nullptr;
+    m_rawlog_base_t *rawlog       = nullptr;
 
     void SetUp() override {
+        /* Register the BASE log type by initialising MTM. */
+        ASSERT_EQ(_ITM_initializeProcess(), 0);
         pcm_storeset = pcm_storeset_get();
         ASSERT_NE(pcm_storeset, nullptr);
-        ASSERT_EQ(m_logmgr_alloc_log(pcm_storeset, LF_TYPE_TM_TORNBIT, 0, &log_dsc),
+        ASSERT_EQ(m_logmgr_alloc_log(pcm_storeset, LF_TYPE_TM_BASE, 0, &log_dsc),
                   M_R_SUCCESS);
-        rawlog = reinterpret_cast<m_rawlog_tornbit_t *>(log_dsc->log);
+        rawlog = reinterpret_cast<m_rawlog_base_t *>(log_dsc->log);
         ASSERT_NE(rawlog, nullptr);
     }
 

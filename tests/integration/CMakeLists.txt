@@ -53,7 +53,13 @@ function(add_integration_test name src)
     )
     # Integration tests share /dev/shm/psegments segment files; mnemosyne cannot
     # be initialised by two processes concurrently, so run them one at a time.
-    set_tests_properties(${name} PROPERTIES TIMEOUT 30 RUN_SERIAL YES)
+    # Use a small persistent-heap region so the backing store fits comfortably
+    # in a modest /dev/shm (the default heap region is 8 GiB).
+    set_tests_properties(${name} PROPERTIES
+        TIMEOUT 30
+        RUN_SERIAL YES
+        ENVIRONMENT "MNEMOSYNE_PHEAP_SIZE_MB=32"
+    )
 endfunction()
 
 add_integration_test(itest_pmap    test_pmap.cpp)

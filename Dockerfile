@@ -39,8 +39,13 @@ RUN cmake .. \
       -DTARGET_ARCH_MEM=CC-NUMA \
     && make -j$(nproc) 2>&1 | tee /mnemosyne/build.log \
     && mkdir -p /dev/shm/psegments \
-    && (cd /mnemosyne/src && LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/simple/simple || true) \
+    && (cd /mnemosyne/src && MNEMOSYNE_PHEAP_SIZE_MB=32 LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/prime/prime || true) \
     && ctest --output-on-failure -E "_valgrind" \
     && ctest --output-on-failure -R "_valgrind$"
+
+# NOTE: the persistent segments live under /dev/shm. Docker's default tmpfs is
+# 64 MiB; if the test step above hits a Bus error, build with a larger shm:
+#   docker build --shm-size=2g ...
+# (the integration tests cap the heap region at 32 MiB to stay within limits).
 
 CMD ["/bin/bash"]

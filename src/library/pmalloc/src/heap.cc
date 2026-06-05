@@ -21,18 +21,19 @@ int Heap::init()
     alps::init_log(dbgopt);
 
     Context ctx;
-    /* Clean up multiple definitions of PSEGMENT_* */
     /*
-     * Do not combine n_gb and region_size in the defn
-     * of region_size. it causes compiler to generate wrong
-     * (my guess), which can actually be observed as an overflow 
-     * during runtime.
-     * splitting the values as n_gb and region_size does not
-     * cause any absurd overflows during runtime.
+     * Size of the persistent heap region, in MiB. Defaults to 8 GiB, but is
+     * overridable via the MNEMOSYNE_PHEAP_SIZE_MB environment variable so that
+     * test / CI environments with a small /dev/shm (where the region is backed)
+     * can use a modest region without exhausting tmpfs.
      */
-    unsigned long long n_gb = 8;
-    unsigned long long region_size = 1024*1024*1024;
-    region_size *= n_gb; 
+    unsigned long long region_mb = 8ULL * 1024;   /* 8 GiB default */
+    if (const char *env = getenv("MNEMOSYNE_PHEAP_SIZE_MB")) {
+        unsigned long long v = strtoull(env, nullptr, 10);
+        if (v > 0)
+            region_mb = v;
+    }
+    unsigned long long region_size = region_mb * 1024ULL * 1024ULL;
     size_t block_log2size = 13;
 
     slabsize_ = 1 << block_log2size;

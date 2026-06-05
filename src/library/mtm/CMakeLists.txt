@@ -20,7 +20,7 @@ add_library(mtm STATIC
     src/txlock.c
     src/useraction.c
     src/sysdeps/linux/rwlock.c
-    src/sysdeps/x86/arch.c
+    src/sysdeps/x86/arch.S
 )
 
 target_include_directories(mtm PRIVATE
@@ -58,6 +58,6 @@ target_compile_definitions(mtm PRIVATE
     CM_THRESHOLD_DEFAULT=0
 )
 
-set_property(SOURCE src/sysdeps/x86/arch.c
-    APPEND PROPERTY COMPILE_OPTIONS -DHAVE_CONFIG_H
-)
+# Assemble arch.S with the C preprocessor so the per-arch block is selected.
+enable_language(ASM)
+set_source_files_properties(src/sysdeps/x86/arch.S PROPERTIES LANGUAGE ASM)

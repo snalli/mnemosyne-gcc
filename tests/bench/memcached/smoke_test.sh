@@ -13,7 +13,6 @@ SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../src" && pwd)"
 # Build dir: arg 1, else $SRC_DIR/build. Resolved to an absolute path.
 BUILD_DIR="$(cd "${1:-${SRC_DIR}/build}" && pwd)"
 MC="${BUILD_DIR}/tests/bench/memcached/memcached_mtm"
-PORT=11311
 KEY=smoke
 VAL=barbaz
 
@@ -21,6 +20,9 @@ if [[ ! -x "${MC}" ]]; then
     echo "smoke_test: ${MC} not found" >&2
     exit 1
 fi
+
+# Pick a free ephemeral port so the test never collides with a squatter.
+PORT="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
 
 mkdir -p /dev/shm/psegments
 rm -rf /dev/shm/psegments/*
@@ -36,17 +38,30 @@ MNEMOSYNE_PHEAP_SIZE_MB=32 LD_LIBRARY_PATH="${BUILD_DIR}:${LD_LIBRARY_PATH:-}" \
 MCPID=$!
 
 # Wait for the server to accept connections (max ~10s).
+ready=0
 for _ in $(seq 1 50); do
     if python3 -c "import socket;socket.create_connection(('127.0.0.1',${PORT}),timeout=0.5).close()" 2>/dev/null; then
+        ready=1
         break
     fi
     if ! kill -0 "${MCPID}" 2>/dev/null; then
-        echo "smoke_test: server exited early" >&2
+        echo "smoke_test: server exited early (failed to start/bind)" >&2
         tail -20 /tmp/memcached_smoke.log >&2
         exit 1
     fi
     sleep 0.2
 done
+if [[ "${ready}" -ne 1 ]]; then
+    echo "smoke_test: server never became ready on port ${PORT}" >&2
+    tail -20 /tmp/memcached_smoke.log >&2
+    exit 1
+fi
+
+# Confirm it is *our* server (still alive) immediately before issuing requests.
+if ! kill -0 "${MCPID}" 2>/dev/null; then
+    echo "smoke_test: server (pid ${MCPID}) not alive before set/get" >&2
+    exit 1
+fi
 
 python3 - "${PORT}" "${KEY}" "${VAL}" <<'PY'
 import socket, sys, time

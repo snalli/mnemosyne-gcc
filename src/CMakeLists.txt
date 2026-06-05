@@ -91,6 +91,7 @@ target_link_libraries(mnemosyne PRIVATE
 )
 
 add_subdirectory(examples/simple)
+add_subdirectory(examples/prime)
 
 enable_testing()
 set(MNEMOSYNE_SRC ${CMAKE_CURRENT_SOURCE_DIR})

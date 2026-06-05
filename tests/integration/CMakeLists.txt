@@ -51,7 +51,9 @@ function(add_integration_test name src)
         COMMAND ${name}
         WORKING_DIRECTORY ${MNEMOSYNE_SRC}
     )
-    set_tests_properties(${name} PROPERTIES TIMEOUT 30)
+    # Integration tests share /dev/shm/psegments segment files; mnemosyne cannot
+    # be initialised by two processes concurrently, so run them one at a time.
+    set_tests_properties(${name} PROPERTIES TIMEOUT 30 RUN_SERIAL YES)
 endfunction()
 
 add_integration_test(itest_pmap    test_pmap.cpp)

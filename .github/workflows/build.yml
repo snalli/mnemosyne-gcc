@@ -36,11 +36,11 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p /dev/shm/psegments
-          # Prime the persistent segments by running the simple example first.
-          # mnemosyne creates and formats segment files on first run;
-          # integration tests then find them properly initialized.
+          # Prime the persistent segments: the library constructor creates and
+          # initialises segment table + log pool on first run.
+          # Use the dedicated prime binary (no threads/PTx) so it exits cleanly.
           cd src
-          LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/simple/simple || true
+          LD_LIBRARY_PATH=build:$LD_LIBRARY_PATH build/examples/prime/prime
           cd build
           ctest --output-on-failure -E "_valgrind"
 

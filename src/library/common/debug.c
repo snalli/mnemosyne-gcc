@@ -81,7 +81,7 @@ unsigned long long tot_epoch = 0;
  *
  */
 #include <pm_instr.h>
-void __pm_trace_print(char *format, ...) {
+void __pm_trace_print(const char *format, ...) {
     va_list __va_list;
     va_start(__va_list, format);
     va_arg(__va_list, int); /* ignore first arg */
@@ -123,8 +123,8 @@ unsigned long long get_tot_epoch_count(void) {
     return tot_epoch;
 }
 
-void m_debug_print(char *file, int line, int fatal, const char *prefix, const char *strformat,
-                   ...) {
+void m_debug_print(const char *file, int line, int fatal, const char *prefix,
+                   const char *strformat, ...) {
     char buf[512];
     va_list ap;
     int len;

@@ -60,7 +60,8 @@ extern "C" {
 
 /* Interface functions */
 
-void m_debug_print(char *file, int line, int fatal, const char *prefix, const char *strformat, ...);
+void m_debug_print(const char *file, int line, int fatal, const char *prefix,
+                   const char *strformat, ...);
 void m_debug_print_L(int debug_level, const char *strformat, ...);
 void m_print_trace(void);
 
@@ -85,7 +86,7 @@ extern struct timeval glb_time;
 extern unsigned long long start_buf_drain, end_buf_drain, buf_drain_period;
 extern unsigned long long glb_tv_sec, glb_tv_usec, glb_start_time;
 
-extern void __pm_trace_print(char *format, ...);
+extern void __pm_trace_print(const char *format, ...);
 
 #ifdef __cplusplus
 }

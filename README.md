@@ -1,5 +1,10 @@
 # Mnemosyne
 
+**Mnemosyne** — pronounced *ne-MOSS-uh-nee*. The leading **m** is silent, just
+like in **mnemonic**; both words come from the Greek root *mnēmē* ("memory"), and
+Mnemosyne was the Greek goddess of memory — a fitting name for a persistent-memory
+library.
+
 Lightweight Persistent Memory (PM) library. Mnemosyne lets programmers declare
 persistent global variables with the `persistent` keyword and allocate persistent
 heap objects dynamically. Consistent updates are provided through a lightweight

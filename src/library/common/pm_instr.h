@@ -124,9 +124,13 @@
         }                                                                                          \
     }
 #else
+/* PM tracing disabled (default). The persistence hot path (every fence and
+ * non-temporal store routes through PM_TRACE) must carry no tracing overhead,
+ * so this expands to nothing — the real stores/fences in the PM_* / asm_*
+ * macros are separate statements and are unaffected. Define _ENABLE_TRACE or
+ * _ENABLE_FTRACE to re-enable tracing. */
 #define TENTRY_ID (int)0
-#define pm_trace_print(format, args...)                                                            \
-    { __pm_trace_print(format, args); }
+#define pm_trace_print(format, args...) ((void)0)
 #endif
 
 #define PM_TRACE pm_trace_print

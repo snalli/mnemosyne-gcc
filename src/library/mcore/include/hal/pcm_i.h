@@ -220,7 +220,15 @@ static inline unsigned long long asm_rdtscp(void) {
     })
 
 /* clflush: no portable equivalent — treated as a no-op.
- * Cache coherency is still maintained by the CPU's memory model.   */
+ * Cache coherency is still maintained by the CPU's memory model, so this is
+ * correct for cache-coherent / DRAM-backed (emulated) persistence.
+ *
+ * DURABILITY CAVEAT: for true durability to real persistent-memory hardware,
+ * a cache-line writeback is required so stores actually reach the persistence
+ * domain — on x86 that is clflush / clflushopt / clwb, on ARM a DC CVAP. This
+ * no-op does NOT provide that guarantee; it relies on the data already being
+ * visible in (volatile) memory. Add the arch-specific writeback here if
+ * targeting physical NVM rather than a DRAM-emulated persistent region. */
 #define asm_clflush(addr) ((void)(addr))
 
 /* Full memory barrier — replaces mfence / sfence */

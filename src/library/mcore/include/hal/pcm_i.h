@@ -45,6 +45,10 @@
 #include "cuckoo_hash/PointerHashInline.h"
 #include "pm_instr.h"
 
+#if defined(__x86_64__) || defined(__i386__)
+#include <immintrin.h> /* _mm_clflush */
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -219,17 +223,30 @@ static inline unsigned long long asm_rdtscp(void) {
         PM_MOVNTI(addr, sizeof(pcm_word_t), sizeof(pcm_word_t));                                   \
     })
 
-/* clflush: no portable equivalent — treated as a no-op.
- * Cache coherency is still maintained by the CPU's memory model, so this is
- * correct for cache-coherent / DRAM-backed (emulated) persistence.
+/* clflush: clean/flush a cache line so the store reaches the persistence
+ * domain.  There is no single compiler builtin for a data-cache writeback
+ * (__builtin___clear_cache targets the *instruction* cache), so we dispatch to
+ * each architecture's intrinsic via predefined target macros — portable in the
+ * sense that it compiles everywhere and emits a real flush wherever the ISA
+ * provides one.
  *
- * DURABILITY CAVEAT: for true durability to real persistent-memory hardware,
- * a cache-line writeback is required so stores actually reach the persistence
- * domain — on x86 that is clflush / clflushopt / clwb, on ARM a DC CVAP. This
- * no-op does NOT provide that guarantee; it relies on the data already being
- * visible in (volatile) memory. Add the arch-specific writeback here if
- * targeting physical NVM rather than a DRAM-emulated persistent region. */
+ *   x86 / x86-64 : _mm_clflush  (SSE2 intrinsic; baseline on x86-64). A future
+ *                  refinement could prefer clwb/clflushopt when -mclwb is set.
+ *   AArch64      : DC CVAC      (clean by VA to point of coherency; permitted
+ *                  at EL0 on Linux via SCTLR_EL1.UCI). DC CVAP (point of
+ *                  persistence) is stronger but needs ARMv8.2-DCPoP.
+ *   other        : no-op — relies on the data already being visible in memory
+ *                  (correct only for cache-coherent / DRAM-emulated regions).
+ *
+ * Ordering w.r.t. other accesses is provided separately by the fences
+ * (asm_mfence / asm_sfence), matching the original x86 semantics. */
+#if defined(__x86_64__) || defined(__i386__)
+#define asm_clflush(addr) _mm_clflush((const void *)(addr))
+#elif defined(__aarch64__)
+#define asm_clflush(addr) __asm__ __volatile__("dc cvac, %0" ::"r"((const void *)(addr)) : "memory")
+#else
 #define asm_clflush(addr) ((void)(addr))
+#endif
 
 /* Full memory barrier — replaces mfence / sfence */
 #define asm_mfence()                                                                               \

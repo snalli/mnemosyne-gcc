@@ -45,10 +45,6 @@
 #include "cuckoo_hash/PointerHashInline.h"
 #include "pm_instr.h"
 
-#if defined(__x86_64__) || defined(__i386__)
-#include <immintrin.h> /* _mm_clflush */
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -230,18 +226,20 @@ static inline unsigned long long asm_rdtscp(void) {
  * sense that it compiles everywhere and emits a real flush wherever the ISA
  * provides one.
  *
- *   x86 / x86-64 : _mm_clflush  (SSE2 intrinsic; baseline on x86-64). A future
+ *   x86 / x86-64 : CLFLUSH     (SSE2; always encodable on x86-64). A future
  *                  refinement could prefer clwb/clflushopt when -mclwb is set.
- *   AArch64      : DC CVAC      (clean by VA to point of coherency; permitted
+ *   AArch64      : DC CVAC     (clean by VA to point of coherency; permitted
  *                  at EL0 on Linux via SCTLR_EL1.UCI). DC CVAP (point of
  *                  persistence) is stronger but needs ARMv8.2-DCPoP.
  *   other        : no-op — relies on the data already being visible in memory
  *                  (correct only for cache-coherent / DRAM-emulated regions).
  *
- * Ordering w.r.t. other accesses is provided separately by the fences
- * (asm_mfence / asm_sfence), matching the original x86 semantics. */
+ * Emitted as inline asm rather than via <immintrin.h> so the header compiles
+ * without requiring -msse4/-mavx target flags. Ordering w.r.t. other accesses
+ * is provided separately by the fences (asm_mfence / asm_sfence), matching the
+ * original x86 semantics. */
 #if defined(__x86_64__) || defined(__i386__)
-#define asm_clflush(addr) _mm_clflush((const void *)(addr))
+#define asm_clflush(addr) __asm__ __volatile__("clflush %0" : "+m"(*(volatile char *)(addr)))
 #elif defined(__aarch64__)
 #define asm_clflush(addr) __asm__ __volatile__("dc cvac, %0" ::"r"((const void *)(addr)) : "memory")
 #else
